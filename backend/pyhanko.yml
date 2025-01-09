@@ -1,0 +1,19 @@
+stamp-styles:
+    default:
+        type: text
+        background: __stamp__
+        stamp-text: "Signed by %(signer)s\nTimestamp: %(ts)s"
+        
+    landlord:
+        type: text
+        background: landlord.png
+        stamp-text: "Signed by %(signer)s\nTimestamp: %(ts)s"
+        text-box-style:
+            leading: 13
+
+    tenant:
+        type: text
+        background: tenant.png
+        stamp-text: "Signed by %(signer)s\nTimestamp: %(ts)s"
+        text-box-style:
+            leading: 13

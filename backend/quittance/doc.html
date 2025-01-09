@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Quittance de Loyer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 8px;
+            padding-left: 0px;
+            vertical-align: top;
+        }
+
+        .details-table {
+            width: 100%;
+            border: 1px solid #000;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .details-table td {
+            padding: 10px;
+            border: 1px solid #000;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #000080;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 10pt;
+        }
+
+        .signature {
+            margin-top: 50px;
+            text-align: right;
+        }
+        .logo {
+            width: 100px; /* Taille en largeur */
+            height: auto; /* Hauteur proportionnelle */
+            position: absolute; /* Position absolue */
+            top: 10px; /* Décalage depuis le haut */
+            left: 10px; /* Décalage depuis la droite */
+        }
+    </style>
+</head>
+<body>
+
+    <img src="{{ image_path }}" alt="Logo Hestia" class="logo">
+    <h1>QUITTANCE DE LOYER</h1>
+    <h2>Période du {{start_date}} au {{end_date}}</h2>
+
+    <div class="section">
+        <table class="info-table">
+            <tr>
+                <td>
+                    <span class="bold">Propriétaire :</span><br>
+                    {{landlord_first_name}} {{landlord_last_name}}<br>
+                    {{landlord_address}}<br>
+                    {{landlord_postal_code}} {{landlord_city}}<br>
+                    {{landlord_email}}<br>
+                    {{landlord_phone}}
+                </td>
+                <td>
+                    <span class="bold">Locataire :</span><br>
+                    {{tenant_first_name}} {{tenant_last_name}}<br>
+                    {{tenant_address}}<br>
+                    {{tenant_postal_code}} {{tenant_city}}<br>
+                    {{tenant_email}}<br>
+                    {{tenant_phone}}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <span class="bold">Adresse de la location :</span><br>
+        {{landlord_address}}, {{landlord_postal_code}} {{landlord_city}}
+    </div>
+
+    <div class="section">
+        <span class="bold">Détails du paiement :</span>
+        <table class="details-table">
+            <tr>
+                <td>Date du paiement :</td>
+                <td>{{receipt_date}}</td>
+            </tr>
+            <tr>
+                <td>Pour la période :</td>
+                <td>{{start_date}} - {{end_date}}</td>
+            </tr>
+            <tr>
+                <td>Montant du loyer :</td>
+                <td>{{rent_amount}} €</td>
+            </tr>
+            <tr>
+                <td>Montant des charges :</td>
+                <td>{{charges_amount}} €</td>
+            </tr>
+            <tr>
+                <td class="highlight">TOTAL PAYÉ :</td>
+                <td class="highlight">{{total_amount}} €</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        Cette quittance annule tous les reçus qui auraient pu être établis précédemment en cas de paiement partiel du montant du présent terme.
+        Elle est à conserver pendant trois ans par le locataire (loi n° 89-462 du 6 juillet 1989 : art. 7-1).
+    </div>
+
+    <div class="signature">
+        Fait le {{rent_receipt_date}}
+    </div>
+</body>
+</html>

@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "backend"
+version = "0.1.0"
+description = ""
+authors = ["NICOLAS HAVARD <nicolas.havard.contractor@ardian.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.12"
+weasyprint = "^63.1"
+pypdf = "^5.1.0"
+pdfrw = "^0.4"
+pyhanko = {extras = ["opentype"], version = "^0.25.3"}
+jinja2 = "^3.1.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

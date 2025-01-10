@@ -1,3 +1,4 @@
-*/private.key
-*/cert.pem
-*/cert.pfx
+private.key
+cert.pem
+cert.pfx
+.env

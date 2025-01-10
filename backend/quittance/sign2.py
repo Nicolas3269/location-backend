@@ -5,7 +5,7 @@ from pyhanko.keys import load_certs_from_pemder, load_private_key_from_pemder
 import datetime
 from pyhanko.sign.fields import SigFieldSpec, append_signature_field
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
-
+import os
 # Données dynamiques pour le bail
 data = {
     "landlord": {
@@ -14,7 +14,8 @@ data = {
         "signature_image": "landlord_signature.png",
         "cert": "cert.pem",
         "key": "private.key",
-        "password": None
+        "pfx": "cert.pfx",
+        "password": os.getenv("KEY_PASSWORD")
     },
     "tenant": {
         "name": "Marie Durand",
@@ -22,7 +23,8 @@ data = {
         "signature_image": "tenant_signature.png",
         "cert": "cert.pem",
         "key": "private.key",
-        "password": None
+        "pfx": "cert.pfx",
+        "password": os.getenv("KEY_PASSWORD")
     },
     "contract_details": {
         "date": datetime.date.today().strftime("%d/%m/%Y"),
@@ -69,14 +71,9 @@ def add_signature_fields(input_file, output_file):
 # Étape 3 : Appliquer une signature électronique
 def sign_pdf(input_file, output_file, signer_data, field_name):
     # Charger les certificats et clés
-    with open(signer_data['cert'], 'rb') as f:
-        cert = list(load_certs_from_pemder([signer_data['cert']]))[0]
-    with open(signer_data['key'], 'rb') as f:
-        key = load_private_key_from_pemder(f.read(), passphrase=signer_data['password'])
-
-    signer = signers.SimpleSigner(
-        key=key,
-        cert=cert
+    signer = signers.SimpleSigner.load_pkcs12(
+        signer_data['pfx'],
+        signer_data['password'].encode()
     )
 
     # Appliquer la signature électronique

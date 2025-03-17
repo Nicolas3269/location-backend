@@ -1,0 +1,962 @@
+{
+    "('Zone 1', 'Maison', '1', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        21.0,
+        14.7,
+        25.2
+    ],
+    "('Zone 1', 'Maison', '1', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        19.3,
+        13.5,
+        23.2
+    ],
+    "('Zone 1', 'Maison', '1', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        18.2,
+        12.7,
+        21.8
+    ],
+    "('Zone 1', 'Maison', '1', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        16.7,
+        11.7,
+        20.0
+    ],
+    "('Zone 1', 'Maison', '1', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        20.8,
+        14.6,
+        25.0
+    ],
+    "('Zone 1', 'Maison', '1', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        19.1,
+        13.4,
+        22.9
+    ],
+    "('Zone 1', 'Maison', '1', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        19.3,
+        13.5,
+        23.2
+    ],
+    "('Zone 1', 'Maison', '1', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        17.7,
+        12.4,
+        21.2
+    ],
+    "('Zone 1', 'Maison', '2', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        16.8,
+        11.8,
+        20.2
+    ],
+    "('Zone 1', 'Maison', '2', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        15.4,
+        10.8,
+        18.5
+    ],
+    "('Zone 1', 'Maison', '2', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        14.8,
+        10.4,
+        17.8
+    ],
+    "('Zone 1', 'Maison', '2', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        13.6,
+        9.5,
+        16.3
+    ],
+    "('Zone 1', 'Maison', '2', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        15.0,
+        10.5,
+        18.0
+    ],
+    "('Zone 1', 'Maison', '2', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        13.8,
+        9.7,
+        16.6
+    ],
+    "('Zone 1', 'Maison', '2', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        15.4,
+        10.8,
+        18.5
+    ],
+    "('Zone 1', 'Maison', '2', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        14.1,
+        9.9,
+        16.9
+    ],
+    "('Zone 1', 'Maison', '3', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        13.5,
+        9.5,
+        16.2
+    ],
+    "('Zone 1', 'Maison', '3', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        12.4,
+        8.7,
+        14.9
+    ],
+    "('Zone 1', 'Maison', '3', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        13.1,
+        9.2,
+        15.7
+    ],
+    "('Zone 1', 'Maison', '3', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        12.0,
+        8.4,
+        14.4
+    ],
+    "('Zone 1', 'Maison', '3', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        13.6,
+        9.5,
+        16.3
+    ],
+    "('Zone 1', 'Maison', '3', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        12.5,
+        8.8,
+        15.0
+    ],
+    "('Zone 1', 'Maison', '3', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        13.5,
+        9.5,
+        16.2
+    ],
+    "('Zone 1', 'Maison', '3', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        12.4,
+        8.7,
+        14.9
+    ],
+    "('Zone 1', 'Maison', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        12.1,
+        8.5,
+        14.5
+    ],
+    "('Zone 1', 'Maison', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        11.1,
+        7.8,
+        13.3
+    ],
+    "('Zone 1', 'Maison', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        11.6,
+        8.1,
+        13.9
+    ],
+    "('Zone 1', 'Maison', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        10.6,
+        7.4,
+        12.7
+    ],
+    "('Zone 1', 'Maison', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        12.3,
+        8.6,
+        14.8
+    ],
+    "('Zone 1', 'Maison', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        11.3,
+        7.9,
+        13.6
+    ],
+    "('Zone 1', 'Maison', '4 et plus', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        12.8,
+        9.0,
+        15.4
+    ],
+    "('Zone 1', 'Maison', '4 et plus', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        11.7,
+        8.2,
+        14.0
+    ],
+    "('Zone 1', 'Appartement', '1', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        19.5,
+        13.7,
+        23.4
+    ],
+    "('Zone 1', 'Appartement', '1', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        17.9,
+        12.5,
+        21.5
+    ],
+    "('Zone 1', 'Appartement', '1', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        16.9,
+        11.8,
+        20.3
+    ],
+    "('Zone 1', 'Appartement', '1', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        15.5,
+        10.9,
+        18.6
+    ],
+    "('Zone 1', 'Appartement', '1', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        19.3,
+        13.5,
+        23.2
+    ],
+    "('Zone 1', 'Appartement', '1', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        17.7,
+        12.4,
+        21.2
+    ],
+    "('Zone 1', 'Appartement', '1', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        17.9,
+        12.5,
+        21.5
+    ],
+    "('Zone 1', 'Appartement', '1', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        16.4,
+        11.5,
+        19.7
+    ],
+    "('Zone 1', 'Appartement', '2', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        15.6,
+        10.9,
+        18.7
+    ],
+    "('Zone 1', 'Appartement', '2', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        14.3,
+        10.0,
+        17.2
+    ],
+    "('Zone 1', 'Appartement', '2', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        13.7,
+        9.6,
+        16.4
+    ],
+    "('Zone 1', 'Appartement', '2', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        12.6,
+        8.8,
+        15.1
+    ],
+    "('Zone 1', 'Appartement', '2', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        14.0,
+        9.8,
+        16.8
+    ],
+    "('Zone 1', 'Appartement', '2', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        12.8,
+        9.0,
+        15.4
+    ],
+    "('Zone 1', 'Appartement', '2', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        14.3,
+        10.0,
+        17.2
+    ],
+    "('Zone 1', 'Appartement', '2', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        13.1,
+        9.2,
+        15.7
+    ],
+    "('Zone 1', 'Appartement', '3', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        12.5,
+        8.8,
+        15.0
+    ],
+    "('Zone 1', 'Appartement', '3', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        11.5,
+        8.1,
+        13.8
+    ],
+    "('Zone 1', 'Appartement', '3', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        12.1,
+        8.5,
+        14.5
+    ],
+    "('Zone 1', 'Appartement', '3', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        11.1,
+        7.8,
+        13.3
+    ],
+    "('Zone 1', 'Appartement', '3', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        12.6,
+        8.8,
+        15.1
+    ],
+    "('Zone 1', 'Appartement', '3', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        11.6,
+        8.1,
+        13.9
+    ],
+    "('Zone 1', 'Appartement', '3', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        12.5,
+        8.8,
+        15.0
+    ],
+    "('Zone 1', 'Appartement', '3', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        11.5,
+        8.1,
+        13.8
+    ],
+    "('Zone 1', 'Appartement', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        11.2,
+        7.8,
+        13.4
+    ],
+    "('Zone 1', 'Appartement', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        10.3,
+        7.2,
+        12.4
+    ],
+    "('Zone 1', 'Appartement', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        10.7,
+        7.5,
+        12.8
+    ],
+    "('Zone 1', 'Appartement', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        9.8,
+        6.9,
+        11.8
+    ],
+    "('Zone 1', 'Appartement', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        11.4,
+        8.0,
+        13.7
+    ],
+    "('Zone 1', 'Appartement', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        10.5,
+        7.4,
+        12.6
+    ],
+    "('Zone 1', 'Appartement', '4 et plus', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        11.8,
+        8.3,
+        14.2
+    ],
+    "('Zone 1', 'Appartement', '4 et plus', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        10.8,
+        7.6,
+        13.0
+    ],
+    "('Zone 2', 'Maison', '1', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        18.1,
+        12.7,
+        21.7
+    ],
+    "('Zone 2', 'Maison', '1', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        16.6,
+        11.6,
+        19.9
+    ],
+    "('Zone 2', 'Maison', '1', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        17.4,
+        12.2,
+        20.9
+    ],
+    "('Zone 2', 'Maison', '1', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        16.0,
+        11.2,
+        19.2
+    ],
+    "('Zone 2', 'Maison', '1', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        18.0,
+        12.6,
+        21.6
+    ],
+    "('Zone 2', 'Maison', '1', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        16.5,
+        11.6,
+        19.8
+    ],
+    "('Zone 2', 'Maison', '1', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        17.9,
+        12.5,
+        21.5
+    ],
+    "('Zone 2', 'Maison', '1', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        16.4,
+        11.5,
+        19.7
+    ],
+    "('Zone 2', 'Maison', '2', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        13.2,
+        9.2,
+        15.8
+    ],
+    "('Zone 2', 'Maison', '2', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        12.1,
+        8.5,
+        14.5
+    ],
+    "('Zone 2', 'Maison', '2', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        13.1,
+        9.2,
+        15.7
+    ],
+    "('Zone 2', 'Maison', '2', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        12.0,
+        8.4,
+        14.4
+    ],
+    "('Zone 2', 'Maison', '2', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        13.5,
+        9.5,
+        16.2
+    ],
+    "('Zone 2', 'Maison', '2', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        12.4,
+        8.7,
+        14.9
+    ],
+    "('Zone 2', 'Maison', '2', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        14.6,
+        10.2,
+        17.5
+    ],
+    "('Zone 2', 'Maison', '2', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        13.4,
+        9.4,
+        16.1
+    ],
+    "('Zone 2', 'Maison', '3', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        11.8,
+        8.3,
+        14.2
+    ],
+    "('Zone 2', 'Maison', '3', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        10.8,
+        7.6,
+        13.0
+    ],
+    "('Zone 2', 'Maison', '3', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        12.0,
+        8.4,
+        14.4
+    ],
+    "('Zone 2', 'Maison', '3', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        11.0,
+        7.7,
+        13.2
+    ],
+    "('Zone 2', 'Maison', '3', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        11.8,
+        8.3,
+        14.2
+    ],
+    "('Zone 2', 'Maison', '3', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        10.8,
+        7.6,
+        13.0
+    ],
+    "('Zone 2', 'Maison', '3', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        12.6,
+        8.8,
+        15.1
+    ],
+    "('Zone 2', 'Maison', '3', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        11.6,
+        8.1,
+        13.9
+    ],
+    "('Zone 2', 'Maison', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        10.0,
+        7.0,
+        12.0
+    ],
+    "('Zone 2', 'Maison', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        9.2,
+        6.4,
+        11.0
+    ],
+    "('Zone 2', 'Maison', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        10.5,
+        7.4,
+        12.6
+    ],
+    "('Zone 2', 'Maison', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        9.6,
+        6.7,
+        11.5
+    ],
+    "('Zone 2', 'Maison', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        11.1,
+        7.8,
+        13.3
+    ],
+    "('Zone 2', 'Maison', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        10.2,
+        7.1,
+        12.2
+    ],
+    "('Zone 2', 'Maison', '4 et plus', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        11.8,
+        8.3,
+        14.2
+    ],
+    "('Zone 2', 'Maison', '4 et plus', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        10.8,
+        7.6,
+        13.0
+    ],
+    "('Zone 2', 'Appartement', '1', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        16.8,
+        11.8,
+        20.2
+    ],
+    "('Zone 2', 'Appartement', '1', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        15.4,
+        10.8,
+        18.5
+    ],
+    "('Zone 2', 'Appartement', '1', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        16.1,
+        11.3,
+        19.3
+    ],
+    "('Zone 2', 'Appartement', '1', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        14.8,
+        10.4,
+        17.8
+    ],
+    "('Zone 2', 'Appartement', '1', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        16.7,
+        11.7,
+        20.0
+    ],
+    "('Zone 2', 'Appartement', '1', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        15.3,
+        10.7,
+        18.4
+    ],
+    "('Zone 2', 'Appartement', '1', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        16.6,
+        11.6,
+        19.9
+    ],
+    "('Zone 2', 'Appartement', '1', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        15.2,
+        10.6,
+        18.2
+    ],
+    "('Zone 2', 'Appartement', '2', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        12.2,
+        8.5,
+        14.6
+    ],
+    "('Zone 2', 'Appartement', '2', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        11.2,
+        7.8,
+        13.4
+    ],
+    "('Zone 2', 'Appartement', '2', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        12.1,
+        8.5,
+        14.5
+    ],
+    "('Zone 2', 'Appartement', '2', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        11.1,
+        7.8,
+        13.3
+    ],
+    "('Zone 2', 'Appartement', '2', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        12.5,
+        8.8,
+        15.0
+    ],
+    "('Zone 2', 'Appartement', '2', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        11.5,
+        8.1,
+        13.8
+    ],
+    "('Zone 2', 'Appartement', '2', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        13.5,
+        9.5,
+        16.2
+    ],
+    "('Zone 2', 'Appartement', '2', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        12.4,
+        8.7,
+        14.9
+    ],
+    "('Zone 2', 'Appartement', '3', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        10.9,
+        7.6,
+        13.1
+    ],
+    "('Zone 2', 'Appartement', '3', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        10.0,
+        7.0,
+        12.0
+    ],
+    "('Zone 2', 'Appartement', '3', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        11.1,
+        7.8,
+        13.3
+    ],
+    "('Zone 2', 'Appartement', '3', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        10.2,
+        7.1,
+        12.2
+    ],
+    "('Zone 2', 'Appartement', '3', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        10.9,
+        7.6,
+        13.1
+    ],
+    "('Zone 2', 'Appartement', '3', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        10.0,
+        7.0,
+        12.0
+    ],
+    "('Zone 2', 'Appartement', '3', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        11.7,
+        8.2,
+        14.0
+    ],
+    "('Zone 2', 'Appartement', '3', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        10.7,
+        7.5,
+        12.8
+    ],
+    "('Zone 2', 'Appartement', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        9.3,
+        6.5,
+        11.2
+    ],
+    "('Zone 2', 'Appartement', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        8.5,
+        6.0,
+        10.2
+    ],
+    "('Zone 2', 'Appartement', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        9.7,
+        6.8,
+        11.6
+    ],
+    "('Zone 2', 'Appartement', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        8.9,
+        6.2,
+        10.7
+    ],
+    "('Zone 2', 'Appartement', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        10.2,
+        7.1,
+        12.2
+    ],
+    "('Zone 2', 'Appartement', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        9.4,
+        6.6,
+        11.3
+    ],
+    "('Zone 2', 'Appartement', '4 et plus', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        10.9,
+        7.6,
+        13.1
+    ],
+    "('Zone 2', 'Appartement', '4 et plus', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        10.0,
+        7.0,
+        12.0
+    ],
+    "('Zone 3', 'Maison', '1', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        17.3,
+        12.1,
+        20.8
+    ],
+    "('Zone 3', 'Maison', '1', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        15.9,
+        11.1,
+        19.1
+    ],
+    "('Zone 3', 'Maison', '1', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        17.0,
+        11.9,
+        20.4
+    ],
+    "('Zone 3', 'Maison', '1', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        15.6,
+        10.9,
+        18.7
+    ],
+    "('Zone 3', 'Maison', '1', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        17.1,
+        12.0,
+        20.5
+    ],
+    "('Zone 3', 'Maison', '1', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        15.7,
+        11.0,
+        18.8
+    ],
+    "('Zone 3', 'Maison', '1', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        16.8,
+        11.8,
+        20.2
+    ],
+    "('Zone 3', 'Maison', '1', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        15.4,
+        10.8,
+        18.5
+    ],
+    "('Zone 3', 'Maison', '2', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        13.0,
+        9.1,
+        15.6
+    ],
+    "('Zone 3', 'Maison', '2', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        11.9,
+        8.3,
+        14.3
+    ],
+    "('Zone 3', 'Maison', '2', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        13.0,
+        9.1,
+        15.6
+    ],
+    "('Zone 3', 'Maison', '2', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        11.9,
+        8.3,
+        14.3
+    ],
+    "('Zone 3', 'Maison', '2', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        13.0,
+        9.1,
+        15.6
+    ],
+    "('Zone 3', 'Maison', '2', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        11.9,
+        8.3,
+        14.3
+    ],
+    "('Zone 3', 'Maison', '2', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        14.2,
+        9.9,
+        17.0
+    ],
+    "('Zone 3', 'Maison', '2', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        13.0,
+        9.1,
+        15.6
+    ],
+    "('Zone 3', 'Maison', '3', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        10.8,
+        7.6,
+        13.0
+    ],
+    "('Zone 3', 'Maison', '3', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        9.9,
+        6.9,
+        11.9
+    ],
+    "('Zone 3', 'Maison', '3', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        11.8,
+        8.3,
+        14.2
+    ],
+    "('Zone 3', 'Maison', '3', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        10.8,
+        7.6,
+        13.0
+    ],
+    "('Zone 3', 'Maison', '3', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        11.6,
+        8.1,
+        13.9
+    ],
+    "('Zone 3', 'Maison', '3', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        10.6,
+        7.4,
+        12.7
+    ],
+    "('Zone 3', 'Maison', '3', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        12.4,
+        8.7,
+        14.9
+    ],
+    "('Zone 3', 'Maison', '3', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        11.4,
+        8.0,
+        13.7
+    ],
+    "('Zone 3', 'Maison', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        10.1,
+        7.1,
+        12.1
+    ],
+    "('Zone 3', 'Maison', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        9.3,
+        6.5,
+        11.2
+    ],
+    "('Zone 3', 'Maison', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        10.4,
+        7.3,
+        12.5
+    ],
+    "('Zone 3', 'Maison', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        9.5,
+        6.7,
+        11.4
+    ],
+    "('Zone 3', 'Maison', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        11.3,
+        7.9,
+        13.6
+    ],
+    "('Zone 3', 'Maison', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        10.4,
+        7.3,
+        12.5
+    ],
+    "('Zone 3', 'Maison', '4 et plus', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        11.6,
+        8.1,
+        13.9
+    ],
+    "('Zone 3', 'Maison', '4 et plus', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        10.6,
+        7.4,
+        12.7
+    ],
+    "('Zone 3', 'Appartement', '1', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        16.0,
+        11.2,
+        19.2
+    ],
+    "('Zone 3', 'Appartement', '1', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        14.7,
+        10.3,
+        17.6
+    ],
+    "('Zone 3', 'Appartement', '1', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        15.7,
+        11.0,
+        18.8
+    ],
+    "('Zone 3', 'Appartement', '1', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        14.4,
+        10.1,
+        17.3
+    ],
+    "('Zone 3', 'Appartement', '1', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        15.8,
+        11.1,
+        19.0
+    ],
+    "('Zone 3', 'Appartement', '1', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        14.5,
+        10.2,
+        17.4
+    ],
+    "('Zone 3', 'Appartement', '1', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        15.6,
+        10.9,
+        18.7
+    ],
+    "('Zone 3', 'Appartement', '1', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        14.3,
+        10.0,
+        17.2
+    ],
+    "('Zone 3', 'Appartement', '2', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        12.0,
+        8.4,
+        14.4
+    ],
+    "('Zone 3', 'Appartement', '2', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        11.0,
+        7.7,
+        13.2
+    ],
+    "('Zone 3', 'Appartement', '2', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        12.0,
+        8.4,
+        14.4
+    ],
+    "('Zone 3', 'Appartement', '2', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        11.0,
+        7.7,
+        13.2
+    ],
+    "('Zone 3', 'Appartement', '2', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        12.0,
+        8.4,
+        14.4
+    ],
+    "('Zone 3', 'Appartement', '2', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        11.0,
+        7.7,
+        13.2
+    ],
+    "('Zone 3', 'Appartement', '2', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        13.1,
+        9.2,
+        15.7
+    ],
+    "('Zone 3', 'Appartement', '2', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        12.0,
+        8.4,
+        14.4
+    ],
+    "('Zone 3', 'Appartement', '3', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        10.0,
+        7.0,
+        12.0
+    ],
+    "('Zone 3', 'Appartement', '3', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        9.2,
+        6.4,
+        11.0
+    ],
+    "('Zone 3', 'Appartement', '3', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        10.9,
+        7.6,
+        13.1
+    ],
+    "('Zone 3', 'Appartement', '3', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        10.0,
+        7.0,
+        12.0
+    ],
+    "('Zone 3', 'Appartement', '3', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        10.7,
+        7.5,
+        12.8
+    ],
+    "('Zone 3', 'Appartement', '3', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        9.8,
+        6.9,
+        11.8
+    ],
+    "('Zone 3', 'Appartement', '3', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        11.6,
+        8.1,
+        13.9
+    ],
+    "('Zone 3', 'Appartement', '3', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        10.6,
+        7.4,
+        12.7
+    ],
+    "('Zone 3', 'Appartement', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations meublées')": [
+        9.4,
+        6.6,
+        11.3
+    ],
+    "('Zone 3', 'Appartement', '4 et plus', 'Epoque 1 (avant 1946)', 'Locations non meublées')": [
+        8.6,
+        6.0,
+        10.3
+    ],
+    "('Zone 3', 'Appartement', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations meublées')": [
+        9.6,
+        6.7,
+        11.5
+    ],
+    "('Zone 3', 'Appartement', '4 et plus', 'Epoque 2 (1946-1970)', 'Locations non meublées')": [
+        8.8,
+        6.2,
+        10.6
+    ],
+    "('Zone 3', 'Appartement', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations meublées')": [
+        10.5,
+        7.4,
+        12.6
+    ],
+    "('Zone 3', 'Appartement', '4 et plus', 'Epoque 3 (1971-1990)', 'Locations non meublées')": [
+        9.6,
+        6.7,
+        11.5
+    ],
+    "('Zone 3', 'Appartement', '4 et plus', 'Epoque 4 (après 1990)', 'Locations meublées')": [
+        10.7,
+        7.5,
+        12.8
+    ],
+    "('Zone 3', 'Appartement', '4 et plus', 'Epoque 4 (après 1990)', 'Locations non meublées')": [
+        9.8,
+        6.9,
+        11.8
+    ]
+}

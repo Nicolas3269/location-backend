@@ -43,7 +43,7 @@ from algo.encadrement_loyer.utils import geocode_address
 
 
 # URL du GeoJSON (ex: Paris)
-GEOJSON_URL = "https://www.data.gouv.fr/fr/datasets/r/7d70e696-ef9d-429d-8284-79d0ecd59ccd"  # Remplace par l'URL du GeoJSON
+GEOJSON_URL = "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0"  # Remplace par l'URL du GeoJSON
 
 def get_rent_control_info(lat, lng, geojson_data):
     """Récupère l'encadrement des loyers en fonction des coordonnées"""
@@ -71,6 +71,8 @@ def ile_de_france(address):
         print(json.dumps(rent_info, indent=2, ensure_ascii=False))
     else:
         print("Aucune information d'encadrement des loyers pour cette adresse.")
+
+    return rent_info
 
 def main():
     # address = input("Entrez une adresse : ")

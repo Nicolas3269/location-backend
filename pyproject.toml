@@ -15,8 +15,26 @@ jinja2 = "^3.1.5"
 playwright = "^1.49.1"
 shapely = "^2.0.6"
 pyproj = "^3.7.0"
+requests = "^2.32.3"
+django = "^5.1.7"
+djangorestframework = "^3.15.2"
 
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.11.1"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 88  # Comme Black
+target-version = "py311"  # Change selon ta version Python
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]  # Active seulement les règles PEP8, Flake8, et warnings
+
+[tool.ruff.format]
+quote-style = "double"  # Convertit les guillemets simples en doubles
+indent-style = "space"  # Utilise des espaces au lieu de tabs
+skip-magic-trailing-comma = false  # Laisse la virgule finale

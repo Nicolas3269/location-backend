@@ -1,5 +1,5 @@
 import requests
-import json 
+import json
 from shapely.geometry import shape, Point
 
 from algo.encadrement_loyer.utils import geocode_address
@@ -29,9 +29,6 @@ from algo.encadrement_loyer.utils import geocode_address
 # https://www.data.gouv.fr/fr/datasets/r/c00fa2a7-f84c-4ca4-8224-3b734242bae7
 
 
-
-
-
 #### BORDEAUX ###
 # https://www.data.gouv.fr/fr/datasets/r/08a1d711-e239-4282-938c-e6edac0090a8
 
@@ -45,12 +42,15 @@ from algo.encadrement_loyer.utils import geocode_address
 # URL du GeoJSON (ex: Paris)
 GEOJSON_URL = "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0"  # Remplace par l'URL du GeoJSON
 
+
 def get_rent_control_info(lat, lng, geojson_data):
     """Récupère l'encadrement des loyers en fonction des coordonnées"""
     point = Point(lng, lat)  # Attention : Shapely utilise (lon, lat)
 
     for feature in geojson_data["features"]:
-        polygon = shape(feature["geometry"])  # Convertit la géométrie GeoJSON en Shapely
+        polygon = shape(
+            feature["geometry"]
+        )  # Convertit la géométrie GeoJSON en Shapely
         if polygon.contains(point):
             return feature["properties"]  # Renvoie les infos d'encadrement
 
@@ -74,6 +74,7 @@ def ile_de_france(address):
 
     return rent_info
 
+
 def main():
     # address = input("Entrez une adresse : ")
     address_paris = "49 rue du Sergent-Bauchat, 75012 Paris"
@@ -83,13 +84,12 @@ def main():
     address_est_ensemble = "100 Avenue Gaston Roussel, 93230 Romainville"
     address = address_est_ensemble
 
-    
     try:
         ile_de_france(address)
-    
+
     except Exception as e:
         print(f"Erreur : {e}")
 
+
 if __name__ == "__main__":
     main()
-

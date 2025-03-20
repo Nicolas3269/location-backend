@@ -6,6 +6,7 @@ import datetime
 from pyhanko.sign.fields import SigFieldSpec, append_signature_field
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 import os
+
 # Données dynamiques pour le bail
 data = {
     "landlord": {
@@ -15,7 +16,7 @@ data = {
         "cert": "cert.pem",
         "key": "private.key",
         "pfx": "cert.pfx",
-        "password": os.getenv("KEY_PASSWORD")
+        "password": os.getenv("KEY_PASSWORD"),
     },
     "tenant": {
         "name": "Marie Durand",
@@ -24,15 +25,16 @@ data = {
         "cert": "cert.pem",
         "key": "private.key",
         "pfx": "cert.pfx",
-        "password": os.getenv("KEY_PASSWORD")
+        "password": os.getenv("KEY_PASSWORD"),
     },
     "contract_details": {
         "date": datetime.date.today().strftime("%d/%m/%Y"),
         "address": "12 rue des Lilas, Arras, France",
         "rent": "750 €",
-        "charges": "50 €"
-    }
+        "charges": "50 €",
+    },
 }
+
 
 # Étape 1 : Générer le PDF avec WeasyPrint
 def generate_pdf_with_weasyprint(output_file, data):
@@ -40,31 +42,36 @@ def generate_pdf_with_weasyprint(output_file, data):
     <html>
     <body>
         <h1>Bail de location</h1>
-        <p>Date : {data['contract_details']['date']}</p>
-        <p>Adresse : {data['contract_details']['address']}</p>
-        <p>Loyer : {data['contract_details']['rent']} + Charges : {data['contract_details']['charges']}</p>
+        <p>Date : {data["contract_details"]["date"]}</p>
+        <p>Adresse : {data["contract_details"]["address"]}</p>
+        <p>Loyer : {data["contract_details"]["rent"]} + Charges : {data["contract_details"]["charges"]}</p>
 
         <h2>Signatures :</h2>
-        <p>Propriétaire : {data['landlord']['name']}</p>
+        <p>Propriétaire : {data["landlord"]["name"]}</p>
         <div style="text-align: right;">
-            <img src="{data['landlord']['signature_image']}" width="150px"/>
+            <img src="{data["landlord"]["signature_image"]}" width="150px"/>
         </div>
-        <p>Locataire : {data['tenant']['name']}</p>
+        <p>Locataire : {data["tenant"]["name"]}</p>
         <div style="text-align: right;">
-            <img src="{data['tenant']['signature_image']}" width="150px"/>
+            <img src="{data["tenant"]["signature_image"]}" width="150px"/>
         </div>
     </body>
     </html>
     '''
     HTML(string=html).write_pdf(output_file)
 
+
 # Étape 2 : Ajouter un champ de signature
 def add_signature_fields(input_file, output_file):
-    with open(input_file, 'rb+') as doc:
+    with open(input_file, "rb+") as doc:
         w = IncrementalPdfFileWriter(doc)
-        append_signature_field(w, SigFieldSpec(sig_field_name="Landlord", box=(425,20,575,70)))
+        append_signature_field(
+            w, SigFieldSpec(sig_field_name="Landlord", box=(425, 20, 575, 70))
+        )
         w.write_in_place()
-        append_signature_field(w, SigFieldSpec(sig_field_name="Tenant", box=(125,20,275,70)))
+        append_signature_field(
+            w, SigFieldSpec(sig_field_name="Tenant", box=(125, 20, 275, 70))
+        )
         w.write_in_place()
 
 
@@ -72,22 +79,22 @@ def add_signature_fields(input_file, output_file):
 def sign_pdf(input_file, output_file, signer_data, field_name):
     # Charger les certificats et clés
     signer = signers.SimpleSigner.load_pkcs12(
-        signer_data['pfx'],
-        signer_data['password'].encode()
+        signer_data["pfx"], signer_data["password"].encode()
     )
 
     # Appliquer la signature électronique
-    with open(input_file, 'rb+') as doc:
+    with open(input_file, "rb+") as doc:
         signers.sign_pdf(
             doc,
             signature_meta=signers.PdfSignatureMetadata(
                 field_name=field_name,
                 reason="Signature du bail",
-                location=signer_data['location'],
-                signer_name=signer_data['name']
+                location=signer_data["location"],
+                signer_name=signer_data["name"],
             ),
-            signer=signer
+            signer=signer,
         )
+
 
 # Générer le PDF initial
 generate_pdf_with_weasyprint("bail_initial.pdf", data)
@@ -96,9 +103,9 @@ generate_pdf_with_weasyprint("bail_initial.pdf", data)
 add_signature_fields("bail_initial.pdf", "bail_with_fields.pdf")
 
 # Signature du propriétaire
-sign_pdf("bail_initial.pdf", "bail_signed_landlord.pdf", data['landlord'], "Landlord")
+sign_pdf("bail_initial.pdf", "bail_signed_landlord.pdf", data["landlord"], "Landlord")
 
 # Signature du locataire
-sign_pdf("bail_signed_landlord.pdf", "bail_final_signed.pdf", data['tenant'], "Tenant")
+sign_pdf("bail_signed_landlord.pdf", "bail_final_signed.pdf", data["tenant"], "Tenant")
 
 print("Bail signé avec succès par les deux parties !")

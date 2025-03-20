@@ -1,13 +1,18 @@
 from playwright.sync_api import sync_playwright
 
+
 def fetch_loyer_de_reference(adresse, pieces, epoque, meuble, periode):
     with sync_playwright() as p:
         # Lancer le navigateur
-        browser = p.chromium.launch(headless=False)  # headless=False pour voir les actions
+        browser = p.chromium.launch(
+            headless=False
+        )  # headless=False pour voir les actions
         page = browser.new_page()
 
         # Ouvrir le site
-        page.goto("http://www.referenceloyer.drihl.ile-de-france.developpement-durable.gouv.fr/paris/")
+        page.goto(
+            "http://www.referenceloyer.drihl.ile-de-france.developpement-durable.gouv.fr/paris/"
+        )
 
         # Remplir le nombre de pièces principales
         page.select_option("#piece", str(pieces))  # Exemple : "2" pour 2 pièces
@@ -21,9 +26,10 @@ def fetch_loyer_de_reference(adresse, pieces, epoque, meuble, periode):
         # Sélectionner la période
         page.select_option("#edit-date", periode)  # Exemple : "2024-07-01"
 
-
         # Simuler la saisie utilisateur pour l'adresse
-        page.type("#search-adresse", adresse, delay=100)  # Tape chaque caractère avec un délai
+        page.type(
+            "#search-adresse", adresse, delay=100
+        )  # Tape chaque caractère avec un délai
 
         # Attendre l'affichage des suggestions
         page.wait_for_selector("#result .list-group-item")
@@ -40,7 +46,7 @@ def fetch_loyer_de_reference(adresse, pieces, epoque, meuble, periode):
 
         # Extraire les résultats
         refmin = page.text_content(".refmin")  # Loyer de référence minoré
-        ref = page.text_content(".ref")        # Loyer de référence
+        ref = page.text_content(".ref")  # Loyer de référence
         refmaj = page.text_content(".refmaj")  # Loyer de référence majoré
 
         # Fermer le navigateur
@@ -53,13 +59,14 @@ def fetch_loyer_de_reference(adresse, pieces, epoque, meuble, periode):
             "refmaj": refmaj.strip() if refmaj else None,
         }
 
+
 # Exemple d'utilisation
 result = fetch_loyer_de_reference(
     adresse="12 rue dautancourt, 75017 Paris",
     pieces="2",
     epoque="1971-1990",
     meuble="meuble",
-    periode="2024-07-01"
+    periode="2024-07-01",
 )
 
 print(result)

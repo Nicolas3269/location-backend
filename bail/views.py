@@ -3,7 +3,9 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 import logging
 from algo.encadrement_loyer.ile_de_france.main_2 import ile_de_france
+
 logger = logging.getLogger(__name__)
+
 
 @csrf_exempt
 def check_zone(request):
@@ -21,7 +23,9 @@ def check_zone(request):
             is_critical = ile_de_france(address)
 
             if is_critical:
-                return JsonResponse({"message": "⚠️ Cette adresse est dans une zone critique."})
+                return JsonResponse(
+                    {"message": "⚠️ Cette adresse est dans une zone critique."}
+                )
             else:
                 return JsonResponse({"message": "✅ Cette adresse est sûre."})
 

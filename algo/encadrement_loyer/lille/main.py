@@ -9,7 +9,9 @@ from shapely.geometry import Point, Polygon
 
 # Charger les données des zones (remplacez 'data.json' par le chemin vers votre fichier JSON)
 year = 2024
-with open(f"backend/encadrement_loyer/lille/data_{year}.json", "r", encoding="utf-8") as f:
+with open(
+    f"backend/encadrement_loyer/lille/data_{year}.json", "r", encoding="utf-8"
+) as f:
     data = json.load(f)
 
 # Extraire la liste des polygones depuis le JSON
@@ -27,16 +29,13 @@ def find_polygon(lat, lon, ressources):
         # Extraire les coordonnées du polygone
         coordinates = geom["geom"].replace("POLYGON((", "").replace("))", "").split(",")
         polygon_points = [tuple(map(float, coord.split())) for coord in coordinates]
-        
+
         # Créer un objet Polygon
         polygon = Polygon(polygon_points)
 
         # Vérifier si le point est dans le polygone
         if polygon.contains(point):
-            return {
-                "zone_id": geom["id"],
-                "zone_name": geom["name"]
-            }
+            return {"zone_id": geom["id"], "zone_name": geom["name"]}
 
     return None
 
@@ -48,9 +47,10 @@ def find_zone_data(zone_id, dataset):
     return None
 
 
-
 def get_zone_data(latitude, longitude, year):
-    with open(f"backend/encadrement_loyer/lille/data_{year}.json", "r", encoding="utf-8") as f:
+    with open(
+        f"backend/encadrement_loyer/lille/data_{year}.json", "r", encoding="utf-8"
+    ) as f:
         data = json.load(f)
 
     # Extraire la liste des polygones depuis le JSON
@@ -62,14 +62,17 @@ def get_zone_data(latitude, longitude, year):
     if result:
         zone_data = find_zone_data(result["zone_id"], ressources["Datas"][0]["Values"])
         if zone_data:
-            print(f"Données pour la zone {result['zone_name']} (ID : {result['zone_id']}):")
+            print(
+                f"Données pour la zone {result['zone_name']} (ID : {result['zone_id']}):"
+            )
             print(f"Secteur: {zone_data[1]} pour l'année {year}")
         else:
             print(f"Aucune donnée trouvée pour la zone ID : {result['zone_id']}")
     else:
         print("Aucune zone correspondante trouvée.")
-    
+
     return result, zone_data
+
 
 # Exemple d'utilisation avec les coordonnées d'une adresse
 latitude = 50.6364543  # Latitude de l'adresse

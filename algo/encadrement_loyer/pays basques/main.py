@@ -6,7 +6,7 @@ from algo.encadrement_loyer.utils import geocode_address
 # Aller sur:
 # https://geobasque.communaute-paysbasque.fr/adws/app/dad90ce2-8b10-11ef-b6f8-3d530512f88c/index.html?dummy=1729177715102
 
-# Puis cliquer sur les zone pour obtenir les données en 
+# Puis cliquer sur les zone pour obtenir les données en
 #  "crs" : "EPSG:3857"
 # Coordonnées du polygone en EPSG:3857
 
@@ -44,7 +44,7 @@ for id_value in range(1, 80):
         "centroid": "false",
         "id": "f6be9f17-8b10-11ef-b6f8-3d530512f88c",
         "idValue": str(id_value),
-        "srs": "EPSG:3857"
+        "srs": "EPSG:3857",
     }
     response = requests.get(base_url, params=params)
 
@@ -57,7 +57,7 @@ for id_value in range(1, 80):
                 if polygon.contains(address_point):
                     is_inside = True
                     matching_polygon_id = id_value
-                    zone_encadr_loyers = data['properties']['zone_encadr_loyers']
+                    zone_encadr_loyers = data["properties"]["zone_encadr_loyers"]
                     break
         if is_inside:
             break
@@ -65,8 +65,13 @@ for id_value in range(1, 80):
 # Résultat
 is_inside, matching_polygon_id, zone_encadr_loyers
 
-zone = ["Zone 1", "Zone 2","Zone 3"]
-type_de_bien = ["Maison", "Appartement"]   
-nombre_de_pieces = ["1", "2", "3", "4 et plus"] 
-epoque_de_construction = ["Epoque 1 (avant 1946)", "Epoque 2 (1946-1970)", "Epoque 3 (1971-1990)", "Epoque 4 (après 1990)"]
+zone = ["Zone 1", "Zone 2", "Zone 3"]
+type_de_bien = ["Maison", "Appartement"]
+nombre_de_pieces = ["1", "2", "3", "4 et plus"]
+epoque_de_construction = [
+    "Epoque 1 (avant 1946)",
+    "Epoque 2 (1946-1970)",
+    "Epoque 3 (1971-1990)",
+    "Epoque 4 (après 1990)",
+]
 type_de_location = ["Locations meublées", "Locations non meublées"]

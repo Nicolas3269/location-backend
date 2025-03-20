@@ -1,9 +1,8 @@
 import requests
 import json 
-import os
 from shapely.geometry import shape, Point
 
-from backend.encadrement_loyer.utils import geocode_address
+from algo.encadrement_loyer.utils import geocode_address
 
 ### REQUETES pour tous ###
 # https://www.data.gouv.fr/fr/datasets/?q=encadrement+loyers
@@ -57,6 +56,22 @@ def get_rent_control_info(lat, lng, geojson_data):
 
     return None  # Aucune correspondance trouvée
 
+
+def ile_de_france(address):
+    lat, lng = geocode_address(address)
+    print(f"Coordonnées trouvées : {lat}, {lng}")
+
+    # Récupérer le GeoJSON
+    geojson_data = requests.get(GEOJSON_URL).json()
+
+    rent_info = get_rent_control_info(lat, lng, geojson_data)
+
+    if rent_info:
+        print("Encadrement des loyers trouvé :")
+        print(json.dumps(rent_info, indent=2, ensure_ascii=False))
+    else:
+        print("Aucune information d'encadrement des loyers pour cette adresse.")
+
 def main():
     # address = input("Entrez une adresse : ")
     address_paris = "49 rue du Sergent-Bauchat, 75012 Paris"
@@ -68,19 +83,7 @@ def main():
 
     
     try:
-        lat, lng = geocode_address(address)
-        print(f"Coordonnées trouvées : {lat}, {lng}")
-
-        # Récupérer le GeoJSON
-        geojson_data = requests.get(GEOJSON_URL).json()
-
-        rent_info = get_rent_control_info(lat, lng, geojson_data)
-
-        if rent_info:
-            print("Encadrement des loyers trouvé :")
-            print(json.dumps(rent_info, indent=2, ensure_ascii=False))
-        else:
-            print("Aucune information d'encadrement des loyers pour cette adresse.")
+        ile_de_france(address)
     
     except Exception as e:
         print(f"Erreur : {e}")

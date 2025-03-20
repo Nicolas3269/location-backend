@@ -2,7 +2,7 @@ from shapely.geometry import Point, Polygon
 from pyproj import Transformer
 import requests
 
-from backend.encadrement_loyer.utils import geocode_address
+from algo.encadrement_loyer.utils import geocode_address
 # Aller sur:
 # https://geobasque.communaute-paysbasque.fr/adws/app/dad90ce2-8b10-11ef-b6f8-3d530512f88c/index.html?dummy=1729177715102
 
@@ -12,7 +12,7 @@ from backend.encadrement_loyer.utils import geocode_address
 
 # https://geobasque.communaute-paysbasque.fr/adws/app/dad90ce2-8b10-11ef-b6f8-3d530512f88c/services/aas/v1/infoSheets/getData?dummy=1741970913197&centroid=false&id=f6be9f17-8b10-11ef-b6f8-3d530512f88c&idValue=14&srs=EPSG:3857
 
-### QUERY PARAM ###
+# ## QUERY PARAM ###
 # le dummy vient de l'url de base:'
 # https://geobasque.communaute-paysbasque.fr/adws/app/dad90ce2-8b10-11ef-b6f8-3d530512f88c/index.html?dummy=1729177715102
 

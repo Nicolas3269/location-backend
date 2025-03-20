@@ -2,3 +2,5 @@ private.key
 cert.pem
 cert.pfx
 .env
+venv/
+__pycache__/

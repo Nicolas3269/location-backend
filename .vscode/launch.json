@@ -11,6 +11,15 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal"
-        }
+        },
+         {
+            "name": "Django: Run & Debug",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": ["runserver", "0.0.0.0:8003"],
+            "django": true,
+            "justMyCode": false
+        },
     ]
 }

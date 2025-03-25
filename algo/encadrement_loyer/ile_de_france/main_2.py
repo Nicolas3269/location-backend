@@ -43,28 +43,15 @@ from algo.encadrement_loyer.utils import geocode_address
 GEOJSON_URL = "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0"  # Remplace par l'URL du GeoJSON
 
 
-def get_rent_control_info(lat, lng, geojson_data):
-    """Récupère l'encadrement des loyers en fonction des coordonnées"""
-    point = Point(lng, lat)  # Attention : Shapely utilise (lon, lat)
-
-    for feature in geojson_data["features"]:
-        polygon = shape(
-            feature["geometry"]
-        )  # Convertit la géométrie GeoJSON en Shapely
-        if polygon.contains(point):
-            return feature["properties"]  # Renvoie les infos d'encadrement
-
-    return None  # Aucune correspondance trouvée
-
 
 def ile_de_france(address):
     lat, lng = geocode_address(address)
     print(f"Coordonnées trouvées : {lat}, {lng}")
 
     # Récupérer le GeoJSON
-    geojson_data = requests.get(GEOJSON_URL).json()
 
-    rent_info = get_rent_control_info(lat, lng, geojson_data)
+    # rent_info = get_rent_control_info(lat, lng)
+    rent_info = None
 
     if rent_info:
         print("Encadrement des loyers trouvé :")

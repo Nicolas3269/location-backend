@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.gis',  # Add GeoDjango
     # Apps
     "bail",
-    "rent_control", 
+    "rent_control",
 ]
 
 MIDDLEWARE = [

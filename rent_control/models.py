@@ -18,6 +18,8 @@ class RentControlZone(models.Model):
     room_count = models.CharField(max_length=20, null=True, blank=True)
     construction_period = models.CharField(max_length=50, null=True, blank=True)
     furnished = models.BooleanField(default=False)
+    reference_year = models.IntegerField(null=True, blank=True)  # Ajout de l'année de référence
+    
     
     # Geometry field for the polygon
     geometry = models.MultiPolygonField(srid=4326)

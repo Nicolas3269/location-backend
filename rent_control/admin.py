@@ -5,8 +5,8 @@ from .models import RentControlZone
 @admin.register(RentControlZone)
 class RentControlZoneAdmin(GISModelAdmin):
     """Admin view for RentControlZone with map display"""
-    list_display = ('region', 'zone', 'reference_price', 'apartment_type', 'room_count')
-    list_filter = ('region', 'zone', 'apartment_type', 'room_count', 'furnished')
+    list_display = ('region', 'zone', 'reference_price', 'construction_period', 'reference_year', 'room_count','furnished', 'apartment_type')
+    list_filter = ('region', 'zone', 'construction_period', 'apartment_type', 'reference_year', 'room_count', 'furnished')
     search_fields = ('region', 'zone', 'apartment_type')
     
     # GIS-specific settings

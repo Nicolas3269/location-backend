@@ -1,3 +1,4 @@
+location/backend/.vscode/launch.json
 {
     // Use IntelliSense to learn about possible attributes.
     // Hover to view descriptions of existing attributes.
@@ -12,7 +13,7 @@
             "program": "${file}",
             "console": "integratedTerminal"
         },
-         {
+        {
             "name": "Django: Run & Debug",
             "type": "python",
             "request": "launch",
@@ -21,5 +22,24 @@
             "django": true,
             "justMyCode": false
         },
+        {
+            "name": "Django: Custom Command",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/manage.py",
+            "args": ["${input:djangoCommand}"],
+            "django": true,
+            "justMyCode": false,
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "djangoCommand",
+            "type": "promptString",
+            "description": "Django command to execute (e.g. migrate, makemigrations)"
+        }
     ]
 }

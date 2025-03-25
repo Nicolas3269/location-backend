@@ -39,8 +39,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party
     "rest_framework",
+    'django.contrib.gis',  # Add GeoDjango
     # Apps
     "bail",
+    "rent_control", 
 ]
 
 MIDDLEWARE = [
@@ -81,8 +83,14 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+    },
+    "geodb": {
+        "ENGINE": "django.contrib.gis.db.backends.spatialite",  # Changed from django.db.backends.sqlite3
+        "NAME": BASE_DIR / "geodb.sqlite3",
     }
 }
+DATABASE_ROUTERS = ['backend.router.GeoRouter']
+SPATIALITE_LIBRARY_PATH = 'mod_spatialite'
 
 
 # Password validation
@@ -120,6 +128,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / 'staticfiles' 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 

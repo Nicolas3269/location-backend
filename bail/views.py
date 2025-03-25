@@ -20,7 +20,8 @@ def check_zone(request):
                 return JsonResponse({"message": "Adresse requise"}, status=400)
 
             # Ici, on appelle une fonction existante `is_critical_zone(address)`
-            is_critical = ile_de_france(address)
+            is_critical=False
+            # is_critical = ile_de_france(address)
 
             if is_critical:
                 return JsonResponse(

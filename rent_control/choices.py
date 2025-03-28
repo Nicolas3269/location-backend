@@ -5,11 +5,11 @@ class Region(TextChoices):
     PARIS = "PARIS", "Paris"
     EST_ENSEMBLE = "EST_ENSEMBLE", "Est Ensemble"
     PLAINE_COMMUNE = "PLAINE_COMMUNE", "Plaine Commune"
-    PAYS_BASQUE = "PAYS_BASQUE", "Pays Basque"
     LYON = "LYON", "Lyon"
     MONTPELLIER = "MONTPELLIER", "Montpellier"
     BORDEAUX = "BORDEAUX", "Bordeaux"
     LILLE = "LILLE", "Lille"
+    PAYS_BASQUE = "PAYS_BASQUE", "Pays Basque"
 
 
 class PropertyType(TextChoices):

@@ -36,7 +36,7 @@ DATA = {
     # # Pays Basque & Lille are done differently
     # Region.PAYS_BASQUE: "https://www.data.gouv.fr/fr/datasets/r/8f2a0b1c-3d4e-4f5b-8a7c-6d9e2f3b5c7d",
 }
-DEFAULT_YEAR = 2025
+DEFAULT_YEAR = 2024
 
 
 class Command(BaseCommand):
@@ -96,11 +96,12 @@ class Command(BaseCommand):
                         id_zone = properties.get("Zone")
                         id_quartier = properties.get("com_cv_code")
                         zone_name = properties.get("arrdep_name")
-                        reference_year = (
-                            int(properties.get("year"))
-                            if properties.get("year")
-                            else DEFAULT_YEAR
-                        )
+                        # reference_year = (
+                        #     int(properties.get("year"))
+                        #     if properties.get("year")
+                        #     else DEFAULT_YEAR
+                        # )
+                        reference_year = DEFAULT_YEAR
 
                     elif region == Region.PLAINE_COMMUNE:
                         id_zone = properties.get("Zone")

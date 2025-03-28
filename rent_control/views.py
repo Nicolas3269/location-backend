@@ -5,7 +5,6 @@ from django.contrib.gis.geos import Point
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from algo.encadrement_loyer.utils import geocode_address
 from rent_control.models import RentControlZone
 
 logger = logging.getLogger(__name__)
@@ -54,6 +53,8 @@ def check_zone(request):
         try:
             data = json.loads(request.body)
             address = data.get("address", "")
+            lat = data.get("lat", "")
+            lng = data.get("lng", "")
 
             logger.info(f"🔍 Adresse reçue : {address}")
 
@@ -61,8 +62,6 @@ def check_zone(request):
                 return JsonResponse({"message": "Adresse requise"}, status=400)
 
             # Ici, on appelle une fonction existante `is_critical_zone(address)`
-            # is_critical=False
-            lat, lng = geocode_address(address)
             zone_tendue = get_rent_control_info(lat, lng)
 
             if zone_tendue:

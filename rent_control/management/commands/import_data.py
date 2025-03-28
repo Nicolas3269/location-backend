@@ -1,10 +1,15 @@
-from datetime import datetime
-
 import requests
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
 from django.core.management.base import BaseCommand
 
 from rent_control.models import RentControlZone
+
+DATA = {
+    "Paris": "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",
+    # "QuartierPlaineCommune": "https://www.data.gouv.fr/fr/datasets/r/de5c9cb9-6215-4e88-aef7-ea0041984d1d",
+    "EstEnsemble": "https://www.data.gouv.fr/fr/datasets/r/7d70e696-ef9d-429d-8284-79d0ecd59ccd",
+    "Lyon20242025": "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
+}
 
 
 class Command(BaseCommand):
@@ -16,11 +21,9 @@ class Command(BaseCommand):
         # Clear existing data
         RentControlZone.objects.all().delete()
 
-        # Import Paris data
-        self.import_geojson(
-            "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",
-            "IDF",
-        )
+        # Import
+        for region, url in DATA.items():
+            self.import_geojson(url, region)
 
         # Import Pays Basque data
         # self.import_geojson("URL_PAYS_BASQUE", "PAYS_BASQUE")
@@ -56,7 +59,10 @@ class Command(BaseCommand):
                         geom = MultiPolygon(geom)
 
                     # Mappage adapté pour Paris
-                    if region == "IDF":
+                    a = 1
+                    if region == "Paris":
+                        id_zone = properties.get("id_zone", "")
+                        id_quartier = properties.get("id_quartier", "")
                         zone_val = properties.get("nom_quartier", "")
                         ref_price = properties.get("ref")
                         min_price = properties.get("min")
@@ -72,6 +78,7 @@ class Command(BaseCommand):
                         )
 
                     else:
+                        id_zone = properties.get("Zone", "")
                         # Mappage générique pour les autres régions
                         zone_val = properties.get("zone", "")
                         ref_price = properties.get(

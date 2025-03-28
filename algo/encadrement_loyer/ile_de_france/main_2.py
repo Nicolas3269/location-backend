@@ -1,6 +1,4 @@
-import requests
 import json
-from shapely.geometry import shape, Point
 
 from algo.encadrement_loyer.utils import geocode_address
 
@@ -41,7 +39,6 @@ from algo.encadrement_loyer.utils import geocode_address
 
 # URL du GeoJSON (ex: Paris)
 GEOJSON_URL = "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0"  # Remplace par l'URL du GeoJSON
-
 
 
 def ile_de_france(address):

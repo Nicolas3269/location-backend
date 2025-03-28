@@ -5,46 +5,74 @@ from django.contrib.gis.geos import Point
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from rent_control.models import RentControlZone
+from rent_control.models import RentControlArea, RentPrice
 
 logger = logging.getLogger(__name__)
 
 
-def get_rent_control_info(lat, lng):
-    # Create a point from the coordinates
+def get_rent_control_info(
+    lat,
+    lng,
+    property_type="appartement",
+    room_count=2,
+    construction_period="avant 1946",
+    furnished=False,
+    year=2024,
+):
+    """
+    Trouve les informations d'encadrement des loyers pour une localisation et
+    des caractéristiques de logement spécifiques.
+    """
+    # Créer un point à partir des coordonnées
     point = Point(float(lng), float(lat), srid=4326)
 
-    # Query using the geodb database
-    year = 2021
-    room_count = 2
-    furnished = False
-    construction_period = "Avant 1946"
+    # D'abord trouver la zone qui contient le point
+    area_query = RentControlArea.objects.filter(
+        geometry__contains=point, reference_year=year
+    )
 
-    # Ajouter les filtres secondaires si spécifiés
-    query = RentControlZone.objects.filter(geometry__contains=point)
-    if year:
-        query = query.filter(reference_year=year)
-    if room_count:
-        query = query.filter(room_count=room_count)
-    if furnished is not None:  # Booléen peut être False
-        query = query.filter(furnished=furnished)
-    if construction_period:
-        query = query.filter(construction_period=construction_period)
+    if not area_query.exists():
+        return False
 
-    if query.exists():
-        zone = query.first()
+    area = area_query.first()
+
+    # Puis trouver le prix correspondant aux caractéristiques
+    price_query = RentPrice.objects.filter(
+        area=area,
+        property_type=property_type,
+        room_count=str(room_count),
+        construction_period=construction_period,
+        furnished=furnished,
+    )
+
+    if not price_query.exists():
+        # Si aucune correspondance exacte, chercher la plus proche
+        price_query = RentPrice.objects.filter(area=area)
+        # Vous pourriez ici implémenter une logique de "meilleure correspondance"
+
+    if price_query.exists():
+        price = price_query.first()
+
         return {
-            "region": zone.region,
-            "zone": zone.zone,
-            "reference_price": zone.reference_price,
-            "min_price": zone.min_price,
-            "max_price": zone.max_price,
-            "apartment_type": zone.apartment_type,
-            "room_count": zone.room_count,
-            "construction_period": zone.construction_period,
-            "furnished": zone.furnished,
+            "region": area.region,
+            "zone": area.zone_name,
+            "reference_price": price.reference_price,
+            "min_price": price.min_price,
+            "max_price": price.max_price,
+            "apartment_type": price.property_type,
+            "room_count": price.room_count,
+            "construction_period": price.construction_period,
+            "furnished": price.furnished,
+            "reference_year": area.reference_year,
         }
-    return False
+
+    # Si aucun prix trouvé, retourner les informations de base de la zone
+    return {
+        "region": area.region,
+        "zone": area.zone_name,
+        "reference_year": area.reference_year,
+        "message": "Prix non disponibles pour ces caractéristiques",
+    }
 
 
 @csrf_exempt

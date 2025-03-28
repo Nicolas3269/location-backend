@@ -1,13 +1,27 @@
+import json
+
 import requests
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
 from django.core.management.base import BaseCommand
 
 from rent_control.models import RentControlZone
 
+### POUR ILE DE FRANCE ###
+# Il faut la geométrie et la carte de prix pour chaque zone
+
+### Pour LYON
+# On peut tout avoir directement
+
+### Pour MONTPELLIER
+# Les quartiers a on juste zone et geométrie
+
+
 DATA = {
-    "Paris": "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",
-    # "QuartierPlaineCommune": "https://www.data.gouv.fr/fr/datasets/r/de5c9cb9-6215-4e88-aef7-ea0041984d1d",
-    "EstEnsemble": "https://www.data.gouv.fr/fr/datasets/r/7d70e696-ef9d-429d-8284-79d0ecd59ccd",
+    # "Paris": "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",
+    # "Quartier_PlaineCommune": "https://www.data.gouv.fr/fr/datasets/r/de5c9cb9-6215-4e88-aef7-ea0041984d1d",
+    # "Quartier_EstEnsemble": "https://www.data.gouv.fr/fr/datasets/r/7d70e696-ef9d-429d-8284-79d0ecd59ccd",
+    "Bordeaux": "https://www.data.gouv.fr/fr/datasets/r/08a1d711-e239-4282-938c-e6edac0090a8",
+    "Quartier_Montpellier": "https://www.data.gouv.fr/fr/datasets/r/c00fa2a7-f84c-4ca4-8224-3b734242bae7",
     "Lyon20242025": "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
 }
 
@@ -61,7 +75,7 @@ class Command(BaseCommand):
                     # Mappage adapté pour Paris
                     a = 1
                     if region == "Paris":
-                        id_zone = properties.get("id_zone", "")
+                        id_zone = properties.get("id_zone")
                         id_quartier = properties.get("id_quartier", "")
                         zone_val = properties.get("nom_quartier", "")
                         ref_price = properties.get("ref")
@@ -76,6 +90,13 @@ class Command(BaseCommand):
                             if properties.get("annee")
                             else None
                         )
+                    elif region == "Lyon20242025":
+                        id_zone = properties.get("zonage")
+                        ## Mappage diiférent pour Lyon
+                        prices = json.loads(properties.get("valeurs"))
+
+                    elif region == "Montpellier":
+                        id_zone = properties.get("Zone")
 
                     else:
                         id_zone = properties.get("Zone", "")

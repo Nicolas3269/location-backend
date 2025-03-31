@@ -7,3 +7,7 @@ sudo apt-get install libsqlite3-mod-spatialite python3-gdal gdal-bin
 
 python manage.py makemigrations rent_control
 python manage.py migrate rent_control --database=geodb
+
+# map
+
+http://localhost:8003/admin/rent_control/rentcontrolarea/region_map/

@@ -2,6 +2,7 @@ import requests
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
 from django.core.management.base import BaseCommand
 
+from algo.encadrement_loyer.bordeaux.main import get_goejson_properties
 from rent_control.choices import Region
 from rent_control.models import RentControlArea
 
@@ -26,11 +27,7 @@ DATA = {
     # #
     # #
     Region.MONTPELLIER: "https://www.data.gouv.fr/fr/datasets/r/c00fa2a7-f84c-4ca4-8224-3b734242bae7",
-    # #
-    # #
-    # #
-    # Not working
-    # Region.BORDEAUX: "https://www.data.gouv.fr/fr/datasets/r/08a1d711-e239-4282-938c-e6edac0090a8",
+    Region.BORDEAUX: "https://www.data.gouv.fr/fr/datasets/r/08a1d711-e239-4282-938c-e6edac0090a8",
     # #
     # #
     # # Pays Basque & Lille are done differently
@@ -61,9 +58,14 @@ class Command(BaseCommand):
         self.stdout.write(f"Importing {region} data from {url}")
 
         try:
-            response = requests.get(url)
-            response.raise_for_status()
-            data = response.json()
+            if region == Region.BORDEAUX:
+                # Bordeaux data is not available via the API
+                # You can add a different method to handle it if needed
+                data = get_goejson_properties()
+            else:
+                response = requests.get(url)
+                response.raise_for_status()
+                data = response.json()
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Error fetching data: {e}"))
             return
@@ -75,75 +77,85 @@ class Command(BaseCommand):
                 properties = feature.get("properties", {})
                 id_quartier = None
                 zone_name = None
-
-                if geometry and geometry.get("type") in ("Polygon", "MultiPolygon"):
-                    # Convert to MultiPolygon if it's a simple Polygon
-                    geom = GEOSGeometry(str(geometry))
-                    if geometry.get("type") == "Polygon":
+                if region == Region.BORDEAUX:
+                    geom = GEOSGeometry(geometry)
+                    # Pas besoin de vérifier geometry type ici, tu peux le faire après
+                    if geom.geom_type == "Polygon":
                         geom = MultiPolygon(geom)
+                else:
+                    if geometry and geometry.get("type") in ("Polygon", "MultiPolygon"):
+                        geom = GEOSGeometry(str(geometry))
+                        if geometry.get("type") == "Polygon":
+                            geom = MultiPolygon(geom)
+                # if not geom.valid:
+                #     self.stdout.write(self.style.WARNING("Skipping invalid geometry"))
+                #     continue
 
-                    # Mappage adapté pour Paris
-                    if region == Region.PARIS:
-                        id_zone = properties.get("id_zone")
-                        id_quartier = properties.get("id_quartier")
-                        zone_name = properties.get("nom_quartier")
-                        reference_year = (
-                            int(properties.get("annee"))
-                            if properties.get("annee")
-                            else DEFAULT_YEAR
-                        )
-                    elif region == Region.EST_ENSEMBLE:
-                        id_zone = properties.get("Zone")
-                        id_quartier = properties.get("com_cv_code")
-                        zone_name = properties.get("arrdep_name")
-                        # reference_year = (
-                        #     int(properties.get("year"))
-                        #     if properties.get("year")
-                        #     else DEFAULT_YEAR
-                        # )
-                        reference_year = DEFAULT_YEAR
-
-                    elif region == Region.PLAINE_COMMUNE:
-                        id_zone = properties.get("Zone")
-                        id_quartier = properties.get("INSEE_COM")
-                        zone_name = properties.get("NOM_COM")
-                        reference_year = (
-                            int(properties.get("annee"))
-                            if properties.get("annee")
-                            else DEFAULT_YEAR
-                        )
-                    elif region == Region.LYON:
-                        id_zone = properties.get("zonage")
-                        # ici c'est probablemment la qu'on doit améliorer car c'est plusieurs id_quartier
-                        id_quartier = properties.get("gid")
-                        zone_name = properties.get("commune")
-                        reference_year = DEFAULT_YEAR
-
-                    elif region == Region.MONTPELLIER:
-                        id_zone = properties.get("Zone")
-                        reference_year = DEFAULT_YEAR
-
-                    elif region == Region.BORDEAUX:
-                        id_zone = properties.get("Zone")
-                        reference_year = DEFAULT_YEAR
-
-                    else:
-                        id_zone = properties.get("Zone", "")
-                        reference_year = DEFAULT_YEAR
-
-                    # Create the zone object
-                    RentControlArea.objects.using("geodb").create(
-                        region=region,
-                        zone_id=id_zone,
-                        quartier_id=id_quartier,
-                        zone_name=zone_name,
-                        reference_year=reference_year,
-                        geometry=geom,
+                # Mappage adapté pour Paris
+                if region == Region.PARIS:
+                    id_zone = properties.get("id_zone")
+                    id_quartier = properties.get("id_quartier")
+                    zone_name = properties.get("nom_quartier")
+                    reference_year = (
+                        int(properties.get("annee"))
+                        if properties.get("annee")
+                        else DEFAULT_YEAR
                     )
-                    count += 1
+                elif region == Region.EST_ENSEMBLE:
+                    id_zone = properties.get("Zone")
+                    id_quartier = properties.get("com_cv_code")
+                    zone_name = properties.get("arrdep_name")
+                    # reference_year = (
+                    #     int(properties.get("year"))
+                    #     if properties.get("year")
+                    #     else DEFAULT_YEAR
+                    # )
+                    reference_year = DEFAULT_YEAR
 
-                    if count % 100 == 0:
-                        self.stdout.write(f"  Imported {count} zones so far...")
+                elif region == Region.PLAINE_COMMUNE:
+                    id_zone = properties.get("Zone")
+                    id_quartier = properties.get("INSEE_COM")
+                    zone_name = properties.get("NOM_COM")
+                    reference_year = (
+                        int(properties.get("annee"))
+                        if properties.get("annee")
+                        else DEFAULT_YEAR
+                    )
+                elif region == Region.LYON:
+                    id_zone = properties.get("zonage")
+                    # ici c'est probablemment la qu'on doit améliorer car c'est plusieurs id_quartier
+                    id_quartier = properties.get("gid")
+                    zone_name = properties.get("commune")
+                    reference_year = DEFAULT_YEAR
+
+                elif region == Region.MONTPELLIER:
+                    id_zone = properties.get("Zone")
+                    reference_year = DEFAULT_YEAR
+
+                elif region == Region.BORDEAUX:
+                    id_zone = properties.get("Zonage_val")
+                    zone_name = properties.get("ZET_lib")
+
+                    id_quartier = properties.get("CODE_IRIS")
+                    reference_year = DEFAULT_YEAR
+
+                else:
+                    id_zone = properties.get("Zone", "")
+                    reference_year = DEFAULT_YEAR
+
+                # Create the zone object
+                RentControlArea.objects.using("geodb").create(
+                    region=region,
+                    zone_id=id_zone,
+                    quartier_id=id_quartier,
+                    zone_name=zone_name,
+                    reference_year=reference_year,
+                    geometry=geom,
+                )
+                count += 1
+
+                if count % 100 == 0:
+                    self.stdout.write(f"  Imported {count} zones so far...")
 
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"Error importing feature: {e}"))

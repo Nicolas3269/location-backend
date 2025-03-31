@@ -1,21 +1,53 @@
 import json
-from shapely.geometry import Point, Polygon
+
 # Pour les references des coordonnées géométriques, voir le fichier data_year.json
 # Il faut choisir l'année pour laquelle on veut les données
 # https://ssilab-ddtm-encadrement-loyers-33.webself.net/baux-conclus-ou-renouveles-entre-le-142024-et-le-3132025#Meubl%c3%a9+1+1+1+1+1
 # Ce qui amène a cette url:
 # https://ssilab-ddtm-encadrement-loyers-33.webself.net/data-2024.json
 # https://cdonline.articque.com/share/display/ddtm59-loyers2024
-
 # Charger les données des zones (remplacez 'data.json' par le chemin vers votre fichier JSON)
-year = 2024
-with open(
-    f"backend/encadrement_loyer/lille/data_{year}.json", "r", encoding="utf-8"
-) as f:
-    data = json.load(f)
+from shapely.geometry import Point, Polygon
 
-# Extraire la liste des polygones depuis le JSON
-ressources = data["displayingInfos"]["Resources"]
+extract_dir = "algo/encadrement_loyer/lille"
+
+year = 2024
+
+
+def find_zone_data(zone_id, dataset):
+    for item in dataset:
+        if item[0] == zone_id:
+            return item
+    return None
+
+
+def get_lille_zone_geometries(year):
+    """
+    Parse le fichier JSON de Lille (Articque) pour extraire les géométries
+    au format exploitable dans RentControlArea (zone_id, zone_name, geometry...).
+    Ne s'intéresse pas encore aux prix.
+    """
+    with open(f"{extract_dir}/data_{year}.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    ressources = data["displayingInfos"]["Resources"]
+    geom_list = ressources["Maps"][0]["GeomList"]
+    features = []
+    for geom in geom_list:
+        id_quartier = geom["id"]
+        [_, zone_id] = find_zone_data(id_quartier, ressources["Datas"][0]["Values"])
+        features.append(
+            {
+                "type": "Feature",
+                "geometry": geom["geom"],
+                "properties": {
+                    "zone_id": zone_id,
+                    "id_quartier": id_quartier,
+                    "zone_name": geom["name"],
+                },
+            }
+        )
+    return {"features": features}
 
 
 # Fonction pour trouver le polygone contenant un point
@@ -40,17 +72,8 @@ def find_polygon(lat, lon, ressources):
     return None
 
 
-def find_zone_data(zone_id, dataset):
-    for item in dataset:
-        if item[0] == zone_id:
-            return item
-    return None
-
-
 def get_zone_data(latitude, longitude, year):
-    with open(
-        f"backend/encadrement_loyer/lille/data_{year}.json", "r", encoding="utf-8"
-    ) as f:
+    with open(f"{extract_dir}/data_{year}.json", "r", encoding="utf-8") as f:
         data = json.load(f)
 
     # Extraire la liste des polygones depuis le JSON

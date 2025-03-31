@@ -17,23 +17,19 @@ from rent_control.models import RentControlArea
 
 DATA = {
     # CAN BE DONE with the url
-    # Region.PARIS: "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",
-    # Region.EST_ENSEMBLE: "https://www.data.gouv.fr/fr/datasets/r/7d70e696-ef9d-429d-8284-79d0ecd59ccd",
-    # Region.PLAINE_COMMUNE: "https://www.data.gouv.fr/fr/datasets/r/de5c9cb9-6215-4e88-aef7-ea0041984d1d",
-    # # #
-    # # #
-    # # #
-    # # Can be done all in one
-    # Region.LYON: "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
-    # # #
-    # # #
-    # # #
-    # Region.MONTPELLIER: "https://www.data.gouv.fr/fr/datasets/r/c00fa2a7-f84c-4ca4-8224-3b734242bae7",
-    # Region.BORDEAUX: "custom",
+    Region.PARIS: "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",
+    Region.EST_ENSEMBLE: "https://www.data.gouv.fr/fr/datasets/r/7d70e696-ef9d-429d-8284-79d0ecd59ccd",
+    Region.PLAINE_COMMUNE: "https://www.data.gouv.fr/fr/datasets/r/de5c9cb9-6215-4e88-aef7-ea0041984d1d",
     # #
     # #
-    # # Pays Basque & Lille are done differently
-    # Region.LILLE: "custom",
+    # Can be done all in one
+    Region.LYON: "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
+    # #
+    # #
+    # #
+    Region.MONTPELLIER: "https://www.data.gouv.fr/fr/datasets/r/c00fa2a7-f84c-4ca4-8224-3b734242bae7",
+    Region.BORDEAUX: "custom",
+    Region.LILLE: "custom",
     Region.PAYS_BASQUE: "custom",
 }
 DEFAULT_YEAR = 2024
@@ -46,7 +42,7 @@ class Command(BaseCommand):
         self.stdout.write("Importing rent control zones...")
 
         # Clear existing data
-        RentControlArea.objects.filter(region=Region.PAYS_BASQUE).delete()
+        RentControlArea.objects.all().delete()
 
         # Import
         for region, url in DATA.items():

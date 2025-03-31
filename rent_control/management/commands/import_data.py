@@ -4,6 +4,7 @@ from django.core.management.base import BaseCommand
 
 from algo.encadrement_loyer.bordeaux.main import get_goejson_properties
 from algo.encadrement_loyer.lille.main import get_lille_zone_geometries
+from algo.encadrement_loyer.pays_basques.main import get_pays_basque_zone_geometries
 from rent_control.choices import Region
 from rent_control.models import RentControlArea
 
@@ -32,8 +33,8 @@ DATA = {
     # #
     # #
     # # Pays Basque & Lille are done differently
-    Region.LILLE: "custom",
-    # Region.PAYS_BASQUE: "https://www.data.gouv.fr/fr/datasets/r/8f2a0b1c-3d4e-4f5b-8a7c-6d9e2f3b5c7d",
+    # Region.LILLE: "custom",
+    Region.PAYS_BASQUE: "custom",
 }
 DEFAULT_YEAR = 2024
 
@@ -45,7 +46,7 @@ class Command(BaseCommand):
         self.stdout.write("Importing rent control zones...")
 
         # Clear existing data
-        RentControlArea.objects.filter(region=Region.LILLE).delete()
+        RentControlArea.objects.filter(region=Region.PAYS_BASQUE).delete()
 
         # Import
         for region, url in DATA.items():
@@ -67,6 +68,8 @@ class Command(BaseCommand):
 
             elif region == Region.LILLE:
                 data = get_lille_zone_geometries(DEFAULT_YEAR)
+            elif region == Region.PAYS_BASQUE:
+                data = get_pays_basque_zone_geometries()
             else:
                 response = requests.get(url)
                 response.raise_for_status()
@@ -139,6 +142,11 @@ class Command(BaseCommand):
                     id_zone = properties.get("zone_id")
                     id_quartier = properties.get("id_quartier")
                     zone_name = properties.get("zone_name")
+                    reference_year = DEFAULT_YEAR
+                elif region == Region.PAYS_BASQUE:
+                    id_zone = properties.get("zone_encadr_loyers")
+                    id_quartier = properties.get("gid")
+                    zone_name = properties.get("nom_iris")
                     reference_year = DEFAULT_YEAR
                 else:
                     id_zone = properties.get("Zone", "")

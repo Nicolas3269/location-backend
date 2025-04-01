@@ -7,23 +7,34 @@ from .choices import Region
 from .models import RentControlArea, RentPrice
 
 
+class RegionListFilter(admin.SimpleListFilter):
+    title = "Région"
+    parameter_name = "region"
+
+    def lookups(self, request, model_admin):
+        return Region.choices
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(areas__region=self.value()).distinct()
+        return queryset
+
+
 class RentPriceInline(admin.TabularInline):
-    """Affiche les prix inline dans l'admin de la zone"""
+    """Affiche les prix associés à une zone"""
 
-    model = RentPrice
+    model = RentPrice.areas.through  # Utiliser la table intermédiaire pour l'inline
     extra = 0
-    fields = (
-        "property_type",
-        "room_count",
-        "construction_period",
-        "furnished",
-        "reference_price",
-        "min_price",
-        "max_price",
-    )
+    verbose_name = "Prix associé"
+    verbose_name_plural = "Prix associés"
 
-    # Limiter le nombre d'entrées affichées pour éviter de surcharger la page
-    max_num = 10
+    # Nous ne pouvons pas utiliser les champs directement comme avant
+    # Il faut personnaliser l'affichage avec get_formset ou readonly_fields
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        formset.form.base_fields["rentprice"].label = "Prix"
+        return formset
 
 
 @admin.register(RentControlArea)
@@ -264,8 +275,11 @@ class RentControlAreaAdmin(GISModelAdmin):
 class RentPriceAdmin(admin.ModelAdmin):
     """Admin view for RentPrice"""
 
+    # Exclure le champ areas de l'édition directe (géré par un widget spécialisé)
+    exclude = ("areas",)
+
     list_display = (
-        "area_display",
+        "areas_display",  # Changé de area_display à areas_display
         "property_type",
         "room_count",
         "construction_period",
@@ -273,24 +287,43 @@ class RentPriceAdmin(admin.ModelAdmin):
         "reference_price",
         "get_price_range",
     )
+
     list_filter = (
         "property_type",
+        RegionListFilter,
         "room_count",
         "construction_period",
         "furnished",
-        "area__region",
-        "area__reference_year",
+        # Modifier les filtres pour utiliser lookup à travers ManyToMany
     )
-    search_fields = ("area__zone_name", "property_type", "room_count")
 
-    def area_display(self, obj):
-        """Affiche la zone de manière plus lisible"""
-        return f"{obj.area.region} - {obj.area.zone_name} ({obj.area.reference_year})"
-
-    area_display.short_description = "Zone"
+    # Filtre personnalisé pour region et référence_year
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.prefetch_related("areas")  # Optimiser les requêtes
 
     def get_price_range(self, obj):
         """Affiche la fourchette de prix"""
         return f"{obj.min_price}€ - {obj.max_price}€"
 
     get_price_range.short_description = "Fourchette de prix"
+
+    def areas_display(self, obj):
+        """Affiche les zones associées à ce prix"""
+        areas = obj.areas.all()[:3]  # Limiter pour l'affichage
+        if not areas:
+            return "-"
+
+        area_list = ", ".join([f"{a.get_region_display()}: {a.zone_id}" for a in areas])
+        count = obj.areas.count()
+        if count > 3:
+            area_list += f" et {count - 3} autre(s)"
+        return area_list
+
+    areas_display.short_description = "Zones"
+
+    # Ajouter un filtre pour région
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "areas":
+            kwargs["widget"] = admin.widgets.FilteredSelectMultiple("zones", False)
+        return super().formfield_for_manytomany(db_field, request, **kwargs)

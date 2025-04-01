@@ -8,13 +8,6 @@ from algo.encadrement_loyer.pays_basques.main import get_pays_basque_zone_geomet
 from rent_control.choices import Region
 from rent_control.models import RentControlArea
 
-### POUR ILE DE FRANCE ###
-# Il faut la geométrie et la carte de prix pour chaque zone
-
-### Pour LYON
-# On peut tout avoir directement
-
-
 DATA = {
     # CAN BE DONE with the url
     Region.PARIS: "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",

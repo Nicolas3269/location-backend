@@ -1,5 +1,4 @@
 from django.contrib.gis.db import models
-from django.db.models import UniqueConstraint
 
 from .choices import ConstructionPeriod, PropertyType, Region, RoomCount
 
@@ -26,9 +25,8 @@ class RentControlArea(models.Model):
 class RentPrice(models.Model):
     """Prix par caractéristiques de logement dans une zone"""
 
-    area = models.ForeignKey(
-        RentControlArea, on_delete=models.CASCADE, related_name="prices"
-    )
+    areas = models.ManyToManyField(RentControlArea, related_name="prices")
+    reference_year = models.IntegerField(default=2024)
 
     # Caractéristiques avec énums
     property_type = models.CharField(max_length=20, choices=PropertyType.choices)
@@ -42,29 +40,3 @@ class RentPrice(models.Model):
     reference_price = models.DecimalField(max_digits=6, decimal_places=2)
     min_price = models.DecimalField(max_digits=6, decimal_places=2)
     max_price = models.DecimalField(max_digits=6, decimal_places=2)
-
-    # Meta reste identique
-
-    class Meta:
-        constraints = [
-            UniqueConstraint(
-                fields=[
-                    "area",
-                    "property_type",
-                    "room_count",
-                    "construction_period",
-                    "furnished",
-                ],
-                name="unique_property_characteristics",
-            )
-        ]
-        indexes = [
-            models.Index(
-                fields=[
-                    "property_type",
-                    "room_count",
-                    "furnished",
-                    "construction_period",
-                ]
-            ),
-        ]

@@ -28,4 +28,6 @@ class ConstructionPeriod(TextChoices):
     BEFORE_1946 = "avant 1946", "Avant 1946"
     FROM_1946_TO_1970 = "1946-1970", "1946-1970"
     FROM_1971_TO_1990 = "1971-1990", "1971-1990"
+    FROM_1990_TO_2005 = "1990-2005", "1990-2005"
     AFTER_1990 = "apres 1990", "Après 1990"
+    AFTER_2005 = "apres 2005", "Après 2005"

@@ -19,7 +19,7 @@ def reproject_geometry(geom):
     return mapping(reprojected)
 
 
-def get_goejson_properties():
+def get_bordeaux_zone_geometries():
     """Récupère les propriétés du GeoJSON"""
     # === 3. Extraction des features avec reprojection
     features = []

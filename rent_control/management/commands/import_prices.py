@@ -54,13 +54,46 @@ class Command(BaseCommand):
             if region == Region.MONTPELLIER:
                 extract_dir = "algo/encadrement_loyer/montpellier"
                 file_path = os.path.join(extract_dir, f"{DEFAULT_YEAR}.ods")
-                json_file = extract_ods_file_to_json(file_path)
-                for area in RentControlArea.objects.using("geodb").filter(
-                    region=region.BORDEAUX, reference_year=DEFAULT_YEAR
-                ):
-                    a = 1
-                # Bordeaux data is not available via the API
-                # You can add a different method to handle it if needed
+                # Extraire les données du fichier ODS
+                prices_data = extract_ods_file_to_json(file_path)
+
+                # Récupérer toutes les zones correspondant à la région et l'année
+                areas = RentControlArea.objects.using("geodb").filter(
+                    region=region, reference_year=DEFAULT_YEAR
+                )
+
+                # Si aucune zone, signaler une erreur et sortir
+                if not areas.exists():
+                    self.stdout.write(
+                        self.style.ERROR(f"No areas found for {region} {DEFAULT_YEAR}")
+                    )
+                    return
+
+                # Parcourir les données de prix extraites
+                for price_data in prices_data:
+                    # Rechercher un prix existant avec les mêmes caractéristiques ou en créer un nouveau
+                    price, created = RentPrice.objects.get_or_create(
+                        property_type=price_data["property_type"],
+                        room_count=price_data["room_count"],
+                        construction_period=price_data["construction_period"],
+                        furnished=price_data["furnished"],
+                        reference_year=DEFAULT_YEAR,
+                        defaults={
+                            "reference_price": price_data["reference_price"],
+                            "min_price": price_data["min_price"],
+                            "max_price": price_data["max_price"],
+                        },
+                    )
+
+                    # Pour chaque zone correspondant au critère de localisation du prix
+                    for area in areas.filter(zone_id=price_data["zone_id"]):
+                        # Associer le prix à la zone
+                        price.areas.add(area)
+
+                    if created:
+                        self.stdout.write(f"Created price: {price}")
+                    else:
+                        self.stdout.write(f"Using existing price: {price}")
 
             else:
                 response = requests.get(url)

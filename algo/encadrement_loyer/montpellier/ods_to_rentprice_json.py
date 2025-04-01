@@ -3,7 +3,7 @@ import os
 import pandas as pd
 
 
-def extract_ods_file_to_json(file_path):
+def extract_ods_file_to_json(file_path, property_type=None):
     df = pd.read_excel(file_path, engine="odf")
 
     # Nettoyer les données : ignorer la première ligne vide et utiliser la seconde comme en-têtes
@@ -24,6 +24,20 @@ def extract_ods_file_to_json(file_path):
     df_cleaned.columns.values[7] = "Loyer de référence meublé"
     df_cleaned.columns.values[8] = "Loyer de référence majoré meublé"
     df_cleaned.columns.values[9] = "Loyer de référence minoré meublé"
+
+    # Normaliser les valeurs dans les colonnes spécifiques
+    df_cleaned["Nombre de pièces"] = df_cleaned["Nombre de pièces"].replace(
+        "4 et plus", "4"
+    )
+
+    # Normaliser les valeurs de la colonne "Epoque de construction"
+    df_cleaned["Epoque de construction"] = df_cleaned["Epoque de construction"].replace(
+        {
+            "Avant 1946": "avant 1946",
+            "Après 1990": "apres 1990",
+            "Après 2005": "apres 2005",
+        }
+    )
 
     # Sélectionner les colonnes pertinentes
     df_selected = df_cleaned[
@@ -60,7 +74,7 @@ def extract_ods_file_to_json(file_path):
             result.append(
                 {
                     "zone_id": row["area"].replace("Zone ", "").lower(),
-                    "property_type": "apartment",  # ajustable selon ton cas
+                    "property_type": property_type,
                     "room_count": row["room_count"],
                     "construction_period": row["construction_period"],
                     "furnished": furnished,

@@ -21,20 +21,77 @@ class RegionListFilter(admin.SimpleListFilter):
 
 
 class RentPriceInline(admin.TabularInline):
-    """Affiche les prix associés à une zone"""
+    """Affiche les prix associés à une zone avec leurs caractéristiques"""
 
-    model = RentPrice.areas.through  # Utiliser la table intermédiaire pour l'inline
+    model = RentPrice.areas.through
     extra = 0
     verbose_name = "Prix associé"
     verbose_name_plural = "Prix associés"
 
-    # Nous ne pouvons pas utiliser les champs directement comme avant
-    # Il faut personnaliser l'affichage avec get_formset ou readonly_fields
+    # Définir les champs en lecture seule pour afficher les informations du prix
+    readonly_fields = (
+        "get_property_type",
+        "get_room_count",
+        "get_construction_period",
+        "get_furnished",
+        "get_reference_price",
+        "get_price_range",
+    )
+
+    # Contrôle les champs à afficher et leur ordre
+    fields = (
+        "rentprice",
+        "get_property_type",
+        "get_room_count",
+        "get_construction_period",
+        "get_furnished",
+        "get_price_range",
+    )
+
+    def get_property_type(self, obj):
+        """Affiche le type de bien"""
+        return obj.rentprice.get_property_type_display()
+
+    get_property_type.short_description = "Type de bien"
+
+    def get_room_count(self, obj):
+        """Affiche le nombre de pièces"""
+        return obj.rentprice.room_count
+
+    get_room_count.short_description = "Pièces"
+
+    def get_construction_period(self, obj):
+        """Affiche la période de construction"""
+        return obj.rentprice.get_construction_period_display()
+
+    get_construction_period.short_description = "Construction"
+
+    def get_furnished(self, obj):
+        """Affiche si meublé ou non"""
+        return "Meublé" if obj.rentprice.furnished else "Non meublé"
+
+    get_furnished.short_description = "Meublé"
+
+    def get_reference_price(self, obj):
+        """Affiche le prix de référence"""
+        return f"{obj.rentprice.reference_price}€/m²"
+
+    get_reference_price.short_description = "Prix réf."
+
+    def get_price_range(self, obj):
+        """Affiche la fourchette de prix"""
+        return f"{obj.rentprice.min_price}€ - {obj.rentprice.max_price}€"
+
+    get_price_range.short_description = "Fourchette"
 
     def get_formset(self, request, obj=None, **kwargs):
         formset = super().get_formset(request, obj, **kwargs)
         formset.form.base_fields["rentprice"].label = "Prix"
         return formset
+
+    # Empêcher la modification directe dans l'inline
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(RentControlArea)

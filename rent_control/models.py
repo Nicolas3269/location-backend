@@ -29,7 +29,12 @@ class RentPrice(models.Model):
     reference_year = models.IntegerField(default=2024)
 
     # Caractéristiques avec énums
-    property_type = models.CharField(max_length=20, choices=PropertyType.choices)
+    property_type = models.CharField(
+        max_length=20,
+        choices=PropertyType.choices,
+        null=True,  # Permet NULL dans la base de données
+        blank=True,
+    )
     room_count = models.CharField(max_length=10, choices=RoomCount.choices)
     construction_period = models.CharField(
         max_length=20, choices=ConstructionPeriod.choices

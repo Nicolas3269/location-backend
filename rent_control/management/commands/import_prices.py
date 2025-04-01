@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 from algo.encadrement_loyer.montpellier.ods_to_rentprice_json import (
     extract_ods_file_to_json,
 )
-from rent_control.choices import Region
+from rent_control.choices import PropertyType, Region
 from rent_control.models import RentControlArea, RentPrice
 
 DATA = {
@@ -21,12 +21,56 @@ DATA = {
     # # #
     # # #
     # # #
-    Region.MONTPELLIER: "https://www.data.gouv.fr/fr/datasets/r/c00fa2a7-f84c-4ca4-8224-3b734242bae7",
-    # Region.BORDEAUX: "custom",
+    Region.MONTPELLIER: "custom",
+    Region.BORDEAUX: "custom",
     # Region.LILLE: "custom",
     # Region.PAYS_BASQUE: "custom",
 }
 DEFAULT_YEAR = 2024
+
+
+def set_prices_for_ods_file(self, region, file_path, property_type=None):
+    """Set prices for the ODS file"""
+    # Extraire les données du fichier ODS
+    prices_data = extract_ods_file_to_json(file_path, property_type=property_type)
+
+    # Récupérer toutes les zones correspondant à la région et l'année
+    areas = RentControlArea.objects.using("geodb").filter(
+        region=region, reference_year=DEFAULT_YEAR
+    )
+
+    # Si aucune zone, signaler une erreur et sortir
+    if not areas.exists():
+        self.stdout.write(
+            self.style.ERROR(f"No areas found for {region} {DEFAULT_YEAR}")
+        )
+        return
+
+    # Parcourir les données de prix extraites
+    for price_data in prices_data:
+        # Rechercher un prix existant avec les mêmes caractéristiques ou en créer un nouveau
+        price, created = RentPrice.objects.get_or_create(
+            property_type=price_data["property_type"],
+            room_count=price_data["room_count"],
+            construction_period=price_data["construction_period"],
+            furnished=price_data["furnished"],
+            reference_year=DEFAULT_YEAR,
+            defaults={
+                "reference_price": price_data["reference_price"],
+                "min_price": price_data["min_price"],
+                "max_price": price_data["max_price"],
+            },
+        )
+
+        # Pour chaque zone correspondant au critère de localisation du prix
+        for area in areas.filter(zone_id=price_data["zone_id"]):
+            # Associer le prix à la zone
+            price.areas.add(area)
+
+        if created:
+            self.stdout.write(f"Created price: {price}")
+        else:
+            self.stdout.write(f"Using existing price: {price}")
 
 
 class Command(BaseCommand):
@@ -54,46 +98,20 @@ class Command(BaseCommand):
             if region == Region.MONTPELLIER:
                 extract_dir = "algo/encadrement_loyer/montpellier"
                 file_path = os.path.join(extract_dir, f"{DEFAULT_YEAR}.ods")
-                # Extraire les données du fichier ODS
-                prices_data = extract_ods_file_to_json(file_path)
+                set_prices_for_ods_file(self, region, file_path, property_type=None)
 
-                # Récupérer toutes les zones correspondant à la région et l'année
-                areas = RentControlArea.objects.using("geodb").filter(
-                    region=region, reference_year=DEFAULT_YEAR
+            elif region == Region.BORDEAUX:
+                extract_dir = "algo/encadrement_loyer/bordeaux"
+                # APPARTEMENT
+                file_path = os.path.join(extract_dir, f"{DEFAULT_YEAR}_appart.ods")
+                set_prices_for_ods_file(
+                    self, region, file_path, property_type=PropertyType.APARTMENT
                 )
-
-                # Si aucune zone, signaler une erreur et sortir
-                if not areas.exists():
-                    self.stdout.write(
-                        self.style.ERROR(f"No areas found for {region} {DEFAULT_YEAR}")
-                    )
-                    return
-
-                # Parcourir les données de prix extraites
-                for price_data in prices_data:
-                    # Rechercher un prix existant avec les mêmes caractéristiques ou en créer un nouveau
-                    price, created = RentPrice.objects.get_or_create(
-                        property_type=price_data["property_type"],
-                        room_count=price_data["room_count"],
-                        construction_period=price_data["construction_period"],
-                        furnished=price_data["furnished"],
-                        reference_year=DEFAULT_YEAR,
-                        defaults={
-                            "reference_price": price_data["reference_price"],
-                            "min_price": price_data["min_price"],
-                            "max_price": price_data["max_price"],
-                        },
-                    )
-
-                    # Pour chaque zone correspondant au critère de localisation du prix
-                    for area in areas.filter(zone_id=price_data["zone_id"]):
-                        # Associer le prix à la zone
-                        price.areas.add(area)
-
-                    if created:
-                        self.stdout.write(f"Created price: {price}")
-                    else:
-                        self.stdout.write(f"Using existing price: {price}")
+                # MAISON
+                file_path = os.path.join(extract_dir, f"{DEFAULT_YEAR}_maison.ods")
+                set_prices_for_ods_file(
+                    self, region, file_path, property_type=PropertyType.HOUSE
+                )
 
             else:
                 response = requests.get(url)

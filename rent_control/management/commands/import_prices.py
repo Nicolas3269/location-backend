@@ -6,6 +6,9 @@ from django.core.management.base import BaseCommand
 from algo.encadrement_loyer.montpellier.ods_to_rentprice_json import (
     extract_ods_file_to_json,
 )
+from algo.encadrement_loyer.pays_basques.combinaison import (
+    retrieve_data_from_json_for_pays_basques,
+)
 from rent_control.choices import PropertyType, Region
 from rent_control.models import RentControlArea, RentPrice
 
@@ -21,10 +24,10 @@ DATA = {
     # # #
     # # #
     # # #
-    Region.MONTPELLIER: "custom",
-    Region.BORDEAUX: "custom",
-    # Region.LILLE: "custom",
+    # Region.MONTPELLIER: "custom",
+    # Region.BORDEAUX: "custom",
     # Region.PAYS_BASQUE: "custom",
+    Region.LILLE: "custom",
 }
 DEFAULT_YEAR = 2024
 
@@ -73,6 +76,49 @@ def set_prices_for_ods_file(self, region, file_path, property_type=None):
             self.stdout.write(f"Using existing price: {price}")
 
 
+def import_pays_basque_prices(self, region):
+    """Importe les prix du Pays Basque"""
+    self.stdout.write("Importing Pays Basque prices...")
+
+    # Récupérer les données formatées
+    prices_data = retrieve_data_from_json_for_pays_basques()
+
+    # Récupérer toutes les zones du Pays Basque
+    areas = RentControlArea.objects.using("geodb").filter(
+        region=region, reference_year=DEFAULT_YEAR
+    )
+
+    if not areas.exists():
+        self.stdout.write(
+            self.style.ERROR(f"No areas found for {region} {DEFAULT_YEAR}")
+        )
+        return
+
+    # Parcourir les données et créer les prix
+    for price_data in prices_data:
+        price, created = RentPrice.objects.get_or_create(
+            property_type=price_data["property_type"],
+            room_count=price_data["room_count"],
+            construction_period=price_data["construction_period"],
+            furnished=price_data["furnished"],
+            reference_year=DEFAULT_YEAR,
+            defaults={
+                "reference_price": price_data["reference_price"],
+                "min_price": price_data["min_price"],
+                "max_price": price_data["max_price"],
+            },
+        )
+
+        # Associer à toutes les zones correspondantes
+        for area in areas.filter(zone_id=price_data["zone_id"]):
+            price.areas.add(area)
+
+        if created:
+            self.stdout.write(f"Created price: {price}")
+        else:
+            self.stdout.write(f"Using existing price: {price}")
+
+
 class Command(BaseCommand):
     help = "Import rent control prices data"
 
@@ -112,6 +158,12 @@ class Command(BaseCommand):
                 set_prices_for_ods_file(
                     self, region, file_path, property_type=PropertyType.HOUSE
                 )
+            elif region == Region.PAYS_BASQUE:
+                import_pays_basque_prices(self, region)
+            elif region == Region.LILLE:
+                extract_dir = "algo/encadrement_loyer/lille"
+                file_path = os.path.join(extract_dir, f"{DEFAULT_YEAR}.ods")
+                set_prices_for_ods_file(self, region, file_path, property_type=None)
 
             else:
                 response = requests.get(url)

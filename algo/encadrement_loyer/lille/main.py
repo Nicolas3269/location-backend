@@ -97,12 +97,13 @@ def get_zone_data(latitude, longitude, year):
     return result, zone_data
 
 
-# # Exemple d'utilisation avec les coordonnées d'une adresse
-# latitude = 50.6364543  # Latitude de l'adresse
-# longitude = 3.0685679  # Longitude de l'adresse
-# year = 2024
+if __name__ == "__main__":
+    # Exemple d'utilisation avec les coordonnées d'une adresse
+    latitude = 50.6364543  # Latitude de l'adresse
+    longitude = 3.0685679  # Longitude de l'adresse
+    year = 2024
 
-# for year in range(2020, 2025):
-#     print(f"Année {year}")
-#     get_zone_data(latitude, longitude, year)
-#     print("")
+    for year in range(2020, 2025):
+        print(f"Année {year}")
+        get_zone_data(latitude, longitude, year)
+        print("")

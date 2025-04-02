@@ -4,31 +4,28 @@ import os
 import requests
 from django.core.management.base import BaseCommand
 
+from algo.encadrement_loyer.ile_de_france.est_ensemble_main import (
+    build_url,
+    extract_data_from_kml,
+)
 from algo.encadrement_loyer.montpellier.ods_to_rentprice_json import (
     extract_ods_file_to_json,
 )
 from algo.encadrement_loyer.pays_basques.combinaison import (
     retrieve_data_from_json_for_pays_basques,
 )
-from rent_control.choices import PropertyType, Region
+from rent_control.choices import ConstructionPeriod, PropertyType, Region, RoomCount
 from rent_control.models import RentControlArea, RentPrice
 
 DATA = {
-    # # CAN BE DONE with the url
-    # Region.PARIS: "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",
-    # Region.EST_ENSEMBLE: "https://www.data.gouv.fr/fr/datasets/r/7d70e696-ef9d-429d-8284-79d0ecd59ccd",
-    # Region.PLAINE_COMMUNE: "https://www.data.gouv.fr/fr/datasets/r/de5c9cb9-6215-4e88-aef7-ea0041984d1d",
-    # # #
-    # # #
-    # # Can be done all in one
+    Region.PARIS: "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",
+    Region.EST_ENSEMBLE: "https://www.data.gouv.fr/fr/datasets/r/7d70e696-ef9d-429d-8284-79d0ecd59ccd",
+    Region.PLAINE_COMMUNE: "https://www.data.gouv.fr/fr/datasets/r/de5c9cb9-6215-4e88-aef7-ea0041984d1d",
     Region.LYON: "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
-    # # #
-    # # #
-    # # DONE #
-    # Region.MONTPELLIER: "custom",
-    # Region.BORDEAUX: "custom",
-    # Region.PAYS_BASQUE: "custom",
-    # Region.LILLE: "custom",
+    Region.MONTPELLIER: "custom",
+    Region.BORDEAUX: "custom",
+    Region.PAYS_BASQUE: "custom",
+    Region.LILLE: "custom",
 }
 DEFAULT_YEAR = 2024
 
@@ -122,21 +119,21 @@ def import_pays_basque_prices(self, region):
 
 def get_lyon_prices(self, url, region):
     dict_room_count = {
-        "1": "1",
-        "2": "2",
-        "3": "3",
-        "4 et plus": "4",
+        "1": RoomCount.ONE,
+        "2": RoomCount.TWO,
+        "3": RoomCount.THREE,
+        "4 et plus": RoomCount.FOUR_PLUS,
     }
     dict_construction_period = {
-        "avant 1946": "avant 1946",
-        "1946-1970": "1946-1970",
-        "1971-1990": "1971-1990",
-        "1991-2005": "1990-2005",
-        "après 2005": "apres 2005",
+        "avant 1946": ConstructionPeriod.BEFORE_1946,
+        "1946-1970": ConstructionPeriod.FROM_1946_TO_1970,
+        "1971-1990": ConstructionPeriod.FROM_1971_TO_1990,
+        "1991-2005": ConstructionPeriod.FROM_1990_TO_2005,
+        "après 2005": ConstructionPeriod.AFTER_2005,
     }
     dict_furnished = {
-        "non meuble": False,
         "meuble": True,
+        "non meuble": False,
     }
     try:
         response = requests.get(url)
@@ -191,6 +188,107 @@ def get_lyon_prices(self, url, region):
             self.stdout.write(self.style.ERROR(f"Feature data: {properties}"))
 
 
+def price_ile_de_france(
+    self, region, region_uri, start_date, property_type_uri, property_type
+):
+    room_counts = {
+        1: RoomCount.ONE,
+        2: RoomCount.TWO,
+        3: RoomCount.THREE,
+        4: RoomCount.FOUR_PLUS,
+    }
+    construction_periods = {
+        "inf1946": ConstructionPeriod.BEFORE_1946,
+        "1946-1970": ConstructionPeriod.FROM_1946_TO_1970,
+        "1971-1990": ConstructionPeriod.FROM_1971_TO_1990,
+        "sup1990": ConstructionPeriod.AFTER_1990,
+    }
+    meubles = {"meuble": True, "non-meuble": False}
+
+    areas = RentControlArea.objects.using("geodb").filter(
+        region=region,
+        reference_year=DEFAULT_YEAR,
+    )
+    for room_count, room_count_v in room_counts.items():
+        for (
+            construction_period,
+            construction_period_v,
+        ) in construction_periods.items():
+            for meuble, furnished in meubles.items():
+                try:
+                    url = build_url(
+                        region_uri,
+                        property_type_uri,
+                        room_count,
+                        construction_period,
+                        meuble,
+                        start_date,
+                    )
+                    print(
+                        f"Extraction: {property_type_uri}, {room_count} pièces, {construction_period}, {'meublé' if furnished else 'non meublé'}"
+                    )
+
+                    data = extract_data_from_kml(url)
+
+                    for zone_id, price_data in data.items():
+                        price, created = RentPrice.objects.get_or_create(
+                            property_type=property_type,
+                            room_count=room_count_v,
+                            construction_period=construction_period_v,
+                            furnished=furnished,
+                            reference_year=DEFAULT_YEAR,
+                            defaults={
+                                "reference_price": price_data["ref"],
+                                "min_price": price_data["refmin"],
+                                "max_price": price_data["refmaj"],
+                            },
+                        )
+
+                        # Associer à toutes les zones correspondantes
+                        for area in areas.filter(zone_id=zone_id):
+                            price.areas.add(area)
+
+                        if created:
+                            self.stdout.write(f"Created price: {price}")
+                        else:
+                            self.stdout.write(f"Using existing price: {price}")
+
+                except Exception as e:
+                    print(f"  Erreur: {e}")
+
+
+def price_est_ensemble(self, region):
+    region_uri = "est-ensemble"
+    start_date = "2024-06-01"
+    property_types = {
+        "appartement": PropertyType.APARTMENT,
+        "maison": PropertyType.HOUSE,
+    }  # Attention paris y a rien
+    for property_type_uri, property_type in property_types.items():
+        price_ile_de_france(
+            self, region, region_uri, start_date, property_type_uri, property_type
+        )
+
+
+def price_plaine_commune(self, region):
+    region_uri = "plaine-commune"
+    start_date = "2024-06-01"
+    property_types = {
+        "appartement": PropertyType.APARTMENT,
+        "maison": PropertyType.HOUSE,
+    }  # Attention paris y a rien
+    for property_type_uri, property_type in property_types.items():
+        price_ile_de_france(
+            self, region, region_uri, start_date, property_type_uri, property_type
+        )
+
+
+def price_paris(self, region):
+    region_uri = "paris"
+    start_date = "2024-07-01"
+    price_ile_de_france(self, region, region_uri, start_date, None, None)
+
+
 class Command(BaseCommand):
     help = "Import rent control prices data"
 
@@ -243,9 +341,17 @@ class Command(BaseCommand):
                 # Lyon data can be fetched from the URL
                 get_lyon_prices(self, url, region)
 
+            elif region == Region.EST_ENSEMBLE:
+                price_est_ensemble(self, region)
+
+            elif region == Region.PLAINE_COMMUNE:
+                price_plaine_commune(self, region)
+
+            elif region == Region.PARIS:
+                price_paris(self, region)
+
             else:
-                response = requests.get(url)
-                response.raise_for_status()
+                raise ValueError(f"Unknown region: {region}")
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"Error fetching data: {e}"))
             return

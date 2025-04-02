@@ -1,3 +1,4 @@
+import json
 import os
 
 import requests
@@ -20,14 +21,14 @@ DATA = {
     # # #
     # # #
     # # Can be done all in one
-    # Region.LYON: "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
+    Region.LYON: "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
     # # #
     # # #
-    # # #
+    # # DONE #
     # Region.MONTPELLIER: "custom",
     # Region.BORDEAUX: "custom",
     # Region.PAYS_BASQUE: "custom",
-    Region.LILLE: "custom",
+    # Region.LILLE: "custom",
 }
 DEFAULT_YEAR = 2024
 
@@ -119,6 +120,77 @@ def import_pays_basque_prices(self, region):
             self.stdout.write(f"Using existing price: {price}")
 
 
+def get_lyon_prices(self, url, region):
+    dict_room_count = {
+        "1": "1",
+        "2": "2",
+        "3": "3",
+        "4 et plus": "4",
+    }
+    dict_construction_period = {
+        "avant 1946": "avant 1946",
+        "1946-1970": "1946-1970",
+        "1971-1990": "1971-1990",
+        "1991-2005": "1990-2005",
+        "après 2005": "apres 2005",
+    }
+    dict_furnished = {
+        "non meuble": False,
+        "meuble": True,
+    }
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        self.stdout.write(self.style.ERROR(f"Error fetching data: {e}"))
+        return
+    count = 0
+    for feature in data.get("features", []):
+        try:
+            properties = feature.get("properties", {})
+            id_quartier = properties.get("gid")
+            areas = RentControlArea.objects.using("geodb").filter(
+                region=region, reference_year=DEFAULT_YEAR, quartier_id=id_quartier
+            )
+            if not areas.exists() or len(areas) > 1:
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Issue with quartier_id {id_quartier} for {region} in {DEFAULT_YEAR}"
+                    )
+                )
+                return
+            area = areas.first()
+
+            valeurs = json.loads(properties["valeurs"])
+            for room_count, room_data in valeurs.items():
+                for construction_period, construction_data in room_data.items():
+                    for furnished, price_data in construction_data.items():
+                        price, created = RentPrice.objects.get_or_create(
+                            property_type=None,
+                            room_count=dict_room_count[room_count],
+                            construction_period=dict_construction_period[
+                                construction_period
+                            ],
+                            furnished=dict_furnished[furnished],
+                            reference_year=DEFAULT_YEAR,
+                            defaults={
+                                "reference_price": price_data["loyer_reference"],
+                                "min_price": price_data["loyer_reference_minore"],
+                                "max_price": price_data["loyer_reference_majore"],
+                            },
+                        )
+                        price.areas.add(area)
+            count += 1
+
+            if count % 100 == 0:
+                self.stdout.write(f"  Imported {count} zones so far...")
+
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"Error importing feature: {e}"))
+            self.stdout.write(self.style.ERROR(f"Feature data: {properties}"))
+
+
 class Command(BaseCommand):
     help = "Import rent control prices data"
 
@@ -158,12 +230,18 @@ class Command(BaseCommand):
                 set_prices_for_ods_file(
                     self, region, file_path, property_type=PropertyType.HOUSE
                 )
-            elif region == Region.PAYS_BASQUE:
-                import_pays_basque_prices(self, region)
+
             elif region == Region.LILLE:
                 extract_dir = "algo/encadrement_loyer/lille"
                 file_path = os.path.join(extract_dir, f"{DEFAULT_YEAR}.ods")
                 set_prices_for_ods_file(self, region, file_path, property_type=None)
+
+            elif region == Region.PAYS_BASQUE:
+                import_pays_basque_prices(self, region)
+
+            elif region == Region.LYON:
+                # Lyon data can be fetched from the URL
+                get_lyon_prices(self, url, region)
 
             else:
                 response = requests.get(url)

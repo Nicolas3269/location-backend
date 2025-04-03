@@ -18,9 +18,9 @@ from rent_control.choices import ConstructionPeriod, PropertyType, Region, RoomC
 from rent_control.models import RentControlArea, RentPrice
 
 DATA = {
-    Region.PARIS: "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",
-    Region.EST_ENSEMBLE: "https://www.data.gouv.fr/fr/datasets/r/7d70e696-ef9d-429d-8284-79d0ecd59ccd",
-    Region.PLAINE_COMMUNE: "https://www.data.gouv.fr/fr/datasets/r/de5c9cb9-6215-4e88-aef7-ea0041984d1d",
+    Region.PARIS: "custom",
+    Region.EST_ENSEMBLE: "custom",
+    Region.PLAINE_COMMUNE: "custom",
     Region.LYON: "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
     Region.MONTPELLIER: "custom",
     Region.BORDEAUX: "custom",

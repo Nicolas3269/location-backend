@@ -1,6 +1,7 @@
 private.key
 cert.pem
 cert.pfx
+key.pem
 .env
 venv/
 __pycache__/

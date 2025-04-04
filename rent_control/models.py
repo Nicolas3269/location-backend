@@ -45,3 +45,10 @@ class RentPrice(models.Model):
     reference_price = models.DecimalField(max_digits=6, decimal_places=2)
     min_price = models.DecimalField(max_digits=6, decimal_places=2)
     max_price = models.DecimalField(max_digits=6, decimal_places=2)
+
+
+class RentMap(RentControlArea):
+    class Meta:
+        proxy = True
+        verbose_name = "Carte des zones"
+        verbose_name_plural = "Carte des zones"

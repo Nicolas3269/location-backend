@@ -1,10 +1,11 @@
 from django.contrib import admin
 from django.contrib.gis.admin import GISModelAdmin
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.urls import path
 
 from .choices import Region
-from .models import RentControlArea, RentPrice
+from .models import RentControlArea, RentMap, RentPrice
 
 
 class RegionListFilter(admin.SimpleListFilter):
@@ -12,11 +13,20 @@ class RegionListFilter(admin.SimpleListFilter):
     parameter_name = "region"
 
     def lookups(self, request, model_admin):
-        return Region.choices
+        # Optimisation: n'afficher que les régions qui ont des prix
+        regions_with_prices = RentControlArea.objects.values("region").distinct()
+        return [
+            (code, name)
+            for code, name in Region.choices
+            if code in [r["region"] for r in regions_with_prices]
+        ]
 
     def queryset(self, request, queryset):
         if self.value():
-            return queryset.filter(areas__region=self.value()).distinct()
+            # Utiliser une sous-requête pour de meilleures performances
+            return queryset.filter(
+                areas__in=RentControlArea.objects.filter(region=self.value())
+            ).distinct()
         return queryset
 
 
@@ -332,6 +342,8 @@ class RentControlAreaAdmin(GISModelAdmin):
 class RentPriceAdmin(admin.ModelAdmin):
     """Admin view for RentPrice"""
 
+    list_per_page = 20
+
     # Exclure le champ areas de l'édition directe (géré par un widget spécialisé)
     exclude = ("areas",)
 
@@ -384,3 +396,26 @@ class RentPriceAdmin(admin.ModelAdmin):
         if db_field.name == "areas":
             kwargs["widget"] = admin.widgets.FilteredSelectMultiple("zones", False)
         return super().formfield_for_manytomany(db_field, request, **kwargs)
+
+
+class RentMapView(admin.ModelAdmin):
+    """Admin view for the rent map only"""
+
+    # Ce modèle ne permet pas d'ajouter/modifier des objets
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    # Rediriger vers la carte des régions
+    def changelist_view(self, request, extra_context=None):
+        return redirect("admin:rentcontrolarea_region_map")
+
+
+@admin.register(RentMap)
+class RentMapAdmin(RentMapView):
+    pass

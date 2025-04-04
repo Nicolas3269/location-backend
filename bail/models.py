@@ -1,3 +1,166 @@
 from django.db import models
+from django.utils import timezone
 
-# Create your models here.
+from rent_control.choices import ConstructionPeriod, PropertyType, RoomCount
+
+
+class DPEClass(models.TextChoices):
+    A = "A", "A (≤ 70 kWh/m²/an)"
+    B = "B", "B (71 à 110 kWh/m²/an)"
+    C = "C", "C (111 à 180 kWh/m²/an)"
+    D = "D", "D (181 à 250 kWh/m²/an)"
+    E = "E", "E (251 à 330 kWh/m²/an)"
+    F = "F", "F (331 à 420 kWh/m²/an)"
+    G = "G", "G (> 420 kWh/m²/an)"
+    NC = "NC", "Non communiqué"
+
+
+class Proprietaire(models.Model):
+    """Model representing the property owner."""
+
+    nom = models.CharField(max_length=100)
+    prenom = models.CharField(max_length=100)
+    adresse = models.CharField(max_length=255)
+    telephone = models.CharField(max_length=20)
+    email = models.EmailField()
+
+    # Informations bancaires
+    iban = models.CharField(max_length=34, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.prenom} {self.nom}"
+
+
+class Bien(models.Model):
+    """Model representing the rental property."""
+
+    proprietaire = models.ForeignKey(
+        Proprietaire, on_delete=models.CASCADE, related_name="biens"
+    )
+
+    adresse = models.CharField(max_length=255)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+
+    type_bien = models.CharField(
+        max_length=20, choices=PropertyType.choices, verbose_name="Type de bien"
+    )
+    etage = models.PositiveSmallIntegerField(null=True, blank=True)
+    porte = models.CharField(max_length=10, blank=True)
+    dernier_etage = models.BooleanField(default=False)
+
+    periode_construction = models.CharField(
+        max_length=20,
+        choices=ConstructionPeriod.choices,
+        blank=True,
+        null=True,
+        verbose_name="Période de construction",
+    )
+
+    superficie = models.DecimalField(max_digits=8, decimal_places=2, help_text="En m²")
+    nb_pieces = models.CharField(
+        max_length=10, choices=RoomCount.choices, verbose_name="Nombre de pièces"
+    )
+
+    meuble = models.BooleanField(default=False, verbose_name="Meublé")
+
+    # Informations DPE (Diagnostic de Performance Énergétique)
+    classe_dpe = models.CharField(
+        max_length=2,
+        choices=DPEClass.choices,
+        default=DPEClass.NC,
+        verbose_name="Classe énergétique DPE",
+    )
+    depenses_energetiques = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Dépenses énergétiques théoriques (€/an)",
+    )
+    # date_dpe = models.DateField(
+    #     null=True, blank=True, verbose_name="Date de réalisation du DPE"
+    # )
+
+    # Caractéristiques supplémentaires
+    annexes = models.TextField(blank=True)
+    additionnal_description = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.type_bien} - {self.adresse}, {self.ville}"
+
+
+class Locataire(models.Model):
+    """Model representing the tenant."""
+
+    # Données d'identité obligatoires
+    nom = models.CharField(max_length=100)
+    prenom = models.CharField(max_length=100)
+
+    # Données d'identité importantes mais techniquement optionnelles
+    date_naissance = models.DateField(null=True, blank=True)
+    lieu_naissance = models.CharField(max_length=100, blank=True)
+
+    # Coordonnées (au moins une nécessaire en pratique)
+    adresse_actuelle = models.CharField(max_length=255, blank=True)
+    telephone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+
+    # Données supplémentaires
+    profession = models.CharField(max_length=100, blank=True)
+    employeur = models.CharField(max_length=100, blank=True)
+    revenu_mensuel = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    num_carte_identite = models.CharField(max_length=30, blank=True)
+    date_emission_ci = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.prenom} {self.nom}"
+
+
+class BailSpecificites(models.Model):
+    """Model representing the lease specifics."""
+
+    bien = models.ForeignKey(Bien, on_delete=models.CASCADE, related_name="bails")
+    locataire = models.ForeignKey(
+        Locataire, on_delete=models.CASCADE, related_name="bails"
+    )
+
+    # Durée du bail
+    date_debut = models.DateField()
+    date_fin = models.DateField(null=True, blank=True)
+
+    # Loyer et charges
+    montant_loyer = models.DecimalField(max_digits=10, decimal_places=2)
+    montant_charges = models.DecimalField(max_digits=10, decimal_places=2)
+    jour_paiement = models.PositiveSmallIntegerField(
+        default=5, help_text="Jour du mois"
+    )
+    depot_garantie = models.DecimalField(max_digits=10, decimal_places=2)
+
+    # Compteurs
+    releve_eau_entree = models.CharField(max_length=20, blank=True)
+    releve_elec_entree = models.CharField(max_length=20, blank=True)
+    releve_gaz_entree = models.CharField(max_length=20, blank=True)
+
+    # Dates importantes
+    date_signature = models.DateField(default=timezone.now)
+    date_etat_lieux_entree = models.DateField(null=True, blank=True)
+
+    # Commentaires
+    observations = models.TextField(blank=True)
+
+    # Informations d'encadrement des loyers
+    zone_tendue = models.BooleanField(
+        default=False, help_text="Situé en zone d'encadrement des loyers"
+    )
+    prix_reference = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True
+    )
+    complement_loyer = models.DecimalField(
+        max_digits=6, decimal_places=2, null=True, blank=True
+    )
+
+    def __str__(self):
+        return f"Bail {self.bien} - {self.locataire} ({self.date_debut})"

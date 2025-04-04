@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
-from pathlib import Path
 import os
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -37,9 +37,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
     # Third-party
     "rest_framework",
-    'django.contrib.gis',  # Add GeoDjango
+    "django.contrib.gis",  # Add GeoDjango
     # Apps
     "bail",
     "rent_control",
@@ -48,11 +49,16 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
 ]
 
 ROOT_URLCONF = "backend.urls"
@@ -87,10 +93,10 @@ DATABASES = {
     "geodb": {
         "ENGINE": "django.contrib.gis.db.backends.spatialite",  # Changed from django.db.backends.sqlite3
         "NAME": BASE_DIR / "geodb.sqlite3",
-    }
+    },
 }
-DATABASE_ROUTERS = ['backend.router.GeoRouter']
-SPATIALITE_LIBRARY_PATH = 'mod_spatialite'
+DATABASE_ROUTERS = ["backend.router.GeoRouter"]
+SPATIALITE_LIBRARY_PATH = "mod_spatialite"
 
 
 # Password validation
@@ -128,7 +134,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / 'staticfiles' 
+STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 

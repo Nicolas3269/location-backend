@@ -87,7 +87,7 @@ class Bien(models.Model):
     additionnal_description = models.TextField(blank=True)
 
     def __str__(self):
-        return f"{self.type_bien} - {self.adresse}, {self.ville}"
+        return f"{self.type_bien} - {self.adresse}"
 
 
 class Locataire(models.Model):

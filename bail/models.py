@@ -161,6 +161,9 @@ class BailSpecificites(models.Model):
     complement_loyer = models.DecimalField(
         max_digits=6, decimal_places=2, null=True, blank=True
     )
+    pdf = models.FileField(
+        upload_to="bail_pdfs/", null=True, blank=True, verbose_name="Bail PDF"
+    )
 
     def __str__(self):
         return f"Bail {self.bien} - {self.locataire} ({self.date_debut})"

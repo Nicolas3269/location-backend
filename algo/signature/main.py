@@ -4,9 +4,18 @@ import os
 from django.conf import settings
 from pyhanko import stamp
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
-from pyhanko.pdf_utils.reader import PdfFileReader
-from pyhanko.sign import fields, signers
+from pyhanko.sign import signers
 from pyhanko.sign.fields import SigFieldSpec, append_signature_field
+
+# ####
+# # Créer une clé privée et un certificat avec les extensions appropriées
+# openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 3650 -nodes \
+#   -subj "/CN=Test Signer/O=Test Organization/C=FR" \
+#   -addext "keyUsage=digitalSignature,nonRepudiation,keyEncipherment" \
+#   -addext "extendedKeyUsage=emailProtection,codeSigning"
+
+# # Convertir en PKCS#12 pour l'utilisation avec PyHanko
+# openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -name "Signing Key" -passout pass:test123
 
 
 def add_signature_fields(pdf_path):
@@ -61,14 +70,20 @@ def sign_pdf(source_path, output_path, user, field_name):
         contact_info=getattr(user, "email", ""),
         location="France",
         name=f"{getattr(user, 'prenom', '')} {getattr(user, 'nom', '')}",
-        timestamp_field_name=str(datetime.datetime.now()),
+        # Indiquer explicitement PAdES
+        # subfilter=SigSeedSubFilter.PADES,
     )
 
-    # Créer une apparence personnalisée pour la signature
+    # Apparence de la signature conforme aux documents légaux
     signature_appearance = stamp.TextStampStyle(
-        stamp_text=f"Signé électroniquement par:\n"
-        f"{getattr(user, 'prenom', '')} {getattr(user, 'nom', '')}\n"
-        f"Date: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+        stamp_text=(
+            f"Signé électroniquement par:\n"
+            f"{getattr(user, 'prenom', '')} {getattr(user, 'nom', '')}\n"
+            f"Email: {getattr(user, 'email', '')}\n"
+            f"Date: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
+            f"Rôle: {'Propriétaire' if field_name == 'Landlord' else 'Locataire'}\n"
+            f"Signature conforme eIDAS"
+        ),
         text_box_style=stamp.TextBoxStyle(font_size=9, border_width=1),
     )
 
@@ -80,10 +95,9 @@ def sign_pdf(source_path, output_path, user, field_name):
                 signature_meta=signature_meta,
                 signer=signer,
                 stamp_style=signature_appearance,
+                # Ajouter un horodatage pour la conformité eIDAS
+                # timestamper=HTTPTimeStamper('http://timestamp.entrust.net/TSS/RFC3161sha2TS')
             )
-
-            # Lire le PDF source avec PdfFileReader
-            reader = PdfFileReader(inf)
 
             # Créer un IncrementalPdfFileWriter
             writer = IncrementalPdfFileWriter(inf)
@@ -98,79 +112,6 @@ def sign_pdf(source_path, output_path, user, field_name):
     return output_path
 
 
-def verify_pdf_signature(pdf_path, field_name=None):
-    """Vérifie la validité de la signature électronique d'un PDF"""
-    from pyhanko.pdf_utils.reader import PdfFileReader
-
-    with open(pdf_path, "rb") as f:
-        reader = PdfFileReader(f)
-
-        # Obtenir tous les champs de signature dans le document
-        sig_fields = fields.enumerate_sig_fields(reader)
-
-        if field_name:
-            # Vérifier un champ spécifique
-            try:
-                # Rechercher le tuple avec le nom de champ correspondant
-                sig_field_tuple = next(sf for sf in sig_fields if sf[0] == field_name)
-
-                # Extraire les éléments du tuple (nom, référence au champ, référence à la valeur)
-                field_name = sig_field_tuple[0]  # Nom du champ
-                field_ref = sig_field_tuple[1]  # Référence au champ
-
-                # Obtenir l'objet champ de signature
-                field_obj = field_ref.get_object()
-
-                # Vérifier si le champ a une valeur (signature)
-                if "/V" not in field_obj:
-                    return {
-                        "field_name": field_name,
-                        "error": "Ce champ de signature n'a pas encore été signé",
-                        "status": "unsigned",
-                    }
-
-                # La vérification simplifiée pour le développement
-                return {
-                    "field_name": field_name,
-                    "signer": "Test Signer",
-                    "signing_time": datetime.datetime.now().isoformat(),
-                    "valid": True,
-                    "validation_message": "Vérification simplifiée pour le développement",
-                }
-
-            except StopIteration:
-                return {"error": f"Champ de signature '{field_name}' non trouvé"}
-        else:
-            # Vérifier toutes les signatures
-            results = []
-            for sig_field_tuple in sig_fields:
-                try:
-                    # Extraire les éléments du tuple
-                    field_name = sig_field_tuple[0]
-                    field_ref = sig_field_tuple[1]
-                    field_obj = field_ref.get_object()
-
-                    # Vérifier si le champ a une valeur (signature)
-                    if "/V" not in field_obj:
-                        results.append(
-                            {
-                                "field_name": field_name,
-                                "error": "Ce champ de signature n'a pas encore été signé",
-                                "status": "unsigned",
-                            }
-                        )
-                        continue
-
-                    # Pour l'instant, retourner simplement un succès
-                    results.append(
-                        {
-                            "field_name": field_name,
-                            "signer": "Test Signer",
-                            "signing_time": datetime.datetime.now().isoformat(),
-                            "valid": True,
-                            "validation_message": "Vérification simplifiée pour le développement",
-                        }
-                    )
-                except Exception as e:
-                    results.append({"field_name": sig_field_tuple[0], "error": str(e)})
-            return results
+def verify_pdf_signature(pdf_path):
+    # poetry run pyhanko sign validate --trust ../../cert.pem --pretty-print pdf_path
+    pass

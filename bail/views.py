@@ -54,7 +54,7 @@ def generate_bail_pdf(request):
 
             # 3. Signer par le locataire (en utilisant le PDF signé par le propriétaire comme base)
             tenant = bail.locataire
-            sign_pdf(landlord_path, tenant_path, tenant, "Tenant")
+            final_path = sign_pdf(landlord_path, final_path, tenant, "Tenant")
 
             # 4. Vérifier les signatures
             verification = verify_pdf_signature(final_path)

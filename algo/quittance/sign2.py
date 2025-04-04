@@ -1,11 +1,10 @@
-from weasyprint import HTML
-from pyhanko.sign import signers
-from pyhanko.sign.validation import validate_pdf_signature
-from pyhanko.keys import load_certs_from_pemder, load_private_key_from_pemder
 import datetime
-from pyhanko.sign.fields import SigFieldSpec, append_signature_field
-from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 import os
+
+from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+from pyhanko.sign import signers
+from pyhanko.sign.fields import SigFieldSpec, append_signature_field
+from weasyprint import HTML
 
 # Données dynamiques pour le bail
 data = {
@@ -68,7 +67,6 @@ def add_signature_fields(input_file, output_file):
         append_signature_field(
             w, SigFieldSpec(sig_field_name="Landlord", box=(425, 20, 575, 70))
         )
-        w.write_in_place()
         append_signature_field(
             w, SigFieldSpec(sig_field_name="Tenant", box=(125, 20, 275, 70))
         )

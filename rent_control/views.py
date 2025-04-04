@@ -10,6 +10,30 @@ from rent_control.models import RentControlArea, RentPrice
 logger = logging.getLogger(__name__)
 
 
+def get_available_options_for_area(area):
+    """
+    Récupère toutes les options disponibles pour une zone donnée
+    """
+    # Filtre les prix associés à cette zone
+    area_prices = RentPrice.objects.filter(areas=area)
+
+    # Récupère les valeurs distinctes pour chaque attribut
+    return {
+        "property_types": list(
+            area_prices.values_list("property_type", flat=True).distinct()
+        ),
+        "room_counts": list(
+            area_prices.values_list("room_count", flat=True).distinct()
+        ),
+        "construction_periods": list(
+            area_prices.values_list("construction_period", flat=True).distinct()
+        ),
+        "furnished_options": list(
+            area_prices.values_list("furnished", flat=True).distinct()
+        ),
+    }
+
+
 def get_rent_control_info(
     lat,
     lng,
@@ -32,47 +56,14 @@ def get_rent_control_info(
     )
 
     if not area_query.exists():
-        return False
+        return {}
 
     area = area_query.first()
 
-    # Puis trouver le prix correspondant aux caractéristiques
-    price_query = RentPrice.objects.filter(
-        area=area,
-        property_type=property_type,
-        room_count=str(room_count),
-        construction_period=construction_period,
-        furnished=furnished,
-    )
+    # Récupérer les options disponibles si demandé
+    options = get_available_options_for_area(area)
 
-    if not price_query.exists():
-        # Si aucune correspondance exacte, chercher la plus proche
-        price_query = RentPrice.objects.filter(area=area)
-        # Vous pourriez ici implémenter une logique de "meilleure correspondance"
-
-    if price_query.exists():
-        price = price_query.first()
-
-        return {
-            "region": area.region,
-            "zone": area.zone_name,
-            "reference_price": price.reference_price,
-            "min_price": price.min_price,
-            "max_price": price.max_price,
-            "apartment_type": price.property_type,
-            "room_count": price.room_count,
-            "construction_period": price.construction_period,
-            "furnished": price.furnished,
-            "reference_year": area.reference_year,
-        }
-
-    # Si aucun prix trouvé, retourner les informations de base de la zone
-    return {
-        "region": area.region,
-        "zone": area.zone_name,
-        "reference_year": area.reference_year,
-        "message": "Prix non disponibles pour ces caractéristiques",
-    }
+    return options
 
 
 @csrf_exempt
@@ -90,18 +81,23 @@ def check_zone(request):
                 return JsonResponse({"message": "Adresse requise"}, status=400)
 
             # Ici, on appelle une fonction existante `is_critical_zone(address)`
-            zone_tendue = get_rent_control_info(lat, lng)
+            options = get_rent_control_info(lat, lng)
 
-            if zone_tendue:
+            if len(options) > 0:
                 return JsonResponse(
                     {
-                        "zoneTendue": zone_tendue,
+                        "zoneTendue": True,
                         "message": "⚠️ Cette adresse est dans une zone critique.",
+                        "options": options,
                     }
                 )
             else:
                 return JsonResponse(
-                    {"zoneTendue": zone_tendue, "message": "✅ Cette adresse est sûre."}
+                    {
+                        "zoneTendue": False,
+                        "message": "✅ Cette adresse est sûre.",
+                        "options": options,
+                    }
                 )
 
         except Exception as e:

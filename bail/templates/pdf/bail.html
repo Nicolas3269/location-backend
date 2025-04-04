@@ -66,24 +66,19 @@
     <div class="section">
       <h2>1. Parties au contrat</h2>
       <p>
-        <span class="label">Propriétaire :</span> {{
-        bail.bien.proprietaire.prenom }} {{ bail.bien.proprietaire.nom }}, {{
-        bail.bien.proprietaire.adresse }}
+        <span class="label">Propriétaire :</span> {{ bail.bien.proprietaire.prenom }} {{ bail.bien.proprietaire.nom }}, {{ bail.bien.proprietaire.adresse }}
       </p>
       <p>
         <span class="label">Email :</span> {{ bail.bien.proprietaire.email }} |
-        <span class="label">Téléphone :</span> {{
-        bail.bien.proprietaire.telephone }}
+        <span class="label">Téléphone :</span> {{ bail.bien.proprietaire.telephone }}
       </p>
 
       <p>
-        <span class="label">Locataire :</span> {{ bail.locataire.prenom }} {{
-        bail.locataire.nom }}
+        <span class="label">Locataire :</span> {{ bail.locataire.prenom }} {{ bail.locataire.nom }}
       </p>
       {% if bail.locataire.adresse_actuelle %}
       <p>
-        <span class="label">Adresse actuelle :</span> {{
-        bail.locataire.adresse_actuelle }}
+        <span class="label">Adresse actuelle :</span> {{ bail.locataire.adresse_actuelle }}
       </p>
       {% endif %} {% if bail.locataire.email %}
       <p><span class="label">Email :</span> {{ bail.locataire.email }}</p>
@@ -94,8 +89,7 @@
       <h2>2. Bien loué</h2>
       <p>{{ bail.bien.type_bien }} situé au {{ bail.bien.adresse }}</p>
       <p>
-        Surface : {{ bail.bien.superficie }} m² - Nombre de pièces : {{
-        bail.bien.nb_pieces }}
+        Surface : {{ bail.bien.superficie }} m² - Nombre de pièces : {{ bail.bien.nb_pieces }}
       </p>
       <p>Meublé : {{ bail.bien.meuble|yesno:"Oui,Non" }}</p>
       <p>DPE : {{ bail.bien.get_classe_dpe_display }}</p>
@@ -126,8 +120,7 @@
     <div class="section">
       <h2>4. Dates importantes</h2>
       <p>
-        <span class="label">Début du bail :</span> {{
-        bail.date_debut|date:"d/m/Y" }}
+        <span class="label">Début du bail :</span> {{ bail.date_debut|date:"d/m/Y" }}
       </p>
       {% if bail.date_fin %}
       <p>
@@ -136,13 +129,11 @@
       </p>
       {% endif %}
       <p>
-        <span class="label">Date de signature :</span> {{
-        bail.date_signature|date:"d/m/Y" }}
+        <span class="label">Date de signature :</span> {{ bail.date_signature|date:"d/m/Y" }}
       </p>
       {% if bail.date_etat_lieux_entree %}
       <p>
-        <span class="label">État des lieux (entrée) :</span> {{
-        bail.date_etat_lieux_entree|date:"d/m/Y" }}
+        <span class="label">État des lieux (entrée) :</span> {{ bail.date_etat_lieux_entree|date:"d/m/Y" }}
       </p>
       {% endif %}
     </div>

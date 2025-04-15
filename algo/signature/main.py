@@ -23,19 +23,24 @@ def get_default_font_path():
         raise RuntimeError("Système d'exploitation non supporté")
 
 
-def compose_signature_stamp(signature_bytes, user, max_signature_height=70):
+def px_to_pt(px):
+    # Environ 0.75 pt par pixel à 96 DPI
+    return float(px * 0.75)
+
+
+def compose_signature_stamp(signature_bytes, user, max_signature_height=60):
     img = Image.open(io.BytesIO(signature_bytes)).convert("RGBA")
 
     # Redimensionner si l'image est trop haute (préserve le ratio)
     width, height = img.size
-    if height > max_signature_height:
-        ratio = max_signature_height / height
-        new_width = int(width * ratio)
-        img = img.resize((new_width, max_signature_height), Image.LANCZOS)
-        width, height = img.size  # maj dimensions
+
+    ratio = max_signature_height / height
+    new_width = int(width * ratio)
+    img = img.resize((new_width, max_signature_height), Image.LANCZOS)
+    width, height = img.size  # maj dimensions
 
     # Préparer le texte
-    font = ImageFont.truetype(get_default_font_path(), size=12 * 0.75)
+    font = ImageFont.truetype(get_default_font_path(), size=px_to_pt(12))
     text = (
         f"{user.prenom} {user.nom}\n"
         f"{user.email}\n"
@@ -63,24 +68,27 @@ def compose_signature_stamp(signature_bytes, user, max_signature_height=70):
     return final_img, output
 
 
-def px_to_pt(px):
-    # Environ 0.75 pt par pixel à 96 DPI
-    return int(px * 0.75)
-
-
-def add_signature_fields_dynamic(pdf_path, landlord_box, tenant_boxes):
+def add_signature_fields_dynamic(pdf_path, landlord_field, tenant_fields):
     with open(pdf_path, "rb+") as doc:
         w = IncrementalPdfFileWriter(doc)
 
         append_signature_field(
             w,
-            SigFieldSpec(sig_field_name="Landlord", box=landlord_box, on_page=-1),
+            SigFieldSpec(
+                sig_field_name=landlord_field["field_name"],
+                box=landlord_field["box"],
+                on_page=-1,
+            ),
         )
 
-        for i, box in enumerate(tenant_boxes):
+        for tenant_field in tenant_fields:
             append_signature_field(
                 w,
-                SigFieldSpec(sig_field_name=f"Tenant_{i + 1}", box=box, on_page=-1),
+                SigFieldSpec(
+                    sig_field_name=tenant_field["field_name"],
+                    box=tenant_field["box"],
+                    on_page=-1,
+                ),
             )
 
         w.write_in_place()

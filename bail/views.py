@@ -10,6 +10,7 @@ from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
+from slugify import slugify
 from weasyprint import HTML
 
 from algo.signature.main import (
@@ -44,6 +45,13 @@ def generate_bail_pdf(request):
         )
 
 
+def full_name(user):
+    """
+    Retourne le nom complet d'un utilisateur.
+    """
+    return f"{user.first_name} {user.last_name}"
+
+
 @csrf_exempt
 def sign_bail(request):
     try:
@@ -65,6 +73,7 @@ def sign_bail(request):
         base_url = bail.pdf.url.split(".")[0]
         base_filename = bail_path.split(".")[0]
         landlord_path = f"{base_filename}_landlord.pdf"
+        temp_path = f"{base_filename}_temp.pdf"
         final_path = f"{base_filename}_signed.pdf"
         final_url = f"{base_url}_signed.pdf"
 
@@ -79,16 +88,50 @@ def sign_bail(request):
         landlord_img, buffer1 = compose_signature_stamp(
             signature_bytes_landlord, landlord
         )
-        tenant_img, buffer2 = compose_signature_stamp(signature_bytes_tenant, tenant)
+        tenant_img_1, buffer2 = compose_signature_stamp(signature_bytes_tenant, tenant)
+        tenant_img_2, buffer2 = compose_signature_stamp(signature_bytes_tenant, tenant)
 
-        landlord_box, tenant_boxes = generate_dynamic_boxes(landlord_img, [tenant_img])
+        landlord_box, tenant_boxes = generate_dynamic_boxes(
+            landlord_img, [tenant_img_1, tenant_img_2]
+        )
+        landlord_field = {
+            "field_name": slugify(f"bailleur {landlord.get_full_name()}"),
+            "box": landlord_box,
+        }
+        tenant_fields = [
+            {
+                "field_name": slugify(f"locataire {tenant.get_full_name()}_1"),
+                "box": tenant_boxes[0],
+            },
+            {
+                "field_name": slugify(f"locataire {tenant.get_full_name()}_2"),
+                "box": tenant_boxes[1],
+            },
+        ]
 
-        add_signature_fields_dynamic(bail_path, landlord_box, tenant_boxes)
+        add_signature_fields_dynamic(bail_path, landlord_field, tenant_fields)
 
         sign_pdf(
-            bail_path, landlord_path, landlord, "Landlord", signature_bytes_landlord
+            bail_path,
+            landlord_path,
+            landlord,
+            landlord_field["field_name"],
+            signature_bytes_landlord,
         )
-        sign_pdf(landlord_path, final_path, tenant, "Tenant_1", signature_bytes_tenant)
+        sign_pdf(
+            landlord_path,
+            temp_path,
+            tenant,
+            tenant_fields[0]["field_name"],
+            signature_bytes_tenant,
+        )
+        sign_pdf(
+            temp_path,
+            final_path,
+            tenant,
+            tenant_fields[1]["field_name"],
+            signature_bytes_tenant,
+        )
 
         return JsonResponse(
             {

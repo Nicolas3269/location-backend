@@ -25,6 +25,7 @@ pandas = "^2.2.3"
 odfpy = "^1.4.1"
 django-cors-headers = "^4.7.0"
 pymupdf = "^1.25.5"
+python-slugify = "^8.0.4"
 
 
 [tool.poetry.group.dev.dependencies]

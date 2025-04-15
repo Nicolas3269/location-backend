@@ -30,6 +30,10 @@ class Proprietaire(models.Model):
     def __str__(self):
         return f"{self.prenom} {self.nom}"
 
+    def get_full_name(self):
+        """Return the full name of the owner."""
+        return f"{self.prenom} {self.nom}"
+
 
 class Bien(models.Model):
     """Model representing the rental property."""
@@ -116,6 +120,10 @@ class Locataire(models.Model):
     date_emission_ci = models.DateField(null=True, blank=True)
 
     def __str__(self):
+        return f"{self.prenom} {self.nom}"
+
+    def get_full_name(self):
+        """Return the full name of the owner."""
         return f"{self.prenom} {self.nom}"
 
 

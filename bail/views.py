@@ -12,7 +12,7 @@ from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 from weasyprint import HTML
 
-from algo.signature.main import add_signature_fields, insert_signature_image, sign_pdf
+from algo.signature.main import add_signature_fields, sign_pdf
 from bail.factories import BailSpecificitesFactory
 from bail.models import BailSpecificites
 
@@ -65,20 +65,20 @@ def sign_bail(request):
 
         # Ajouter la signature manuscrite dans le PDF original
         signature_bytes = base64.b64decode(signature_data_url.split(",")[1])
-        # Fichier temporaire pour ajouter la signature manuscrite
-        handwritten_path = f"{base_filename}_handwritten.pdf"
-        insert_signature_image(bail_path, handwritten_path, signature_bytes)
 
         # Ajouter les champs de signature
-        add_signature_fields(handwritten_path)
+        add_signature_fields(bail_path)
 
         # Signer par le propriétaire
+        # Phase 1 - BAILLEUR
         landlord = bail.bien.proprietaire
-        sign_pdf(handwritten_path, landlord_path, landlord, "Landlord")
+        sign_pdf(bail_path, landlord_path, landlord, "Landlord", signature_bytes)
 
         # Signer par le locataire
         tenant = bail.locataire
-        final_path = sign_pdf(landlord_path, final_path, tenant, "Tenant")
+        final_path = sign_pdf(
+            landlord_path, final_path, tenant, "Tenant", signature_bytes
+        )
 
         return JsonResponse(
             {

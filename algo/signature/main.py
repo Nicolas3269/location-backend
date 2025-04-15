@@ -1,29 +1,73 @@
 import datetime
+import io
 import os
+import platform
 
 # ####
-# # Créer une clé privée et un certificat avec les extensions appropriées
-# openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 3650 -nodes \
-#   -subj "/CN=Test Signer/O=Test Organization/C=FR" \
-#   -addext "keyUsage=digitalSignature,nonRepudiation,keyEncipherment" \
-#   -addext "extendedKeyUsage=emailProtection,codeSigning"
-# # Convertir en PKCS#12 pour l'utilisation avec PyHanko
-# openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -name "Signing Key" -passout pass:test123
-import fitz  # PyMuPDF
 from django.conf import settings
+from PIL import Image, ImageDraw, ImageFont
 from pyhanko import stamp
+from pyhanko.pdf_utils.images import PdfImage
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.sign import signers
 from pyhanko.sign.fields import SigFieldSpec, append_signature_field
 
 
-def insert_signature_image(
-    pdf_path, output_path, signature_bytes, rect=(100, 100, 300, 200)
-):
-    doc = fitz.open(pdf_path)
-    page = doc[-1]  # dernière page
-    page.insert_image(fitz.Rect(*rect), stream=signature_bytes)
-    doc.save(output_path)
+def get_default_font_path():
+    if platform.system() == "Linux":
+        return "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    elif platform.system() == "Darwin":  # macOS
+        return "/Library/Fonts/Arial.ttf"
+    elif platform.system() == "Windows":
+        return "C:/Windows/Fonts/arial.ttf"
+    else:
+        raise RuntimeError("Système d'exploitation non supporté")
+
+
+def compose_signature_stamp(signature_bytes, user):
+    img = Image.open(io.BytesIO(signature_bytes)).convert("RGBA")
+
+    # Taille image originale
+    width, height = img.size
+
+    # Charger une police plus grande
+    font = ImageFont.truetype(get_default_font_path(), size=18)
+
+    # Texte eIDAS
+    text = (
+        f"{user.prenom} {user.nom} – {user.email}\n"
+        f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
+        f"Signature conforme eIDAS"
+    )
+
+    # Texte eIDAS
+    text = (
+        f"{user.prenom} {user.nom} – {user.email}\n"
+        f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
+        f"Signature conforme eIDAS"
+    )
+
+    # Mesurer la hauteur du texte
+    draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+    bbox = draw.multiline_textbbox((0, 0), text, font=font, spacing=4)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
+    # Créer une image plus grande
+    total_height = height + text_height + 20
+    final_img = Image.new("RGBA", (width, total_height), (255, 255, 255, 0))
+
+    # Coller la signature
+    final_img.paste(img, (0, 0))
+
+    # Dessiner le texte
+    draw = ImageDraw.Draw(final_img)
+    draw.multiline_text((10, height + 10), text, fill="black", font=font, spacing=4)
+
+    output = io.BytesIO()
+    final_img.save(output, format="PNG")
+    output.seek(0)
+    return output
 
 
 def add_signature_fields(pdf_path):
@@ -38,7 +82,7 @@ def add_signature_fields(pdf_path):
             w,
             SigFieldSpec(
                 sig_field_name="Landlord",
-                box=(425, 20, 575, 70),  # Coordonnées (bas de page à droite)
+                box=(425, 20, 575, 150),  # Coordonnées (bas de page à droite)
                 on_page=-1,  # Dernière page
             ),
         )
@@ -57,7 +101,7 @@ def add_signature_fields(pdf_path):
         w.write_in_place()
 
 
-def sign_pdf(source_path, output_path, user, field_name):
+def sign_pdf(source_path, output_path, user, field_name, signature_bytes):
     """Signe électroniquement un document PDF"""
 
     # Charger les certificats et clés
@@ -82,17 +126,13 @@ def sign_pdf(source_path, output_path, user, field_name):
         # subfilter=SigSeedSubFilter.PADES,
     )
 
-    # Apparence de la signature conforme aux documents légaux
-    signature_appearance = stamp.TextStampStyle(
-        stamp_text=(
-            f"Signé électroniquement par:\n"
-            f"{getattr(user, 'prenom', '')} {getattr(user, 'nom', '')}\n"
-            f"Email: {getattr(user, 'email', '')}\n"
-            f"Date: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
-            f"Rôle: {'Propriétaire' if field_name == 'Landlord' else 'Locataire'}\n"
-            f"Signature conforme eIDAS"
-        ),
-        text_box_style=stamp.TextBoxStyle(font_size=9, border_width=1),
+    # 2. Créer un style combiné : image en fond, texte en haut
+    composed_image = compose_signature_stamp(signature_bytes, user)
+    pdf_image = PdfImage(Image.open(composed_image))
+    stamp_style = stamp.StaticStampStyle(
+        background=pdf_image,
+        background_opacity=1.0,
+        border_width=1,
     )
 
     # Signer le document
@@ -102,7 +142,7 @@ def sign_pdf(source_path, output_path, user, field_name):
             pdf_signer = signers.PdfSigner(
                 signature_meta=signature_meta,
                 signer=signer,
-                stamp_style=signature_appearance,
+                stamp_style=stamp_style,
                 # Ajouter un horodatage pour la conformité eIDAS
                 # timestamper=HTTPTimeStamper('http://timestamp.entrust.net/TSS/RFC3161sha2TS')
             )

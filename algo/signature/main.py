@@ -68,25 +68,23 @@ def compose_signature_stamp(signature_bytes, user, max_signature_height=60):
     return final_img, output
 
 
-def add_signature_fields_dynamic(pdf_path, landlord_field, tenant_fields):
+def add_signature_fields_dynamic(pdf_path, fields):
+    """
+    Add signature fields to a PDF document.
+
+    Args:
+        pdf_path: Path to the PDF file
+        fields: List of field dictionaries with 'field_name' and 'box' keys
+    """
     with open(pdf_path, "rb+") as doc:
         w = IncrementalPdfFileWriter(doc)
 
-        append_signature_field(
-            w,
-            SigFieldSpec(
-                sig_field_name=landlord_field["field_name"],
-                box=landlord_field["box"],
-                on_page=-1,
-            ),
-        )
-
-        for tenant_field in tenant_fields:
+        for field in fields:
             append_signature_field(
                 w,
                 SigFieldSpec(
-                    sig_field_name=tenant_field["field_name"],
-                    box=tenant_field["box"],
+                    sig_field_name=field["field_name"],
+                    box=field["box"],
                     on_page=-1,
                 ),
             )
@@ -135,22 +133,48 @@ def sign_pdf(source_path, output_path, user, field_name, signature_bytes):
 
 
 def generate_dynamic_boxes(
-    landlord_img, tenant_imgs, start_x=100, start_y=100, spacing=20
+    landlord_imgs, tenant_imgs, start_x=100, start_y=100, spacing=20
 ):
-    boxes = []
+    """
+    Generate signature boxes for multiple landlords and tenants.
 
-    # Charger l'image propriétaire
-    landlord_width, landlord_height = landlord_img.size
-    landlord_box = (
-        start_x,
-        start_y,
-        start_x + landlord_width,
-        start_y + landlord_height,
-    )
+    Args:
+        landlord_imgs: List of landlord signature images or single image
+        tenant_imgs: List of tenant signature images or single image
+        start_x: Starting X position
+        start_y: Starting Y position
+        spacing: Vertical spacing between boxes
 
-    current_y = start_y + landlord_height + spacing
+    Returns:
+        tuple: (landlord_boxes, tenant_boxes) where each is a list of boxes
+    """
+    # Ensure landlord_imgs is a list
+    if not isinstance(landlord_imgs, list):
+        landlord_imgs = [landlord_imgs]
 
-    for i, tenant_img in enumerate(tenant_imgs):
+    # Ensure tenant_imgs is a list
+    if not isinstance(tenant_imgs, list):
+        tenant_imgs = [tenant_imgs]
+
+    landlord_boxes = []
+    tenant_boxes = []
+
+    current_y = start_y
+
+    # Generate boxes for landlords
+    for landlord_img in landlord_imgs:
+        width, height = landlord_img.size
+        box = (
+            start_x,
+            current_y,
+            start_x + width,
+            current_y + height,
+        )
+        landlord_boxes.append(box)
+        current_y += height + spacing
+
+    # Generate boxes for tenants
+    for tenant_img in tenant_imgs:
         width, height = tenant_img.size
         box = (
             start_x,
@@ -158,10 +182,14 @@ def generate_dynamic_boxes(
             start_x + width,
             current_y + height,
         )
-        boxes.append(box)
+        tenant_boxes.append(box)
         current_y += height + spacing
 
-    return landlord_box, boxes
+    # If we only have one landlord box, return it as a single box (for backward compatibility)
+    if len(landlord_boxes) == 1:
+        landlord_boxes = landlord_boxes[0]
+
+    return landlord_boxes, tenant_boxes
 
 
 def verify_pdf_signature(pdf_path):

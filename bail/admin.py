@@ -4,13 +4,11 @@ from django.utils.html import format_html
 from .models import BailSpecificites, Bien, Locataire, Proprietaire
 
 
-class BienInline(admin.TabularInline):
-    """Affiche les biens associés à un propriétaire dans l'admin"""
-
-    model = Bien
-    extra = 0
-    fields = ("adresse", "type_bien", "superficie", "nb_pieces")
-    show_change_link = True
+class ProprietaireBiensInline(admin.TabularInline):
+    model = Bien.proprietaires.through
+    extra = 1
+    verbose_name = "Bien"
+    verbose_name_plural = "Biens"
 
 
 @admin.register(Proprietaire)
@@ -19,7 +17,7 @@ class ProprietaireAdmin(admin.ModelAdmin):
 
     list_display = ("nom", "prenom", "email", "telephone", "count_biens")
     search_fields = ("nom", "prenom", "email", "telephone")
-    inlines = [BienInline]
+    inlines = [ProprietaireBiensInline]
 
     fieldsets = (
         ("Identité", {"fields": ("nom", "prenom")}),
@@ -36,12 +34,16 @@ class ProprietaireAdmin(admin.ModelAdmin):
 
 
 class BailInline(admin.TabularInline):
-    """Affiche les bails associés à un bien dans l'admin"""
-
     model = BailSpecificites
     extra = 0
-    fields = ("locataire", "date_debut", "date_fin", "montant_loyer")
+    fields = ("get_locataires", "date_debut", "date_fin", "montant_loyer")
     show_change_link = True
+    readonly_fields = ("get_locataires",)
+
+    def get_locataires(self, obj):
+        return ", ".join([f"{l.prenom} {l.nom}" for l in obj.locataires.all()])
+
+    get_locataires.short_description = "Locataires"
 
 
 @admin.register(Bien)
@@ -50,7 +52,7 @@ class BienAdmin(admin.ModelAdmin):
 
     list_display = (
         "adresse",
-        "proprietaire",
+        "display_proprietaires",
         "type_bien",
         "superficie",
         "nb_pieces",
@@ -64,11 +66,11 @@ class BienAdmin(admin.ModelAdmin):
         "classe_dpe",
         "periode_construction",
     )
-    search_fields = ("adresse", "proprietaire__nom", "proprietaire__prenom")
+    search_fields = ("adresse", "proprietaires__nom", "proprietaires__prenom")
     inlines = [BailInline]
 
     fieldsets = (
-        ("Propriétaire", {"fields": ("proprietaire",)}),
+        ("Propriétaires", {"fields": ("proprietaires",)}),
         ("Localisation", {"fields": ("adresse", "latitude", "longitude")}),
         (
             "Caractéristiques",
@@ -122,6 +124,11 @@ class BienAdmin(admin.ModelAdmin):
 
     display_dpe_class.short_description = "DPE"
 
+    def display_proprietaires(self, obj):
+        return ", ".join([f"{p.prenom} {p.nom}" for p in obj.proprietaires.all()])
+
+    display_proprietaires.short_description = "Propriétaires"
+
 
 @admin.register(Locataire)
 class LocataireAdmin(admin.ModelAdmin):
@@ -163,18 +170,18 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
 
     list_display = (
         "bien",
-        "locataire",
+        "display_locataires",
         "date_debut",
         "date_fin",
         "montant_loyer",
         "zone_tendue",
     )
     list_filter = ("zone_tendue", "date_debut")
-    search_fields = ("bien__adresse", "locataire__nom", "locataire__prenom")
+    search_fields = ("bien__adresse", "locataires__nom", "locataires__prenom")
     date_hierarchy = "date_debut"
 
     fieldsets = (
-        ("Parties concernées", {"fields": ("bien", "locataire")}),
+        ("Parties concernées", {"fields": ("bien", "locataires")}),
         (
             "Durée",
             {
@@ -218,8 +225,13 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
         ("Observations", {"fields": ("observations",)}),
     )
 
+    def display_locataires(self, obj):
+        return ", ".join([f"{l.prenom} {l.nom}" for l in obj.locataires.all()])
+
+    display_locataires.short_description = "Locataires"
+
+    # Update formfield_for_foreignkey to remove proprietaire reference
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        """Optimise les requêtes pour les champs ForeignKey"""
         if db_field.name == "bien":
-            kwargs["queryset"] = Bien.objects.select_related("proprietaire")
+            kwargs["queryset"] = Bien.objects.all()  # No select_related needed
         return super().formfield_for_foreignkey(db_field, request, **kwargs)

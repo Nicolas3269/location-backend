@@ -38,9 +38,7 @@ class Proprietaire(models.Model):
 class Bien(models.Model):
     """Model representing the rental property."""
 
-    proprietaire = models.ForeignKey(
-        Proprietaire, on_delete=models.CASCADE, related_name="biens"
-    )
+    proprietaires = models.ManyToManyField(Proprietaire, related_name="biens")
 
     adresse = models.CharField(max_length=255)
     latitude = models.FloatField(null=True, blank=True)
@@ -131,9 +129,7 @@ class BailSpecificites(models.Model):
     """Model representing the lease specifics."""
 
     bien = models.ForeignKey(Bien, on_delete=models.CASCADE, related_name="bails")
-    locataire = models.ForeignKey(
-        Locataire, on_delete=models.CASCADE, related_name="bails"
-    )
+    locataires = models.ManyToManyField(Locataire, related_name="bails")
 
     # Durée du bail
     date_debut = models.DateField()
@@ -174,4 +170,4 @@ class BailSpecificites(models.Model):
     )
 
     def __str__(self):
-        return f"Bail {self.bien} - {self.locataire} ({self.date_debut})"
+        return f"Bail {self.bien} - ({self.date_debut})"

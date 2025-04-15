@@ -31,7 +31,6 @@ class BienFactory(DjangoModelFactory):
     class Meta:
         model = Bien
 
-    proprietaire = factory.SubFactory(ProprietaireFactory)
     adresse = factory.Faker("street_address")
 
     # Coordonnées géographiques françaises approximatives
@@ -80,6 +79,19 @@ class BienFactory(DjangoModelFactory):
     )
     additionnal_description = factory.Faker("paragraph")
 
+    @factory.post_generation
+    def proprietaires(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            # Add specific proprietaires if provided
+            for proprietaire in extracted:
+                self.proprietaires.add(proprietaire)
+        else:
+            # Add one proprietaire by default
+            self.proprietaires.add(ProprietaireFactory())
+
 
 class LocataireFactory(DjangoModelFactory):
     class Meta:
@@ -117,7 +129,6 @@ class BailSpecificitesFactory(DjangoModelFactory):
 
     # Relations
     bien = factory.SubFactory(BienFactory)
-    locataire = factory.SubFactory(LocataireFactory)
 
     # Durée du bail (3 ans par défaut)
     date_debut = factory.LazyFunction(lambda: date.today())
@@ -167,3 +178,16 @@ class BailSpecificitesFactory(DjangoModelFactory):
         if random.choice([True, False])
         else None
     )
+
+    @factory.post_generation
+    def locataires(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if extracted:
+            # Add specific locataires if provided
+            for locataire in extracted:
+                self.locataires.add(locataire)
+        else:
+            # Add one locataire by default
+            self.locataires.add(LocataireFactory())

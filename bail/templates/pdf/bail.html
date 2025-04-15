@@ -65,24 +65,42 @@
 
     <div class="section">
       <h2>1. Parties au contrat</h2>
+      
+      <!-- Proprietaires (Multiple owners) -->
+      <h3>
+        {% with count=bail.bien.proprietaires.all|length %}
+          Propriétaire{% if count > 1 %}s{% endif %}
+        {% endwith %}
+      </h3>
+      {% for proprietaire in bail.bien.proprietaires.all %}
       <p>
-        <span class="label">Propriétaire :</span> {{ bail.bien.proprietaire.prenom }} {{ bail.bien.proprietaire.nom }}, {{ bail.bien.proprietaire.adresse }}
+        <span class="label">Propriétaire {{ forloop.counter }} :</span> {{ proprietaire.prenom }} {{ proprietaire.nom }}, {{ proprietaire.adresse }}
       </p>
       <p>
-        <span class="label">Email :</span> {{ bail.bien.proprietaire.email }} |
-        <span class="label">Téléphone :</span> {{ bail.bien.proprietaire.telephone }}
+        <span class="label">Email :</span> {{ proprietaire.email }} |
+        <span class="label">Téléphone :</span> {{ proprietaire.telephone }}
       </p>
+      {% endfor %}
 
+      <!-- Locataires (Multiple tenants) -->
+      <h3>
+        {% with count=bail.locataires.all|length %}
+          Locataire{% if count > 1 %}s{% endif %}
+        {% endwith %}
+      </h3>
+      {% for locataire in bail.locataires.all %}
       <p>
-        <span class="label">Locataire :</span> {{ bail.locataire.prenom }} {{ bail.locataire.nom }}
+        <span class="label">Locataire {{ forloop.counter }} :</span> {{ locataire.prenom }} {{ locataire.nom }}
       </p>
-      {% if bail.locataire.adresse_actuelle %}
+      {% if locataire.adresse_actuelle %}
       <p>
-        <span class="label">Adresse actuelle :</span> {{ bail.locataire.adresse_actuelle }}
+        <span class="label">Adresse actuelle :</span> {{ locataire.adresse_actuelle }}
       </p>
-      {% endif %} {% if bail.locataire.email %}
-      <p><span class="label">Email :</span> {{ bail.locataire.email }}</p>
       {% endif %}
+      {% if locataire.email %}
+      <p><span class="label">Email :</span> {{ locataire.email }}</p>
+      {% endif %}
+      {% endfor %}
     </div>
 
     <div class="section">

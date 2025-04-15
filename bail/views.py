@@ -12,7 +12,12 @@ from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 from weasyprint import HTML
 
-from algo.signature.main import add_signature_fields, sign_pdf
+from algo.signature.main import (
+    add_signature_fields_dynamic,
+    compose_signature_stamp,
+    generate_dynamic_boxes,
+    sign_pdf,
+)
 from bail.factories import BailSpecificitesFactory
 from bail.models import BailSpecificites
 
@@ -65,20 +70,25 @@ def sign_bail(request):
 
         # Ajouter la signature manuscrite dans le PDF original
         signature_bytes = base64.b64decode(signature_data_url.split(",")[1])
+        signature_bytes_landlord = signature_bytes
+        signature_bytes_tenant = signature_bytes
 
-        # Ajouter les champs de signature
-        add_signature_fields(bail_path)
-
-        # Signer par le propriétaire
-        # Phase 1 - BAILLEUR
         landlord = bail.bien.proprietaire
-        sign_pdf(bail_path, landlord_path, landlord, "Landlord", signature_bytes)
-
-        # Signer par le locataire
         tenant = bail.locataire
-        final_path = sign_pdf(
-            landlord_path, final_path, tenant, "Tenant", signature_bytes
+
+        landlord_img, buffer1 = compose_signature_stamp(
+            signature_bytes_landlord, landlord
         )
+        tenant_img, buffer2 = compose_signature_stamp(signature_bytes_tenant, tenant)
+
+        landlord_box, tenant_boxes = generate_dynamic_boxes(landlord_img, [tenant_img])
+
+        add_signature_fields_dynamic(bail_path, landlord_box, tenant_boxes)
+
+        sign_pdf(
+            bail_path, landlord_path, landlord, "Landlord", signature_bytes_landlord
+        )
+        sign_pdf(landlord_path, final_path, tenant, "Tenant_1", signature_bytes_tenant)
 
         return JsonResponse(
             {

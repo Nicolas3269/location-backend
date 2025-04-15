@@ -1,3 +1,5 @@
+import base64
+import json
 import logging
 import os
 import uuid
@@ -5,61 +7,16 @@ import uuid
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import FileResponse, JsonResponse
+from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 from weasyprint import HTML
 
-from algo.signature.main import add_signature_fields, sign_pdf
+from algo.signature.main import add_signature_fields, insert_signature_image, sign_pdf
 from bail.factories import BailSpecificitesFactory
 from bail.models import BailSpecificites
 
 logger = logging.getLogger(__name__)
-
-
-@csrf_exempt
-def sign_bail(request):
-    # Renvoyer l'URL du PDF signé
-    bail = BailSpecificites.objects.last()
-    bail_path = bail.pdf.path
-    base_url = bail.pdf.url.split(".")[0]
-    base_filename = bail_path.split(".")[0]
-    # Créer un bail de test
-    landlord_path = f"{base_filename}_landlord.pdf"
-    final_path = f"{base_filename}_signed.pdf"
-    final_url = f"{base_url}_signed.pdf"
-
-    try:
-        # 1. Ajouter des champs de signature
-        add_signature_fields(bail_path)
-
-        # 2. Signer par le propriétaire
-        landlord = bail.bien.proprietaire
-        sign_pdf(bail_path, landlord_path, landlord, "Landlord")
-
-        # 3. Signer par le locataire (en utilisant le PDF signé par le propriétaire comme base)
-        tenant = bail.locataire
-        final_path = sign_pdf(landlord_path, final_path, tenant, "Tenant")
-
-    except Exception as e:
-        logger.exception(f"Erreur lors de la signature du PDF: {e}")
-        # En cas d'erreur, renvoyer quand même le PDF non signé
-
-        return JsonResponse(
-            {
-                "success": False,
-                "bail_id": bail.id,
-                "pdfUrl": final_url,
-                "error": str(e),
-            }
-        )
-
-    return JsonResponse(
-        {
-            "success": True,
-            "bail_id": bail.id,
-            "pdfUrl": final_url,
-        }
-    )
 
 
 @csrf_exempt
@@ -78,7 +35,67 @@ def generate_bail_pdf(request):
         bail.pdf.save(pdf_filename, ContentFile(pdf), save=True)
 
         return JsonResponse(
-            {"success": True, "bail_id": bail.id, "pdfUrl": bail.pdf.url}
+            {"success": True, "bailId": bail.id, "pdfUrl": bail.pdf.url}
+        )
+
+
+@csrf_exempt
+def sign_bail(request):
+    try:
+        data = json.loads(request.body)
+
+        signature_data_url = data.get("signatureImage")
+        otp = data.get("otp")
+        bail_id = data.get("bailId")
+
+        if not signature_data_url or not otp or not bail_id:
+            return JsonResponse(
+                {"success": False, "error": "Données manquantes"}, status=400
+            )
+
+        # TODO: Vérifier l’OTP ici (logique à implémenter selon ton backend)
+
+        bail = get_object_or_404(BailSpecificites, id=bail_id)
+        bail_path = bail.pdf.path
+        base_url = bail.pdf.url.split(".")[0]
+        base_filename = bail_path.split(".")[0]
+        landlord_path = f"{base_filename}_landlord.pdf"
+        final_path = f"{base_filename}_signed.pdf"
+        final_url = f"{base_url}_signed.pdf"
+
+        # Ajouter la signature manuscrite dans le PDF original
+        signature_bytes = base64.b64decode(signature_data_url.split(",")[1])
+        # Fichier temporaire pour ajouter la signature manuscrite
+        handwritten_path = f"{base_filename}_handwritten.pdf"
+        insert_signature_image(bail_path, handwritten_path, signature_bytes)
+
+        # Ajouter les champs de signature
+        add_signature_fields(handwritten_path)
+
+        # Signer par le propriétaire
+        landlord = bail.bien.proprietaire
+        sign_pdf(handwritten_path, landlord_path, landlord, "Landlord")
+
+        # Signer par le locataire
+        tenant = bail.locataire
+        final_path = sign_pdf(landlord_path, final_path, tenant, "Tenant")
+
+        return JsonResponse(
+            {
+                "success": True,
+                "bail_id": bail.id,
+                "pdfUrl": final_url,
+            }
+        )
+
+    except Exception as e:
+        logger.exception("Erreur lors de la signature du PDF")
+        return JsonResponse(
+            {
+                "success": False,
+                "error": str(e),
+            },
+            status=500,
         )
 
 

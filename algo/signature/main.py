@@ -1,21 +1,29 @@
 import datetime
 import os
 
-from django.conf import settings
-from pyhanko import stamp
-from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
-from pyhanko.sign import signers
-from pyhanko.sign.fields import SigFieldSpec, append_signature_field
-
 # ####
 # # Créer une clé privée et un certificat avec les extensions appropriées
 # openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 3650 -nodes \
 #   -subj "/CN=Test Signer/O=Test Organization/C=FR" \
 #   -addext "keyUsage=digitalSignature,nonRepudiation,keyEncipherment" \
 #   -addext "extendedKeyUsage=emailProtection,codeSigning"
-
 # # Convertir en PKCS#12 pour l'utilisation avec PyHanko
 # openssl pkcs12 -export -out cert.pfx -inkey key.pem -in cert.pem -name "Signing Key" -passout pass:test123
+import fitz  # PyMuPDF
+from django.conf import settings
+from pyhanko import stamp
+from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+from pyhanko.sign import signers
+from pyhanko.sign.fields import SigFieldSpec, append_signature_field
+
+
+def insert_signature_image(
+    pdf_path, output_path, signature_bytes, rect=(100, 100, 300, 200)
+):
+    doc = fitz.open(pdf_path)
+    page = doc[-1]  # dernière page
+    page.insert_image(fitz.Rect(*rect), stream=signature_bytes)
+    doc.save(output_path)
 
 
 def add_signature_fields(pdf_path):
@@ -113,5 +121,6 @@ def sign_pdf(source_path, output_path, user, field_name):
 
 
 def verify_pdf_signature(pdf_path):
+    # poetry run pyhanko sign validate --trust cert.pem --pretty-print media/bail_pdfs/bail_85_85d663da4dc340cdaaa257ba1086191d_signed.pdf
     # poetry run pyhanko sign validate --trust ../../cert.pem --pretty-print pdf_path
     pass

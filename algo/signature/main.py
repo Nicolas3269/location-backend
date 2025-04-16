@@ -13,26 +13,28 @@ from pyhanko.sign import signers
 from pyhanko.sign.fields import SigFieldSpec, append_signature_field
 from slugify import slugify
 
+TAMPON_WIDTH_PX = 230
+TAMPON_HEIGHT_PX = 180
 
-def get_named_dest_coordinates(pdf_path, person, img_height_px):
+
+def get_named_dest_coordinates(pdf_path, person):
     field_name = slugify(f"{person.id}_{person.get_full_name()}")
     target_text = f"Signature de {person.prenom} {person.nom}"
+    box_width_pt = px_to_pt(TAMPON_WIDTH_PX)
+    box_height_pt = px_to_pt(TAMPON_HEIGHT_PX)
+
     doc = fitz.open(pdf_path)
 
     for page_number in range(len(doc)):
         page = doc[page_number]
-        text_instances = page.search_for(target_text)
-        if text_instances:
-            rect = text_instances[0]
-
-            # Agrandir le rect vers le bas pour accueillir le tampon
-            stamp_height_pt = px_to_pt(img_height_px + 20)
-            # décalage du haut de la boîte (sous le texte)
-            rect.y0 += 10
-            # hauteur du tampon : image + marge
-            rect.y1 = rect.y0 + stamp_height_pt
-
-            return page_number, rect, field_name
+        matches = page.search_for(target_text)
+        if matches:
+            anchor = matches[0]
+            x0 = anchor.x0
+            y0 = anchor.y1 + 5
+            x1 = x0 + box_width_pt
+            y1 = y0 + box_height_pt
+            return page_number, fitz.Rect(x0, y0, x1, y1), field_name
 
     return None, None, field_name
 
@@ -50,23 +52,35 @@ def get_default_font_path():
 
 def px_to_pt(px):
     # Environ 0.75 pt par pixel à 96 DPI
-    return float(px * 0.75)
+    return px * 72 / 96
 
 
 def compose_signature_stamp(signature_bytes, user):
+    # Constantes
+    final_width = TAMPON_WIDTH_PX  # ex: 250
+    final_height = TAMPON_HEIGHT_PX  # ex: 150
+    signature_area_height = 90
+    margin = 20
+
+    # Charger et redimensionner l’image
     img = Image.open(io.BytesIO(signature_bytes)).convert("RGBA")
-    signature_height = 60
+    img_ratio = img.width / img.height
 
-    # Redimensionner si l'image est trop haute (préserve le ratio)
-    width, height = img.size
+    sig_img_height = signature_area_height
+    sig_img_width = int(sig_img_height * img_ratio)
 
-    ratio = signature_height / height
-    new_width = int(width * ratio)
-    img = img.resize((new_width, signature_height), Image.LANCZOS)
-    width, height = img.size  # maj dimensions
+    img = img.resize((sig_img_width, sig_img_height), Image.LANCZOS)
+
+    # Créer le tampon
+    final_img = Image.new("RGBA", (final_width, final_height), (255, 255, 255, 0))
+    draw = ImageDraw.Draw(final_img)
+
+    # Centrer l’image horizontalement
+    img_x = (final_width - sig_img_width) // 2
+    final_img.paste(img, (img_x, 0), img)
 
     # Préparer le texte
-    font = ImageFont.truetype(get_default_font_path(), size=px_to_pt(12))
+    font = ImageFont.truetype(get_default_font_path(), size=12)
     text = (
         f"{user.prenom} {user.nom}\n"
         f"{user.email}\n"
@@ -74,18 +88,16 @@ def compose_signature_stamp(signature_bytes, user):
         f"Signature conforme eIDAS"
     )
 
-    # Mesurer le texte
-    draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
-    bbox = draw.multiline_textbbox((0, 0), text, font=font, spacing=4)
-    text_height = bbox[3] - bbox[1]
-
-    # Fusion image + texte
-    total_height = height + text_height + 20
-    final_img = Image.new("RGBA", (width, total_height), (255, 255, 255, 0))
-    final_img.paste(img, (0, 0))
-
-    draw = ImageDraw.Draw(final_img)
-    draw.multiline_text((10, height + 10), text, fill="black", font=font, spacing=4)
+    # Dessiner le texte centré en bas
+    text_x = 10
+    text_y = margin + sig_img_height
+    draw.multiline_text(
+        (text_x, text_y),
+        text,
+        fill="black",
+        font=font,
+        spacing=4,
+    )
 
     output = io.BytesIO()
     final_img.save(output, format="PNG")
@@ -156,66 +168,6 @@ def sign_pdf(source_path, output_path, user, field_name, signature_bytes):
             pdf_signer.sign_pdf(writer, output=outf, existing_fields_only=True)
 
     return output_path
-
-
-def generate_dynamic_boxes(
-    landlord_imgs, tenant_imgs, start_x=100, start_y=100, spacing=20
-):
-    """
-    Generate signature boxes for multiple landlords and tenants.
-
-    Args:
-        landlord_imgs: List of landlord signature images or single image
-        tenant_imgs: List of tenant signature images or single image
-        start_x: Starting X position
-        start_y: Starting Y position
-        spacing: Vertical spacing between boxes
-
-    Returns:
-        tuple: (landlord_boxes, tenant_boxes) where each is a list of boxes
-    """
-    # Ensure landlord_imgs is a list
-    if not isinstance(landlord_imgs, list):
-        landlord_imgs = [landlord_imgs]
-
-    # Ensure tenant_imgs is a list
-    if not isinstance(tenant_imgs, list):
-        tenant_imgs = [tenant_imgs]
-
-    landlord_boxes = []
-    tenant_boxes = []
-
-    current_y = start_y
-
-    # Generate boxes for landlords
-    for landlord_img in landlord_imgs:
-        width, height = landlord_img.size
-        box = (
-            start_x,
-            current_y,
-            start_x + width,
-            current_y + height,
-        )
-        landlord_boxes.append(box)
-        current_y += height + spacing
-
-    # Generate boxes for tenants
-    for tenant_img in tenant_imgs:
-        width, height = tenant_img.size
-        box = (
-            start_x,
-            current_y,
-            start_x + width,
-            current_y + height,
-        )
-        tenant_boxes.append(box)
-        current_y += height + spacing
-
-    # If we only have one landlord box, return it as a single box (for backward compatibility)
-    if len(landlord_boxes) == 1:
-        landlord_boxes = landlord_boxes[0]
-
-    return landlord_boxes, tenant_boxes
 
 
 def verify_pdf_signature(pdf_path):

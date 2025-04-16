@@ -14,7 +14,6 @@ from weasyprint import HTML
 
 from algo.signature.main import (
     add_signature_fields_dynamic,
-    compose_signature_stamp,
     get_named_dest_coordinates,
     sign_pdf,
 )
@@ -82,12 +81,7 @@ def sign_bail(request):
         all_fields = []
 
         for person in signatories:
-            img_pil, buffer = compose_signature_stamp(signature_bytes, person)
-            width, img_height_px = img_pil.size
-
-            page, rect, field_name = get_named_dest_coordinates(
-                bail_path, person, img_height_px
-            )
+            page, rect, field_name = get_named_dest_coordinates(bail_path, person)
             if rect is None:
                 raise ValueError(f"Aucun champ de signature trouvé pour {person.email}")
 

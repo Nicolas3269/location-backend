@@ -10,13 +10,12 @@ from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
-from slugify import slugify
 from weasyprint import HTML
 
 from algo.signature.main import (
     add_signature_fields_dynamic,
     compose_signature_stamp,
-    generate_dynamic_boxes,
+    get_named_dest_coordinates,
     sign_pdf,
 )
 from bail.factories import BailSpecificitesFactory, LocataireFactory
@@ -31,10 +30,13 @@ def generate_bail_pdf(request):
         # Créer un bail de test
         # Create multiple tenants first
         locataire1 = LocataireFactory.create()
-        locataire2 = LocataireFactory.create()
+        # locataire2 = LocataireFactory.create()
+
+        # locataires = [locataire1, locataire2]
+        locataires = [locataire1]
 
         # Create a bail and assign both tenants
-        bail = BailSpecificitesFactory.create(locataires=[locataire1, locataire2])
+        bail = BailSpecificitesFactory.create(locataires=locataires)
 
         # Générer le PDF depuis le template HTML
         html = render_to_string("pdf/bail.html", {"bail": bail})
@@ -48,13 +50,6 @@ def generate_bail_pdf(request):
         return JsonResponse(
             {"success": True, "bailId": bail.id, "pdfUrl": bail.pdf.url}
         )
-
-
-def full_name(user):
-    """
-    Retourne le nom complet d'un utilisateur.
-    """
-    return f"{user.first_name} {user.last_name}"
 
 
 @csrf_exempt
@@ -71,101 +66,59 @@ def sign_bail(request):
                 {"success": False, "error": "Données manquantes"}, status=400
             )
 
-        # TODO: Vérifier l'OTP ici (logique à implémenter selon ton backend)
-
         bail = get_object_or_404(BailSpecificites, id=bail_id)
         bail_path = bail.pdf.path
-        base_url = bail.pdf.url.split(".")[0]
-        base_filename = bail_path.split(".")[0]
+        base_url = bail.pdf.url.rsplit(".", 1)[0]
+        base_filename = bail_path.rsplit(".", 1)[0]
         final_path = f"{base_filename}_signed.pdf"
         final_url = f"{base_url}_signed.pdf"
 
-        # Decode signature image
         signature_bytes = base64.b64decode(signature_data_url.split(",")[1])
 
-        # Get all parties from the bail
         landlords = list(bail.bien.proprietaires.all())
         tenants = list(bail.locataires.all())
+        signatories = landlords + tenants
 
-        # Create signature stamps for all parties
-        landlord_images = []
-        landlord_buffers = []
-        for landlord in landlords:
-            img, buffer = compose_signature_stamp(signature_bytes, landlord)
-            landlord_images.append(img)
-            landlord_buffers.append(buffer)
+        all_fields = []
 
-        tenant_images = []
-        tenant_buffers = []
-        for tenant in tenants:
-            img, buffer = compose_signature_stamp(signature_bytes, tenant)
-            tenant_images.append(img)
-            tenant_buffers.append(buffer)
+        for person in signatories:
+            img_pil, buffer = compose_signature_stamp(signature_bytes, person)
+            width, img_height_px = img_pil.size
 
-        # Generate signature boxes for all parties
-        landlord_boxes, tenant_boxes = generate_dynamic_boxes(
-            landlord_images, tenant_images
-        )
+            page, rect, field_name = get_named_dest_coordinates(
+                bail_path, person, img_height_px
+            )
+            if rect is None:
+                raise ValueError(f"Aucun champ de signature trouvé pour {person.email}")
 
-        # Create signature fields for all parties
-        landlord_fields = []
-        for idx, landlord in enumerate(landlords):
-            landlord_fields.append(
+            all_fields.append(
                 {
-                    "field_name": slugify(f"bailleur {landlord.get_full_name()}_{idx}"),
-                    "box": landlord_boxes[idx]
-                    if isinstance(landlord_boxes, list)
-                    else landlord_boxes,
+                    "field_name": field_name,
+                    "rect": rect,
+                    "person": person,
+                    "page": page,
                 }
             )
 
-        tenant_fields = []
-        for idx, tenant in enumerate(tenants):
-            tenant_fields.append(
-                {
-                    "field_name": slugify(f"locataire {tenant.get_full_name()}_{idx}"),
-                    "box": tenant_boxes[idx]
-                    if isinstance(tenant_boxes, list)
-                    else tenant_boxes,
-                }
-            )
-
-        # Add all signature fields to the document
-        all_fields = landlord_fields + tenant_fields
+        # Ajouter les champs de signature
         add_signature_fields_dynamic(bail_path, all_fields)
 
-        # Chain signatures through temporary files
-        current_path = bail_path
-        all_signatories = list(zip(landlords, landlord_fields)) + list(
-            zip(tenants, tenant_fields)
-        )
-
-        for idx, (signatory, field) in enumerate(all_signatories):
-            # Last signature goes to the final path
-            if idx == len(all_signatories) - 1:
-                output_path = final_path
-            else:
-                output_path = f"{base_filename}_temp_{idx}.pdf"
-
+        # Appliquer les signatures une par une (chaînées)
+        source = bail_path
+        for i, field in enumerate(all_fields):
+            dest = (
+                final_path
+                if i == len(all_fields) - 1
+                else f"{base_filename}_temp_{i}.pdf"
+            )
             sign_pdf(
-                current_path,
-                output_path,
-                signatory,
+                source,
+                dest,
+                field["person"],
                 field["field_name"],
                 signature_bytes,
             )
-
-            # Update current_path for next iteration
-            current_path = output_path
-
-        # Clean up temporary files
-        for idx in range(len(all_signatories) - 1):
-            temp_file = f"{base_filename}_temp_{idx}.pdf"
-            if os.path.exists(temp_file):
-                try:
-                    os.remove(temp_file)
-                except:
-                    logger.warning(f"Failed to remove temporary file {temp_file}")
+            source = dest  # pour le suivant
 
         return JsonResponse(
             {

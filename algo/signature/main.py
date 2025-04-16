@@ -3,6 +3,7 @@ import io
 import os
 import platform
 
+import fitz  # PyMuPDF
 from django.conf import settings
 from PIL import Image, ImageDraw, ImageFont
 from pyhanko import stamp
@@ -10,6 +11,30 @@ from pyhanko.pdf_utils.images import PdfImage
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.sign import signers
 from pyhanko.sign.fields import SigFieldSpec, append_signature_field
+from slugify import slugify
+
+
+def get_named_dest_coordinates(pdf_path, person, img_height_px):
+    field_name = slugify(f"{person.id}_{person.get_full_name()}")
+    target_text = f"Signature de {person.prenom} {person.nom}"
+    doc = fitz.open(pdf_path)
+
+    for page_number in range(len(doc)):
+        page = doc[page_number]
+        text_instances = page.search_for(target_text)
+        if text_instances:
+            rect = text_instances[0]
+
+            # Agrandir le rect vers le bas pour accueillir le tampon
+            stamp_height_pt = px_to_pt(img_height_px + 20)
+            # décalage du haut de la boîte (sous le texte)
+            rect.y0 += 10
+            # hauteur du tampon : image + marge
+            rect.y1 = rect.y0 + stamp_height_pt
+
+            return page_number, rect, field_name
+
+    return None, None, field_name
 
 
 def get_default_font_path():
@@ -28,15 +53,16 @@ def px_to_pt(px):
     return float(px * 0.75)
 
 
-def compose_signature_stamp(signature_bytes, user, max_signature_height=60):
+def compose_signature_stamp(signature_bytes, user):
     img = Image.open(io.BytesIO(signature_bytes)).convert("RGBA")
+    signature_height = 60
 
     # Redimensionner si l'image est trop haute (préserve le ratio)
     width, height = img.size
 
-    ratio = max_signature_height / height
+    ratio = signature_height / height
     new_width = int(width * ratio)
-    img = img.resize((new_width, max_signature_height), Image.LANCZOS)
+    img = img.resize((new_width, signature_height), Image.LANCZOS)
     width, height = img.size  # maj dimensions
 
     # Préparer le texte
@@ -84,8 +110,8 @@ def add_signature_fields_dynamic(pdf_path, fields):
                 w,
                 SigFieldSpec(
                     sig_field_name=field["field_name"],
-                    box=field["box"],
-                    on_page=-1,
+                    box=field["rect"],
+                    on_page=field["page"],
                 ),
             )
 

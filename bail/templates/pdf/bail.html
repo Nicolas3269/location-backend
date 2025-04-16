@@ -48,16 +48,26 @@
         padding: 4px;
       }
 
-      .signature {
-        margin-top: 40px;
-        display: flex;
-        justify-content: space-between;
+      .signature-section {
+        margin-bottom: 0;
       }
-
+      
+      .signature {
+        margin-top: 0;
+      }
+      
+      .signature-list {
+        display: block;
+      }
+      
       .signature-block {
         width: 45%;
-        text-align: center;
+        text-align: left;
+        margin-bottom: 40px;
+        min-height: 180px; /* correspond à la hauteur du tampon */
+        border-bottom: 1px dotted #999;
       }
+    
     </style>
   </head>
   <body>
@@ -176,49 +186,39 @@
     </div>
     {% endif %}
 
-    <div class="section">
+    <div class="section signature-section">
       <h2>7. Signatures</h2>
       <div class="signature">
-        <div style="margin-top: 0px;">
-          <!-- Landlord signature blocks -->
-          <h4 id="landlord-signature-header">
-            {% with count=bail.bien.proprietaires.all|length %}
-              Propriétaire{% if count > 1 %}s{% endif %}
-            {% endwith %}
-          </h4>
-          <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
-            {% for person in bail.bien.proprietaires.all %}
-            <p style="color:white">ID_SIGNATURE_{{ person.id }}</p>
-             
-            <div class="signature-block signature-marker landlord-signature"
-                style="margin-bottom: 30px; min-width: 200px;">
-  
-               <div style="height: 120px; border-bottom: 1px dotted #999; margin: 20px 0;"></div>
-            </div>
-            {% endfor %}
+        <!-- Landlord signature blocks -->
+        <h4 id="landlord-signature-header">
+          {% with count=bail.bien.proprietaires.all|length %}
+            Propriétaire{% if count > 1 %}s{% endif %}
+          {% endwith %}
+        </h4>
+        <div class="signature-list">
+          {% for person in bail.bien.proprietaires.all %}
+          <div class="signature-block">
+            <!-- ID invisible pour PyMuPDF -->
+            <p style="color:white; margin: 0;">ID_SIGNATURE_{{ person.id }}</p>
           </div>
-  
-          <!-- Tenant signature blocks -->
-          <h4 id="tenant-signature-header">
-            {% with count=bail.locataires.all|length %}
-              Locataire{% if count > 1 %}s{% endif %}
-            {% endwith %}
-          </h4>
-          <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
-            {% for person in bail.locataires.all %}
-            <p style="color:white">ID_SIGNATURE_{{ person.id }}</p>
-            <div class="signature-block signature-marker tenant-signature"
-               
-                style="margin-bottom: 30px; min-width: 200px;">
-              
-              <div style="height: 120px; border-bottom: 1px dotted #999; margin: 20px 0;"></div>
-            </div>
-            {% endfor %}
+          {% endfor %}
+        </div>
+    
+        <!-- Tenant signature blocks -->
+        <h4 id="tenant-signature-header">
+          {% with count=bail.locataires.all|length %}
+            Locataire{% if count > 1 %}s{% endif %}
+          {% endwith %}
+        </h4>
+        <div class="signature-list">
+          {% for person in bail.locataires.all %}
+          <div class="signature-block">
+            <!-- ID invisible pour PyMuPDF -->
+            <p style="color:white; margin: 0;">ID_SIGNATURE_{{ person.id }}</p>
           </div>
-          
+          {% endfor %}
         </div>
       </div>
-      
     </div>
   </body>
 </html>

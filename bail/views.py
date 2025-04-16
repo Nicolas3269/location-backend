@@ -28,11 +28,8 @@ def generate_bail_pdf(request):
     if request.method == "POST":
         # Créer un bail de test
         # Create multiple tenants first
-        locataire1 = LocataireFactory.create()
-        # locataire2 = LocataireFactory.create()
-
-        # locataires = [locataire1, locataire2]
-        locataires = [locataire1]
+        nbr_locataires = 10
+        locataires = [LocataireFactory.create() for _ in range(nbr_locataires)]
 
         # Create a bail and assign both tenants
         bail = BailSpecificitesFactory.create(locataires=locataires)

@@ -31,7 +31,7 @@ def get_named_dest_coordinates(pdf_path, person):
         if matches:
             anchor = matches[0]
             x0 = anchor.x0
-            y0 = anchor.y1 + 5
+            y0 = anchor.y0 + 5
             x1 = x0 + box_width_pt
             y1 = y0 + box_height_pt
             return page_number, fitz.Rect(x0, y0, x1, y1), field_name
@@ -59,8 +59,8 @@ def compose_signature_stamp(signature_bytes, user):
     # Constantes
     final_width = TAMPON_WIDTH_PX  # ex: 250
     final_height = TAMPON_HEIGHT_PX  # ex: 150
-    signature_area_height = 90
-    margin = 20
+    signature_area_height = 95
+    margin = 15
 
     # Charger et redimensionner l’image
     img = Image.open(io.BytesIO(signature_bytes)).convert("RGBA")

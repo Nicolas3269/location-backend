@@ -72,8 +72,8 @@ def compose_signature_stamp(signature_bytes, user):
     scale_factor = SCALE_FACTOR
     final_width = TAMPON_WIDTH_PX * scale_factor
     final_height = TAMPON_HEIGHT_PX * scale_factor
-    signature_area_height = 95 * scale_factor
-    margin_above_text = 35 * scale_factor
+    signature_area_height = 110 * scale_factor
+    margin_above_text = 20 * scale_factor
     text_padding_x = 10 * scale_factor
 
     # Charger et redimensionner l’image

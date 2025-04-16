@@ -19,7 +19,8 @@ TAMPON_HEIGHT_PX = 180
 
 def get_named_dest_coordinates(pdf_path, person):
     field_name = slugify(f"{person.id}_{person.get_full_name()}")
-    target_text = f"Signature de {person.prenom} {person.nom}"
+    target_marker = f"ID_SIGNATURE_{person.id}"
+
     box_width_pt = px_to_pt(TAMPON_WIDTH_PX)
     box_height_pt = px_to_pt(TAMPON_HEIGHT_PX)
 
@@ -27,13 +28,22 @@ def get_named_dest_coordinates(pdf_path, person):
 
     for page_number in range(len(doc)):
         page = doc[page_number]
-        matches = page.search_for(target_text)
-        if matches:
-            anchor = matches[0]
+        match = page.search_for(target_marker)
+        if len(match) > 1:
+            raise ValueError(
+                "Plusieurs marqueurs de signature trouvés sur la même page."
+            )
+        if match:
+            anchor = match[0]
+            # Récupérer la hauteur de la page
+            page_height = page.rect.height
+
+            # Décalage Y avec inversion du repère (origine en haut)
             x0 = anchor.x0
-            y0 = anchor.y0 + 5
+            y0 = page_height - anchor.y0 - box_height_pt
             x1 = x0 + box_width_pt
             y1 = y0 + box_height_pt
+
             return page_number, fitz.Rect(x0, y0, x1, y1), field_name
 
     return None, None, field_name

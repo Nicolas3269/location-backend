@@ -176,46 +176,49 @@
     </div>
     {% endif %}
 
-    <div class="section signature">
-      <div style="margin-top: 40px;">
-        <!-- Landlord signature blocks -->
-        <h4 id="landlord-signature-header">
-          {% with count=bail.bien.proprietaires.all|length %}
-            Propriétaire{% if count > 1 %}s{% endif %}
-          {% endwith %}
-        </h4>
-        <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
-          {% for proprietaire in bail.bien.proprietaires.all %}
-          <p>Signature de {{ proprietaire.prenom }} {{ proprietaire.nom }}</p>
-           
-          <div class="signature-block signature-marker landlord-signature"
-              data-person-id="{{ proprietaire.id }}"
-              style="margin-bottom: 30px; min-width: 200px;">
-
-             <div style="height: 120px; border-bottom: 1px dotted #999; margin: 20px 0;"></div>
+    <div class="section">
+      <h2>7. Signatures</h2>
+      <div class="signature">
+        <div style="margin-top: 0px;">
+          <!-- Landlord signature blocks -->
+          <h4 id="landlord-signature-header">
+            {% with count=bail.bien.proprietaires.all|length %}
+              Propriétaire{% if count > 1 %}s{% endif %}
+            {% endwith %}
+          </h4>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+            {% for person in bail.bien.proprietaires.all %}
+            <p style="color:white">ID_SIGNATURE_{{ person.id }}</p>
+             
+            <div class="signature-block signature-marker landlord-signature"
+                style="margin-bottom: 30px; min-width: 200px;">
+  
+               <div style="height: 120px; border-bottom: 1px dotted #999; margin: 20px 0;"></div>
+            </div>
+            {% endfor %}
           </div>
-          {% endfor %}
-        </div>
-
-        <!-- Tenant signature blocks -->
-        <h4 id="tenant-signature-header">
-          {% with count=bail.locataires.all|length %}
-            Locataire{% if count > 1 %}s{% endif %}
-          {% endwith %}
-        </h4>
-        <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
-          {% for locataire in bail.locataires.all %}
-          <p>Signature de {{ locataire.prenom }} {{ locataire.nom }}</p>
-          <div class="signature-block signature-marker tenant-signature"
-              data-person-id="{{ locataire.id }}"
-              style="margin-bottom: 30px; min-width: 200px;">
-            
-            <div style="height: 120px; border-bottom: 1px dotted #999; margin: 20px 0;"></div>
+  
+          <!-- Tenant signature blocks -->
+          <h4 id="tenant-signature-header">
+            {% with count=bail.locataires.all|length %}
+              Locataire{% if count > 1 %}s{% endif %}
+            {% endwith %}
+          </h4>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+            {% for person in bail.locataires.all %}
+            <p style="color:white">ID_SIGNATURE_{{ person.id }}</p>
+            <div class="signature-block signature-marker tenant-signature"
+               
+                style="margin-bottom: 30px; min-width: 200px;">
+              
+              <div style="height: 120px; border-bottom: 1px dotted #999; margin: 20px 0;"></div>
+            </div>
+            {% endfor %}
           </div>
-          {% endfor %}
+          
         </div>
-        
       </div>
+      
     </div>
   </body>
 </html>

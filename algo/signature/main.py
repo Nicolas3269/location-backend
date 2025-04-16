@@ -7,6 +7,7 @@ import fitz  # PyMuPDF
 from django.conf import settings
 from PIL import Image, ImageDraw, ImageFont
 from pyhanko import stamp
+from pyhanko.pdf_utils.content import BoxConstraints
 from pyhanko.pdf_utils.images import PdfImage
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.sign import signers
@@ -15,6 +16,7 @@ from slugify import slugify
 
 TAMPON_WIDTH_PX = 230
 TAMPON_HEIGHT_PX = 180
+SCALE_FACTOR = 3
 
 
 def get_named_dest_coordinates(pdf_path, person):
@@ -67,8 +69,9 @@ def px_to_pt(px):
 
 def compose_signature_stamp(signature_bytes, user):
     # Constantes
-    final_width = TAMPON_WIDTH_PX  # ex: 250
-    final_height = TAMPON_HEIGHT_PX  # ex: 150
+    scale_factor = SCALE_FACTOR
+    final_width = TAMPON_WIDTH_PX * scale_factor
+    final_height = TAMPON_HEIGHT_PX * scale_factor
     signature_area_height = 95
     margin = 15
 
@@ -79,7 +82,9 @@ def compose_signature_stamp(signature_bytes, user):
     sig_img_height = signature_area_height
     sig_img_width = int(sig_img_height * img_ratio)
 
-    img = img.resize((sig_img_width, sig_img_height), Image.LANCZOS)
+    img = img.resize(
+        (sig_img_width * scale_factor, sig_img_height * scale_factor), Image.LANCZOS
+    )
 
     # Créer le tampon
     final_img = Image.new("RGBA", (final_width, final_height), (255, 255, 255, 0))
@@ -90,7 +95,7 @@ def compose_signature_stamp(signature_bytes, user):
     final_img.paste(img, (img_x, 0), img)
 
     # Préparer le texte
-    font = ImageFont.truetype(get_default_font_path(), size=12)
+    font = ImageFont.truetype(get_default_font_path(), size=12 * scale_factor)
     text = (
         f"{user.prenom} {user.nom}\n"
         f"{user.email}\n"
@@ -99,8 +104,8 @@ def compose_signature_stamp(signature_bytes, user):
     )
 
     # Dessiner le texte centré en bas
-    text_x = 10
-    text_y = margin + sig_img_height
+    text_y = scale_factor * (margin + sig_img_height)
+    text_x = 10 * scale_factor
     draw.multiline_text(
         (text_x, text_y),
         text,
@@ -159,7 +164,8 @@ def sign_pdf(source_path, output_path, user, field_name, signature_bytes):
     )
 
     composed_image, composed_buffer = compose_signature_stamp(signature_bytes, user)
-    pdf_image = PdfImage(composed_image)
+    box = BoxConstraints(width=TAMPON_WIDTH_PX, height=TAMPON_HEIGHT_PX)
+    pdf_image = PdfImage(composed_image, box=box)
     stamp_style = stamp.StaticStampStyle(
         background=pdf_image,
         background_opacity=1.0,

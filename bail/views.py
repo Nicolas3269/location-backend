@@ -96,6 +96,7 @@ def sign_bail(request):
 
         # Appliquer les signatures une par une (chaînées)
         source = bail_path
+        temp_files = []
         for i, field in enumerate(all_fields):
             dest = (
                 final_path
@@ -109,7 +110,16 @@ def sign_bail(request):
                 field["field_name"],
                 signature_bytes,
             )
+            if i < len(all_fields) - 1:
+                temp_files.append(dest)
             source = dest  # pour le suivant
+        for temp_file in temp_files:
+            try:
+                os.remove(temp_file)
+            except Exception as e:
+                logger.warning(
+                    f"Échec de suppression du fichier temporaire {temp_file}: {e}"
+                )
 
         return JsonResponse(
             {

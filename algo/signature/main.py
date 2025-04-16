@@ -16,7 +16,7 @@ from slugify import slugify
 
 TAMPON_WIDTH_PX = 230
 TAMPON_HEIGHT_PX = 180
-SCALE_FACTOR = 3
+SCALE_FACTOR = 4
 
 
 def get_named_dest_coordinates(pdf_path, person):
@@ -72,26 +72,32 @@ def compose_signature_stamp(signature_bytes, user):
     scale_factor = SCALE_FACTOR
     final_width = TAMPON_WIDTH_PX * scale_factor
     final_height = TAMPON_HEIGHT_PX * scale_factor
-    signature_area_height = 95
-    margin = 15
+    signature_area_height = 95 * scale_factor
+    margin_above_text = 35 * scale_factor
+    text_padding_x = 10 * scale_factor
 
     # Charger et redimensionner l’image
     img = Image.open(io.BytesIO(signature_bytes)).convert("RGBA")
     img_ratio = img.width / img.height
 
-    sig_img_height = signature_area_height
-    sig_img_width = int(sig_img_height * img_ratio)
+    max_sig_width = final_width
+    max_sig_height = signature_area_height
 
-    img = img.resize(
-        (sig_img_width * scale_factor, sig_img_height * scale_factor), Image.LANCZOS
-    )
+    target_width = int(max_sig_height * img_ratio)
+    target_height = max_sig_height
+
+    if target_width > max_sig_width:
+        target_width = max_sig_width
+        target_height = int(target_width / img_ratio)
+
+    img = img.resize((target_width, target_height), Image.LANCZOS)
 
     # Créer le tampon
     final_img = Image.new("RGBA", (final_width, final_height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(final_img)
 
     # Centrer l’image horizontalement
-    img_x = (final_width - sig_img_width) // 2
+    img_x = (final_width - target_width) // 2
     final_img.paste(img, (img_x, 0), img)
 
     # Préparer le texte
@@ -103,9 +109,10 @@ def compose_signature_stamp(signature_bytes, user):
         f"Signature conforme eIDAS"
     )
 
-    # Dessiner le texte centré en bas
-    text_y = scale_factor * (margin + sig_img_height)
-    text_x = 10 * scale_factor
+    # Position du texte : à gauche, sous l'image avec marge
+    text_x = text_padding_x
+    text_y = target_height + margin_above_text
+
     draw.multiline_text(
         (text_x, text_y),
         text,

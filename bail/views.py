@@ -1,24 +1,23 @@
-import base64
 import json
 import logging
-import os
 import uuid
 
-from django.conf import settings
 from django.core.files.base import ContentFile
-from django.http import FileResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from weasyprint import HTML
 
-from algo.signature.main import (
-    add_signature_fields_dynamic,
-    get_named_dest_coordinates,
-    sign_pdf,
-)
 from bail.factories import BailSpecificitesFactory, LocataireFactory
-from bail.models import BailSpecificites
+from bail.models import BailSignatureRequest
+from bail.utils import (
+    create_signature_requests,
+    prepare_pdf_with_signature_fields,
+    process_signature,
+    send_signature_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ def generate_bail_pdf(request):
     if request.method == "POST":
         # Créer un bail de test
         # Create multiple tenants first
-        nbr_locataires = 10
+        nbr_locataires = 1
         locataires = [LocataireFactory.create() for _ in range(nbr_locataires)]
 
         # Create a bail and assign both tenants
@@ -43,91 +42,93 @@ def generate_bail_pdf(request):
         pdf_filename = f"{base_filename}.pdf"
         bail.pdf.save(pdf_filename, ContentFile(pdf), save=True)
 
+        prepare_pdf_with_signature_fields(bail)
+        create_signature_requests(bail)
+
         return JsonResponse(
             {"success": True, "bailId": bail.id, "pdfUrl": bail.pdf.url}
         )
 
 
 @csrf_exempt
-def sign_bail(request):
+def get_signature_request(request, token):
+    req = get_object_or_404(BailSignatureRequest, link_token=token)
+
+    if req.signed:
+        return JsonResponse(
+            {"error": "Cette signature a déjà été complétée."}, status=400
+        )
+
+    current = (
+        BailSignatureRequest.objects.filter(bail=req.bail, signed=False)
+        .order_by("order")
+        .first()
+    )
+
+    if req != current:
+        return JsonResponse(
+            {"error": "Ce n'est pas encore votre tour de signer."}, status=403
+        )
+
+    person = req.proprietaire or req.locataire
+    return JsonResponse(
+        {
+            "person": {"email": person.email, "first_name": person.prenom},
+            "bail_id": req.bail.id,
+        }
+    )
+
+
+@csrf_exempt
+def confirm_signature_bail(request):
     try:
         data = json.loads(request.body)
-
-        signature_data_url = data.get("signatureImage")
+        token = data.get("token")
         otp = data.get("otp")
-        bail_id = data.get("bailId")
+        signature_data_url = data.get("signatureImage")
 
-        if not signature_data_url or not otp or not bail_id:
+        sig_req = get_object_or_404(BailSignatureRequest, link_token=token)
+
+        if sig_req.signed:
+            return JsonResponse({"error": "Déjà signé"}, status=400)
+
+        if sig_req.otp != otp:
+            return JsonResponse({"error": "Code OTP invalide"}, status=403)
+
+        # Vérifie que c’est bien son tour
+        current = (
+            BailSignatureRequest.objects.filter(bail=sig_req.bail, signed=False)
+            .order_by("order")
+            .first()
+        )
+
+        if sig_req != current:
+            return JsonResponse({"error": "Ce n’est pas encore votre tour"}, status=403)
+
+        if not signature_data_url or not otp:
             return JsonResponse(
                 {"success": False, "error": "Données manquantes"}, status=400
             )
 
-        bail = get_object_or_404(BailSpecificites, id=bail_id)
-        bail_path = bail.pdf.path
-        base_url = bail.pdf.url.rsplit(".", 1)[0]
-        base_filename = bail_path.rsplit(".", 1)[0]
-        final_path = f"{base_filename}_signed.pdf"
-        final_url = f"{base_url}_signed.pdf"
+        process_signature(sig_req, signature_data_url)
 
-        signature_bytes = base64.b64decode(signature_data_url.split(",")[1])
+        # Marquer comme signé
+        sig_req.signed = True
+        sig_req.signed_at = timezone.now()
+        sig_req.save()
 
-        landlords = list(bail.bien.proprietaires.all())
-        tenants = list(bail.locataires.all())
-        signatories = landlords + tenants
-
-        all_fields = []
-
-        for person in signatories:
-            page, rect, field_name = get_named_dest_coordinates(bail_path, person)
-            if rect is None:
-                raise ValueError(f"Aucun champ de signature trouvé pour {person.email}")
-
-            all_fields.append(
-                {
-                    "field_name": field_name,
-                    "rect": rect,
-                    "person": person,
-                    "page": page,
-                }
-            )
-
-        # Ajouter les champs de signature
-        add_signature_fields_dynamic(bail_path, all_fields)
-
-        # Appliquer les signatures une par une (chaînées)
-        source = bail_path
-        temp_files = []
-        for i, field in enumerate(all_fields):
-            dest = (
-                final_path
-                if i == len(all_fields) - 1
-                else f"{base_filename}_temp_{i}.pdf"
-            )
-            sign_pdf(
-                source,
-                dest,
-                field["person"],
-                field["field_name"],
-                signature_bytes,
-            )
-            if i < len(all_fields) - 1:
-                temp_files.append(dest)
-            source = dest  # pour le suivant
-        for temp_file in temp_files:
-            try:
-                os.remove(temp_file)
-            except Exception as e:
-                logger.warning(
-                    f"Échec de suppression du fichier temporaire {temp_file}: {e}"
-                )
-
-        return JsonResponse(
-            {
-                "success": True,
-                "bail_id": bail.id,
-                "pdfUrl": final_url,
-            }
+        # Envoi au suivant
+        next_req = (
+            BailSignatureRequest.objects.filter(bail=sig_req.bail, signed=False)
+            .order_by("order")
+            .first()
         )
+
+        if next_req:
+            send_signature_email(next_req)
+
+        bail_url = f"{sig_req.bail.pdf.url.rsplit('.', 1)[0]}_signed.pdf"
+        return JsonResponse({"success": True, "pdfUrl": bail_url})
 
     except Exception as e:
         logger.exception("Erreur lors de la signature du PDF")
@@ -138,23 +139,3 @@ def sign_bail(request):
             },
             status=500,
         )
-
-
-# Endpoint pour voir/télécharger un PDF
-def view_signed_pdf(request, bail_id):
-    # Trouver le dernier PDF signé pour ce bail
-    bail_dir = os.path.join(settings.MEDIA_ROOT, "bails")
-    matching_files = [
-        f
-        for f in os.listdir(bail_dir)
-        if f.startswith(f"bail_{bail_id}_") and f.endswith("_signed.pdf")
-    ]
-
-    if matching_files:
-        # Prendre le plus récent
-        latest_pdf = sorted(matching_files)[-1]
-        pdf_path = os.path.join(bail_dir, latest_pdf)
-
-        return FileResponse(open(pdf_path, "rb"), content_type="application/pdf")
-    else:
-        return JsonResponse({"error": "PDF signé non trouvé"}, status=404)

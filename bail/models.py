@@ -1,3 +1,6 @@
+# models.py
+import uuid
+
 from django.db import models
 from django.utils import timezone
 
@@ -169,5 +172,64 @@ class BailSpecificites(models.Model):
         upload_to="bail_pdfs/", null=True, blank=True, verbose_name="Bail PDF"
     )
 
+    latest_pdf = models.FileField(
+        upload_to="bail_pdfs/",
+        null=True,
+        blank=True,
+        verbose_name="Dernière version signée",
+    )
+
     def __str__(self):
         return f"Bail {self.bien} - ({self.date_debut})"
+
+
+class BailSignatureRequest(models.Model):
+    bail = models.ForeignKey(
+        BailSpecificites, on_delete=models.CASCADE, related_name="signature_requests"
+    )
+
+    # Soit un propriétaire, soit un locataire (un seul à la fois)
+    proprietaire = models.ForeignKey(
+        Proprietaire,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="signature_requests",
+    )
+    locataire = models.ForeignKey(
+        Locataire,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="signature_requests",
+    )
+
+    order = models.PositiveSmallIntegerField(
+        help_text="Ordre de signature dans le processus"
+    )
+    otp = models.CharField(max_length=6)
+    signed = models.BooleanField(default=False)
+    signed_at = models.DateTimeField(null=True, blank=True)
+    link_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+
+    class Meta:
+        unique_together = [("bail", "proprietaire"), ("bail", "locataire")]
+        ordering = ["order"]
+
+    def __str__(self):
+        signataire = self.get_signataire_name()
+        return f"Signature de {signataire} pour {self.bail}"
+
+    def get_signataire_name(self):
+        if self.proprietaire:
+            return self.proprietaire.get_full_name()
+        elif self.locataire:
+            return self.locataire.get_full_name()
+        return "Inconnu"
+
+    def get_email(self):
+        if self.proprietaire:
+            return self.proprietaire.email
+        elif self.locataire:
+            return self.locataire.email
+        return None

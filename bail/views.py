@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import uuid
 
 from django.core.files.base import ContentFile
@@ -35,18 +36,43 @@ def generate_bail_pdf(request):
 
         # Générer le PDF depuis le template HTML
         html = render_to_string("pdf/bail.html", {"bail": bail})
-        pdf = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
+        pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
 
         # Noms de fichiers
         base_filename = f"bail_{bail.id}_{uuid.uuid4().hex}"
         pdf_filename = f"{base_filename}.pdf"
-        bail.pdf.save(pdf_filename, ContentFile(pdf), save=True)
+        tmp_pdf_path = f"/tmp/{pdf_filename}"
+        try:
+            # 1. Sauver temporairement
+            with open(tmp_pdf_path, "wb") as f:
+                f.write(pdf_bytes)
 
-        prepare_pdf_with_signature_fields(bail)
+            # 2. Ajouter champs
+            prepare_pdf_with_signature_fields(tmp_pdf_path, bail)
+            # 3. Recharger dans bail.pdf
+            with open(tmp_pdf_path, "rb") as f:
+                bail.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
+
+        finally:
+            # 4. Supprimer le fichier temporaire
+            try:
+                os.remove(tmp_pdf_path)
+            except Exception as e:
+                logger.warning(
+                    f"Impossible de supprimer le fichier temporaire {tmp_pdf_path}: {e}"
+                )
+
         create_signature_requests(bail)
 
+        first_sign_req = bail.signature_requests.order_by("order").first()
+
         return JsonResponse(
-            {"success": True, "bailId": bail.id, "pdfUrl": bail.pdf.url}
+            {
+                "success": True,
+                "bailId": bail.id,
+                "pdfUrl": bail.pdf.url,
+                "linkTokenFirstSigner": str(first_sign_req.link_token),
+            }
         )
 
 

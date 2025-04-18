@@ -11,7 +11,10 @@ from pyhanko.pdf_utils.content import BoxConstraints
 from pyhanko.pdf_utils.images import PdfImage
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
 from pyhanko.sign import signers
-from pyhanko.sign.fields import SigFieldSpec, append_signature_field
+from pyhanko.sign.fields import (
+    SigFieldSpec,
+    append_signature_field,
+)
 from slugify import slugify
 
 TAMPON_WIDTH_PX = 230
@@ -19,8 +22,15 @@ TAMPON_HEIGHT_PX = 180
 SCALE_FACTOR = 4
 
 
+def get_signature_field_name(person):
+    """
+    Crée un nom de champ de signature basé sur l'ID et le nom de la personne.
+    """
+    return slugify(f"{person.id}-{person.get_full_name()}")
+
+
 def get_named_dest_coordinates(pdf_path, person):
-    field_name = slugify(f"{person.id}_{person.get_full_name()}")
+    field_name = get_signature_field_name(person)
     target_marker = f"ID_SIGNATURE_{person.id}"
 
     box_width_pt = px_to_pt(TAMPON_WIDTH_PX)

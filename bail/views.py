@@ -26,16 +26,18 @@ logger = logging.getLogger(__name__)
 @csrf_exempt
 def generate_bail_pdf(request):
     if request.method == "POST":
+        form_data = json.loads(request.body)
+        # traiter les infos du formulaires
         # Créer un bail de test
         # Create multiple tenants first
-        nbr_locataires = 1
+        nbr_locataires = 2
         locataires = [LocataireFactory.create() for _ in range(nbr_locataires)]
 
         # Create a bail and assign both tenants
         bail = BailSpecificitesFactory.create(locataires=locataires)
 
         # Générer le PDF depuis le template HTML
-        html = render_to_string("pdf/bail.html", {"bail": bail})
+        html = render_to_string("pdf/bail_wrapper.html", {"bail": bail})
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
 
         # Noms de fichiers

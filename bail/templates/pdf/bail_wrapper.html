@@ -1,0 +1,236 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ title_bail }}</title>
+  <style>
+    body {
+      font-family: 'Times New Roman', 'Arial', serif;
+      font-size: 12pt;
+      color: #3e3c41;
+      background-color: #ffffff;
+    }
+
+    h1, h2, h3 {
+      color: #4a6b85;
+      margin-top: 2em;
+    }
+    .document-title {
+      text-align: center;
+      font-size: 20pt;
+      font-weight: bold;
+      margin-top: 0;
+      margin-bottom: 0.2cm;
+    }
+    
+    .document-subtitle {
+      text-align: center;
+      font-size: 12pt;
+      font-style: italic;
+      margin-bottom: 2cm;
+    }
+   
+
+    p {
+      line-height: 1.6em;
+      text-align: justify;
+    }
+
+    .align-right {
+      text-align: right;
+    }
+
+    .article {
+      margin-bottom: 2em;
+    }
+
+    .section-title {
+      font-weight: bold;
+      font-size: 1.1em;
+      margin-top: 1.5em;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+    .signature-section {
+      margin-bottom: 0;
+    }
+    
+    .signature {
+      margin-top: 0;
+    }
+    
+    .signature-list {
+      display: block;
+    }
+    
+    .signature-block {
+      width: 45%;
+      text-align: left;
+      margin-bottom: 40px;
+      min-height: 182px; /* correspond à la hauteur du tampon */
+      border-bottom: 1px dotted #999;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="document-title">BAIL D’HABITATION MEUBLÉ</h1>
+  <p class="document-subtitle">
+    Local à usage d’habitation meublé soumis à la loi n° 89-462 du 6 juillet 1989
+  </p>
+
+  <div class="article">
+    <h2>Article 1 - Désignation des parties</h2>
+
+    <p class="section-title">1° Désignation des parties</p>
+    <p>
+      {% for proprietaire in bail.bien.proprietaires.all %}
+        {{ proprietaire.prenom }} {{ proprietaire.nom }} ({{ proprietaire.email }}), personne physique,
+        domicilié{% if proprietaire.sexe == "F" %}e{% endif %} au {{ proprietaire.adresse }}{% if not forloop.last %};<br>{% endif %}
+      {% endfor %}
+    </p>
+    <p class="align-right">
+      Dénommé{% if bail.bien.proprietaires.all|length > 1 %}s{% endif %} ci-après « le bailleur{% if bail.bien.proprietaires.all|length > 1 %}s{% endif %} » ;
+    </p>
+    
+    <p>
+      {% for locataire in bail.locataires.all %}
+        {{ locataire.prenom }} {{ locataire.nom }}{% if locataire.email %} ({{ locataire.email }}){% endif %}, personne physique{% if not forloop.last %};<br>{% endif %}
+      {% endfor %}
+    </p>
+    <p class="align-right">
+      Dénommé{% if bail.locataires.all|length > 1 %}s{% endif %} ci-après « le ou les locataire{% if bail.locataires.all|length > 1 %}s{% endif %} » ;
+    </p>
+
+    <p class="section-title">2° Déclaration des parties</p>
+    <p>
+      Le bailleur et le locataire déclarent, chacun en ce qui le concerne : 
+      être résidents en France au sens de la réglementation fiscale en vigueur, 
+      ne pas être l’objet de poursuites ou de condamnations dans le cadre d’une procédure collective, redressement ou liquidation judiciaire, faillite, interdiction ou déchéance de droits civiques, affectant leur capacité civile ou juridique.
+    </p>
+    <p>
+      Par ailleurs, il est expressément convenu que les notifications et communications faites en vertu du présent contrat sont de plein droit opposables au conjoint du locataire ou au partenaire lié par un pacte civil de solidarité au locataire, si l’existence de ce dernier n’a pas été préalablement portée à la connaissance du bailleur.
+    </p>
+  </div>
+
+  <div class="article">
+    <h2>Article 2 - Objet du contrat</h2>
+    <p>
+      Le bailleur loue au locataire qui l’accepte, les biens dont la désignation suit. <br>
+      La présente location sera soumise aux dispositions du titre Ier bis (art. 25-3 à 25-11) de la loi n° 89-462 du 6 juillet 1989 et aux articles 1er, 3, 3-2, 3-3, 4 à l’exception du l), 5, 6, 7, 7-1, 8, 8-1, 18, 20-1, 22-1, 21, 22, 22-1, 22-2, 24 et 24-1, rendus applicables à ce type de contrat de location par l'article 25-3, alinéa 2 de la loi du 6 juillet 1989 précitée.
+    </p>
+  </div>
+
+  <div class="article">
+    <h2>Article 3 - Désignation du logement loué</h2>
+
+    <p class="section-title">1° Désignation du logement loué</p>
+    <p>
+      Le logement loué désigne : l’appartement situé au 2ème étage du 61 rue Boucher de Perthes, 59800 LILLE, dont le numéro d’identifiant fiscal est : 593501103615, situé dans une monopropriété et dans un immeuble collectif, construit avant 1949.
+    </p>
+
+    <p class="section-title">2° Description du logement loué</p>
+    <p>
+      Surface habitable : 82 mètres carrés.<br>
+      Nombre de pièces : 4 pièces : 1 cuisine équipée, 1 séjour, 3 chambres dont une avec douche, 1 salle d’eau, 1 WC.
+    </p>
+    <p>
+      Équipements :<br>
+      Cuisine : 1 réfrigérateur, 2 plaques de cuisson, 1 évier, 1 micro-onde, 1 four, vaisselle pour 3 locataires, 1 bouilloire.<br>
+      Séjour : 2 canapés, 1 table, 4 chaises, 1 table basse, 1 TV, des placards de rangement.<br>
+      Chambres : 1 lit 140x190, 1 bureau, 1 chaise, des placards de rangement.
+    </p>
+    {% if bail.bien.meuble %}
+    <p>
+      La liste des éléments de mobilier d’un logement meublé, telle que définie par l’article 2 du décret n°2015-981 du 31 juillet 2015, sera plus amplement décrite dans l’état des lieux établi en annexe.
+    </p>
+    {% endif %}
+
+    <p class="section-title">3° Modalités d’énergie du logement loué</p>
+    <p>
+      Chauffage : collectif au gaz.<br>
+      Eau chaude sanitaire : individuelle électrique.
+    </p>
+
+    <p class="section-title">DPE</p>
+    <p>
+      Selon le diagnostic de performance énergétique (DPE), le niveau de performance énergétique du logement est E, avec une consommation de 281,2 kWh/an. <br>
+      Le montant estimé des dépenses théoriques est de 883€.
+    </p>
+  </div>
+
+  <div class="article">
+    <h2>Article 4 - Destination du logement loué</h2>
+    <p>
+      Le logement est destiné exclusivement à l'habitation principale du locataire.
+    </p>
+  </div>
+
+  <div class="article">
+    <h2>Article 5 - État des lieux</h2>
+    <p>Un état des lieux est établi contradictoirement entre les parties, la remise des clefs devant avoir lieu dès la signature du présent acte.</p>
+    <p>Il résulte de ce document que le logement loué répond aux divers critères de « décence » posés par le décret n° 2002-120 du 30 janvier 2002.</p>
+    <p>Pendant le premier mois de la période de chauffe, le locataire pourra demander que l'état des lieux soit complété par l'état des éléments de chauffage.</p>
+    <p>Un exemplaire de l'état des lieux sera remis à chaque partie pour être joint à la copie exécutoire ou à l'expédition du présent contrat.</p>
+    <p>Un autre état des lieux sera établi, contradictoirement ou par huissier de justice, en fin de location, lors de la restitution des clefs.</p>
+  </div>
+
+  <div class="article">
+    <h2>Article 6 - Date de prise d’effet et durée du contrat</h2>
+    <p><strong>1° Date de prise d’effet du contrat</strong><br>
+    Le présent contrat prend effet à compter du 24 avril 2025.</p>
+    <p><strong>2° Durée</strong><br>
+    La présente location est consentie et acceptée pour une durée d’un (1) an à compter de la signature du présent contrat de location. À l'expiration de cette période, le présent contrat se poursuivra par tacite reconduction pour des périodes successives d’un (1) an, à défaut de volonté contraire manifestée par l'une ou l'autre des parties selon les règles suivantes.</p>
+    <p><strong>3° Congés</strong><br>
+    <em>Congé par le locataire.</em> – Le locataire pourra donner congé à tout moment en cours de contrat. Ce congé devra être délivré au moins un (1) mois à l'avance par lettre recommandée avec demande d'avis de réception ou par acte d'huissier. Le délai de préavis est décompté à partir de la date de réception de la lettre de congé par le bailleur. À l'expiration du préavis, le locataire devra libérer les lieux le lendemain du dernier jour au plus tard à midi.</p>
+    <p><em>Congé par le bailleur.</em> – Le bailleur pourra donner congé au locataire dans les formes et aux conditions prévues par l’article 25-8 de la loi du 6 juillet 1989, sauf si le locataire bénéficie, en raison de son âge ou du montant de ses ressources, des mesures de protection édictées par l’article 25-8, II de la loi du 6 juillet 1989 précitée. Ce congé sera délivré pour la date d'expiration du contrat, moyennant un délai de préavis de trois (3) mois, soit par lettre recommandée avec demande d'avis de réception soit par acte d'huissier ou être remis en main propre contre récépissé ou émargement. Le délai de trois (3) mois courra à compter du jour de la réception de la lettre recommandée ou de la signification de l'acte d'huissier ou de la reprise en main propre.</p>
+    <p>Le bailleur ne pourra se fonder que sur la décision de reprendre le logement pour l'habiter, la décision de vendre le logement, ou sur un motif légitime et sérieux, notamment l'inexécution par le locataire de l'une des obligations lui incombant (article 25-8 de la loi du 6 juillet 1989 et la notice d’information jointe).</p>
+    <p>À défaut de congé donné par l'une ou l'autre des parties dans les formes et délais sus indiqués, le contrat sera reconduit tacitement aux mêmes clauses et conditions pour une durée d'un an.</p>
+    <p><strong>4° Abandon du domicile</strong><br>
+    En application de l’article 14 de la loi du 6 juillet 1989 [...].</p>
+    <p><strong>5° Décès du locataire</strong><br>
+    Lors du décès du locataire, le contrat de location est transféré au conjoint survivant [...]</p>
+  </div>
+
+  
+
+
+
+  <div class="section signature-section">
+    <h2>7. Signatures</h2>
+    <div class="signature">
+      <!-- Landlord signature blocks -->
+      <h4 id="landlord-signature-header">
+        {% with count=bail.bien.proprietaires.all|length %}
+          Propriétaire{% if count > 1 %}s{% endif %}
+        {% endwith %}
+      </h4>
+      <div class="signature-list">
+        {% for person in bail.bien.proprietaires.all %}
+        <div class="signature-block">
+          <!-- ID invisible pour PyMuPDF -->
+          <p style="color:white; margin: 0;">ID_SIGNATURE_{{ person.id }}</p>
+        </div>
+        {% endfor %}
+      </div>
+  
+      <!-- Tenant signature blocks -->
+      <h4 id="tenant-signature-header">
+        {% with count=bail.locataires.all|length %}
+          Locataire{% if count > 1 %}s{% endif %}
+        {% endwith %}
+      </h4>
+      <div class="signature-list">
+        {% for person in bail.locataires.all %}
+        <div class="signature-block">
+          <!-- ID invisible pour PyMuPDF -->
+          <p style="color:white; margin: 0;">ID_SIGNATURE_{{ person.id }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

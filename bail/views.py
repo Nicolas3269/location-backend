@@ -101,7 +101,11 @@ def get_signature_request(request, token):
     person = req.proprietaire or req.locataire
     return JsonResponse(
         {
-            "person": {"email": person.email, "first_name": person.prenom},
+            "person": {
+                "email": person.email,
+                "first_name": person.prenom,
+                "last_name": person.nom,
+            },
             "bail_id": req.bail.id,
         }
     )

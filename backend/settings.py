@@ -151,7 +151,3 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "noreply@localhost"
 FRONTEND_URL = "http://localhost:3000"
-
-SPATIALITE_LIBRARY_PATH = os.getenv(
-    "SPATIALITE_LIBRARY_PATH", "/usr/lib/x86_64-linux-gnu/mod_spatialite.so"
-)

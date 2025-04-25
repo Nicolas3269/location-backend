@@ -54,5 +54,10 @@ RUN python manage.py collectstatic --noinput
 # Expose default port
 EXPOSE 8000
 
+# Add entrypoint for certificate reconstruction
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
 # Run the app with Gunicorn
 CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]

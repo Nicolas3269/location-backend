@@ -4,7 +4,7 @@ import os
 import requests
 from django.core.management.base import BaseCommand
 
-from algo.encadrement_loyer.ile_de_france.est_ensemble_main import (
+from algo.encadrement_loyer.ile_de_france.main import (
     build_url,
     extract_data_from_kml,
 )

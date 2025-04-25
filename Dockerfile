@@ -45,9 +45,6 @@ RUN poetry config virtualenvs.create false && \
 # Copy the rest of the code
 COPY . .
 
-# Add SpatiaLite to a known path
-ENV SPATIALITE_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/mod_spatialite.so
-
 # Collect static files
 RUN python manage.py collectstatic --noinput
 

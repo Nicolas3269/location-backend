@@ -4,5 +4,6 @@ cert.pfx
 cert.pfx.b64
 key.pem
 .env
+.env.production
 venv/
 __pycache__/

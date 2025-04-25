@@ -12,6 +12,10 @@ python manage.py migrate rent_control --database=geodb
 
 http://localhost:8003/admin/rent_control/rentcontrolarea/region_map/
 
+# Pour encoder ton certificat :
+
+base64 -w 0 cert.pfx # ou `base64 cert.pfx` sur macOS
+
 # docker:
 
 docker build -t hestia-backend .

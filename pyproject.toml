@@ -26,11 +26,13 @@ odfpy = "^1.4.1"
 django-cors-headers = "^4.7.0"
 pymupdf = "^1.25.5"
 python-slugify = "^8.0.4"
+gunicorn = "^23.0.0"
+factory-boy = "^3.3.3"
+whitenoise = "^6.9.0"
 
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.11.1"
-factory-boy = "^3.3.3"
 faker = "^37.1.0"
 
 [build-system]

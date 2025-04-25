@@ -11,3 +11,8 @@ python manage.py migrate rent_control --database=geodb
 # map
 
 http://localhost:8003/admin/rent_control/rentcontrolarea/region_map/
+
+# docker:
+
+docker build -t hestia-backend .
+docker run -p 8003:8000 --env-file .env hestia-backend

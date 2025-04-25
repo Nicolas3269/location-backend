@@ -29,6 +29,8 @@ python-slugify = "^8.0.4"
 gunicorn = "^23.0.0"
 factory-boy = "^3.3.3"
 whitenoise = "^6.9.0"
+django-ratelimit = "^4.1.0"
+django-redis = "^5.4.0"
 
 
 [tool.poetry.group.dev.dependencies]

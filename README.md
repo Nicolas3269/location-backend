@@ -14,7 +14,9 @@ http://localhost:8003/admin/rent_control/rentcontrolarea/region_map/
 
 # Pour encoder ton certificat :
 
-base64 -w 0 cert.pfx # ou `base64 cert.pfx` sur macOS
+base64 -w 0 cert.pfx
+
+# ou `base64 cert.pfx` sur macOS
 
 # docker:
 

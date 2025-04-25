@@ -152,9 +152,9 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "noreply@localhost"
 
 # Security Headers
-SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = DEBUG is False
+SESSION_COOKIE_SECURE = DEBUG is False
+CSRF_COOKIE_SECURE = DEBUG is False
 X_FRAME_OPTIONS = "DENY"
 SECURE_HSTS_SECONDS = 31536000
 SECURE_HSTS_PRELOAD = True
@@ -174,4 +174,15 @@ LOGGING = {
         "handlers": ["console"],
         "level": "INFO",
     },
+}
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
 }

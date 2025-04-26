@@ -163,7 +163,7 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 # Frontend URL
 FRONTEND_URL = os.getenv("FRONTEND_URL")
 
-# Logging
+# Logging 1
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

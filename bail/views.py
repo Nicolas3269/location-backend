@@ -3,13 +3,13 @@ import logging
 import os
 import uuid
 
-from django.contrib.auth.decorators import login_required
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_exempt
 from django_ratelimit.decorators import ratelimit
 from weasyprint import HTML
 
@@ -25,9 +25,10 @@ from bail.utils import (
 logger = logging.getLogger(__name__)
 
 
-@login_required
-@csrf_protect
-@ratelimit(key="user_or_ip", rate="3/m", block=True)
+# @login_required
+@csrf_exempt
+# @ratelimit(key="user_or_ip", rate="10/m", block=True)
+@ratelimit(key="ip", rate="5/m", block=True) if not settings.DEBUG else lambda x: x
 def generate_bail_pdf(request):
     if request.method == "POST":
         form_data = json.loads(request.body)
@@ -82,8 +83,8 @@ def generate_bail_pdf(request):
         )
 
 
-@csrf_protect
-@ratelimit(key="ip", rate="5/m", block=True)
+@csrf_exempt
+@ratelimit(key="ip", rate="5/m", block=True) if not settings.DEBUG else lambda x: x
 def get_signature_request(request, token):
     req = get_object_or_404(BailSignatureRequest, link_token=token)
 
@@ -116,8 +117,8 @@ def get_signature_request(request, token):
     )
 
 
-@csrf_protect  # au lieu de @csrf_exempt
-@ratelimit(key="ip", rate="5/m", block=True)
+@csrf_exempt  # au lieu de @csrf_exempt
+@ratelimit(key="ip", rate="5/m", block=True) if not settings.DEBUG else lambda x: x
 def confirm_signature_bail(request):
     try:
         data = json.loads(request.body)

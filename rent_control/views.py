@@ -1,9 +1,10 @@
 import json
 import logging
 
+from django.conf import settings
 from django.contrib.gis.geos import Point
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_exempt
 from django_ratelimit.decorators import ratelimit
 
 from rent_control.models import RentControlArea, RentPrice
@@ -67,8 +68,8 @@ def get_rent_control_info(
     return options
 
 
-@csrf_protect
-@ratelimit(key="ip", rate="5/m", block=True)
+@csrf_exempt
+@ratelimit(key="ip", rate="5/m", block=True) if not settings.DEBUG else lambda x: x
 def check_zone(request):
     if request.method == "POST":
         try:

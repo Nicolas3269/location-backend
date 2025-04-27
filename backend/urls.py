@@ -31,3 +31,6 @@ urlpatterns = [
 # Ajouter ceci pour servir les fichiers médias en développement
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # In production, you should serve media files using a web server like Nginx or Apache
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

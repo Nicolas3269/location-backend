@@ -148,8 +148,22 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # Email settings
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = "noreply@localhost"
+# Configuration par défaut (développement)
+if DEBUG:
+    # En environnement de développement, utiliser le backend console
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    DEFAULT_FROM_EMAIL = "HESTIA <noreply@hestia.software>"
+else:
+    # En environnement de production, utiliser Mailgun
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "smtp.eu.mailgun.org"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "postmaster@hestia.software")
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+    DEFAULT_FROM_EMAIL = os.environ.get(
+        "DEFAULT_FROM_EMAIL", "HESTIA <noreply@hestia.software>"
+    )
 
 # Security Headers
 SECURE_SSL_REDIRECT = DEBUG is False

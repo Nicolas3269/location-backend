@@ -99,7 +99,8 @@ L'équipe HESTIA
         subject="Signature de votre bail",
         message=message,
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[person.email],
+        # recipient_list=[person.email],
+        recipient_list=["nicolas3269@gmail.com"],
     )
 
 

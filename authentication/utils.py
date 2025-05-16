@@ -102,9 +102,7 @@ votre adresse email.
 
 Votre code de vérification est : {verification.otp}
 
-Ou cliquez sur ce lien : {verification_url}
-
-Ce code et ce lien sont valables pour une durée de 24 heures.
+Ce code est valable pour une durée de 24 heures.
 
 Si vous n'avez pas demandé cette vérification, vous pouvez ignorer cet email.
 
@@ -120,47 +118,40 @@ L'équipe HESTIA
     )
 
 
-def verify_email_with_otp(token: str, otp: str) -> Tuple[bool, str]:
+def verify_otp_only_and_generate_token(
+    email: str, otp: str
+) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
     """
-    Vérifie un email avec un OTP. Renvoie (success, message)
+    Vérifie un email avec un OTP sans nécessiter le token et génère un JWT si valide.
+    Retourne (success, tokens_dict, error_message)
+    Cette fonction est utilisée lorsque l'utilisateur est en cours de formulaire
+    et doit vérifier son email avec un code OTP reçu, sans avoir à manipuler le token.
     """
     try:
-        verification = EmailVerification.objects.get(token=token, verified=False)
+        # Rechercher la vérification la plus récente pour cet email
+        verification = (
+            EmailVerification.objects.filter(email=email, verified=False)
+            .order_by("-created_at")
+            .first()
+        )
+
+        if not verification:
+            return False, None, "Aucune vérification en attente pour cet email."
 
         if verification.is_expired():
-            return False, "La vérification a expiré. Veuillez demander un nouveau code."
+            return (
+                False,
+                None,
+                "La vérification a expiré. Veuillez demander un nouveau code.",
+            )
 
         if verification.otp != otp:
-            return False, "Code incorrect. Veuillez réessayer."
+            return False, None, "Code incorrect. Veuillez réessayer."
 
         # Si tout est bon, marquer comme vérifié
         verification.verified = True
         verification.verified_at = timezone.now()
         verification.save()
-
-        return True, "Email vérifié avec succès."
-
-    except EmailVerification.DoesNotExist:
-        return False, "Vérification non trouvée ou déjà utilisée."
-
-
-def verify_otp_and_generate_token(
-    token: str, otp: str
-) -> Tuple[bool, Optional[Dict[str, Any]], Optional[str]]:
-    """
-    Vérifie un OTP et génère un JWT si valide
-    Retourne (success, tokens_dict, error_message)
-    """
-    # Vérifier l'OTP
-    success, message = verify_email_with_otp(token, otp)
-
-    if not success:
-        return False, None, message
-
-    try:
-        # Récupérer l'email associé
-        verification = EmailVerification.objects.get(token=token, verified=True)
-        email = verification.email
 
         # Créer ou récupérer l'utilisateur
         user, created = User.objects.get_or_create(
@@ -172,5 +163,6 @@ def verify_otp_and_generate_token(
 
         return True, tokens, None
 
-    except EmailVerification.DoesNotExist:
-        return False, None, "Vérification non trouvée"
+    except Exception as e:
+        logger.error(f"Erreur lors de la vérification de l'OTP: {str(e)}")
+        return False, None, f"Erreur lors de la vérification: {str(e)}"

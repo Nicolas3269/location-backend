@@ -12,7 +12,7 @@ from authentication.utils import (
     get_tokens_for_user,
     send_verification_email_with_otp,
     verify_google_token,
-    verify_otp_and_generate_token,
+    verify_otp_only_and_generate_token,
 )
 
 User = get_user_model()
@@ -79,7 +79,6 @@ def request_otp_login(request):
             {
                 "success": True,
                 "message": "Code de vérification envoyé par email",
-                "token": str(verification.token),
             }
         )
 
@@ -95,29 +94,26 @@ def verify_otp_login(request):
     """Vue pour vérifier un OTP et générer un token"""
     try:
         data = json.loads(request.body)
-        token = data.get("token")
+        email = data.get("email")
         otp = data.get("otp")
 
-        if not token or not otp:
-            return JsonResponse({"error": "Token et OTP requis"}, status=400)
+        if not email or not otp:
+            return JsonResponse({"error": "Email et OTP requis"}, status=400)
 
-        # Vérifier l'OTP et générer token
-        success, tokens_dict, error_message = verify_otp_and_generate_token(token, otp)
+        # Vérifier l'OTP avec email uniquement et générer token
+        success, tokens_dict, error_message = verify_otp_only_and_generate_token(
+            email, otp
+        )
 
         if not success:
             return JsonResponse({"error": error_message}, status=400)
-
-        # Récupérer l'email associé à la vérification
-        from authentication.models import EmailVerification
-
-        verification = EmailVerification.objects.get(token=token, verified=True)
 
         return JsonResponse(
             {
                 "success": True,
                 "message": "Authentification réussie",
                 "tokens": tokens_dict,
-                "email": verification.email,
+                "email": email,
             }
         )
 

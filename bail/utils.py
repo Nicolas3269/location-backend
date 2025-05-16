@@ -1,7 +1,6 @@
 import base64
 import logging
 import os
-import random
 
 from django.conf import settings
 from django.core.files.base import File
@@ -13,6 +12,7 @@ from algo.signature.main import (
     get_signature_field_name,
     sign_pdf,
 )
+from authentication.utils import generate_otp
 from bail.models import BailSignatureRequest
 
 logger = logging.getLogger(__name__)
@@ -104,8 +104,7 @@ L'équipe HESTIA
     )
 
 
-def generate_otp():
-    return str(random.randint(100000, 999999))
+
 
 
 def create_signature_requests(bail):
@@ -126,3 +125,6 @@ def create_signature_requests(bail):
         req = BailSignatureRequest.objects.create(
             bail=bail, locataire=person, order=i + len(landlords), otp=otp
         )
+
+
+

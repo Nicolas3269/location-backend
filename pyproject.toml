@@ -31,6 +31,8 @@ factory-boy = "^3.3.3"
 whitenoise = "^6.9.0"
 django-ratelimit = "^4.1.0"
 django-redis = "^5.4.0"
+djangorestframework-simplejwt = "^5.5.0"
+google-auth = "^2.40.1"
 
 
 [tool.poetry.group.dev.dependencies]

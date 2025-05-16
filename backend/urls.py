@@ -27,6 +27,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include("rent_control.urls")),
     path("api/", include("bail.urls")),
+    path("api/auth/", include("authentication.urls")),
 ]
 
 # Ajouter ceci pour servir les fichiers médias en développement

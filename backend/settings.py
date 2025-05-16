@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -40,8 +41,10 @@ INSTALLED_APPS = [
     "corsheaders",
     # Third-party
     "rest_framework",
+    "rest_framework_simplejwt",
     "django.contrib.gis",  # Add GeoDjango
     # Apps
+    "authentication",
     "bail",
     "rent_control",
 ]
@@ -58,9 +61,15 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    origin for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if origin
-]
+# Configuration CORS fixe pour le développement
+if DEBUG:
+    CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+else:
+    # En production, utiliser les variables d'environnement avec traitement approprié
+    cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip() for origin in cors_origins.split(",") if origin.strip()
+    ]
 
 ROOT_URLCONF = "backend.urls"
 
@@ -81,6 +90,20 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "backend.wsgi.application"
+
+# Configuration de Django REST Framework
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+
+# Configuration de Simple JWT
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "SIGNING_KEY": os.environ.get("JWT_SECRET_KEY", SECRET_KEY),
+}
 
 
 # Database
@@ -176,6 +199,9 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
 # Frontend URL
 FRONTEND_URL = os.getenv("FRONTEND_URL")
+
+# Google Auth config
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 
 # Logging 1
 LOGGING = {

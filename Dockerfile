@@ -45,8 +45,7 @@ RUN poetry config virtualenvs.create false && \
 # Copy the rest of the code
 COPY . .
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
+# Static files will be collected at runtime
 
 # Expose default port
 EXPOSE 8000

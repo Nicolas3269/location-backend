@@ -45,7 +45,7 @@ def verify_google_token(token: str) -> Tuple[bool, Optional[str], Optional[str]]
     """
     try:
         # Configuration Google Client ID à définir dans settings.py
-        GOOGLE_CLIENT_ID = getattr(settings, "GOOGLE_CLIENT_ID", None)
+        GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
         if not GOOGLE_CLIENT_ID:
             return False, None, "GOOGLE_CLIENT_ID non configuré"
 
@@ -67,7 +67,7 @@ def verify_google_token(token: str) -> Tuple[bool, Optional[str], Optional[str]]
         if not id_info.get("email_verified", False):
             return False, None, "Email non vérifié par Google"
 
-        return True, email, None
+        return True, id_info, None
 
     except ValueError as e:
         logger.error(f"Erreur de vérification du token Google: {str(e)}")

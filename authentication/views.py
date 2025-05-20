@@ -31,20 +31,27 @@ def login_with_google(request):
     """Vue pour authentifier un utilisateur avec Google"""
     try:
         data = json.loads(request.body)
-        google_token = data.get("token")
+        google_token = data.get("id_token")
 
         if not google_token:
             return JsonResponse({"error": "Token Google requis"}, status=400)
 
         # Vérifier le token Google
-        success, email, error_message = verify_google_token(google_token)
+        success, id_info, error_message = verify_google_token(google_token)
 
         if not success:
             return JsonResponse({"error": error_message}, status=400)
 
         # Créer ou récupérer l'utilisateur
+        email = id_info.get("email")
         user, created = User.objects.get_or_create(
-            email=email, defaults={"username": email, "is_active": True}
+            email=email,
+            defaults={
+                "username": email,
+                "first_name": id_info.get("given_name"),
+                "last_name": id_info.get("family_name"),
+                "is_active": True,
+            },
         )
 
         # Générer des tokens JWT

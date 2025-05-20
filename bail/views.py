@@ -11,6 +11,8 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django_ratelimit.decorators import ratelimit
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
 
 from bail.factories import BailSpecificitesFactory, LocataireFactory
@@ -25,62 +27,59 @@ from bail.utils import (
 logger = logging.getLogger(__name__)
 
 
-# @login_required
-@csrf_exempt
-# @ratelimit(key="user_or_ip", rate="10/m", block=True)
-@ratelimit(key="ip", rate="5/m", block=True) if not settings.DEBUG else lambda x: x
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def generate_bail_pdf(request):
-    if request.method == "POST":
-        form_data = json.loads(request.body)
-        # traiter les infos du formulaires
-        # Créer un bail de test
-        # Create multiple tenants first
-        nbr_locataires = 2
-        locataires = [LocataireFactory.create() for _ in range(nbr_locataires)]
+    form_data = json.loads(request.body)
+    # traiter les infos du formulaires
+    # Créer un bail de test
+    # Create multiple tenants first
+    nbr_locataires = 2
+    locataires = [LocataireFactory.create() for _ in range(nbr_locataires)]
 
-        # Create a bail and assign both tenants
-        bail = BailSpecificitesFactory.create(locataires=locataires)
+    # Create a bail and assign both tenants
+    bail = BailSpecificitesFactory.create(locataires=locataires)
 
-        # Générer le PDF depuis le template HTML
-        html = render_to_string("pdf/bail_wrapper.html", {"bail": bail})
-        pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
+    # Générer le PDF depuis le template HTML
+    html = render_to_string("pdf/bail_wrapper.html", {"bail": bail})
+    pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
 
-        # Noms de fichiers
-        base_filename = f"bail_{bail.id}_{uuid.uuid4().hex}"
-        pdf_filename = f"{base_filename}.pdf"
-        tmp_pdf_path = f"/tmp/{pdf_filename}"
+    # Noms de fichiers
+    base_filename = f"bail_{bail.id}_{uuid.uuid4().hex}"
+    pdf_filename = f"{base_filename}.pdf"
+    tmp_pdf_path = f"/tmp/{pdf_filename}"
+    try:
+        # 1. Sauver temporairement
+        with open(tmp_pdf_path, "wb") as f:
+            f.write(pdf_bytes)
+
+        # 2. Ajouter champs
+        prepare_pdf_with_signature_fields(tmp_pdf_path, bail)
+        # 3. Recharger dans bail.pdf
+        with open(tmp_pdf_path, "rb") as f:
+            bail.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
+
+    finally:
+        # 4. Supprimer le fichier temporaire
         try:
-            # 1. Sauver temporairement
-            with open(tmp_pdf_path, "wb") as f:
-                f.write(pdf_bytes)
+            os.remove(tmp_pdf_path)
+        except Exception as e:
+            logger.warning(
+                f"Impossible de supprimer le fichier temporaire {tmp_pdf_path}: {e}"
+            )
 
-            # 2. Ajouter champs
-            prepare_pdf_with_signature_fields(tmp_pdf_path, bail)
-            # 3. Recharger dans bail.pdf
-            with open(tmp_pdf_path, "rb") as f:
-                bail.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
+    create_signature_requests(bail)
 
-        finally:
-            # 4. Supprimer le fichier temporaire
-            try:
-                os.remove(tmp_pdf_path)
-            except Exception as e:
-                logger.warning(
-                    f"Impossible de supprimer le fichier temporaire {tmp_pdf_path}: {e}"
-                )
+    first_sign_req = bail.signature_requests.order_by("order").first()
 
-        create_signature_requests(bail)
-
-        first_sign_req = bail.signature_requests.order_by("order").first()
-
-        return JsonResponse(
-            {
-                "success": True,
-                "bailId": bail.id,
-                "pdfUrl": bail.pdf.url,
-                "linkTokenFirstSigner": str(first_sign_req.link_token),
-            }
-        )
+    return JsonResponse(
+        {
+            "success": True,
+            "bailId": bail.id,
+            "pdfUrl": bail.pdf.url,
+            "linkTokenFirstSigner": str(first_sign_req.link_token),
+        }
+    )
 
 
 @csrf_exempt

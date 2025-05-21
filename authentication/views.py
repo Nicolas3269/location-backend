@@ -57,7 +57,13 @@ def login_with_google(request):
         # Générer des tokens JWT
         tokens = get_tokens_for_user(user)
 
-        return JsonResponse({"success": True, "tokens": tokens, "email": email})
+        return JsonResponse(
+            {
+                "success": True,
+                "tokens": tokens,
+                "user": {"email": user.email},
+            }
+        )
 
     except Exception as e:
         logger.exception("Erreur lors de la connexion avec Google")

@@ -179,6 +179,33 @@ class BailSpecificites(models.Model):
         verbose_name="Dernière version signée",
     )
 
+    # Annexes du bail
+    grille_vetuste_pdf = models.FileField(
+        upload_to="bail_pdfs/",
+        null=True,
+        blank=True,
+        verbose_name="Grille de vétusté PDF",
+    )
+    notice_information_pdf = models.FileField(
+        upload_to="bail_pdfs/",
+        null=True,
+        blank=True,
+        verbose_name="Notice d'information PDF",
+    )
+    dpe_pdf = models.FileField(
+        upload_to="bail_pdfs/",
+        null=True,
+        blank=True,
+        verbose_name="Diagnostic de Performance Énergétique PDF",
+    )
+
+    # Statut du brouillon
+    is_draft = models.BooleanField(
+        default=True,
+        verbose_name="Brouillon",
+        help_text="Indique si le bail est encore en mode brouillon",
+    )
+
     def __str__(self):
         return f"Bail {self.bien} - ({self.date_debut})"
 

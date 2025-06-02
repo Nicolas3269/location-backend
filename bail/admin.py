@@ -117,7 +117,8 @@ class BienAdmin(admin.ModelAdmin):
         }
         color = colors.get(obj.classe_dpe, "#aaaaaa")
         return format_html(
-            '<span style="font-weight: bold; color: white; background-color: {}; padding: 3px 8px; border-radius: 3px;">{}</span>',
+            '<span style="font-weight: bold; color: white; '
+            'background-color: {}; padding: 3px 8px; border-radius: 3px;">{}</span>',
             color,
             obj.classe_dpe,
         )
@@ -175,8 +176,10 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
         "date_fin",
         "montant_loyer",
         "zone_tendue",
+        "display_documents_status",
+        "is_draft",
     )
-    list_filter = ("zone_tendue", "date_debut")
+    list_filter = ("zone_tendue", "date_debut", "is_draft")
     search_fields = ("bien__adresse", "locataires__nom", "locataires__prenom")
     date_hierarchy = "date_debut"
 
@@ -223,10 +226,49 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
             },
         ),
         ("Observations", {"fields": ("observations",)}),
+        (
+            "Documents et annexes",
+            {
+                "fields": (
+                    "is_draft",
+                    "pdf",
+                    "latest_pdf",
+                    "grille_vetuste_pdf",
+                    "notice_information_pdf",
+                    "dpe_pdf",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
+    def display_documents_status(self, obj):
+        """Affiche le statut des documents annexes"""
+        docs = []
+        if obj.pdf:
+            docs.append('<span style="color: green;">📄 Bail</span>')
+        if obj.grille_vetuste_pdf:
+            docs.append('<span style="color: green;">📋 Grille vétusté</span>')
+        if obj.notice_information_pdf:
+            docs.append('<span style="color: green;">📋 Notice info</span>')
+        if obj.dpe_pdf:
+            docs.append('<span style="color: green;">🏠 DPE</span>')
+
+        if not docs:
+            return '<span style="color: gray;">Aucun document</span>'
+
+        return format_html("<br>".join(docs))
+
+    display_documents_status.short_description = "Documents"
+    display_documents_status.allow_tags = True
+
     def display_locataires(self, obj):
-        return ", ".join([f"{l.prenom} {l.nom}" for l in obj.locataires.all()])
+        return ", ".join(
+            [
+                f"{locataire.prenom} {locataire.nom}"
+                for locataire in obj.locataires.all()
+            ]
+        )
 
     display_locataires.short_description = "Locataires"
 

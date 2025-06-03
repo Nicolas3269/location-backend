@@ -1,5 +1,13 @@
 from django.urls import path
 
+from bail.progressive_views import (
+    add_additional_landlord,
+    finalize_bail,
+    get_bail_progress,
+    save_step_landlord,
+    save_step_property,
+    save_step_tenants,
+)
 from bail.views import (
     confirm_signature_bail,
     generate_bail_pdf,
@@ -30,4 +38,15 @@ urlpatterns = [
         get_signature_request,
         name="get_signature_request",
     ),
+    # Nouvelles routes pour l'approche progressive
+    path("step/landlord/", save_step_landlord, name="save_step_landlord"),
+    path("step/property/", save_step_property, name="save_step_property"),
+    path(
+        "step/additional-landlord/",
+        add_additional_landlord,
+        name="add_additional_landlord",
+    ),
+    path("step/tenants/", save_step_tenants, name="save_step_tenants"),
+    path("step/finalize/", finalize_bail, name="finalize_bail"),
+    path("progress/<int:bail_id>/", get_bail_progress, name="get_bail_progress"),
 ]

@@ -91,6 +91,27 @@ class Bien(models.Model):
     annexes = models.TextField(blank=True)
     additionnal_description = models.TextField(blank=True)
 
+    # Annexes séparées (stockage JSON pour compatibilité frontend)
+    annexes_privatives = models.JSONField(default=list, blank=True)
+    annexes_collectives = models.JSONField(default=list, blank=True)
+    equipements = models.JSONField(default=list, blank=True)
+
+    # Systèmes de chauffage et eau chaude
+    chauffage_type = models.CharField(
+        max_length=20,
+        choices=[("collectif", "Collectif"), ("individuel", "Individuel")],
+        blank=True,
+        null=True,
+    )
+    chauffage_energie = models.CharField(max_length=50, blank=True)
+    eau_chaude_type = models.CharField(
+        max_length=20,
+        choices=[("collectif", "Collectif"), ("individuel", "Individuel")],
+        blank=True,
+        null=True,
+    )
+    eau_chaude_energie = models.CharField(max_length=50, blank=True)
+
     def __str__(self):
         return f"{self.type_bien} - {self.adresse}"
 

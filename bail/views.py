@@ -196,120 +196,23 @@ def confirm_signature_bail(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_grille_vetuste_pdf(request):
-    """Génère et retourne une grille de vétusté"""
+    """Retourne l'URL de la grille de vétusté statique"""
     try:
-        form_data = json.loads(request.body)
-        bail_id = form_data.get("bail_id")
-
-        # Si un bail_id est fourni, récupérer le bail existant
-        if bail_id:
-            from bail.models import BailSpecificites
-
-            bail = get_object_or_404(BailSpecificites, id=bail_id)
-        else:
-            # Créer un bail de test pour la démonstration
-            nbr_locataires = 2
-            locataires = [LocataireFactory.create() for _ in range(nbr_locataires)]
-            bail = BailSpecificitesFactory.create(locataires=locataires)
-
-        # Données pour la grille de vétusté
-        grille_data = {
-            "bail": bail,
-            "elements": [
-                {
-                    "piece": "Salon",
-                    "element": "Murs",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-                {
-                    "piece": "Salon",
-                    "element": "Sol",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-                {
-                    "piece": "Salon",
-                    "element": "Plafond",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-                {
-                    "piece": "Cuisine",
-                    "element": "Murs",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-                {
-                    "piece": "Cuisine",
-                    "element": "Sol",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-                {
-                    "piece": "Cuisine",
-                    "element": "Électroménager",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-                {
-                    "piece": "Chambre",
-                    "element": "Murs",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-                {
-                    "piece": "Chambre",
-                    "element": "Sol",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-                {
-                    "piece": "Salle de bain",
-                    "element": "Murs",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-                {
-                    "piece": "Salle de bain",
-                    "element": "Sol",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-                {
-                    "piece": "Salle de bain",
-                    "element": "Sanitaires",
-                    "etat_initial": "Bon",
-                    "observations": "",
-                },
-            ],
-        }
-
-        # Générer le PDF depuis un template HTML
-        html = render_to_string("pdf/grille_vetuste.html", grille_data)
-        pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
-
-        # Sauvegarder le fichier
-        filename = f"grille_vetuste_{bail.id}_{uuid.uuid4().hex}.pdf"
-
-        # Sauvegarder directement dans le modèle BailSpecificites si bail_id fourni
-        if bail_id:
-            bail.grille_vetuste_pdf.save(filename, ContentFile(pdf_bytes), save=True)
-            file_url = bail.grille_vetuste_pdf.url
-        else:
-            # Fallback pour les cas de test sans bail_id
-            file_path = f"bail_pdfs/{filename}"
-            saved_path = default_storage.save(file_path, ContentFile(pdf_bytes))
-            file_url = default_storage.url(saved_path)
+        # URL media du fichier PDF
+        media_pdf_url = f"{settings.MEDIA_URL}bails/grille_vetuste.pdf"
 
         return JsonResponse(
-            {"success": True, "grillVetustUrl": file_url, "filename": filename}
+            {
+                "success": True,
+                "grillVetustUrl": media_pdf_url,
+                "filename": "grille_vetuste.pdf",
+            }
         )
 
     except Exception as e:
-        logger.exception("Erreur lors de la génération de la grille de vétusté")
+        logger.exception("Erreur lors de la récupération de la grille de vétusté")
         return JsonResponse(
-            {"success": False, "error": f"Erreur lors de la génération: {str(e)}"},
+            {"success": False, "error": f"Erreur lors de la récupération: {str(e)}"},
             status=500,
         )
 
@@ -317,83 +220,23 @@ def generate_grille_vetuste_pdf(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_notice_information_pdf(request):
-    """Génère et retourne une notice d'information"""
+    """Retourne l'URL de la notice d'information statique"""
     try:
-        form_data = json.loads(request.body)
-        bail_id = form_data.get("bail_id")
-
-        # Si un bail_id est fourni, récupérer le bail existant
-        if bail_id:
-            from bail.models import BailSpecificites
-
-            bail = get_object_or_404(BailSpecificites, id=bail_id)
-        else:
-            # Créer un bail de test pour la démonstration
-            nbr_locataires = 2
-            locataires = [LocataireFactory.create() for _ in range(nbr_locataires)]
-            bail = BailSpecificitesFactory.create(locataires=locataires)
-
-        # Données pour la notice d'information
-        notice_data = {
-            "bail": bail,
-            "droits_locataire": [
-                "Droit à un logement décent",
-                "Droit au respect de la vie privée",
-                "Droit à la jouissance paisible des lieux",
-                "Droit à l'information sur les charges",
-                "Droit de préavis en cas de congé",
-            ],
-            "obligations_locataire": [
-                "Payer le loyer et les charges aux échéances convenues",
-                "User paisiblement des locaux loués",
-                (
-                    "Répondre des dégradations et pertes survenues pendant "
-                    "la durée du contrat"
-                ),
-                ("Laisser exécuter les travaux d'amélioration des parties communes"),
-                "Assurer le logement contre les risques locatifs",
-            ],
-            "droits_bailleur": [
-                "Percevoir le loyer aux échéances convenues",
-                "Vérifier le bon usage du logement",
-                "Récupérer le logement en fin de bail",
-                "Être indemnisé en cas de dégradations",
-            ],
-            "obligations_bailleur": [
-                "Délivrer un logement décent",
-                "Assurer la jouissance paisible du logement",
-                "Entretenir les locaux en état de servir",
-                "Effectuer les réparations autres que locatives",
-            ],
-        }
-
-        # Générer le PDF depuis un template HTML
-        html = render_to_string("pdf/notice_information.html", notice_data)
-        pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
-
-        # Sauvegarder le fichier
-        filename = f"notice_information_{bail.id}_{uuid.uuid4().hex}.pdf"
-
-        # Sauvegarder directement dans le modèle BailSpecificites si bail_id fourni
-        if bail_id:
-            bail.notice_information_pdf.save(
-                filename, ContentFile(pdf_bytes), save=True
-            )
-            file_url = bail.notice_information_pdf.url
-        else:
-            # Fallback pour les cas de test sans bail_id
-            file_path = f"bail_pdfs/{filename}"
-            saved_path = default_storage.save(file_path, ContentFile(pdf_bytes))
-            file_url = default_storage.url(saved_path)
+        # URL media du fichier PDF
+        media_pdf_url = f"{settings.MEDIA_URL}bails/notice_information.pdf"
 
         return JsonResponse(
-            {"success": True, "noticeUrl": file_url, "filename": filename}
+            {
+                "success": True,
+                "noticeUrl": media_pdf_url,
+                "filename": "notice_information.pdf",
+            }
         )
 
     except Exception as e:
-        logger.exception("Erreur lors de la génération de la notice d'information")
+        logger.exception("Erreur lors de la récupération de la notice d'information")
         return JsonResponse(
-            {"success": False, "error": f"Erreur lors de la génération: {str(e)}"},
+            {"success": False, "error": f"Erreur lors de la récupération: {str(e)}"},
             status=500,
         )
 

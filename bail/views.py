@@ -447,6 +447,7 @@ def save_draft(request):
             chauffage_energie=form_data.get("chauffage", {}).get("energie", ""),
             eau_chaude_type=form_data.get("eauChaude", {}).get("type", ""),
             eau_chaude_energie=form_data.get("eauChaude", {}).get("energie", ""),
+            solidaires=form_data.get("solidaires", False),
         )
 
         # Associer les propriétaires au bien
@@ -476,7 +477,6 @@ def save_draft(request):
             montant_charges=Decimal(str(modalites.get("chargeAmount", 0))),
             # Par défaut égal au loyer
             depot_garantie=Decimal(str(modalites.get("prix", 0))),
-            zone_tendue=form_data.get("zoneTendue", False),
             is_draft=True,  # Brouillon
         )
 

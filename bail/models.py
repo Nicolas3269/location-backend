@@ -175,6 +175,10 @@ class BailSpecificites(models.Model):
 
     bien = models.ForeignKey(Bien, on_delete=models.CASCADE, related_name="bails")
     locataires = models.ManyToManyField(Locataire, related_name="bails")
+    solidaires = models.BooleanField(
+        default=False,
+        help_text="Indique si les locataires sont solidaires pour le paiement du loyer",
+    )
 
     # Durée du bail
     date_debut = models.DateField()

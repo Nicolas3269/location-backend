@@ -52,11 +52,15 @@ def generate_bail_pdf(request):
 
         bail = get_object_or_404(BailSpecificites, id=bail_id)
 
+        # Vérifier si au moins un locataire a une caution requise
+        acte_de_cautionnement = bail.locataires.filter(caution_requise=True).exists()
+
         # Générer le PDF depuis le template HTML
         html = render_to_string(
             "pdf/bail_wrapper.html",
             {
                 "bail": bail,
+                "acte_de_cautionnement": acte_de_cautionnement,
                 "title_bail": BailMapping.title_bail(bail.bien),
                 "subtitle_bail": BailMapping.subtitle_bail(bail.bien),
                 "article_objet_du_contrat": BailMapping.article_objet_du_contrat(
@@ -73,6 +77,7 @@ def generate_bail_pdf(request):
                 "information_info": BailMapping.information_info(bail.bien),
                 "energy_info": BailMapping.energy_info(bail.bien),
                 "indice_irl": INDICE_IRL,
+                "prix_majore": BailMapping.prix_majore(bail),
             },
         )
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
@@ -471,6 +476,7 @@ def save_draft(request):
                 nom=locataire_data.get("lastName", ""),
                 prenom=locataire_data.get("firstName", ""),
                 email=locataire_data.get("email", ""),
+                caution_requise=locataire_data.get("cautionRequise", ""),
                 # Les autres champs ne sont pas fournis dans le formulaire
             )
             locataires.append(locataire)
@@ -486,6 +492,8 @@ def save_draft(request):
         is_meuble = bien.meuble
         depot_garantie = 2 * montant_loyer if is_meuble else montant_loyer
 
+        prix_reference = 1000
+
         bail = BailSpecificites.objects.create(
             bien=bien,
             solidaires=solidaires,
@@ -493,8 +501,12 @@ def save_draft(request):
             montant_loyer=Decimal(str(modalites.get("prix", 0))),
             type_charges=modalites.get("chargeType", ""),
             montant_charges=Decimal(str(modalites.get("chargeAmount", 0))),
+            prix_reference=Decimal(
+                str(prix_reference)
+            ),  # Prix de référence pour le calcul
             # Par défaut égal au loyer
             depot_garantie=depot_garantie,
+            zone_tendue=form_data.get("zoneTendue", False),
             is_draft=True,  # Brouillon
         )
 

@@ -162,6 +162,10 @@ class Locataire(models.Model):
     )
     num_carte_identite = models.CharField(max_length=30, blank=True)
     date_emission_ci = models.DateField(null=True, blank=True)
+    caution_requise = models.BooleanField(
+        default=False,
+        help_text="Indique si une caution est requise pour ce locataire",
+    )
 
     def __str__(self):
         return f"{self.prenom} {self.nom}"

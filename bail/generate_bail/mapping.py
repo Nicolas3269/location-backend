@@ -1,4 +1,6 @@
-from bail.models import Bien
+from decimal import ROUND_HALF_UP, Decimal
+
+from bail.models import BailSpecificites, Bien
 from rent_control.choices import PropertyType, RegimeJuridique, SystemType
 
 
@@ -199,3 +201,10 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
         {phrase_eau_chaude}
         </p>
         """
+
+    @staticmethod
+    def prix_majore(bail: BailSpecificites):
+        """Génère le texte pour le prix majoré"""
+        return (bail.prix_reference * Decimal("1.2")).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )

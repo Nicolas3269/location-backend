@@ -4,7 +4,12 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
-from rent_control.choices import ConstructionPeriod, PropertyType, RoomCount
+from rent_control.choices import (
+    ConstructionPeriod,
+    PropertyType,
+    RegimeJuridique,
+    RoomCount,
+)
 
 
 class DPEClass(models.TextChoices):
@@ -48,6 +53,12 @@ class Bien(models.Model):
     longitude = models.FloatField(null=True, blank=True)
     identifiant_fiscal = models.CharField(
         max_length=50, blank=True, verbose_name="Identifiant fiscal"
+    )
+    regime_juridique = models.CharField(
+        max_length=20,
+        choices=RegimeJuridique.choices,
+        default=RegimeJuridique.MONOPROPRIETE,
+        verbose_name="Régime juridique",
     )
 
     type_bien = models.CharField(

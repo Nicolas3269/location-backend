@@ -433,6 +433,7 @@ def save_draft(request):
         bien = Bien.objects.create(
             adresse=form_data.get("adresse", ""),
             identifiant_fiscal=form_data.get("identificationFiscale", ""),
+            regime_juridique=form_data.get("regimeJuridique", ""),
             type_bien=type_bien,
             etage=form_data.get("etage", ""),
             porte=form_data.get("porte", ""),

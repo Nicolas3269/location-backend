@@ -17,6 +17,11 @@ class PropertyType(TextChoices):
     HOUSE = "maison", "Maison"
 
 
+class RegimeJuridique(TextChoices):
+    MONOPROPRIETE = "monopropriete", "Monopropriété"
+    COPROPRIETE = "copropriete", "Copropriété"
+
+
 class RoomCount(TextChoices):
     ONE = "1", "1 pièce"
     TWO = "2", "2 pièces"

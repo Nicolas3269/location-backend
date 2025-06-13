@@ -1,5 +1,5 @@
 from bail.models import Bien
-from rent_control.choices import PropertyType
+from rent_control.choices import PropertyType, RegimeJuridique
 
 
 class BailMapping:
@@ -38,19 +38,31 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
         else:
             line_1 = f"la maison située au {bien.adresse}"
 
+        if bien.regime_juridique == RegimeJuridique.MONOPROPRIETE:
+            if bien.type_bien == PropertyType.APARTMENT:
+                line_2 = "situé dans une monopropriété dans un immeuble collectif"
+            else:
+                line_2 = "situé dans une monopropriété dans un immeuble individuel"
+        else:
+            if bien.type_bien == PropertyType.APARTMENT:
+                line_2 = "situé dans une copropriété dans un immeuble collectif"
+            else:
+                line_2 = "situé dans une copropriété dans un immeuble individuel"
+
+        line_3 = f"construit {bien.periode_construction.lower()}"
+
         if bien.identifiant_fiscal:
-            line_2 = (
-                f"dont le numéro d’identifiant fiscal est : {bien.identifiant_fiscal}"
+            line_4 = (
+                f"dont le numéro d’identifiant fiscal est {bien.identifiant_fiscal}"
             )
         else:
-            line_2 = "L’identifiant fiscal du logement, requis par l’administration, n’a pas été renseigné au moment de la signature du présent contrat. Il sera communiqué par le bailleur dès que possible et fera, le cas échéant, l’objet d’un avenant au présent contrat, signé entre les parties, sans que cela n’affecte la validité ou les autres stipulations du bail."
-
-        line_3 = "situé dans une monopropriété et dans un  immeuble collectif,"
+            line_4 = "l’identifiant fiscal du logement, requis par l’administration, n’a pas été renseigné au moment de la signature du présent contrat. Il sera communiqué par le bailleur dès que possible et fera, le cas échéant, l’objet d’un avenant au présent contrat, signé entre les parties, sans que cela n’affecte la validité ou les autres stipulations du bail."
 
         return f"""
         <ul>
         <li>{line_1}</li>
         <li>{line_2}</li>
         <li>{line_3}</li>
+        <li>{line_4}</li>
         </ul>
 """

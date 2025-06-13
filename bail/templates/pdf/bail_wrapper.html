@@ -264,26 +264,37 @@ L’installation de nouveaux équipements ou de dispositifs de réception spéci
   <div class="article">
     <h2>Article 4 - Destination du logement loué</h2>
     <p>
-      Le logement est destiné exclusivement à l'habitation principale du locataire.
+     Le logement est loué à usage d’habitation principale.
     </p>
   </div>
 
   <div class="article">
     <h2>Article 5 - État des lieux</h2>
-    <p>Un état des lieux est établi contradictoirement entre les parties, la remise des clefs devant avoir lieu dès la signature du présent acte.</p>
-    <p>Il résulte de ce document que le logement loué répond aux divers critères de « décence » posés par le décret n° 2002-120 du 30 janvier 2002.</p>
-    <p>Pendant le premier mois de la période de chauffe, le locataire pourra demander que l'état des lieux soit complété par l'état des éléments de chauffage.</p>
-    <p>Un exemplaire de l'état des lieux sera remis à chaque partie pour être joint à la copie exécutoire ou à l'expédition du présent contrat.</p>
-    <p>Un autre état des lieux sera établi, contradictoirement ou par huissier de justice, en fin de location, lors de la restitution des clefs.</p>
-  </div>
+    <p>Un état des lieux d’entrée sera établi contradictoirement entre le bailleur et le locataire, à la date de remise des clés.</p>
+    <p>Il ne sera pas annexé au présent contrat, mais un exemplaire signé sera remis à chacune des parties et conservé séparément.</p>
+    <p>Il est précisé que le logement loué répond aux critères de décence, tels que définis par le décret n°2002-120 du 30 janvier 2002.</p>
+    <p>Conformément à la loi, le locataire pourra, pendant le premier mois de la période de chauffe, demander que l’état des lieux soit complété par l’état des éléments de chauffage.</p>
+    <p>A la fin de la location, un état des lieux de sortie sera également établi, contradictoirement entre les parties ou, à défaut, par un commissaire de justice (anciennement huissier), lors de la restitution des clés.</p>
+</div>
 
   <div class="article">
     <h2>Article 6 - Date de prise d’effet et durée du contrat</h2>
-    <p><strong>1° Date de prise d’effet du contrat</strong><br>
-    Le présent contrat prend effet à compter du 24 avril 2025.</p>
-    <p><strong>2° Durée</strong><br>
-    La présente location est consentie et acceptée pour une durée d’un (1) an à compter de la signature du présent contrat de location. À l'expiration de cette période, le présent contrat se poursuivra par tacite reconduction pour des périodes successives d’un (1) an, à défaut de volonté contraire manifestée par l'une ou l'autre des parties selon les règles suivantes.</p>
-    <p><strong>3° Congés</strong><br>
+    <p><strong>1° Date de prise d’effet du contrat</strong></p>
+    <p>
+    Le présent contrat prend effet à compter du {{bail.date_debut|date:"j F Y"}}.
+    </p>
+    <p><strong>2° Durée</strong></p>
+    <p>
+    La présente location est consentie et acceptée pour une durée de {% if bail.bien.meuble %}1 an{%else%}3 ans{% endif %} à compter de la date de prise d’effet du présent contrat de location.
+    </p>
+    <p>
+    À l'expiration de cette période, le présent contrat se poursuivra par tacite reconduction pour des périodes successives de {% if bail.bien.meuble %}1 an{%else%}3 ans{% endif %}, à défaut de volonté contraire manifestée par l'une ou l'autre des parties selon les règles suivantes.
+    </p>
+    
+    
+    
+    <p><strong>3° Congés</strong></p>
+    <p>
     <em>Congé par le locataire.</em> – Le locataire pourra donner congé à tout moment en cours de contrat. Ce congé devra être délivré au moins un (1) mois à l'avance par lettre recommandée avec demande d'avis de réception ou par acte d'huissier. Le délai de préavis est décompté à partir de la date de réception de la lettre de congé par le bailleur. À l'expiration du préavis, le locataire devra libérer les lieux le lendemain du dernier jour au plus tard à midi.</p>
     <p><em>Congé par le bailleur.</em> – Le bailleur pourra donner congé au locataire dans les formes et aux conditions prévues par l’article 25-8 de la loi du 6 juillet 1989, sauf si le locataire bénéficie, en raison de son âge ou du montant de ses ressources, des mesures de protection édictées par l’article 25-8, II de la loi du 6 juillet 1989 précitée. Ce congé sera délivré pour la date d'expiration du contrat, moyennant un délai de préavis de trois (3) mois, soit par lettre recommandée avec demande d'avis de réception soit par acte d'huissier ou être remis en main propre contre récépissé ou émargement. Le délai de trois (3) mois courra à compter du jour de la réception de la lettre recommandée ou de la signification de l'acte d'huissier ou de la reprise en main propre.</p>
     <p>Le bailleur ne pourra se fonder que sur la décision de reprendre le logement pour l'habiter, la décision de vendre le logement, ou sur un motif légitime et sérieux, notamment l'inexécution par le locataire de l'une des obligations lui incombant (article 25-8 de la loi du 6 juillet 1989 et la notice d’information jointe).</p>

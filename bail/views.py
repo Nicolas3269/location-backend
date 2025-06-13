@@ -69,6 +69,7 @@ def generate_bail_pdf(request):
                     bail.bien
                 ),
                 "information_info": BailMapping.information_info(bail.bien),
+                "energy_info": BailMapping.energy_info(bail.bien),
             },
         )
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
@@ -422,21 +423,8 @@ def save_draft(request):
         meuble = meuble_map.get(form_data.get("meuble", "vide"), False)
 
         # Extract DPE expenses if provided
-        dpe_grade = form_data.get("dpeGrade", "NC")
-        dpe_expenses_str = form_data.get("depensesDPE", "")
-
-        # Try to extract numeric value from "Entre 1095€ et 1512€ par an"
-        depenses_energetiques = None
-        if dpe_expenses_str and "€" in dpe_expenses_str:
-            try:
-                # Extract first number from the string
-                import re
-
-                numbers = re.findall(r"\d+", dpe_expenses_str)
-                if numbers:
-                    depenses_energetiques = Decimal(numbers[0])
-            except (ValueError, IndexError):
-                pass
+        dpe_grade = form_data.get("dpeGrade", "NA")
+        depenses_energetiques = form_data.get("depensesDPE", "").lower()
 
         bien = Bien.objects.create(
             adresse=form_data.get("adresse", ""),

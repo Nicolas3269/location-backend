@@ -1,5 +1,5 @@
 from bail.models import Bien
-from rent_control.choices import PropertyType, RegimeJuridique
+from rent_control.choices import PropertyType, RegimeJuridique, SystemType
 
 
 class BailMapping:
@@ -163,4 +163,39 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
 
         return informations
 
-        items_html = "".join([f"<li>{annexe}</li>" for annexe in annexes])
+    @staticmethod
+    def energy_info(bien: Bien):
+        """Génère les informations sur la performance énergétique"""
+
+        labels = {
+            "gaz": "gaz",
+            "electricite": "électricité",
+            "fioul": "fioul",
+        }
+        # Pour le chauffage
+        chauffage_energie = bien.chauffage_energie
+        if chauffage_energie in labels:
+            chauffage_energie = labels[chauffage_energie]
+
+        # Pour l'eau chaude
+        eau_chaude_energie = bien.eau_chaude_energie
+        if eau_chaude_energie in labels:
+            eau_chaude_energie = labels[eau_chaude_energie]
+
+        # Construcition de la chaîne de caractère chauufage
+        if bien.chauffage_type == SystemType.COLLECTIF:
+            phrase_chauffage = f"La production de chauffage est collective et se fait via {chauffage_energie}."
+        else:
+            phrase_chauffage = f"La production de chauffage est individuelle et se fait via {chauffage_energie}."
+        # Construcition de la chaîne de caractère eau chaude
+        if bien.eau_chaude_type == SystemType.COLLECTIF:
+            phrase_eau_chaude = f"La production d’eau chaude sanitaire est collective et se fait via {eau_chaude_energie}."
+        else:
+            phrase_eau_chaude = f"La production d’eau chaude sanitaire est individuelle et se fait via {eau_chaude_energie}."
+
+        return f"""
+        <p>
+        {phrase_chauffage}<br>
+        {phrase_eau_chaude}
+        </p>
+        """

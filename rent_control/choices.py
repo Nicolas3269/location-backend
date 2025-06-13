@@ -36,3 +36,8 @@ class ConstructionPeriod(TextChoices):
     FROM_1990_TO_2005 = "1990-2005", "1990-2005"
     AFTER_1990 = "apres 1990", "Après 1990"
     AFTER_2005 = "apres 2005", "Après 2005"
+
+
+class SystemType(TextChoices):
+    COLLECTIF = "collectif", "Collectif"
+    INDIVIDUEL = "individuel", "Individuel"

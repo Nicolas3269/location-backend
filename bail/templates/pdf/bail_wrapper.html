@@ -231,7 +231,6 @@ La liste complète des meubles et équipements présents sera constatée et sign
 Lorsque tout ou partie de ces services est inclus dans les charges, le bailleur en informe le locataire, notamment en précisant la nature et les limites des prestations fournies (ex : accès Internet mutualisé dans l’immeuble). <br>
 Le locataire s’engage à ne pas modifier ni dégrader les équipements existants, sauf accord exprès du bailleur. <br>
 L’installation de nouveaux équipements ou de dispositifs de réception spécifiques reste soumise à l’autorisation préalable du bailleur et, le cas échéant, à celle de la copropriété.
-
   </p>
   <br>
     {% endif %}
@@ -242,15 +241,25 @@ L’installation de nouveaux équipements ou de dispositifs de réception spéci
     <u>Modalité de production de chauffage et d’eau chaude sanitaire :</u> 
     </p>
     <p>
-      Eau chaude sanitaire : individuelle électrique.
+      {{energy_info|safe}}
+    </p>
+    <br>
+
+    <p>
+    <u>DPE :</u> 
+    </p>
+    {% if bail.bien.classe_dpe != "NA"%}
+    <p>
+      Selon le diagnostic de performance énergétique (DPE), le logement présente une classe énergétique {{bail.bien.classe_dpe}}, avec un montant estimé des dépenses annuelles pour l’ensemble des usages (chauffage, eau chaude sanitaire, éclairage, etc.) évalué {{bail.bien.depenses_energetiques}}.
     </p>
 
-    <p class="section-title">DPE</p>
+    {% else %}
     <p>
-      Selon le diagnostic de performance énergétique (DPE), le niveau de performance énergétique du logement est E, avec une consommation de 281,2 kWh/an. <br>
-      Le montant estimé des dépenses théoriques est de 883€.
+      Le présent logement n’est pas soumis à l’obligation de réalisation d’un diagnostic de performance énergétique, conformément à l’article R.126-15 du Code de la construction et de l’habitation. <br>
+  Cette exclusion s’applique notamment aux logements dépourvus de système de chauffage fixe ou à certains bâtiments spécifiques non couverts par la réglementation thermique.
     </p>
-  </div>
+    <br>
+    {% endif %}
 
   <div class="article">
     <h2>Article 4 - Destination du logement loué</h2>

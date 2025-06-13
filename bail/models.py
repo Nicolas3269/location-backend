@@ -9,6 +9,7 @@ from rent_control.choices import (
     PropertyType,
     RegimeJuridique,
     RoomCount,
+    SystemType,
 )
 
 
@@ -20,7 +21,7 @@ class DPEClass(models.TextChoices):
     E = "E", "E (251 à 330 kWh/m²/an)"
     F = "F", "F (331 à 420 kWh/m²/an)"
     G = "G", "G (> 420 kWh/m²/an)"
-    NC = "NC", "Non communiqué"
+    NA = "NA", "Non soumis à DPE"
 
 
 class Proprietaire(models.Model):
@@ -87,14 +88,13 @@ class Bien(models.Model):
     classe_dpe = models.CharField(
         max_length=2,
         choices=DPEClass.choices,
-        default=DPEClass.NC,
+        default=DPEClass.NA,
         verbose_name="Classe énergétique DPE",
     )
-    depenses_energetiques = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
+    depenses_energetiques = models.CharField(
+        max_length=400,
         blank=True,
+        default="non renseigné",
         verbose_name="Dépenses énergétiques théoriques (€/an)",
     )
     # date_dpe = models.DateField(
@@ -120,14 +120,14 @@ class Bien(models.Model):
     # Systèmes de chauffage et eau chaude
     chauffage_type = models.CharField(
         max_length=20,
-        choices=[("collectif", "Collectif"), ("individuel", "Individuel")],
+        choices=SystemType.choices,
         blank=True,
         null=True,
     )
     chauffage_energie = models.CharField(max_length=50, blank=True)
     eau_chaude_type = models.CharField(
         max_length=20,
-        choices=[("collectif", "Collectif"), ("individuel", "Individuel")],
+        choices=SystemType.choices,
         blank=True,
         null=True,
     )

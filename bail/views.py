@@ -426,6 +426,14 @@ def save_draft(request):
         dpe_grade = form_data.get("dpeGrade", "NA")
         depenses_energetiques = form_data.get("depensesDPE", "").lower()
 
+        # Extract autre energies if needed
+        chauffage_energie = form_data.get("chauffage", {}).get("energie", "")
+        if chauffage_energie == "autre":
+            chauffage_energie = form_data.get("chauffage", {}).get("autreDetail", "")
+        eau_chaude_energie = form_data.get("eauChaude", {}).get("energie", "")
+        if eau_chaude_energie == "autre":
+            eau_chaude_energie = form_data.get("eauChaude", {}).get("autreDetail", "")
+
         bien = Bien.objects.create(
             adresse=form_data.get("adresse", ""),
             identifiant_fiscal=form_data.get("identificationFiscale", ""),
@@ -444,9 +452,9 @@ def save_draft(request):
             information=form_data.get("information", []),
             pieces_info=form_data.get("pieces", {}),
             chauffage_type=form_data.get("chauffage", {}).get("type", ""),
-            chauffage_energie=form_data.get("chauffage", {}).get("energie", ""),
+            chauffage_energie=chauffage_energie,
             eau_chaude_type=form_data.get("eauChaude", {}).get("type", ""),
-            eau_chaude_energie=form_data.get("eauChaude", {}).get("energie", ""),
+            eau_chaude_energie=eau_chaude_energie,
         )
 
         # Associer les propriétaires au bien

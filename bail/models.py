@@ -96,6 +96,13 @@ class Bien(models.Model):
     annexes_collectives = models.JSONField(default=list, blank=True)
     equipements = models.JSONField(default=list, blank=True)
 
+    # Détail des pièces (stockage JSON pour compatibilité frontend)
+    pieces_info = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Détail des pièces: chambres, sallesDeBain, cuisines, etc.",
+    )
+
     # Systèmes de chauffage et eau chaude
     chauffage_type = models.CharField(
         max_length=20,

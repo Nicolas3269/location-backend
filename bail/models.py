@@ -108,7 +108,7 @@ class Bien(models.Model):
     # Annexes séparées (stockage JSON pour compatibilité frontend)
     annexes_privatives = models.JSONField(default=list, blank=True)
     annexes_collectives = models.JSONField(default=list, blank=True)
-    equipements = models.JSONField(default=list, blank=True)
+    information = models.JSONField(default=list, blank=True)
 
     # Détail des pièces (stockage JSON pour compatibilité frontend)
     pieces_info = models.JSONField(

@@ -66,3 +66,101 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
         <li>{line_4}</li>
         </ul>
 """
+
+    @staticmethod
+    def pieces_info(bien: Bien):
+        pieces = bien.pieces_info
+
+        # Mapping des types de pièces avec leurs labels et gestion du pluriel
+        pieces_labels = {
+            "chambres": ("chambre", "chambres"),
+            "sallesDeBain": ("salle de bain", "salles de bain"),
+            "cuisines": ("cuisine", "cuisines"),
+            "salons": ("séjour", "séjours"),
+            "wc": ("WC", "WC"),
+            "bureau": ("bureau", "bureaux"),
+        }
+
+        # Construire la liste des pièces
+        pieces_list = []
+
+        for piece_type, (singular, plural) in pieces_labels.items():
+            count = pieces.get(piece_type, 0)
+            if count > 0:
+                if count == 1:
+                    pieces_list.append(f"{count} {singular}")
+                else:
+                    pieces_list.append(f"{count} {plural}")
+
+        # Générer le HTML avec une liste à puces
+        if pieces_list:
+            items_html = "".join([f"<li>{piece}</li>" for piece in pieces_list])
+            return f"<ul>{items_html}</ul>"
+        else:
+            return "<p>Aucune pièce renseignée</p>"
+
+    @staticmethod
+    def annexes_privatives_info(bien: Bien):
+        """Génère la liste HTML des annexes privatives"""
+        annexes_raw = bien.annexes_privatives
+        annexes = []
+        annexes_labels = {
+            "cave": "Cave",
+            "balcon": "Balcon",
+            "jardin": "Jardin",
+            "parking": "Place de parking",
+            "garage": "Garage ou box fermé",
+            "dependance": "Dépendance ou annexe",
+        }
+        for annexe in annexes_raw:
+            # Vérifier si l'annexe est dans les labels définis
+            if annexe in annexes_labels:
+                annexes.append(annexes_labels[annexe])
+            else:
+                # Si l'annexe n'est pas reconnue, on peut choisir de l'ignorer ou de la traiter différemment
+                annexes.append(annexe)
+
+        return annexes
+
+    @staticmethod
+    def annexes_collectives_info(bien: Bien):
+        """Génère la liste HTML des annexes collectives"""
+        annexes_raw = bien.annexes_collectives
+        annexes = []
+        annexes_labels = {
+            "ascenseur": "Ascenseur",
+            "local_velo": "Local à vélos",
+            "local_poubelle": "Local à poubelles",
+            "jardin_commun": "Jardin commun",
+            "laverie": "Laverie commune",
+            "salle_commune": "Salle commune",
+        }
+        for annexe in annexes_raw:
+            # Vérifier si l'annexe est dans les labels définis
+            if annexe in annexes_labels:
+                annexes.append(annexes_labels[annexe])
+            else:
+                # Si l'annexe n'est pas reconnue, on peut choisir de l'ignorer ou de la traiter différemment
+                annexes.append(annexe)
+
+        return annexes
+
+    @staticmethod
+    def information_info(bien: Bien):
+        informations_raw = bien.information
+        informations = []
+        informations_labels = {
+            "adsl": "ADSL",
+            "fibre": "Fibre optique",
+            "cable": "Câble",
+            "antenne": "Antenne TV",
+        }
+
+        for information in informations_raw:
+            # Vérifier si l'annexe est dans les labels définis
+            if information in informations_labels:
+                informations.append(informations_labels[information])
+
+        return informations
+
+        items_html = "".join([f"<li>{annexe}</li>" for annexe in annexes])

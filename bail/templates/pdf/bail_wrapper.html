@@ -152,24 +152,96 @@
 
     <p class="section-title">2° Description du logement loué</p>
     <p>
-      Surface habitable : 82 mètres carrés.<br>
-      Nombre de pièces : 4 pièces : 1 cuisine équipée, 1 séjour, 3 chambres dont une avec douche, 1 salle d’eau, 1 WC.
+    <u>Surface habitable :</u> 
+    </p>
+      <p>
+    Conformément à l’article 3 de la loi du 6 juillet 1989, la surface habitable du logement a été déterminée selon les critères définis à l’article R. 111-2 du Code de la construction et de l’habitation. <br>
     </p>
     <p>
-      Équipements :<br>
-      Cuisine : 1 réfrigérateur, 2 plaques de cuisson, 1 évier, 1 micro-onde, 1 four, vaisselle pour 3 locataires, 1 bouilloire.<br>
-      Séjour : 2 canapés, 1 table, 4 chaises, 1 table basse, 1 TV, des placards de rangement.<br>
-      Chambres : 1 lit 140x190, 1 bureau, 1 chaise, des placards de rangement.
+    Elle s’élève à {{bail.bien.superficie}} mètres carrés. <br>
     </p>
-    {% if bail.bien.meuble %}
     <p>
-      La liste des éléments de mobilier d’un logement meublé, telle que définie par l’article 2 du décret n°2015-981 du 31 juillet 2015, sera plus amplement décrite dans l’état des lieux établi en annexe.
+      <br>
+    <u>Nombre de pièces :</u> 
     </p>
+    <p>
+      Le logement loué est constitué comme suit, soit {{bail.bien.nb_pieces}} {% if bail.bien.nb_pieces == "1" %}pièce principale{% else %}pièces principales{% endif %} :
+      {{pieces_info|safe}}
+    </p>
+    <br>
+    
+    {% if annexes_privatives_info%}
+    <p>
+    <u>Annexes privatives :</u> 
+    </p>
+    <p>
+    Le logement loué comprend, en sus des pièces principales, les annexes privatives ci-dessous : 
+    <ul>
+      {% for annexe in annexes_privatives_info %}
+        <li>{{ annexe }}</li>
+      {% endfor %}
+    </ul>
+
+  </p>
+
+    <br>
     {% endif %}
+
+    {% if annexes_collectives_info%}
+    <p>
+    <u>Annexes communes :</u> 
+    </p>
+    <p>
+    Le logement loué comprend, en sus des pièces principales, les annexes communes ou non privatives, rattachées à la jouissance du bien, suivantes : 
+    <ul>
+      {% for annexe in annexes_collectives_info %}
+        <li>{{ annexe }}</li>
+      {% endfor %}
+    </ul>
+  </p>
+    <br>
+    {% endif %}
+    {% if bail.bien.meuble%}
+    <p>
+    <u>Équipements :</u> 
+    </p>
+    <p>
+      Le logement est loué meublé, conformément aux dispositions de l’article 25-4 de la loi du 6 juillet 1989. <br>
+Il est pourvu des éléments de mobilier obligatoires fixés par l’article 2 du décret n°2015-981 du 31 juillet 2015, permettant une occupation normale par le locataire (couchage, cuisine, rangements, etc.) <br>
+La liste complète des meubles et équipements présents sera constatée et signée contradictoirement entre les parties dans le cadre de l’état des lieux d’entrée, établi le jour de la remise des clés. <br>
+    </p>
+    <br>
+    {% endif %}
+
+    {% if information_info%}
+    <p>
+    <u>Équipements d’accès aux technologies de l’information et de la communication :</u> 
+    </p>
+    <p>
+    Le logement est éligible ou équipé, pour permettre l’accès aux services de communication électronique, mentionnés ci-dessous : 
+    <ul>
+      {% for information in information_info %}
+        <li>{{ information }}</li>
+      {% endfor %}
+    </ul>
+    <br>
+  </p>
+  <p>
+    Sauf mention contraire au présent contrat ou dans l’état récapitulatif des charges, ces services ne sont pas inclus dans les charges locatives et doivent être souscrits directement par le locataire auprès du fournisseur de son choix. Dans ce cas, le bailleur ne garantit ni la qualité ni la continuité de ces services, qui dépendent d’opérateurs tiers. Il appartient au locataire de souscrire les abonnements nécessaires auprès des prestataires de son choix. <br>
+Lorsque tout ou partie de ces services est inclus dans les charges, le bailleur en informe le locataire, notamment en précisant la nature et les limites des prestations fournies (ex : accès Internet mutualisé dans l’immeuble). <br>
+Le locataire s’engage à ne pas modifier ni dégrader les équipements existants, sauf accord exprès du bailleur. <br>
+L’installation de nouveaux équipements ou de dispositifs de réception spécifiques reste soumise à l’autorisation préalable du bailleur et, le cas échéant, à celle de la copropriété.
+
+  </p>
+  <br>
+    {% endif %}
+
 
     <p class="section-title">3° Modalités d’énergie du logement loué</p>
     <p>
-      Chauffage : collectif au gaz.<br>
+    <u>Modalité de production de chauffage et d’eau chaude sanitaire :</u> 
+    </p>
+    <p>
       Eau chaude sanitaire : individuelle électrique.
     </p>
 

@@ -61,6 +61,14 @@ def generate_bail_pdf(request):
                     bail.bien
                 ),
                 "article_duree_contrat": BailMapping.article_duree_contrat(bail.bien),
+                "pieces_info": BailMapping.pieces_info(bail.bien),
+                "annexes_privatives_info": BailMapping.annexes_privatives_info(
+                    bail.bien
+                ),
+                "annexes_collectives_info": BailMapping.annexes_collectives_info(
+                    bail.bien
+                ),
+                "information_info": BailMapping.information_info(bail.bien),
             },
         )
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
@@ -445,7 +453,7 @@ def save_draft(request):
             depenses_energetiques=depenses_energetiques,
             annexes_privatives=form_data.get("annexes", []),
             annexes_collectives=form_data.get("annexesCollectives", []),
-            equipements=form_data.get("information", []),
+            information=form_data.get("information", []),
             pieces_info=form_data.get("pieces", {}),
             chauffage_type=form_data.get("chauffage", {}).get("type", ""),
             chauffage_energie=form_data.get("chauffage", {}).get("energie", ""),

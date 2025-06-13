@@ -447,7 +447,6 @@ def save_draft(request):
             chauffage_energie=form_data.get("chauffage", {}).get("energie", ""),
             eau_chaude_type=form_data.get("eauChaude", {}).get("type", ""),
             eau_chaude_energie=form_data.get("eauChaude", {}).get("energie", ""),
-            solidaires=form_data.get("solidaires", False),
         )
 
         # Associer les propriétaires au bien
@@ -469,9 +468,12 @@ def save_draft(request):
         start_date_str = form_data.get("startDate", "")
         start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
         modalites = form_data.get("modalites", {})
+        solidaire_string = form_data.get("solidaires", "")
+        solidaires = solidaire_string.lower() == "true"
 
         bail = BailSpecificites.objects.create(
             bien=bien,
+            solidaires=solidaires,
             date_debut=start_date,
             montant_loyer=Decimal(str(modalites.get("prix", 0))),
             montant_charges=Decimal(str(modalites.get("chargeAmount", 0))),

@@ -406,7 +406,7 @@ L’installation de nouveaux équipements ou de dispositifs de réception spéci
       En cas de décès du locataire, il y aura solidarité et indivisibilité entre tous ses héritiers et représentants comme aussi entre chacun de ces derniers et tous autres coobligés pour le paiement des loyers et accessoires ainsi que pour l'exécution, en général, du présent contrat et les frais de la signification prescrite par l'article 877 du Code civil seront à la charge exclusive de ceux à qui elle sera faite.
     </p>
 
-    {% if bail.solidaires != "NA"%}
+    {% if bail.locataires.all|length > 1 and bail.solidaires %}
     <p>
       Les locataires seront tenus solidairement de l’accomplissement de l’ensemble des obligations résultant du présent contrat, ce qu’ils acceptent.
     </p>

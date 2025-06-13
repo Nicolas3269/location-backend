@@ -60,6 +60,7 @@ def generate_bail_pdf(request):
                 "article_objet_du_contrat": BailMapping.article_objet_du_contrat(
                     bail.bien
                 ),
+                "article_duree_contrat": BailMapping.article_duree_contrat(bail.bien),
             },
         )
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
@@ -431,7 +432,10 @@ def save_draft(request):
 
         bien = Bien.objects.create(
             adresse=form_data.get("adresse", ""),
+            identifiant_fiscal=form_data.get("identificationFiscale", ""),
             type_bien=type_bien,
+            etage=form_data.get("etage", ""),
+            porte=form_data.get("porte", ""),
             periode_construction=periode_construction,
             superficie=Decimal(str(form_data.get("surface", 0))),
             nb_pieces=nb_pieces,

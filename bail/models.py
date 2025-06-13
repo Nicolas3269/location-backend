@@ -46,6 +46,9 @@ class Bien(models.Model):
     adresse = models.CharField(max_length=255)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+    identifiant_fiscal = models.CharField(
+        max_length=50, blank=True, verbose_name="Identifiant fiscal"
+    )
 
     type_bien = models.CharField(
         max_length=20, choices=PropertyType.choices, verbose_name="Type de bien"

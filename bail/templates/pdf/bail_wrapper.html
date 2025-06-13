@@ -97,19 +97,24 @@
 
     <p class="section-title">1° Désignation des parties</p>
     <p>
-      {% for proprietaire in bail.bien.proprietaires.all %}
-        {{ proprietaire.prenom }} {{ proprietaire.nom }} ({{ proprietaire.email }}), personne physique,
-        domicilié{% if proprietaire.sexe == "F" %}e{% endif %} au {{ proprietaire.adresse }}{% if not forloop.last %};<br>{% endif %}
-      {% endfor %}
+      <ul>
+        {% for proprietaire in bail.bien.proprietaires.all %}
+          <li>{{ proprietaire.prenom }} {{ proprietaire.nom }} ({{ proprietaire.email }}), personne physique,
+          domicilié{% if proprietaire.sexe == "F" %}e{% endif %} au {{ proprietaire.adresse }}{% if not forloop.last %};<br>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
     </p>
     <p class="align-right">
       Dénommé{% if bail.bien.proprietaires.all|length > 1 %}s{% endif %} ci-après « le bailleur » ;
     </p>
     
     <p>
+      <ul>
       {% for locataire in bail.locataires.all %}
-        {{ locataire.prenom }} {{ locataire.nom }}{% if locataire.email %} ({{ locataire.email }}){% endif %}, personne physique{% if not forloop.last %};<br>{% endif %}
+        <li>{{ locataire.prenom }} {{ locataire.nom }}{% if locataire.email %} ({{ locataire.email }}){% endif %}, personne physique{% if not forloop.last %};<br>{% endif %}</li>
       {% endfor %}
+      </ul>
     </p>
     <p class="align-right">
       Dénommé{% if bail.locataires.all|length > 1 %}s{% endif %} ci-après « le locataire » ;
@@ -142,7 +147,7 @@
 
     <p class="section-title">1° Désignation du logement loué</p>
     <p>
-      Le logement loué désigne : l’appartement situé au 2ème étage du 61 rue Boucher de Perthes, 59800 LILLE, dont le numéro d’identifiant fiscal est : 593501103615, situé dans une monopropriété et dans un immeuble collectif, construit avant 1949.
+      {{ article_duree_contrat|safe }}
     </p>
 
     <p class="section-title">2° Description du logement loué</p>

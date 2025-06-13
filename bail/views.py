@@ -57,6 +57,9 @@ def generate_bail_pdf(request):
                 "bail": bail,
                 "title_bail": BailMapping.title_bail(bail.bien),
                 "subtitle_bail": BailMapping.subtitle_bail(bail.bien),
+                "article_objet_du_contrat": BailMapping.article_objet_du_contrat(
+                    bail.bien
+                ),
             },
         )
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()

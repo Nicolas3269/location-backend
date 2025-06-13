@@ -279,10 +279,12 @@ L’installation de nouveaux équipements ou de dispositifs de réception spéci
 
   <div class="article">
     <h2>Article 6 - Date de prise d’effet et durée du contrat</h2>
+   
     <p><strong>1° Date de prise d’effet du contrat</strong></p>
     <p>
     Le présent contrat prend effet à compter du {{bail.date_debut|date:"j F Y"}}.
     </p>
+    
     <p><strong>2° Durée</strong></p>
     <p>
     La présente location est consentie et acceptée pour une durée de {% if bail.bien.meuble %}1 an{%else%}3 ans{% endif %} à compter de la date de prise d’effet du présent contrat de location.
@@ -291,24 +293,130 @@ L’installation de nouveaux équipements ou de dispositifs de réception spéci
     À l'expiration de cette période, le présent contrat se poursuivra par tacite reconduction pour des périodes successives de {% if bail.bien.meuble %}1 an{%else%}3 ans{% endif %}, à défaut de volonté contraire manifestée par l'une ou l'autre des parties selon les règles suivantes.
     </p>
     
-    
-    
     <p><strong>3° Congés</strong></p>
     <p>
-    <em>Congé par le locataire.</em> – Le locataire pourra donner congé à tout moment en cours de contrat. Ce congé devra être délivré au moins un (1) mois à l'avance par lettre recommandée avec demande d'avis de réception ou par acte d'huissier. Le délai de préavis est décompté à partir de la date de réception de la lettre de congé par le bailleur. À l'expiration du préavis, le locataire devra libérer les lieux le lendemain du dernier jour au plus tard à midi.</p>
-    <p><em>Congé par le bailleur.</em> – Le bailleur pourra donner congé au locataire dans les formes et aux conditions prévues par l’article 25-8 de la loi du 6 juillet 1989, sauf si le locataire bénéficie, en raison de son âge ou du montant de ses ressources, des mesures de protection édictées par l’article 25-8, II de la loi du 6 juillet 1989 précitée. Ce congé sera délivré pour la date d'expiration du contrat, moyennant un délai de préavis de trois (3) mois, soit par lettre recommandée avec demande d'avis de réception soit par acte d'huissier ou être remis en main propre contre récépissé ou émargement. Le délai de trois (3) mois courra à compter du jour de la réception de la lettre recommandée ou de la signification de l'acte d'huissier ou de la reprise en main propre.</p>
-    <p>Le bailleur ne pourra se fonder que sur la décision de reprendre le logement pour l'habiter, la décision de vendre le logement, ou sur un motif légitime et sérieux, notamment l'inexécution par le locataire de l'une des obligations lui incombant (article 25-8 de la loi du 6 juillet 1989 et la notice d’information jointe).</p>
-    <p>À défaut de congé donné par l'une ou l'autre des parties dans les formes et délais sus indiqués, le contrat sera reconduit tacitement aux mêmes clauses et conditions pour une durée d'un an.</p>
-    <p><strong>4° Abandon du domicile</strong><br>
-    En application de l’article 14 de la loi du 6 juillet 1989 dans le cas d’un abandon du domicile par le locataire, le contrat de location continue au profit du conjoint, sans préjudice de l’article 1751 du code civil, des descendants qui vivaient avec lui depuis au moins un (1) an à la date de l’abandon du domicile, du partenaire lié au locataire par un pacte civil de solidarité, des ascendants, du concubin notoire ou des personnes à charge, qui vivaient avec lui depuis au moins un (1) an à la date de l’abandon du domicile.</p>
+    <em>Congé par le locataire.</em> – Le locataire pourra donner congé à tout moment en cours de contrat. 
+    Ce congé devra être délivré au moins {% if bail.zone_tendue %}1 mois{%else%}3 mois{% endif %} à l'avance par lettre recommandée avec demande d'avis de réception ou par acte d'huissier. 
+    Le délai de préavis est décompté à partir de la date de réception de la lettre de congé par le bailleur. À l'expiration du préavis, le locataire devra libérer les lieux le lendemain du dernier jour au plus tard à midi.
+    </p>
+    
+    <p><em>Congé par le bailleur.</em> – Le bailleur pourra donner congé au locataire dans les formes et aux conditions prévues par l’article 25-8 de la loi du 6 juillet 1989, sauf si le locataire bénéficie, en raison de son âge ou du montant de ses ressources, des mesures de protection édictées par l’article 25-8, II de la loi du 6 juillet 1989 précitée. Ce congé sera délivré pour la date d'expiration du contrat, moyennant un délai de préavis de {% if bail.zone_tendue %}3 mois{%else%}6 mois{% endif %}, soit par lettre recommandée avec demande d'avis de réception soit par acte d'huissier ou être remis en main propre contre récépissé ou émargement. 
+      Le délai de {% if bail.zone_tendue %}3 mois{%else%}6 mois{% endif %} courra à compter du jour de la réception de la lettre recommandée ou de la signification de l'acte d'huissier ou de la reprise en main propre.
+    </p>
+    <p>
+      Le bailleur ne pourra se fonder que sur la décision de reprendre le logement pour l'habiter, la décision de vendre le logement, ou sur un motif légitime et sérieux, notamment l'inexécution par le locataire de l'une des obligations lui incombant (article 25-8 de la loi du 6 juillet 1989 et la notice d’information jointe).
+    </p>
+    <p>À défaut de congé donné par l'une ou l'autre des parties dans les formes et délais sus indiqués, le contrat sera reconduit tacitement aux mêmes clauses et conditions pour une durée de {% if bail.bien.meuble %}1 an{%else%}3 ans{% endif %}.
+    </p>
+    
+    <p><strong>4° Abandon du domicile</strong></p>
+    <p>En application de l’article 14 de la loi du 6 juillet 1989 dans le cas d’un abandon du domicile par le locataire, le contrat de location continue au profit du conjoint, sans préjudice de l’article 1751 du code civil, des descendants qui vivaient avec lui depuis au moins 1 an à la date de l’abandon du domicile, du partenaire lié au locataire par un pacte civil de solidarité, des ascendants, du concubin notoire ou des personnes à charge, qui vivaient avec lui depuis au moins 1 an à la date de l’abandon du domicile.</p>
     <p>Lorsque des éléments laissent supposer que le logement est abandonné par le locataire ou toute personne susvisée, le propriétaire peut mettre en demeure le locataire de justifier qu’il occupe le logement. Cette mise en demeure, faite par acte d’huissier de justice, peut être contenue dans un des commandements visés aux articles 7 et 24 de la loi du 6 juillet 1989.</p>
-    <p>À défaut de réponse dans le délai d’un (1) mois, l’huissier peut procéder à la constatation de l’état d’abandon et le propriétaire pourra engager la procédure de résiliation du bail d’habitation.</p>
-    <p><strong>5° Décès du locataire</strong><br>
-      Lors du décès du locataire, le contrat de location est transféré au conjoint survivant qui ne peut se prévaloir des dispositions de l’article 1751 du code civil, aux descendants qui vivaient avec lui depuis au moins un (1) an à la date du décès, au partenaire lié au locataire par un pacte civil de solidarité, aux ascendants, au concubin notoire, aux personnes à charge, qui vivaient avec lui depuis au moins un (1) an à la date du décès.</p>
-    <p>À défaut de personnes remplissant les conditions prévues au présent article, le contrat de location est résilié de plein droit par le décès du locataire.</p>  
+    <p>À défaut de réponse dans le délai de 1 mois, l’huissier peut procéder à la constatation de l’état d’abandon et le propriétaire pourra engager la procédure de résiliation du bail d’habitation.</p>
+    
+    <p><strong>5° Décès du locataire</strong></p>
+    <p>
+     Lors du décès du locataire, le contrat de location est transféré au conjoint survivant qui ne peut se prévaloir des dispositions de l’article 1751 du code civil, aux descendants qui vivaient avec lui depuis au moins 1 an à la date du décès, au partenaire lié au locataire par un pacte civil de solidarité, aux ascendants, au concubin notoire, aux personnes à charge, qui vivaient avec lui depuis au moins 1 an à la date du décès.
+    </p>
+    <p>
+      À défaut de personnes remplissant les conditions prévues au présent article, le contrat de location est résilié de plein droit par le décès du locataire.
+    </p>  
+
+
+
+
   </div>
   <div class="article">
     <h2>Article 7 – Conditions générales</h2>
+    <p>
+      Le présent contrat est consenti et accepté aux conditions générales suivantes, que les parties s'obligent à exécuter, chacune en ce qui la concerne, sauf stipulation contraire expressément convenue entre les parties.
+    </p>
+
+    <p><strong>1° Occupation - Jouissance</strong></p>
+    <p>
+    Usage des locaux. – Le locataire usera paisiblement de la chose louée suivant la destination prévue ci-dessus. Il s'engage à ne pas modifier cette destination. 
+    </p>
+    <p>
+      Plus particulièrement, les meubles et objets mobiliers ne devront être employés qu'à l'usage auquel ils sont destinés et dans les lieux où ils se trouvent.
+    </p>  
+    <p>
+      Il est interdit au locataire de les transporter hors du logement, sauf accord exprès du bailleur. Le locataire devra également veiller à ce qu'ils soient utilisés normalement afin d'éviter leur détérioration prématurée.
+    </p>
+    <p>
+      Visites. – Le propriétaire pourra visiter la chose louée ou la faire visiter par toute personne mandatée par lui, pour la surveillance et l'entretien de l'immeuble et de toutes les installations, toutes les fois que cela sera nécessaire, à charge de prévenir au préalable le locataire. 
+    </p>
+    <p>
+      Il pourra également en vue de la vente ou de la relocation du logement loué, le faire visiter, 1 mois avant la date de fin du contrat, chaque jour ouvrable durant 2 heures qui seront fixées d'un commun accord entre les parties entre 13 et 19 heures, ou à défaut par le juge des référés.
+    </p>
+    <p>
+      Cession - Sous-location. – Le locataire devra occuper le logement lui-même. Il ne pourra pas céder les droits qu'il tient du présent contrat, ni sous-louer, ni même prêter tout ou partie de la chose louée sans l'accord exprès du propriétaire.
+    </p>
+    <p>
+      Le locataire ne pourra l'affecter à un autre usage et il ne pourra donc en particulier y exercer une activité professionnelle, même libérale, ni de sous-location, sans l’accord exprès du bailleur.
+    </p>
+    <p>
+      Le prix du loyer au mètre carré de surface habitable des locaux sous-loués ne peut excéder celui payé par le locataire principal. Le locataire transmet préalablement au bailleur copie du projet de convention de sous-location. Le locataire transmet au sous-locataire l’autorisation écrite du bailleur et la copie du bail en cours.
+    </p>
+
+
+    <p><strong>2° Responsabilité - Assurance</strong></p>
+    <p>
+      Le locataire répondra des dégradations et pertes qui pourraient survenir à la chose louée pendant la durée du contrat, à moins qu'il ne prouve qu'elles ont eu lieu par cas de force majeure, par la faute du propriétaire, ou par le fait d'un tiers qu'il n'a pas introduit dans le logement.
+    </p>
+    <p>
+      Il devra, pendant toute la durée du contrat, faire assurer la chose louée auprès d'une compagnie notoirement solvable et pour une somme suffisante contre les risques dont il doit répondre en sa qualité de locataire, notamment contre l'incendie, les dégâts des eaux, les risques locatifs et le recours des voisins. Le locataire s’engage à fournir une attestation d’assurance au moins une fois par an ou sur demande du bailleur. 
+    </p>
+
+
+    <p><strong>3° Entretien - Réparations - Travaux</strong></p>
+    <p>
+      Locataire. – Le locataire aura à sa charge l'entretien courant de la chose louée, les menues réparations et l'ensemble des réparations locatives, sauf si elles sont occasionnées par vétusté, malfaçon, vice de construction, cas fortuit ou force majeure. Les réparations à la charge du locataire sont définies par le décret n° 87-712 du 26 août 1987.
+    </p>
+    <p>
+      En ce qui concerne particulièrement les meubles et objets mobiliers compris dans la location, le locataire devra les maintenir en bon état et les rendre de même en fin de contrat, sauf les détériorations et l'usure provenant d'une utilisation normale. À son départ, il sera également tenu de rembourser au propriétaire la valeur de ces meubles et objets mobiliers qui auraient été perdus ou détériorés autrement que par vétusté, cas fortuit ou force majeure.
+    </p>
+    <p>
+      Le locataire s’engage également à laisser exécuter dans les lieux loués les travaux d’amélioration des parties communes ou des parties privatives de l’immeuble ainsi que les travaux nécessaires au maintien en état et à l’entretien normal des locaux loués.
+    </p>
+    <p>
+      Propriétaire. – De son côté, le propriétaire sera tenu d'entretenir la chose louée en état de servir à l'usage prévu par le contrat et d'y faire toutes les réparations nécessaires autres que locatives et d'entretien. À cette fin, le locataire s'engage à le prévenir immédiatement de toute détérioration qu'il constaterait et qui nécessiterait des réparations à la charge du propriétaire.
+    </p>
+    <p>
+      Troubles de jouissance. – Le locataire devra souffrir sans indemnité la réalisation par le propriétaire des réparations qui deviendraient urgentes ou nécessaires. 
+    </p>
+    <p>
+      Application d’une grille de vétusté. - Conformément à l’article 4 du chapitre II du décret n°2016-382 du 30 mars 2016, la grille de vétusté appliquée au présent contrat de location se trouve en annexe. Il s’agit de l’accord collectif portant sur la grille de vétusté et l’indemnité de remise en état des logements à l’OPAC de Paris. Le locataire reconnaît avoir pris connaissance de cette grille, qui a été convenue entre les parties.
+    </p>
+
+
+    <p><strong>4° Aménagements - Transformations</strong></p>
+    <p>
+      Toute transformation ou aménagement nécessitera l'accord exprès et écrit du propriétaire.
+    </p>
+    <p>
+      À défaut de cet accord, le propriétaire pourra exiger la remise en état des locaux ou des équipements, au départ du locataire, ou conserver les transformations ou aménagements effectués sans que le locataire puisse réclamer une indemnité pour les frais engagés.
+    </p>
+    <p>
+      Le propriétaire pourra également exiger, aux frais du locataire, la remise immédiate des lieux en l'état au cas où les transformations ou aménagements mettraient en péril le bon fonctionnement des équipements ou la sécurité du local.
+    </p>
+
+
+    <p><strong>5° Solidarité - Indivisibilité</strong></p>
+    <p>
+      En cas de décès du locataire, il y aura solidarité et indivisibilité entre tous ses héritiers et représentants comme aussi entre chacun de ces derniers et tous autres coobligés pour le paiement des loyers et accessoires ainsi que pour l'exécution, en général, du présent contrat et les frais de la signification prescrite par l'article 877 du Code civil seront à la charge exclusive de ceux à qui elle sera faite.
+    </p>
+
+
+    {% if bail.classe_dpe != "NA"%}
+    <p>
+      Les locataires seront tenus solidairement de l’accomplissement de l’ensemble des obligations résultant du présent contrat, ce qu’ils acceptent.
+    </p>
+    {% endif %}
+    <p>
+      xxxx
+    </p>
+
+
   </div>
   <p>[...]</p>
 

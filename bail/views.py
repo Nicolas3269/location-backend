@@ -26,7 +26,6 @@ from bail.models import (
 )
 from bail.utils import (
     create_signature_requests,
-    prepare_pdf_with_signature_fields,
     process_signature,
     send_signature_email,
 )
@@ -72,7 +71,7 @@ def generate_bail_pdf(request):
                 f.write(pdf_bytes)
 
             # 2. Ajouter champs
-            prepare_pdf_with_signature_fields(tmp_pdf_path, bail)
+            # prepare_pdf_with_signature_fields(tmp_pdf_path, bail)
             # 3. Recharger dans bail.pdf
             with open(tmp_pdf_path, "rb") as f:
                 bail.pdf.save(pdf_filename, ContentFile(f.read()), save=True)

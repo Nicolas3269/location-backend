@@ -37,6 +37,17 @@
       text-align: justify;
     }
 
+    ul {
+      margin: 0;
+      padding-left: 1.5em;
+    }
+
+    li {
+      line-height: 1.6em;
+      text-align: justify;
+      margin-bottom: 0.5em;
+    }
+
     .align-right {
       text-align: right;
     }
@@ -92,7 +103,7 @@
       {% endfor %}
     </p>
     <p class="align-right">
-      Dénommé{% if bail.bien.proprietaires.all|length > 1 %}s{% endif %} ci-après « le bailleur{% if bail.bien.proprietaires.all|length > 1 %}s{% endif %} » ;
+      Dénommé{% if bail.bien.proprietaires.all|length > 1 %}s{% endif %} ci-après « le bailleur » ;
     </p>
     
     <p>
@@ -101,17 +112,21 @@
       {% endfor %}
     </p>
     <p class="align-right">
-      Dénommé{% if bail.locataires.all|length > 1 %}s{% endif %} ci-après « le ou les locataire{% if bail.locataires.all|length > 1 %}s{% endif %} » ;
+      Dénommé{% if bail.locataires.all|length > 1 %}s{% endif %} ci-après « le locataire » ;
     </p>
 
     <p class="section-title">2° Déclaration des parties</p>
     <p>
-      Le bailleur et le locataire déclarent, chacun en ce qui le concerne : 
-      être résidents en France au sens de la réglementation fiscale en vigueur, 
-      ne pas être l’objet de poursuites ou de condamnations dans le cadre d’une procédure collective, redressement ou liquidation judiciaire, faillite, interdiction ou déchéance de droits civiques, affectant leur capacité civile ou juridique.
+      Le bailleur et le locataire déclarent, chacun en ce qui le concerne :
     </p>
     <p>
-      Par ailleurs, il est expressément convenu que les notifications et communications faites en vertu du présent contrat sont de plein droit opposables au conjoint du locataire ou au partenaire lié par un pacte civil de solidarité au locataire, si l’existence de ce dernier n’a pas été préalablement portée à la connaissance du bailleur.
+    <ul>
+      <li>être résidents en France au sens de la réglementation en vigueur,</li>
+      <li>ne pas être l'objet de poursuites ou de condamnations dans le cadre d'une procédure collective, redressement ou liquidation judiciaire, faillite, interdiction ou déchéance de droits civiques, affectant leur capacité civile ou juridique.</li>
+    </ul>
+    </p>
+    <p>
+      Par ailleurs, il est expressément convenu que toute notification ou communication effectuée en vertu du présent contrat est de plein droit opposable au conjoint du locataire ou à son partenaire lié par un pacte civil de solidarité, si l'existence de ce dernier n'a pas été préalablement portée à la connaissance du bailleur.
     </p>
   </div>
 

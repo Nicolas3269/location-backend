@@ -32,6 +32,8 @@ from bail.utils import (
 
 logger = logging.getLogger(__name__)
 
+INDICE_IRL = 145.47
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -70,6 +72,7 @@ def generate_bail_pdf(request):
                 ),
                 "information_info": BailMapping.information_info(bail.bien),
                 "energy_info": BailMapping.energy_info(bail.bien),
+                "indice_irl": INDICE_IRL,
             },
         )
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
@@ -479,14 +482,19 @@ def save_draft(request):
         solidaire_string = form_data.get("solidaires", "")
         solidaires = solidaire_string.lower() == "true"
 
+        montant_loyer = Decimal(str(modalites.get("prix", 0)))
+        is_meuble = bien.meuble
+        depot_garantie = 2 * montant_loyer if is_meuble else montant_loyer
+
         bail = BailSpecificites.objects.create(
             bien=bien,
             solidaires=solidaires,
             date_debut=start_date,
             montant_loyer=Decimal(str(modalites.get("prix", 0))),
+            type_charges=modalites.get("chargeType", ""),
             montant_charges=Decimal(str(modalites.get("chargeAmount", 0))),
             # Par défaut égal au loyer
-            depot_garantie=Decimal(str(modalites.get("prix", 0))),
+            depot_garantie=depot_garantie,
             is_draft=True,  # Brouillon
         )
 

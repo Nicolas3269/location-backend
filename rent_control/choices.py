@@ -41,3 +41,8 @@ class ConstructionPeriod(TextChoices):
 class SystemType(TextChoices):
     COLLECTIF = "collectif", "Collectif"
     INDIVIDUEL = "individuel", "Individuel"
+
+
+class ChargeType(TextChoices):
+    FORFAITAIRES = "forfaitaires", "Forfaitaires"
+    PROVISIONNELLES = "provisionnelles", "Provisionnelles"

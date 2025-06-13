@@ -5,6 +5,7 @@ from django.db import models
 from django.utils import timezone
 
 from rent_control.choices import (
+    ChargeType,
     ConstructionPeriod,
     PropertyType,
     RegimeJuridique,
@@ -186,6 +187,12 @@ class BailSpecificites(models.Model):
 
     # Loyer et charges
     montant_loyer = models.DecimalField(max_digits=10, decimal_places=2)
+    type_charges = models.CharField(
+        max_length=20,
+        choices=ChargeType.choices,
+        default=ChargeType.FORFAITAIRES,
+        verbose_name="Type de charges",
+    )
     montant_charges = models.DecimalField(max_digits=10, decimal_places=2)
     jour_paiement = models.PositiveSmallIntegerField(
         default=5, help_text="Jour du mois"

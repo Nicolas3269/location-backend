@@ -417,10 +417,107 @@ L’installation de nouveaux équipements ou de dispositifs de réception spéci
     <h2>Article 9 – Conditions financières</h2>
     
     <p><strong>1° Fixation du loyer initial</strong></p>
+    <p>
+    Le loyer convenu est en conséquence chiffré à la somme de {{bail.montant_loyer}} euros par mois, charges en sus. Ce loyer sera payable mensuellement à terme à échoir, par tout moyen, dans les 10 premiers jours de chaque mois. Le premier paiement interviendra le jour de la remise des clés.
+    </p>
 
-      <p>
-        xxxx
-      </p>
+    <p>
+    Au titre du trimestre de référence de l’IRL (Indice de référence des loyers) à la date du présent contrat, l’indice s’élève à {{indice_irl}}. 
+    </p>
+
+    {% if bail.zone_tendue %}
+    <p>
+      Modalités particulières de fixation initiale du loyer applicables dans certaines zones tendues :
+    </p>
+    <p>
+      <ul>
+        <li>
+          Le loyer du logement objet du présent contrat est soumis au décret fixant annuellement le montant maximum d’évolution des loyers à la relocation.
+        </li>
+        <li>
+          Le loyer du logement objet du présent contrat est soumis au loyer de référence majoré fixé par arrêté préfectoral :
+          <ul>
+            <li>Montant du loyer de référence : {{bail.prix_reference}}euros par m<sup>2</sup></li>
+            <li>Montant du loyer de référence majoré : {{bail.prix_reference*1.2}}euros parm<sup>2</sup></li>
+            <li>Complément de loyer : {{bail.complement_loyer}}euros</li>
+            <li>Justification du complément de loyer : XXXX</li>
+
+        </li>
+      </ul>
+    </p>
+    {% endif %}
+
+    <p><strong>2° Révision du loyer </strong></p>
+    <p>
+    Le loyer ci-dessus stipulé pourra être révisé chaque année à la date anniversaire de la prise d'effet du présent contrat, notamment dans le cas de sa reconduction, en fonction de la variation de l'indice de référence des loyers (IRL) publié par l'INSEE, conformément à l’article 17-1 de la loi du 6 juillet 1989. 
+    </p>
+    <p>
+    L’augmentation annuelle ne pourra excéder la variation de l’indice sur 12 mois, entre l’indice de référence indiqué ci-dessus et celui publié le plus récemment à la date de révision. 
+    </p>
+    <p>
+    En cas de non-publication ponctuelle de l’indice, le loyer restera provisoirement inchangé. Dès la publication de l’indice, le bailleur pourra exiger le rappel de loyer rétroactif, dans la limite du délai légal de prescription. 
+    </p>
+
+    <p><strong>3° Charges </strong></p>
+    {% if bail.type_charges == "forfaitaires" %}
+    <p>
+    En application de l’article 25-10 de la loi n°89-462 du 6 juillet 1989, les charges locatives sont récupérées sous la forme d’un forfait mensuel, versé simultanément au loyer, et non révisable rétroactivement. 
+    </p>
+    <p>
+    Le montant du forfait est fixé à {{bail.montant_charges}} euros par mois. Il inclut l’ensemble des charges récupérables habituellement dues par le locataire. 
+    </p>
+    <p>
+    Ce forfait n’est pas soumis à régularisation, mais il peut être révisé chaque année dans les mêmes conditions que le loyer, selon l’indice de référence applicable au contrat. 
+    </p>
+
+
+    {% endif %}
+
+
+    {% if bail.type_charges == "provisionnelles" %}
+    <p>
+    Conformément à l’article 23 de la loi n°89-462 du 6 juillet 1989, les charges locatives sont récupérées sous forme de provisions mensuelles, versées en même temps que le loyer. 
+    </p>
+    <p>
+    Le montant de la provision est fixé à {{bail.montant_charges}} euros par mois. 
+    </p>
+    <p>
+    Une régularisation annuelle sera effectuée par le bailleur, sur la base des dépenses réelles engagées, avec transmission au locataire du détail des charges et éventuelles justifications. 
+    </p>
+    <p>
+    En cas d’écart entre les provisions versées et les dépenses réelles, le trop-perçu ou le solde dû fera l’objet d’un ajustement.
+    </p>
+    {% endif %}
+
+</div>
+
+  <div class="article">
+
+    <h2>Article 10 - Garantie - Cautionnement</h2>
+    <p><strong>1° Dépôt de garantie</strong></p>
+    <p>
+      Le locataire a versé au propriétaire qui le reconnaît et lui en consent quittance la somme de {{bail.depot_garantie}} euros, correspondant à {% if bail.bien.meuble %}2 mois{%else%}1 mois{% endif %} de loyer hors charges, à titre de dépôt de garantie, destiné à couvrir l’inexécution éventuelle de ses obligations contractuelles.
+    </p>
+    <p>
+      Ce dépôt de garantie ne produit aucun intérêt pour le locataire. Il sera restitué dans les délais et selon les modalités prévus à l’article 22 de la loi du 6 juillet 1989 précitée, dans un délai maximal de 2 mois à compter de la restitution des clés, déduction faite :
+    </p>
+    <p>
+       <ul>
+        <li>
+          des loyers, charges ou accessoires éventuellement dus, 
+        </li>
+        <li>
+          du coût des réparations locatives justifiées par l’état des lieux de sortie, 
+        </li>
+        <li>
+          de toute autre somme que le bailleur pourrait être tenu de régler aux lieu et place du locataire, sous réserve de justification. 
+        </li>
+      </ul>
+    </p>
+
+
+    <p><strong>2° Cautionnement</strong></p>
+
 
 
 

@@ -66,7 +66,7 @@ class Bien(models.Model):
     type_bien = models.CharField(
         max_length=20, choices=PropertyType.choices, verbose_name="Type de bien"
     )
-    etage = models.PositiveSmallIntegerField(null=True, blank=True)
+    etage = models.CharField(max_length=10, blank=True)
     porte = models.CharField(max_length=10, blank=True)
     dernier_etage = models.BooleanField(default=False)
 

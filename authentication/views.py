@@ -1,11 +1,14 @@
 import json
 import logging
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.utils import (
     create_email_verification,
@@ -57,13 +60,26 @@ def login_with_google(request):
         # Générer des tokens JWT
         tokens = get_tokens_for_user(user)
 
-        return JsonResponse(
+        # Créer la réponse avec seulement l'access token
+        response = JsonResponse(
             {
                 "success": True,
-                "tokens": tokens,
+                "tokens": {"access": tokens["access"]},  # Seulement l'access token
                 "user": {"email": user.email},
             }
         )
+
+        # Configurer le refresh token en cookie HttpOnly
+        response.set_cookie(
+            "jwt_refresh",
+            tokens["refresh"],
+            max_age=7 * 24 * 60 * 60,  # 7 jours
+            httponly=True,
+            secure=not settings.DEBUG,  # HTTPS en production seulement
+            samesite="Lax",
+        )
+
+        return response
 
     except Exception as e:
         logger.exception("Erreur lors de la connexion avec Google")
@@ -121,15 +137,56 @@ def verify_otp_login(request):
         if not success:
             return JsonResponse({"error": error_message}, status=400)
 
-        return JsonResponse(
+        # Créer la réponse avec seulement l'access token
+        response = JsonResponse(
             {
                 "success": True,
                 "message": "Authentification réussie",
-                "tokens": tokens_dict,
+                "tokens": {"access": tokens_dict["access"]},  # Seulement l'access token
                 "email": email,
             }
         )
 
-    except Exception as e:
+        # Configurer le refresh token en cookie HttpOnly
+        response.set_cookie(
+            "jwt_refresh",
+            tokens_dict["refresh"],
+            max_age=7 * 24 * 60 * 60,  # 7 jours
+            httponly=True,
+            secure=not settings.DEBUG,  # HTTPS en production seulement
+            samesite="Lax",
+        )
+
+        return response
+
+    except Exception:
         logger.exception("Erreur lors de la vérification de l'OTP")
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        return JsonResponse({"success": False, "error": "Erreur interne"}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def refresh_token_view(request):
+    """Vue personnalisée pour rafraîchir les tokens via cookies"""
+    try:
+        # Récupérer le refresh token depuis les cookies
+        refresh_token = request.COOKIES.get("jwt_refresh")
+
+        if not refresh_token:
+            return JsonResponse({"error": "Refresh token manquant"}, status=401)
+
+        try:
+            # Valider et rafraîchir le token
+            refresh = RefreshToken(refresh_token)
+            access_token = str(refresh.access_token)
+
+            return JsonResponse({"access": access_token})
+
+        except (TokenError, InvalidToken):
+            return JsonResponse(
+                {"error": "Token de rafraîchissement invalide"}, status=401
+            )
+
+    except Exception:
+        logger.exception("Erreur lors du rafraîchissement du token")
+        return JsonResponse({"error": "Erreur interne du serveur"}, status=500)

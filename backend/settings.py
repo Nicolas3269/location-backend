@@ -64,12 +64,14 @@ MIDDLEWARE = [
 # Configuration CORS fixe pour le développement
 if DEBUG:
     CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
+    CORS_ALLOW_CREDENTIALS = True  # Permettre l'envoi de cookies/credentials
 else:
     # En production, utiliser les variables d'environnement avec traitement approprié
     cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "")
     CORS_ALLOWED_ORIGINS = [
         origin.strip() for origin in cors_origins.split(",") if origin.strip()
     ]
+    CORS_ALLOW_CREDENTIALS = True  # Permettre l'envoi de cookies/credentials
 
 ROOT_URLCONF = "backend.urls"
 
@@ -113,6 +115,9 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        "OPTIONS": {
+            "timeout": 20,  # 20 seconds timeout for SQLite
+        },
     },
     "geodb": {
         "ENGINE": "django.contrib.gis.db.backends.spatialite",  # Changed from django.db.backends.sqlite3

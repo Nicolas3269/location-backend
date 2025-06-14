@@ -26,7 +26,6 @@ from bail.models import (
 )
 from bail.utils import (
     create_signature_requests,
-    prepare_pdf_with_signature_fields,
     process_signature,
     send_signature_email,
 )
@@ -93,7 +92,7 @@ def generate_bail_pdf(request):
                 f.write(pdf_bytes)
 
             # 2. Ajouter champs
-            prepare_pdf_with_signature_fields(tmp_pdf_path, bail)
+            # prepare_pdf_with_signature_fields(tmp_pdf_path, bail)
             # 3. Recharger dans bail.pdf
             with open(tmp_pdf_path, "rb") as f:
                 bail.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
@@ -115,7 +114,7 @@ def generate_bail_pdf(request):
             {
                 "success": True,
                 "bailId": bail.id,
-                "pdfUrl": bail.pdf.url,
+                "pdfUrl": request.build_absolute_uri(bail.pdf.url),
                 "linkTokenFirstSigner": str(first_sign_req.link_token),
             }
         )
@@ -212,7 +211,8 @@ def confirm_signature_bail(request):
             send_signature_email(next_req)
 
         bail_url = f"{sig_req.bail.pdf.url.rsplit('.', 1)[0]}_signed.pdf"
-        return JsonResponse({"success": True, "pdfUrl": bail_url})
+        bail_absolute_url = request.build_absolute_uri(bail_url)
+        return JsonResponse({"success": True, "pdfUrl": bail_absolute_url})
 
     except Exception as e:
         logger.exception("Erreur lors de la signature du PDF")
@@ -230,13 +230,14 @@ def confirm_signature_bail(request):
 def generate_grille_vetuste_pdf(request):
     """Retourne l'URL de la grille de vétusté statique"""
     try:
-        # URL media du fichier PDF
+        # URL media du fichier PDF avec URL complète
         media_pdf_url = f"{settings.MEDIA_URL}bails/grille_vetuste.pdf"
+        full_url = request.build_absolute_uri(media_pdf_url)
 
         return JsonResponse(
             {
                 "success": True,
-                "grillVetustUrl": media_pdf_url,
+                "grillVetustUrl": full_url,
                 "filename": "grille_vetuste.pdf",
             }
         )
@@ -256,11 +257,12 @@ def generate_notice_information_pdf(request):
     try:
         # URL media du fichier PDF
         media_pdf_url = f"{settings.MEDIA_URL}bails/notice_information.pdf"
+        full_url = request.build_absolute_uri(media_pdf_url)
 
         return JsonResponse(
             {
                 "success": True,
-                "noticeUrl": media_pdf_url,
+                "noticeUrl": full_url,
                 "filename": "notice_information.pdf",
             }
         )
@@ -310,18 +312,18 @@ def upload_dpe_diagnostic(request):
 
                 bail = BailSpecificites.objects.get(id=bail_id)
                 bail.dpe_pdf.save(filename, dpe_file, save=True)
-                file_url = bail.dpe_pdf.url
+                file_url = request.build_absolute_uri(bail.dpe_pdf.url)
             except BailSpecificites.DoesNotExist:
                 logger.warning(f"Bail avec l'ID {bail_id} introuvable")
                 # Fallback si le bail n'existe pas
                 file_path = f"bail_pdfs/{filename}"
                 saved_path = default_storage.save(file_path, dpe_file)
-                file_url = default_storage.url(saved_path)
+                file_url = request.build_absolute_uri(default_storage.url(saved_path))
         else:
             # Fallback pour les cas sans bail_id
             file_path = f"bail_pdfs/{filename}"
             saved_path = default_storage.save(file_path, dpe_file)
-            file_url = default_storage.url(saved_path)
+            file_url = request.build_absolute_uri(default_storage.url(saved_path))
 
         return JsonResponse(
             {
@@ -344,187 +346,225 @@ def upload_dpe_diagnostic(request):
 @permission_classes([IsAuthenticated])
 def save_draft(request):
     """Sauvegarde un brouillon de bail à partir des données du formulaire"""
-    try:
-        form_data = json.loads(request.body)
+    import time
+    from datetime import datetime
+    from decimal import Decimal
 
-        # Extraire les données du formulaire
-        from datetime import datetime
-        from decimal import Decimal
+    from django.db import OperationalError, transaction
 
-        # Validation des données requises
-        if not form_data.get("adresse"):
+    max_retries = 3
+    retry_delay = 0.1  # 100ms
+
+    for attempt in range(max_retries):
+        try:
+            with transaction.atomic():
+                form_data = json.loads(request.body)
+
+                # Validation des données requises
+                if not form_data.get("adresse"):
+                    return JsonResponse(
+                        {"success": False, "error": "L'adresse est requise"}, status=400
+                    )
+
+                if not form_data.get("landlord", {}).get("firstName"):
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": "Le prénom du propriétaire est requis",
+                        },
+                        status=400,
+                    )
+
+                # 1. Créer les propriétaires
+                # Propriétaire principal
+                landlord_data = form_data.get("landlord", {})
+                proprietaire_principal = Proprietaire.objects.create(
+                    nom=landlord_data.get("lastName", ""),
+                    prenom=landlord_data.get("firstName", ""),
+                    adresse=landlord_data.get("address", ""),
+                    email=landlord_data.get("email", ""),
+                    telephone="",  # Pas fourni dans le formulaire
+                )
+
+                # Propriétaires additionnels
+                proprietaires = [proprietaire_principal]
+                other_landlords = form_data.get("otherLandlords", [])
+                for landlord in other_landlords:
+                    proprietaire = Proprietaire.objects.create(
+                        nom=landlord.get("lastName", ""),
+                        prenom=landlord.get("firstName", ""),
+                        adresse=landlord.get("address", ""),
+                        email=landlord.get("email", ""),
+                        telephone="",  # Pas fourni dans le formulaire
+                    )
+                    proprietaires.append(proprietaire)
+
+                # 2. Créer le bien
+                # Calculer le nombre de pièces principales
+                pieces = form_data.get("pieces", {})
+                chambres = pieces.get("chambres", 0)
+                salons = pieces.get("salons", 0)
+                nombre_pieces_principales = chambres + salons
+
+                # Mapper le nombre de pièces au choix du modèle
+                if nombre_pieces_principales == 1:
+                    nb_pieces = "1"
+                elif nombre_pieces_principales == 2:
+                    nb_pieces = "2"
+                elif nombre_pieces_principales == 3:
+                    nb_pieces = "3"
+                else:
+                    nb_pieces = "4"  # 4 pièces et plus
+
+                # Mapper la période de construction
+                periode_construction_map = {
+                    "avant_1946": "avant 1946",
+                    "1946_1970": "1946-1970",
+                    "1971_1990": "1971-1990",
+                    "apres_1990": "apres 1990",
+                }
+                periode_construction = periode_construction_map.get(
+                    form_data.get("periodeConstruction", ""), "avant 1946"
+                )
+
+                # Mapper le type de logement
+                type_logement_map = {
+                    "appartement": "appartement",
+                    "maison": "maison",
+                }
+                type_bien = type_logement_map.get(
+                    form_data.get("typeLogement", ""), "appartement"
+                )
+
+                # Mapper le meublé
+                meuble_map = {
+                    "meuble": True,
+                    "vide": False,
+                }
+                meuble = meuble_map.get(form_data.get("meuble", "vide"), False)
+
+                # Extract DPE expenses if provided
+                dpe_grade = form_data.get("dpeGrade", "NA")
+                depenses_energetiques = form_data.get("depensesDPE", "").lower()
+
+                # Extract autre energies if needed
+                chauffage_energie = form_data.get("chauffage", {}).get("energie", "")
+                if chauffage_energie == "autre":
+                    chauffage_energie = form_data.get("chauffage", {}).get(
+                        "autreDetail", ""
+                    )
+                eau_chaude_energie = form_data.get("eauChaude", {}).get("energie", "")
+                if eau_chaude_energie == "autre":
+                    eau_chaude_energie = form_data.get("eauChaude", {}).get(
+                        "autreDetail", ""
+                    )
+
+                bien = Bien.objects.create(
+                    adresse=form_data.get("adresse", ""),
+                    identifiant_fiscal=form_data.get("identificationFiscale", ""),
+                    regime_juridique=form_data.get("regimeJuridique", ""),
+                    type_bien=type_bien,
+                    etage=form_data.get("etage", ""),
+                    porte=form_data.get("porte", ""),
+                    periode_construction=periode_construction,
+                    superficie=Decimal(str(form_data.get("surface", 0))),
+                    nb_pieces=nb_pieces,
+                    meuble=meuble,
+                    classe_dpe=dpe_grade,
+                    depenses_energetiques=depenses_energetiques,
+                    annexes_privatives=form_data.get("annexes", []),
+                    annexes_collectives=form_data.get("annexesCollectives", []),
+                    information=form_data.get("information", []),
+                    pieces_info=form_data.get("pieces", {}),
+                    chauffage_type=form_data.get("chauffage", {}).get("type", ""),
+                    chauffage_energie=chauffage_energie,
+                    eau_chaude_type=form_data.get("eauChaude", {}).get("type", ""),
+                    eau_chaude_energie=eau_chaude_energie,
+                )
+
+                # Associer les propriétaires au bien
+                bien.proprietaires.set(proprietaires)
+
+                # 3. Créer les locataires
+                locataires_data = form_data.get("locataires", [])
+                locataires = []
+                for locataire_data in locataires_data:
+                    locataire = Locataire.objects.create(
+                        nom=locataire_data.get("lastName", ""),
+                        prenom=locataire_data.get("firstName", ""),
+                        email=locataire_data.get("email", ""),
+                        caution_requise=locataire_data.get("cautionRequise", ""),
+                        # Les autres champs ne sont pas fournis dans le formulaire
+                    )
+                    locataires.append(locataire)
+
+                # 4. Créer le bail
+                start_date_str = form_data.get("startDate", "")
+                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                modalites = form_data.get("modalites", {})
+                solidaire_string = form_data.get("solidaires", "")
+                solidaires = solidaire_string.lower() == "true"
+
+                montant_loyer = Decimal(str(modalites.get("prix", 0)))
+                is_meuble = bien.meuble
+                depot_garantie = 2 * montant_loyer if is_meuble else montant_loyer
+
+                prix_reference = 1000
+
+                bail = BailSpecificites.objects.create(
+                    bien=bien,
+                    solidaires=solidaires,
+                    date_debut=start_date,
+                    montant_loyer=Decimal(str(modalites.get("prix", 0))),
+                    type_charges=modalites.get("chargeType", ""),
+                    montant_charges=Decimal(str(modalites.get("chargeAmount", 0))),
+                    prix_reference=Decimal(
+                        str(prix_reference)
+                    ),  # Prix de référence pour le calcul
+                    # Par défaut égal au loyer
+                    depot_garantie=depot_garantie,
+                    zone_tendue=form_data.get("zoneTendue", False),
+                    is_draft=True,  # Brouillon
+                )
+
+                # Associer les locataires au bail
+                bail.locataires.set(locataires)
+
+                return JsonResponse(
+                    {
+                        "success": True,
+                        "bailId": bail.id,
+                        "message": "Brouillon sauvegardé avec succès",
+                    }
+                )
+
+        except OperationalError as e:
+            if "database is locked" in str(e).lower() and attempt < max_retries - 1:
+                logger.warning(
+                    f"Database locked, retry attempt {attempt + 1}/{max_retries}"
+                )
+                time.sleep(retry_delay * (2**attempt))  # Exponential backoff
+                continue
+            else:
+                logger.exception(
+                    "Erreur de base de données lors de la sauvegarde du brouillon"
+                )
+                return JsonResponse(
+                    {"success": False, "error": f"Erreur de base de données: {str(e)}"},
+                    status=500,
+                )
+        except Exception as e:
+            logger.exception("Erreur lors de la sauvegarde du brouillon")
             return JsonResponse(
-                {"success": False, "error": "L'adresse est requise"}, status=400
+                {"success": False, "error": f"Erreur lors de la sauvegarde: {str(e)}"},
+                status=500,
             )
 
-        if not form_data.get("landlord", {}).get("firstName"):
-            return JsonResponse(
-                {"success": False, "error": "Le prénom du propriétaire est requis"},
-                status=400,
-            )
-
-        # 1. Créer les propriétaires
-        # Propriétaire principal
-        landlord_data = form_data.get("landlord", {})
-        proprietaire_principal = Proprietaire.objects.create(
-            nom=landlord_data.get("lastName", ""),
-            prenom=landlord_data.get("firstName", ""),
-            adresse=landlord_data.get("address", ""),
-            email=landlord_data.get("email", ""),
-            telephone="",  # Pas fourni dans le formulaire
-        )
-
-        # Propriétaires additionnels
-        proprietaires = [proprietaire_principal]
-        other_landlords = form_data.get("otherLandlords", [])
-        for landlord in other_landlords:
-            proprietaire = Proprietaire.objects.create(
-                nom=landlord.get("lastName", ""),
-                prenom=landlord.get("firstName", ""),
-                adresse=landlord.get("address", ""),
-                email=landlord.get("email", ""),
-                telephone="",  # Pas fourni dans le formulaire
-            )
-            proprietaires.append(proprietaire)
-
-        # 2. Créer le bien
-        # Calculer le nombre de pièces principales
-        pieces = form_data.get("pieces", {})
-        chambres = pieces.get("chambres", 0)
-        salons = pieces.get("salons", 0)
-        nombre_pieces_principales = chambres + salons
-
-        # Mapper le nombre de pièces au choix du modèle
-        if nombre_pieces_principales == 1:
-            nb_pieces = "1"
-        elif nombre_pieces_principales == 2:
-            nb_pieces = "2"
-        elif nombre_pieces_principales == 3:
-            nb_pieces = "3"
-        else:
-            nb_pieces = "4"  # 4 pièces et plus
-
-        # Mapper la période de construction
-        periode_construction_map = {
-            "avant_1946": "avant 1946",
-            "1946_1970": "1946-1970",
-            "1971_1990": "1971-1990",
-            "apres_1990": "apres 1990",
-        }
-        periode_construction = periode_construction_map.get(
-            form_data.get("periodeConstruction", ""), "avant 1946"
-        )
-
-        # Mapper le type de logement
-        type_logement_map = {
-            "appartement": "appartement",
-            "maison": "maison",
-        }
-        type_bien = type_logement_map.get(
-            form_data.get("typeLogement", ""), "appartement"
-        )
-
-        # Mapper le meublé
-        meuble_map = {
-            "meuble": True,
-            "vide": False,
-        }
-        meuble = meuble_map.get(form_data.get("meuble", "vide"), False)
-
-        # Extract DPE expenses if provided
-        dpe_grade = form_data.get("dpeGrade", "NA")
-        depenses_energetiques = form_data.get("depensesDPE", "").lower()
-
-        # Extract autre energies if needed
-        chauffage_energie = form_data.get("chauffage", {}).get("energie", "")
-        if chauffage_energie == "autre":
-            chauffage_energie = form_data.get("chauffage", {}).get("autreDetail", "")
-        eau_chaude_energie = form_data.get("eauChaude", {}).get("energie", "")
-        if eau_chaude_energie == "autre":
-            eau_chaude_energie = form_data.get("eauChaude", {}).get("autreDetail", "")
-
-        bien = Bien.objects.create(
-            adresse=form_data.get("adresse", ""),
-            identifiant_fiscal=form_data.get("identificationFiscale", ""),
-            regime_juridique=form_data.get("regimeJuridique", ""),
-            type_bien=type_bien,
-            etage=form_data.get("etage", ""),
-            porte=form_data.get("porte", ""),
-            periode_construction=periode_construction,
-            superficie=Decimal(str(form_data.get("surface", 0))),
-            nb_pieces=nb_pieces,
-            meuble=meuble,
-            classe_dpe=dpe_grade,
-            depenses_energetiques=depenses_energetiques,
-            annexes_privatives=form_data.get("annexes", []),
-            annexes_collectives=form_data.get("annexesCollectives", []),
-            information=form_data.get("information", []),
-            pieces_info=form_data.get("pieces", {}),
-            chauffage_type=form_data.get("chauffage", {}).get("type", ""),
-            chauffage_energie=chauffage_energie,
-            eau_chaude_type=form_data.get("eauChaude", {}).get("type", ""),
-            eau_chaude_energie=eau_chaude_energie,
-        )
-
-        # Associer les propriétaires au bien
-        bien.proprietaires.set(proprietaires)
-
-        # 3. Créer les locataires
-        locataires_data = form_data.get("locataires", [])
-        locataires = []
-        for locataire_data in locataires_data:
-            locataire = Locataire.objects.create(
-                nom=locataire_data.get("lastName", ""),
-                prenom=locataire_data.get("firstName", ""),
-                email=locataire_data.get("email", ""),
-                caution_requise=locataire_data.get("cautionRequise", ""),
-                # Les autres champs ne sont pas fournis dans le formulaire
-            )
-            locataires.append(locataire)
-
-        # 4. Créer le bail
-        start_date_str = form_data.get("startDate", "")
-        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
-        modalites = form_data.get("modalites", {})
-        solidaire_string = form_data.get("solidaires", "")
-        solidaires = solidaire_string.lower() == "true"
-
-        montant_loyer = Decimal(str(modalites.get("prix", 0)))
-        is_meuble = bien.meuble
-        depot_garantie = 2 * montant_loyer if is_meuble else montant_loyer
-
-        prix_reference = 1000
-
-        bail = BailSpecificites.objects.create(
-            bien=bien,
-            solidaires=solidaires,
-            date_debut=start_date,
-            montant_loyer=Decimal(str(modalites.get("prix", 0))),
-            type_charges=modalites.get("chargeType", ""),
-            montant_charges=Decimal(str(modalites.get("chargeAmount", 0))),
-            prix_reference=Decimal(
-                str(prix_reference)
-            ),  # Prix de référence pour le calcul
-            # Par défaut égal au loyer
-            depot_garantie=depot_garantie,
-            zone_tendue=form_data.get("zoneTendue", False),
-            is_draft=True,  # Brouillon
-        )
-
-        # Associer les locataires au bail
-        bail.locataires.set(locataires)
-
-        return JsonResponse(
-            {
-                "success": True,
-                "bailId": bail.id,
-                "message": "Brouillon sauvegardé avec succès",
-            }
-        )
-
-    except Exception as e:
-        logger.exception("Erreur lors de la sauvegarde du brouillon")
-        return JsonResponse(
-            {"success": False, "error": f"Erreur lors de la sauvegarde: {str(e)}"},
-            status=500,
-        )
+    # Si on arrive ici, toutes les tentatives ont échoué
+    return JsonResponse(
+        {
+            "success": False,
+            "error": "Erreur de base de données persistante après plusieurs tentatives",
+        },
+        status=500,
+    )

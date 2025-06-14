@@ -199,7 +199,7 @@
           {% for person in bail.bien.proprietaires.all %}
           <div class="signature-block">
             <!-- ID invisible pour PyMuPDF -->
-            <p style="color:white; margin: 0;">ID_SIGNATURE_{{ person.id }}</p>
+            <p style="color:white; margin: 0;">ID_SIGNATURE_PROP_{{ person.id }}</p>
           </div>
           {% endfor %}
         </div>

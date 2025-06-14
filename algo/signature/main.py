@@ -31,7 +31,17 @@ def get_signature_field_name(person):
 
 def get_named_dest_coordinates(pdf_path, person):
     field_name = get_signature_field_name(person)
-    target_marker = f"ID_SIGNATURE_{person.id}"
+
+    # Déterminer le préfixe selon le type de personne
+    from bail.models import Locataire, Proprietaire
+
+    if isinstance(person, Proprietaire):
+        target_marker = f"ID_SIGNATURE_PROP_{person.id}"
+    elif isinstance(person, Locataire):
+        target_marker = f"ID_SIGNATURE_LOC_{person.id}"
+    else:
+        # Fallback pour d'autres types si nécessaire
+        target_marker = f"ID_SIGNATURE_{person.id}"
 
     box_width_pt = px_to_pt(TAMPON_WIDTH_PX)
     box_height_pt = px_to_pt(TAMPON_HEIGHT_PX)

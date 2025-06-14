@@ -190,3 +190,29 @@ def refresh_token_view(request):
     except Exception:
         logger.exception("Erreur lors du rafraîchissement du token")
         return JsonResponse({"error": "Erreur interne du serveur"}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def logout_view(request):
+    """Vue pour déconnecter un utilisateur en supprimant le refresh token des cookies"""
+    try:
+        # Créer la réponse
+        response = JsonResponse({"success": True, "message": "Déconnexion réussie"})
+
+        # Supprimer le cookie refresh token en le définissant avec
+        # une date d'expiration passée
+        response.set_cookie(
+            "jwt_refresh",
+            "",  # Valeur vide
+            max_age=0,  # Expiration immédiate
+            httponly=True,
+            secure=not settings.DEBUG,  # HTTPS en production seulement
+            samesite="Lax",
+        )
+
+        return response
+
+    except Exception:
+        logger.exception("Erreur lors de la déconnexion")
+        return JsonResponse({"error": "Erreur interne du serveur"}, status=500)

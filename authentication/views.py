@@ -183,9 +183,22 @@ def refresh_token_view(request):
             return JsonResponse({"access": access_token})
 
         except (TokenError, InvalidToken):
-            return JsonResponse(
+            # Token invalide ou expiré : purger le cookie automatiquement
+            response = JsonResponse(
                 {"error": "Token de rafraîchissement invalide"}, status=401
             )
+
+            # Supprimer le cookie refresh token périmé
+            response.set_cookie(
+                "jwt_refresh",
+                "",  # Valeur vide
+                max_age=0,  # Expiration immédiate
+                httponly=True,
+                secure=not settings.DEBUG,
+                samesite="Lax",
+            )
+
+            return response
 
     except Exception:
         logger.exception("Erreur lors du rafraîchissement du token")

@@ -288,36 +288,23 @@ def upload_diagnostics(request):
                 {"success": False, "error": "Aucun fichier fourni"}, status=400
             )
 
-        bien_id = request.POST.get("bien_id")
         bail_id = request.POST.get("bail_id")
 
-        if not bien_id and not bail_id:
+        if not bail_id:
             return JsonResponse(
-                {"success": False, "error": "ID du bien ou du bail requis"}, status=400
+                {"success": False, "error": "ID du bail requis"}, status=400
             )
 
-        # Si bail_id est fourni, récupérer le bien depuis le bail
-        if bail_id:
-            try:
-                bail = BailSpecificites.objects.get(id=bail_id)
-                bien = bail.bien
-            except BailSpecificites.DoesNotExist:
-                return JsonResponse(
-                    {"success": False, "error": "Bail introuvable"}, status=404
-                )
-        else:
-            # Sinon, utiliser l'ID du bien directement
-            try:
-                bien = Bien.objects.get(id=bien_id)
-            except Bien.DoesNotExist:
-                return JsonResponse(
-                    {"success": False, "error": "Bien introuvable"}, status=404
-                )
+        bail = get_object_or_404(BailSpecificites, id=bail_id)
+        bien = bail.bien
 
         uploaded_files = []
 
+        # Récupérer tous les fichiers uploadés
+        diagnostic_files = list(request.FILES.values())
+
         # Traiter chaque fichier uploadé
-        for file_key, diagnostic_file in request.FILES.items():
+        for diagnostic_file in diagnostic_files:
             # Vérifier le type de fichier
             if not diagnostic_file.name.lower().endswith(".pdf"):
                 return JsonResponse(

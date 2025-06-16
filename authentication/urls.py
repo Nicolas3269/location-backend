@@ -4,6 +4,8 @@ from rest_framework_simplejwt.views import (
 )
 
 from authentication.views import (
+    get_user_profile,
+    google_redirect_callback,
     login_with_google,
     logout_view,
     refresh_token_view,
@@ -16,6 +18,8 @@ app_name = "authentication"
 urlpatterns = [
     # Routes pour l'authentification
     path("google/", login_with_google, name="login_with_google"),
+    path("google/callback/", google_redirect_callback, name="google_redirect_callback"),
+    path("profile/", get_user_profile, name="get_user_profile"),
     path("otp/request/", request_otp_login, name="request_otp_login"),
     path("otp/verify/", verify_otp_login, name="verify_otp_login"),
     path("logout/", logout_view, name="logout"),

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import BailSpecificites, Bien, Locataire, Proprietaire
+from .models import BailSpecificites, Bien, Document, Locataire, Proprietaire
 
 
 class ProprietaireBiensInline(admin.TabularInline):
@@ -44,6 +44,34 @@ class BailInline(admin.TabularInline):
         return ", ".join([f"{l.prenom} {l.nom}" for l in obj.locataires.all()])
 
     get_locataires.short_description = "Locataires"
+
+
+class DocumentInline(admin.TabularInline):
+    """Inline pour afficher les documents attachés au bail"""
+
+    model = Document
+    fk_name = "bail"
+    extra = 0
+    fields = (
+        "type_document",
+        "nom_original",
+        "file_link",
+        "date_creation",
+        "uploade_par",
+    )
+    readonly_fields = ("file_link", "date_creation", "uploade_par")
+    show_change_link = True
+
+    def file_link(self, obj):
+        """Affiche un lien vers le fichier"""
+        if obj.fichier:
+            return format_html(
+                '<a href="{}" target="_blank">📄 Voir le fichier</a>',
+                obj.file.url,
+            )
+        return "-"
+
+    file_link.short_description = "Fichier"
 
 
 @admin.register(Bien)
@@ -182,6 +210,7 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
     list_filter = ("zone_tendue", "date_debut", "is_draft")
     search_fields = ("bien__adresse", "locataires__nom", "locataires__prenom")
     date_hierarchy = "date_debut"
+    inlines = [DocumentInline]
 
     fieldsets = (
         ("Parties concernées", {"fields": ("bien", "locataires")}),
@@ -235,7 +264,6 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
                     "latest_pdf",
                     "grille_vetuste_pdf",
                     "notice_information_pdf",
-                    "dpe_pdf",
                 ),
                 "classes": ("collapse",),
             },
@@ -251,8 +279,6 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
             docs.append('<span style="color: green;">📋 Grille vétusté</span>')
         if obj.notice_information_pdf:
             docs.append('<span style="color: green;">📋 Notice info</span>')
-        if obj.dpe_pdf:
-            docs.append('<span style="color: green;">🏠 DPE</span>')
 
         if not docs:
             return '<span style="color: gray;">Aucun document</span>'

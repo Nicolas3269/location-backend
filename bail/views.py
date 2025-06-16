@@ -327,6 +327,7 @@ def upload_diagnostics(request):
 
             # Créer le document via le modèle Document
             document = Document.objects.create(
+                bail=bail,
                 bien=bien,
                 type_document=DocumentType.DIAGNOSTIC,
                 nom_original=diagnostic_file.name,

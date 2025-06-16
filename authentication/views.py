@@ -67,7 +67,7 @@ def login_with_google(request):
         response = JsonResponse(
             {
                 "success": True,
-                "tokens": {"access": tokens["access"]},  # Seulement l'access token
+                "tokens": {"access": tokens["access"]},
                 "user": {"email": user.email},
             }
         )

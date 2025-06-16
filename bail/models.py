@@ -360,7 +360,7 @@ class Document(models.Model):
     nom_original = models.CharField(
         max_length=255, help_text="Nom original du fichier uploadé"
     )
-    fichier = models.FileField(
+    file = models.FileField(
         upload_to="documents/%Y/%m/", help_text="Fichier du document"
     )
 
@@ -390,8 +390,8 @@ class Document(models.Model):
     @property
     def url(self):
         """Retourne l'URL du fichier."""
-        if self.fichier:
-            return self.fichier.url
+        if self.file:
+            return self.file.url
         return None
 
     @property

@@ -300,8 +300,8 @@ def upload_diagnostics(request):
 
         uploaded_files = []
 
-        # Récupérer tous les fichiers uploadés
-        diagnostic_files = list(request.FILES.values())
+        # Récupérer tous les fichiers uploadés avec le nom 'diagnostic_files'
+        diagnostic_files = request.FILES.getlist("diagnostic_files")
 
         # Traiter chaque fichier uploadé
         for diagnostic_file in diagnostic_files:
@@ -330,7 +330,7 @@ def upload_diagnostics(request):
                 bien=bien,
                 type_document=DocumentType.DIAGNOSTIC,
                 nom_original=diagnostic_file.name,
-                fichier=diagnostic_file,
+                file=diagnostic_file,
                 uploade_par=request.user,
             )
 
@@ -600,20 +600,8 @@ def delete_document(request, document_id):
         document = get_object_or_404(Document, id=document_id)
 
         # Vérifier que l'utilisateur a le droit de supprimer ce document
-        # (soit propriétaire du bail, soit propriétaire du bien)
-        user = request.user
-        can_delete = False
-
-        if document.bail_specificites:
-            # Document lié à un bail - vérifier si l'utilisateur est le propriétaire
-            if document.bail_specificites.proprietaire.user == user:
-                can_delete = True
-        elif document.bien:
-            # Document lié à un bien - vérifier si l'utilisateur est le propriétaire
-            if document.bien.proprietaire.user == user:
-                can_delete = True
-
-        if not can_delete:
+        # (seul celui qui l'a uploadé peut le supprimer)
+        if document.uploade_par != request.user:
             return JsonResponse(
                 {"success": False, "error": "Non autorisé à supprimer ce document"},
                 status=403,

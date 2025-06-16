@@ -284,7 +284,7 @@ def google_redirect_callback(request):
         tokens = get_tokens_for_user(user)
 
         # Créer une réponse de redirection vers le frontend
-        redirect_url = f"{settings.FRONTEND_URL}/bail?step=15&auth_success=true"
+        redirect_url = f"{settings.FRONTEND_URL}/bail?step=15"
         response = redirect(redirect_url)
 
         # Configurer le refresh token en cookie HttpOnly

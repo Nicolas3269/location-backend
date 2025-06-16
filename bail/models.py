@@ -1,6 +1,7 @@
 # models.py
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -317,3 +318,83 @@ class BailSignatureRequest(models.Model):
         elif self.locataire:
             return self.locataire.email
         return None
+
+
+class DocumentType(models.TextChoices):
+    """Types de documents gérés dans le système."""
+
+    BAIL = "bail", "Contrat de bail"
+    GRILLE_VETUSTE = "grille_vetuste", "Grille de vétusté"
+    NOTICE_INFORMATION = "notice_information", "Notice d'information"
+    DIAGNOSTIC = "diagnostic", "Diagnostic"
+    AUTRE = "autre", "Autre document"
+
+
+class Document(models.Model):
+    """Modèle pour gérer tous les documents liés aux baux et aux biens."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # Relations - un document peut être lié soit à un bail, soit à un bien
+    bail = models.ForeignKey(
+        "BailSpecificites",
+        on_delete=models.CASCADE,
+        related_name="documents",
+        null=True,
+        blank=True,
+        help_text="Bail auquel ce document est rattaché",
+    )
+    bien = models.ForeignKey(
+        "Bien",
+        on_delete=models.CASCADE,
+        related_name="documents",
+        null=True,
+        blank=True,
+        help_text="Bien auquel ce document est rattaché",
+    )
+
+    # Métadonnées du document
+    type_document = models.CharField(
+        max_length=50, choices=DocumentType.choices, help_text="Type de document"
+    )
+    nom_original = models.CharField(
+        max_length=255, help_text="Nom original du fichier uploadé"
+    )
+    fichier = models.FileField(
+        upload_to="documents/%Y/%m/", help_text="Fichier du document"
+    )
+
+    # Timestamps
+    date_creation = models.DateTimeField(default=timezone.now)
+    date_modification = models.DateTimeField(auto_now=True)
+
+    # Utilisateur qui a uploadé le document
+    uploade_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="documents_uploades",
+        help_text="Utilisateur qui a uploadé ce document",
+    )
+
+    class Meta:
+        db_table = "bail_document"
+        verbose_name = "Document"
+        verbose_name_plural = "Documents"
+        ordering = ["-date_creation"]
+
+    def __str__(self):
+        return f"{self.get_type_document_display()} - {self.nom_original}"
+
+    @property
+    def url(self):
+        """Retourne l'URL du fichier."""
+        if self.fichier:
+            return self.fichier.url
+        return None
+
+    @property
+    def est_diagnostic(self):
+        """Indique si ce document est un diagnostic."""
+        return self.type_document == DocumentType.DIAGNOSTIC

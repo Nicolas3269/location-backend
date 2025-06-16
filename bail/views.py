@@ -5,7 +5,6 @@ import uuid
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -21,6 +20,8 @@ from bail.models import (
     BailSignatureRequest,
     BailSpecificites,
     Bien,
+    Document,
+    DocumentType,
     Locataire,
     Proprietaire,
 )
@@ -278,65 +279,95 @@ def generate_notice_information_pdf(request):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def upload_dpe_diagnostic(request):
-    """Upload du diagnostic de performance énergétique"""
+def upload_diagnostics(request):
+    """Upload de diagnostics pour un bien spécifique"""
     try:
-        if "dpe_file" not in request.FILES:
+        # Vérifier si des fichiers sont fournis
+        if not request.FILES:
             return JsonResponse(
-                {"success": False, "error": "Aucun fichier DPE fourni"}, status=400
+                {"success": False, "error": "Aucun fichier fourni"}, status=400
             )
 
-        dpe_file = request.FILES["dpe_file"]
+        bien_id = request.POST.get("bien_id")
         bail_id = request.POST.get("bail_id")
 
-        # Vérifier le type de fichier
-        if not dpe_file.name.lower().endswith(".pdf"):
+        if not bien_id and not bail_id:
             return JsonResponse(
-                {"success": False, "error": "Le fichier doit être au format PDF"},
-                status=400,
+                {"success": False, "error": "ID du bien ou du bail requis"}, status=400
             )
 
-        # Vérifier la taille du fichier (max 10MB)
-        if dpe_file.size > 10 * 1024 * 1024:
-            return JsonResponse(
-                {"success": False, "error": "Le fichier ne peut pas dépasser 10MB"},
-                status=400,
-            )
-
-        # Générer un nom de fichier unique
-        filename = f"dpe_{bail_id or uuid.uuid4().hex}_{uuid.uuid4().hex}.pdf"
-
-        # Sauvegarder directement dans le modèle BailSpecificites si bail_id fourni
+        # Si bail_id est fourni, récupérer le bien depuis le bail
         if bail_id:
             try:
-                from bail.models import BailSpecificites
-
                 bail = BailSpecificites.objects.get(id=bail_id)
-                bail.dpe_pdf.save(filename, dpe_file, save=True)
-                file_url = request.build_absolute_uri(bail.dpe_pdf.url)
+                bien = bail.bien
             except BailSpecificites.DoesNotExist:
-                logger.warning(f"Bail avec l'ID {bail_id} introuvable")
-                # Fallback si le bail n'existe pas
-                file_path = f"bail_pdfs/{filename}"
-                saved_path = default_storage.save(file_path, dpe_file)
-                file_url = request.build_absolute_uri(default_storage.url(saved_path))
+                return JsonResponse(
+                    {"success": False, "error": "Bail introuvable"}, status=404
+                )
         else:
-            # Fallback pour les cas sans bail_id
-            file_path = f"bail_pdfs/{filename}"
-            saved_path = default_storage.save(file_path, dpe_file)
-            file_url = request.build_absolute_uri(default_storage.url(saved_path))
+            # Sinon, utiliser l'ID du bien directement
+            try:
+                bien = Bien.objects.get(id=bien_id)
+            except Bien.DoesNotExist:
+                return JsonResponse(
+                    {"success": False, "error": "Bien introuvable"}, status=404
+                )
+
+        uploaded_files = []
+
+        # Traiter chaque fichier uploadé
+        for file_key, diagnostic_file in request.FILES.items():
+            # Vérifier le type de fichier
+            if not diagnostic_file.name.lower().endswith(".pdf"):
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": f"Le fichier {diagnostic_file.name} doit être PDF",
+                    },
+                    status=400,
+                )
+
+            # Vérifier la taille du fichier (max 10MB)
+            if diagnostic_file.size > 10 * 1024 * 1024:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": f"Le fichier {diagnostic_file.name} trop volumineux",
+                    },
+                    status=400,
+                )
+
+            # Créer le document via le modèle Document
+            document = Document.objects.create(
+                bien=bien,
+                type_document=DocumentType.DIAGNOSTIC,
+                nom_original=diagnostic_file.name,
+                fichier=diagnostic_file,
+                uploade_par=request.user,
+            )
+
+            uploaded_files.append(
+                {
+                    "id": str(document.id),
+                    "name": document.nom_original,
+                    "url": request.build_absolute_uri(document.url),
+                    "type": "Diagnostic",
+                    "created_at": document.date_creation.isoformat(),
+                }
+            )
 
         return JsonResponse(
             {
                 "success": True,
-                "dpeUrl": file_url,
-                "filename": filename,
-                "message": "DPE uploadé avec succès",
+                "documents": uploaded_files,
+                "message": f"{len(uploaded_files)} diagnostic(s) uploadé(s) "
+                f"avec succès",
             }
         )
 
     except Exception as e:
-        logger.exception("Erreur lors de l'upload du DPE")
+        logger.exception("Erreur lors de l'upload des diagnostics")
         return JsonResponse(
             {"success": False, "error": f"Erreur lors de l'upload: {str(e)}"},
             status=500,
@@ -569,3 +600,58 @@ def save_draft(request):
         },
         status=500,
     )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_document(request, document_id):
+    """
+    Supprimer un document spécifique
+    """
+    try:
+        # Récupérer le document
+        document = get_object_or_404(Document, id=document_id)
+
+        # Vérifier que l'utilisateur a le droit de supprimer ce document
+        # (soit propriétaire du bail, soit propriétaire du bien)
+        user = request.user
+        can_delete = False
+
+        if document.bail_specificites:
+            # Document lié à un bail - vérifier si l'utilisateur est le propriétaire
+            if document.bail_specificites.proprietaire.user == user:
+                can_delete = True
+        elif document.bien:
+            # Document lié à un bien - vérifier si l'utilisateur est le propriétaire
+            if document.bien.proprietaire.user == user:
+                can_delete = True
+
+        if not can_delete:
+            return JsonResponse(
+                {"success": False, "error": "Non autorisé à supprimer ce document"},
+                status=403,
+            )
+
+        # Supprimer le fichier du système de fichiers si il existe
+        if document.file and hasattr(document.file, "path"):
+            try:
+                if os.path.exists(document.file.path):
+                    os.remove(document.file.path)
+            except Exception as e:
+                logger.warning(
+                    f"Impossible de supprimer le fichier {document.file.path}: {e}"
+                )
+
+        # Supprimer l'entrée de la base de données
+        document.delete()
+
+        return JsonResponse(
+            {"success": True, "message": "Document supprimé avec succès"}
+        )
+
+    except Exception as e:
+        logger.exception(f"Erreur lors de la suppression du document {document_id}")
+        return JsonResponse(
+            {"success": False, "error": f"Erreur lors de la suppression: {str(e)}"},
+            status=500,
+        )

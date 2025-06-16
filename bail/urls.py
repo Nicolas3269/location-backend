@@ -2,12 +2,13 @@ from django.urls import path
 
 from bail.views import (
     confirm_signature_bail,
+    delete_document,
     generate_bail_pdf,
     generate_grille_vetuste_pdf,
     generate_notice_information_pdf,
     get_signature_request,
     save_draft,
-    upload_dpe_diagnostic,
+    upload_diagnostics,
 )
 
 urlpatterns = [
@@ -23,7 +24,8 @@ urlpatterns = [
         generate_notice_information_pdf,
         name="generate_notice_information_pdf",
     ),
-    path("upload-dpe/", upload_dpe_diagnostic, name="upload_dpe_diagnostic"),
+    path("upload-diagnostics/", upload_diagnostics, name="upload_diagnostics"),
+    path("documents/<uuid:document_id>/", delete_document, name="delete_document"),
     path("confirm-signature/", confirm_signature_bail, name="confirm_signature_bail"),
     path(
         "get-signature-request/<uuid:token>/",

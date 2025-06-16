@@ -102,8 +102,8 @@ REST_FRAMEWORK = {
 
 # Configuration de Simple JWT
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
     "SIGNING_KEY": os.environ.get("JWT_SECRET_KEY", SECRET_KEY),
 }
 

@@ -70,10 +70,17 @@ def login_with_google(request):
         )
 
         # Configurer le refresh token en cookie HttpOnly
+        refresh_token_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
+        cookie_max_age = (
+            int(refresh_token_lifetime.total_seconds())
+            if refresh_token_lifetime
+            else 14 * 24 * 60 * 60
+        )
+
         response.set_cookie(
             "jwt_refresh",
             tokens["refresh"],
-            max_age=7 * 24 * 60 * 60,  # 7 jours
+            max_age=cookie_max_age,
             httponly=True,
             secure=not settings.DEBUG,  # HTTPS en production seulement
             samesite="Lax",
@@ -148,10 +155,17 @@ def verify_otp_login(request):
         )
 
         # Configurer le refresh token en cookie HttpOnly
+        refresh_token_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
+        cookie_max_age = (
+            int(refresh_token_lifetime.total_seconds())
+            if refresh_token_lifetime
+            else 14 * 24 * 60 * 60
+        )
+
         response.set_cookie(
             "jwt_refresh",
             tokens_dict["refresh"],
-            max_age=7 * 24 * 60 * 60,  # 7 jours
+            max_age=cookie_max_age,
             httponly=True,
             secure=not settings.DEBUG,  # HTTPS en production seulement
             samesite="Lax",

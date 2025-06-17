@@ -139,12 +139,14 @@ def create_bien_from_form_data(form_data, save=True):
     """
     from bail.models import Bien
 
-    # Mapper la période de construction
+    # Mapper la période de construction (basé sur rent_control.choices)
     periode_construction_map = {
         "avant_1946": "avant 1946",
         "1946_1970": "1946-1970",
         "1971_1990": "1971-1990",
-        "apres_1990": "apres 1990",
+        "1990_2005": "1990-2005",
+        "apres_1990": "apres 1990",  # Keep for backward compatibility
+        "apres_2005": "apres 2005",
     }
     periode_construction = periode_construction_map.get(
         form_data.get("periodeConstruction", ""), "avant 1946"

@@ -3,6 +3,7 @@ Utilitaires pour l'encadrement des loyers
 """
 
 from bail.models import Bien
+from rent_control.choices import Region
 from rent_control.models import RentControlArea, RentPrice
 
 
@@ -42,11 +43,13 @@ def get_rent_price_for_bien(bien: Bien, area_id):
     # Construire les filtres de recherche obligatoires
     filters = {
         "areas": area,
-        "property_type": getattr(bien, "type_bien", "appartement"),
-        "furnished": getattr(bien, "meuble", False),
+        "furnished": bien.meuble,
         "room_count": room_count_filter,
-        "construction_period": getattr(bien, "periode_construction", None),
+        "construction_period": bien.periode_construction,
     }
+    if area.region not in [Region.PARIS, Region.LILLE, Region.LYON]:
+        # Pour les zones hors Paris, Lille, Lyon, on utilise le type de bien
+        filters["property_type"] = bien.type_bien
 
     # Chercher le prix de référence correspondant
     rent_prices = RentPrice.objects.filter(**filters)

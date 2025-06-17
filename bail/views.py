@@ -597,7 +597,7 @@ def get_rent_prices(request):
             )
 
         except ValueError as e:
-            return JsonResponse({"error": str(e)}, status=404)
+            return JsonResponse({"error": str(e)}, status=400)
 
     except Exception as e:
         logger.error(f"❌ Erreur: {str(e)}")

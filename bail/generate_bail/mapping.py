@@ -204,7 +204,40 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
 
     @staticmethod
     def prix_majore(bail: BailSpecificites):
-        """Génère le texte pour le prix majoré"""
-        return (bail.prix_reference * Decimal("1.2")).quantize(
-            Decimal("0.01"), rounding=ROUND_HALF_UP
-        )
+        """Génère le prix majoré basé sur l'encadrement des loyers"""
+        rent_price = bail.get_rent_price()
+        if rent_price:
+            # Prix majoré = prix max de référence par m²
+            return Decimal(str(rent_price.max_price)).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+        return None
+
+    @staticmethod
+    def complement_loyer(bail: BailSpecificites):
+        """Calcule le complément de loyer selon l'encadrement des loyers"""
+        rent_price = bail.get_rent_price()
+        if rent_price and bail.bien.superficie:
+            # Calcul : montant_loyer - superficie * prix_max_reference
+            loyer_max_autorise = Decimal(str(bail.bien.superficie)) * Decimal(
+                str(rent_price.max_price)
+            )
+            montant_loyer = Decimal(str(bail.montant_loyer))
+
+            complement = montant_loyer - loyer_max_autorise
+            if complement > 0:
+                return complement.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        # Pas de complément si pas d'encadrement ou si le loyer est dans les clous
+        return None
+
+    @staticmethod
+    def prix_reference(bail: BailSpecificites):
+        """Récupère le prix de référence basé sur l'encadrement des loyers"""
+        rent_price = bail.get_rent_price()
+        if rent_price:
+            # Prix de référence par m²
+            return Decimal(str(rent_price.reference_price)).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+        return None

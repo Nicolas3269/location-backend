@@ -51,9 +51,6 @@ def generate_bail_pdf(request):
                 {"success": False, "error": "bail_id est requis"}, status=400
             )
 
-        # Récupérer le bail existant
-        from bail.models import BailSpecificites
-
         bail = get_object_or_404(BailSpecificites, id=bail_id)
 
         # Vérifier si au moins un locataire a une caution requise
@@ -81,7 +78,10 @@ def generate_bail_pdf(request):
                 "information_info": BailMapping.information_info(bail.bien),
                 "energy_info": BailMapping.energy_info(bail.bien),
                 "indice_irl": INDICE_IRL,
+                "prix_reference": BailMapping.prix_reference(bail),
                 "prix_majore": BailMapping.prix_majore(bail),
+                "complement_loyer": BailMapping.complement_loyer(bail),
+                "justificatif_complement_loyer": bail.justificatif_complement_loyer,
             },
         )
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
@@ -455,8 +455,6 @@ def save_draft(request):
                 area_id = form_data.get("areaId")
                 if area_id:
                     try:
-                        from rent_control.utils import get_rent_price_for_bien
-
                         rent_price: RentPrice = get_rent_price_for_bien(bien, area_id)
                         rent_price_id = rent_price.pk
                     except Exception as e:
@@ -473,6 +471,9 @@ def save_draft(request):
                     rent_price_id=rent_price_id,
                     depot_garantie=depot_garantie,
                     zone_tendue=form_data.get("zoneTendue", False),
+                    justificatif_complement_loyer=modalites.get(
+                        "justificationPrix", ""
+                    ),
                     is_draft=True,  # Brouillon
                 )
 

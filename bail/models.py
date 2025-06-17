@@ -234,9 +234,13 @@ class BailSpecificites(models.Model):
         blank=True,
         help_text="ID du RentPrice de référence (base rent_control)",
     )
-    complement_loyer = models.DecimalField(
-        max_digits=6, decimal_places=2, null=True, blank=True
+    justificatif_complement_loyer = models.TextField(
+        blank=True,
+        verbose_name="Justification du complément de loyer",
+        help_text="Justification du complément de loyer en cas de dépassement "
+        "du plafond d'encadrement",
     )
+
     pdf = models.FileField(
         upload_to="bail_pdfs/", null=True, blank=True, verbose_name="Bail PDF"
     )

@@ -438,10 +438,14 @@
           Le loyer du logement objet du présent contrat est soumis au loyer de référence majoré fixé par arrêté préfectoral :
           <p>
           <ul>
-            <li>Montant du loyer de référence : {{bail.prix_reference}} euros par m<sup>2</sup></li>
+            <li>Montant du loyer de référence : {{prix_reference}} euros par m<sup>2</sup></li>
             <li>Montant du loyer de référence majoré : {{prix_majore}} euros par m<sup>2</sup></li>
-            <li>Complément de loyer : {{bail.complement_loyer}} euros</li>
-            <li>Justification du complément de loyer : XXXX</li>
+            {% if complement_loyer %}
+            <li>Complément de loyer : {{complement_loyer}} euros par mois</li>
+            {% if justificatif_complement_loyer %}
+            <li>Justification du complément de loyer : {{justificatif_complement_loyer}}</li>
+            {% endif %}
+            {% endif %}
           </ul>
           </p>
 

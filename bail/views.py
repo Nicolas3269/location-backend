@@ -19,18 +19,20 @@ from bail.generate_bail.mapping import BailMapping
 from bail.models import (
     BailSignatureRequest,
     BailSpecificites,
-    Bien,
     Document,
     DocumentType,
     Locataire,
     Proprietaire,
 )
 from bail.utils import (
+    create_bien_from_form_data,
     create_signature_requests,
     prepare_pdf_with_signature_fields,
     process_signature,
     send_signature_email,
 )
+from rent_control.models import RentPrice
+from rent_control.utils import get_rent_price_for_bien
 
 logger = logging.getLogger(__name__)
 
@@ -420,89 +422,7 @@ def save_draft(request):
                     proprietaires.append(proprietaire)
 
                 # 2. Créer le bien
-                # Calculer le nombre de pièces principales
-                pieces = form_data.get("pieces", {})
-                chambres = pieces.get("chambres", 0)
-                salons = pieces.get("salons", 0)
-                nombre_pieces_principales = chambres + salons
-
-                # Mapper le nombre de pièces au choix du modèle
-                if nombre_pieces_principales == 1:
-                    nb_pieces = "1"
-                elif nombre_pieces_principales == 2:
-                    nb_pieces = "2"
-                elif nombre_pieces_principales == 3:
-                    nb_pieces = "3"
-                else:
-                    nb_pieces = "4"  # 4 pièces et plus
-
-                # Mapper la période de construction
-                periode_construction_map = {
-                    "avant_1946": "avant 1946",
-                    "1946_1970": "1946-1970",
-                    "1971_1990": "1971-1990",
-                    "apres_1990": "apres 1990",
-                }
-                periode_construction = periode_construction_map.get(
-                    form_data.get("periodeConstruction", ""), "avant 1946"
-                )
-
-                # Mapper le type de logement
-                type_logement_map = {
-                    "appartement": "appartement",
-                    "maison": "maison",
-                }
-                type_bien = type_logement_map.get(
-                    form_data.get("typeLogement", ""), "appartement"
-                )
-
-                # Mapper le meublé
-                meuble_map = {
-                    "meuble": True,
-                    "vide": False,
-                }
-                meuble = meuble_map.get(form_data.get("meuble", "vide"), False)
-
-                # Extract DPE expenses if provided
-                dpe_grade = form_data.get("dpeGrade", "NA")
-                depenses_energetiques = form_data.get("depensesDPE", "").lower()
-
-                # Extract autre energies if needed
-                chauffage_energie = form_data.get("chauffage", {}).get("energie", "")
-                if chauffage_energie == "autre":
-                    chauffage_energie = form_data.get("chauffage", {}).get(
-                        "autreDetail", ""
-                    )
-                eau_chaude_energie = form_data.get("eauChaude", {}).get("energie", "")
-                if eau_chaude_energie == "autre":
-                    eau_chaude_energie = form_data.get("eauChaude", {}).get(
-                        "autreDetail", ""
-                    )
-
-                bien = Bien.objects.create(
-                    adresse=form_data.get("adresse", ""),
-                    latitude=form_data.get("latitude"),
-                    longitude=form_data.get("longitude"),
-                    identifiant_fiscal=form_data.get("identificationFiscale", ""),
-                    regime_juridique=form_data.get("regimeJuridique", ""),
-                    type_bien=type_bien,
-                    etage=form_data.get("etage", ""),
-                    porte=form_data.get("porte", ""),
-                    periode_construction=periode_construction,
-                    superficie=Decimal(str(form_data.get("surface", 0))),
-                    nb_pieces=nb_pieces,
-                    meuble=meuble,
-                    classe_dpe=dpe_grade,
-                    depenses_energetiques=depenses_energetiques,
-                    annexes_privatives=form_data.get("annexes", []),
-                    annexes_collectives=form_data.get("annexesCollectives", []),
-                    information=form_data.get("information", []),
-                    pieces_info=form_data.get("pieces", {}),
-                    chauffage_type=form_data.get("chauffage", {}).get("type", ""),
-                    chauffage_energie=chauffage_energie,
-                    eau_chaude_type=form_data.get("eauChaude", {}).get("type", ""),
-                    eau_chaude_energie=eau_chaude_energie,
-                )
+                bien = create_bien_from_form_data(form_data, save=True)
 
                 # Associer les propriétaires au bien
                 bien.proprietaires.set(proprietaires)
@@ -531,8 +451,18 @@ def save_draft(request):
                 is_meuble = bien.meuble
                 depot_garantie = 2 * montant_loyer if is_meuble else montant_loyer
 
-                prix_reference = 1000
+                # Calculer le rent_price_id si on est en zone tendue
+                area_id = form_data.get("areaId")
+                if area_id:
+                    try:
+                        from rent_control.utils import get_rent_price_for_bien
 
+                        rent_price: RentPrice = get_rent_price_for_bien(bien, area_id)
+                        rent_price_id = rent_price.pk
+                    except Exception as e:
+                        logger.warning(f"Impossible de récupérer le RentPrice: {e}")
+                else:
+                    rent_price_id = None
                 bail = BailSpecificites.objects.create(
                     bien=bien,
                     solidaires=solidaires,
@@ -540,10 +470,7 @@ def save_draft(request):
                     montant_loyer=Decimal(str(modalites.get("prix", 0))),
                     type_charges=modalites.get("chargeType", ""),
                     montant_charges=Decimal(str(modalites.get("chargeAmount", 0))),
-                    prix_reference=Decimal(
-                        str(prix_reference)
-                    ),  # Prix de référence pour le calcul
-                    # Par défaut égal au loyer
+                    rent_price_id=rent_price_id,
                     depot_garantie=depot_garantie,
                     zone_tendue=form_data.get("zoneTendue", False),
                     is_draft=True,  # Brouillon
@@ -633,3 +560,45 @@ def delete_document(request, document_id):
             {"success": False, "error": f"Erreur lors de la suppression: {str(e)}"},
             status=500,
         )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def get_rent_prices(request):
+    """
+    Récupère les prix de référence pour une zone donnée
+    selon les caractéristiques complètes du bien du formulaire
+    """
+    try:
+        data = request.data
+        area_id = data.get("areaId")
+
+        if not area_id:
+            return JsonResponse({"error": "Area ID requis"}, status=400)
+
+        # Créer un objet Bien temporaire avec les données du formulaire
+        # en utilisant la même logique que save_draft
+
+        bien = create_bien_from_form_data(data, save=False)
+
+        try:
+            rent_price = get_rent_price_for_bien(bien, area_id)
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "rentPrice": {
+                        "id": rent_price.id,
+                        "reference_price": float(rent_price.reference_price),
+                        "min_price": float(rent_price.min_price),
+                        "max_price": float(rent_price.max_price),
+                    },
+                }
+            )
+
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=404)
+
+    except Exception as e:
+        logger.error(f"❌ Erreur: {str(e)}")
+        return JsonResponse({"error": f"Erreur: {str(e)}"}, status=500)

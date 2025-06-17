@@ -10,7 +10,6 @@ from rent_control.choices import (
     ConstructionPeriod,
     PropertyType,
     RegimeJuridique,
-    RoomCount,
     SystemType,
 )
 
@@ -80,9 +79,6 @@ class Bien(models.Model):
     )
 
     superficie = models.DecimalField(max_digits=8, decimal_places=2, help_text="En m²")
-    nb_pieces = models.CharField(
-        max_length=10, choices=RoomCount.choices, verbose_name="Nombre de pièces"
-    )
 
     meuble = models.BooleanField(default=False, verbose_name="Meublé")
 
@@ -134,6 +130,19 @@ class Bien(models.Model):
         null=True,
     )
     eau_chaude_energie = models.CharField(max_length=50, blank=True)
+
+    @property
+    def nombre_pieces_principales(self):
+        """
+        Calcule le nombre de pièces principales (chambres + salons).
+        Utilisé pour le matching avec RentPrice.
+        """
+        if not self.pieces_info:
+            return 0
+
+        chambres = self.pieces_info.get("chambres", 0)
+        salons = self.pieces_info.get("salons", 0)
+        return chambres + salons
 
     def __str__(self):
         return f"{self.type_bien} - {self.adresse}"
@@ -220,8 +229,10 @@ class BailSpecificites(models.Model):
     zone_tendue = models.BooleanField(
         default=False, help_text="Situé en zone d'encadrement des loyers"
     )
-    prix_reference = models.DecimalField(
-        max_digits=6, decimal_places=2, null=True, blank=True
+    rent_price_id = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="ID du RentPrice de référence (base rent_control)",
     )
     complement_loyer = models.DecimalField(
         max_digits=6, decimal_places=2, null=True, blank=True
@@ -263,6 +274,21 @@ class BailSpecificites(models.Model):
         verbose_name="Brouillon",
         help_text="Indique si le bail est encore en mode brouillon",
     )
+
+    def get_rent_price(self):
+        """
+        Récupère le RentPrice associé à ce bail.
+        Retourne None si pas de rent_price_id ou si le RentPrice n'existe pas.
+        """
+        if not self.rent_price_id:
+            return None
+
+        try:
+            from rent_control.models import RentPrice
+
+            return RentPrice.objects.get(id=self.rent_price_id)
+        except RentPrice.DoesNotExist:
+            return None
 
     def __str__(self):
         return f"Bail {self.bien} - ({self.date_debut})"

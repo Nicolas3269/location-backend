@@ -58,14 +58,14 @@ def get_rent_control_info(
     )
 
     if not area_query.exists():
-        return {}
+        return {}, None
 
     area = area_query.first()
 
     # Récupérer les options disponibles si demandé
     options = get_available_options_for_area(area)
 
-    return options
+    return options, area
 
 
 @csrf_exempt
@@ -83,15 +83,18 @@ def check_zone(request):
             if not address:
                 return JsonResponse({"message": "Adresse requise"}, status=400)
 
-            # Ici, on appelle une fonction existante `is_critical_zone(address)`
-            options = get_rent_control_info(lat, lng)
+            # Récupérer les options disponibles ET l'area
+            options, area = get_rent_control_info(lat, lng)
 
-            if len(options) > 0:
+            is_zone_tendue = len(options) > 0 and area is not None
+
+            if is_zone_tendue:
                 return JsonResponse(
                     {
                         "zoneTendue": True,
                         "message": "⚠️ Cette adresse est dans une zone critique.",
                         "options": options,
+                        "areaId": area.id,
                     }
                 )
             else:
@@ -99,7 +102,8 @@ def check_zone(request):
                     {
                         "zoneTendue": False,
                         "message": "✅ Cette adresse est sûre.",
-                        "options": options,
+                        "options": {},
+                        "areaId": None,
                     }
                 )
 

@@ -41,7 +41,8 @@ class BailInline(admin.TabularInline):
     readonly_fields = ("get_locataires",)
 
     def get_locataires(self, obj):
-        return ", ".join([f"{l.prenom} {l.nom}" for l in obj.locataires.all()])
+        locataires = [f"{loc.prenom} {loc.nom}" for loc in obj.locataires.all()]
+        return ", ".join(locataires)
 
     get_locataires.short_description = "Locataires"
 
@@ -83,13 +84,12 @@ class BienAdmin(admin.ModelAdmin):
         "display_proprietaires",
         "type_bien",
         "superficie",
-        "nb_pieces",
+        "display_nb_pieces",
         "meuble",
         "display_dpe_class",
     )
     list_filter = (
         "type_bien",
-        "nb_pieces",
         "meuble",
         "classe_dpe",
         "periode_construction",
@@ -106,7 +106,6 @@ class BienAdmin(admin.ModelAdmin):
                 "fields": (
                     "type_bien",
                     "superficie",
-                    "nb_pieces",
                     "etage",
                     "porte",
                     "dernier_etage",
@@ -141,7 +140,7 @@ class BienAdmin(admin.ModelAdmin):
             "E": "#edc22e",
             "F": "#ec6730",
             "G": "#e53946",
-            "NC": "#aaaaaa",
+            "NA": "#aaaaaa",
         }
         color = colors.get(obj.classe_dpe, "#aaaaaa")
         return format_html(
@@ -152,6 +151,12 @@ class BienAdmin(admin.ModelAdmin):
         )
 
     display_dpe_class.short_description = "DPE"
+
+    def display_nb_pieces(self, obj):
+        """Affiche le nombre de pièces principales calculé"""
+        return f"{obj.nombre_pieces_principales} pièces"
+
+    display_nb_pieces.short_description = "Pièces principales"
 
     def display_proprietaires(self, obj):
         return ", ".join([f"{p.prenom} {p.nom}" for p in obj.proprietaires.all()])

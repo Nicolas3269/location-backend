@@ -481,6 +481,8 @@ def save_draft(request):
 
                 bien = Bien.objects.create(
                     adresse=form_data.get("adresse", ""),
+                    latitude=form_data.get("latitude"),
+                    longitude=form_data.get("longitude"),
                     identifiant_fiscal=form_data.get("identificationFiscale", ""),
                     regime_juridique=form_data.get("regimeJuridique", ""),
                     type_bien=type_bien,

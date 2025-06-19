@@ -106,7 +106,7 @@
             </li>
           {% elif bailleur.societe %}
             <li>
-              La <strong>personne morale</strong> {{ bailleur.societe.raison_sociale }} ({{ bailleur.societe.forme_juridique }}), 
+              La <strong>personne morale</strong> {{ bailleur.societe.raison_sociale }} ({{ bailleur.societe.forme_juridique }}), dont le SIRET est {{ bailleur.societe.siret }},
               domiciliée au {{ bailleur.societe.adresse }}, représentée pour la signature par 
               {{ bailleur.signataire.prenom }} {{ bailleur.signataire.nom }} ({{ bailleur.signataire.email }}){% if not forloop.last %} ;<br>{% endif %}
             </li>

@@ -19,12 +19,14 @@ from weasyprint import HTML
 from bail.constants import FORMES_JURIDIQUES
 from bail.generate_bail.mapping import BailMapping
 from bail.models import (
+    Bailleur,
     BailSignatureRequest,
     BailSpecificites,
     Document,
     DocumentType,
     Locataire,
-    Proprietaire,
+    Personne,
+    Societe,
 )
 from bail.utils import (
     create_bien_from_form_data,
@@ -154,7 +156,7 @@ def get_signature_request(request, token):
             {"error": "Ce n'est pas encore votre tour de signer."}, status=403
         )
 
-    person = req.proprietaire or req.locataire
+    person = req.bailleur_signataire or req.locataire
     return JsonResponse(
         {
             "person": {
@@ -399,35 +401,67 @@ def save_draft(request):
                         status=400,
                     )
 
-                # 1. Créer les propriétaires
-                # Propriétaire principal
+                # 1. Créer les bailleurs
+                # Bailleur principal
                 landlord_data = form_data.get("landlord", {})
-                proprietaire_principal = Proprietaire.objects.create(
-                    nom=landlord_data.get("lastName", ""),
-                    prenom=landlord_data.get("firstName", ""),
-                    adresse=landlord_data.get("address", ""),
-                    email=landlord_data.get("email", ""),
-                    telephone="",  # Pas fourni dans le formulaire
-                )
+                bailleur_type = form_data.get("bailleurType", "physique")
 
-                # Propriétaires additionnels
-                proprietaires = [proprietaire_principal]
+                if bailleur_type == "morale":
+                    # Créer la société
+                    societe_data = form_data.get("societe", {})
+                    societe = Societe.objects.create(
+                        siret=form_data.get("siret", ""),
+                        raison_sociale=societe_data.get("raisonSociale", ""),
+                        forme_juridique=societe_data.get("formeJuridique", ""),
+                        adresse=societe_data.get("adresse", ""),
+                        email=societe_data.get("email", ""),
+                    )
+
+                    # Créer le signataire (personne physique)
+                    signataire = Personne.objects.create(
+                        nom=landlord_data.get("lastName", ""),
+                        prenom=landlord_data.get("firstName", ""),
+                        email=landlord_data.get("email", ""),
+                    )
+
+                    # Créer le bailleur société
+                    bailleur_principal = Bailleur.objects.create(
+                        societe=societe, signataire=signataire
+                    )
+                else:
+                    # Créer la personne physique
+                    personne = Personne.objects.create(
+                        nom=landlord_data.get("lastName", ""),
+                        prenom=landlord_data.get("firstName", ""),
+                        adresse=landlord_data.get("address", ""),
+                        email=landlord_data.get("email", ""),
+                    )
+
+                    # Créer le bailleur personne physique
+                    bailleur_principal = Bailleur.objects.create(
+                        personne=personne, signataire=personne
+                    )
+
+                # Bailleurs additionnels (pour l'instant, seulement personnes physiques)
+                bailleurs = [bailleur_principal]
                 other_landlords = form_data.get("otherLandlords", [])
                 for landlord in other_landlords:
-                    proprietaire = Proprietaire.objects.create(
+                    personne = Personne.objects.create(
                         nom=landlord.get("lastName", ""),
                         prenom=landlord.get("firstName", ""),
                         adresse=landlord.get("address", ""),
                         email=landlord.get("email", ""),
-                        telephone="",  # Pas fourni dans le formulaire
                     )
-                    proprietaires.append(proprietaire)
+                    bailleur = Bailleur.objects.create(
+                        personne=personne, signataire=personne
+                    )
+                    bailleurs.append(bailleur)
 
                 # 2. Créer le bien
                 bien = create_bien_from_form_data(form_data, save=True)
 
-                # Associer les propriétaires au bien
-                bien.proprietaires.set(proprietaires)
+                # Associer les bailleurs au bien
+                bien.bailleurs.set(bailleurs)
 
                 # 3. Créer les locataires
                 locataires_data = form_data.get("locataires", [])

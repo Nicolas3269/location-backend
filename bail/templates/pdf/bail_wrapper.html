@@ -98,15 +98,15 @@
     <p class="section-title">1° Désignation des parties</p>
     <p>
       <ul>
-        {% for proprietaire in bail.bien.proprietaires.all %}
-          <li>{{ proprietaire.prenom }} {{ proprietaire.nom }} ({{ proprietaire.email }}), personne physique,
-          domicilié{% if proprietaire.sexe == "F" %}e{% endif %} au {{ proprietaire.adresse }}{% if not forloop.last %};<br>{% endif %}
+        {% for bailleur in bail.bien.bailleurs.all %}
+          <li>{{ bailleur.personne.prenom }} {{ bailleur.personne.nom }} ({{ bailleur.personne.email }}), personne physique
+          domiciliée au {{ bailleur.personne.adresse }}{% if not forloop.last %};<br>{% endif %}
           </li>
         {% endfor %}
       </ul>
     </p>
     <p class="align-right">
-      Dénommé{% if bail.bien.proprietaires.all|length > 1 %}s{% endif %} ci-après « le bailleur » ;
+      Dénommé{% if bail.bien.bailleurs.all|length > 1 %}s{% endif %} ci-après « le bailleur » ;
     </p>
     
     <p>
@@ -311,8 +311,8 @@
     
     <p><strong>4° Abandon du domicile</strong></p>
     <p>En application de l’article 14 de la loi du 6 juillet 1989 dans le cas d’un abandon du domicile par le locataire, le contrat de location continue au profit du conjoint, sans préjudice de l’article 1751 du code civil, des descendants qui vivaient avec lui depuis au moins 1 an à la date de l’abandon du domicile, du partenaire lié au locataire par un pacte civil de solidarité, des ascendants, du concubin notoire ou des personnes à charge, qui vivaient avec lui depuis au moins 1 an à la date de l’abandon du domicile.</p>
-    <p>Lorsque des éléments laissent supposer que le logement est abandonné par le locataire ou toute personne susvisée, le propriétaire peut mettre en demeure le locataire de justifier qu’il occupe le logement. Cette mise en demeure, faite par acte d’huissier de justice, peut être contenue dans un des commandements visés aux articles 7 et 24 de la loi du 6 juillet 1989.</p>
-    <p>À défaut de réponse dans le délai de 1 mois, l’huissier peut procéder à la constatation de l’état d’abandon et le propriétaire pourra engager la procédure de résiliation du bail d’habitation.</p>
+    <p>Lorsque des éléments laissent supposer que le logement est abandonné par le locataire ou toute personne susvisée, le bailleur peut mettre en demeure le locataire de justifier qu’il occupe le logement. Cette mise en demeure, faite par acte d’huissier de justice, peut être contenue dans un des commandements visés aux articles 7 et 24 de la loi du 6 juillet 1989.</p>
+    <p>À défaut de réponse dans le délai de 1 mois, l’huissier peut procéder à la constatation de l’état d’abandon et le bailleur pourra engager la procédure de résiliation du bail d’habitation.</p>
     
     <p><strong>5° Décès du locataire</strong></p>
     <p>
@@ -343,13 +343,13 @@
       Il est interdit au locataire de les transporter hors du logement, sauf accord exprès du bailleur. Le locataire devra également veiller à ce qu'ils soient utilisés normalement afin d'éviter leur détérioration prématurée.
     </p>
     <p>
-      Visites. – Le propriétaire pourra visiter la chose louée ou la faire visiter par toute personne mandatée par lui, pour la surveillance et l'entretien de l'immeuble et de toutes les installations, toutes les fois que cela sera nécessaire, à charge de prévenir au préalable le locataire. 
+      Visites. – Le bailleur pourra visiter la chose louée ou la faire visiter par toute personne mandatée par lui, pour la surveillance et l'entretien de l'immeuble et de toutes les installations, toutes les fois que cela sera nécessaire, à charge de prévenir au préalable le locataire. 
     </p>
     <p>
       Il pourra également en vue de la vente ou de la relocation du logement loué, le faire visiter, 1 mois avant la date de fin du contrat, chaque jour ouvrable durant 2 heures qui seront fixées d'un commun accord entre les parties entre 13 et 19 heures, ou à défaut par le juge des référés.
     </p>
     <p>
-      Cession - Sous-location. – Le locataire devra occuper le logement lui-même. Il ne pourra pas céder les droits qu'il tient du présent contrat, ni sous-louer, ni même prêter tout ou partie de la chose louée sans l'accord exprès du propriétaire.
+      Cession - Sous-location. – Le locataire devra occuper le logement lui-même. Il ne pourra pas céder les droits qu'il tient du présent contrat, ni sous-louer, ni même prêter tout ou partie de la chose louée sans l'accord exprès du bailleur.
     </p>
     <p>
       Le locataire ne pourra l'affecter à un autre usage et il ne pourra donc en particulier y exercer une activité professionnelle, même libérale, ni de sous-location, sans l’accord exprès du bailleur.
@@ -361,7 +361,7 @@
 
     <p><strong>2° Responsabilité - Assurance</strong></p>
     <p>
-      Le locataire répondra des dégradations et pertes qui pourraient survenir à la chose louée pendant la durée du contrat, à moins qu'il ne prouve qu'elles ont eu lieu par cas de force majeure, par la faute du propriétaire, ou par le fait d'un tiers qu'il n'a pas introduit dans le logement.
+      Le locataire répondra des dégradations et pertes qui pourraient survenir à la chose louée pendant la durée du contrat, à moins qu'il ne prouve qu'elles ont eu lieu par cas de force majeure, par la faute du bailleur, ou par le fait d'un tiers qu'il n'a pas introduit dans le logement.
     </p>
     <p>
       Il devra, pendant toute la durée du contrat, faire assurer la chose louée auprès d'une compagnie notoirement solvable et pour une somme suffisante contre les risques dont il doit répondre en sa qualité de locataire, notamment contre l'incendie, les dégâts des eaux, les risques locatifs et le recours des voisins. Le locataire s’engage à fournir une attestation d’assurance au moins une fois par an ou sur demande du bailleur. 
@@ -373,16 +373,16 @@
       Locataire. – Le locataire aura à sa charge l'entretien courant de la chose louée, les menues réparations et l'ensemble des réparations locatives, sauf si elles sont occasionnées par vétusté, malfaçon, vice de construction, cas fortuit ou force majeure. Les réparations à la charge du locataire sont définies par le décret n° 87-712 du 26 août 1987.
     </p>
     <p>
-      En ce qui concerne particulièrement les meubles et objets mobiliers compris dans la location, le locataire devra les maintenir en bon état et les rendre de même en fin de contrat, sauf les détériorations et l'usure provenant d'une utilisation normale. À son départ, il sera également tenu de rembourser au propriétaire la valeur de ces meubles et objets mobiliers qui auraient été perdus ou détériorés autrement que par vétusté, cas fortuit ou force majeure.
+      En ce qui concerne particulièrement les meubles et objets mobiliers compris dans la location, le locataire devra les maintenir en bon état et les rendre de même en fin de contrat, sauf les détériorations et l'usure provenant d'une utilisation normale. À son départ, il sera également tenu de rembourser au bailleur la valeur de ces meubles et objets mobiliers qui auraient été perdus ou détériorés autrement que par vétusté, cas fortuit ou force majeure.
     </p>
     <p>
       Le locataire s’engage également à laisser exécuter dans les lieux loués les travaux d’amélioration des parties communes ou des parties privatives de l’immeuble ainsi que les travaux nécessaires au maintien en état et à l’entretien normal des locaux loués.
     </p>
     <p>
-      Propriétaire. – De son côté, le propriétaire sera tenu d'entretenir la chose louée en état de servir à l'usage prévu par le contrat et d'y faire toutes les réparations nécessaires autres que locatives et d'entretien. À cette fin, le locataire s'engage à le prévenir immédiatement de toute détérioration qu'il constaterait et qui nécessiterait des réparations à la charge du propriétaire.
+      Bailleur. – De son côté, le bailleur sera tenu d'entretenir la chose louée en état de servir à l'usage prévu par le contrat et d'y faire toutes les réparations nécessaires autres que locatives et d'entretien. À cette fin, le locataire s'engage à le prévenir immédiatement de toute détérioration qu'il constaterait et qui nécessiterait des réparations à la charge du bailleur.
     </p>
     <p>
-      Troubles de jouissance. – Le locataire devra souffrir sans indemnité la réalisation par le propriétaire des réparations qui deviendraient urgentes ou nécessaires. 
+      Troubles de jouissance. – Le locataire devra souffrir sans indemnité la réalisation par le bailleur des réparations qui deviendraient urgentes ou nécessaires. 
     </p>
     <p>
       Application d’une grille de vétusté. - Conformément à l’article 4 du chapitre II du décret n°2016-382 du 30 mars 2016, la grille de vétusté appliquée au présent contrat de location se trouve en annexe. Il s’agit de l’accord collectif portant sur la grille de vétusté et l’indemnité de remise en état des logements à l’OPAC de Paris. Le locataire reconnaît avoir pris connaissance de cette grille, qui a été convenue entre les parties.
@@ -391,13 +391,13 @@
 
     <p><strong>4° Aménagements - Transformations</strong></p>
     <p>
-      Toute transformation ou aménagement nécessitera l'accord exprès et écrit du propriétaire.
+      Toute transformation ou aménagement nécessitera l'accord exprès et écrit du bailleur.
     </p>
     <p>
-      À défaut de cet accord, le propriétaire pourra exiger la remise en état des locaux ou des équipements, au départ du locataire, ou conserver les transformations ou aménagements effectués sans que le locataire puisse réclamer une indemnité pour les frais engagés.
+      À défaut de cet accord, le bailleur pourra exiger la remise en état des locaux ou des équipements, au départ du locataire, ou conserver les transformations ou aménagements effectués sans que le locataire puisse réclamer une indemnité pour les frais engagés.
     </p>
     <p>
-      Le propriétaire pourra également exiger, aux frais du locataire, la remise immédiate des lieux en l'état au cas où les transformations ou aménagements mettraient en péril le bon fonctionnement des équipements ou la sécurité du local.
+      Le bailleur pourra également exiger, aux frais du locataire, la remise immédiate des lieux en l'état au cas où les transformations ou aménagements mettraient en péril le bon fonctionnement des équipements ou la sécurité du local.
     </p>
 
 
@@ -503,7 +503,7 @@
     <h2>Article 10 - Garantie - Cautionnement</h2>
     <p><strong>1° Dépôt de garantie</strong></p>
     <p>
-      Le locataire a versé au propriétaire qui le reconnaît et lui en consent quittance la somme de {{bail.depot_garantie}} euros, correspondant à {% if bail.bien.meuble %}2 mois{%else%}1 mois{% endif %} de loyer hors charges, à titre de dépôt de garantie, destiné à couvrir l’inexécution éventuelle de ses obligations contractuelles.
+      Le locataire a versé au bailleur qui le reconnaît et lui en consent quittance la somme de {{bail.depot_garantie}} euros, correspondant à {% if bail.bien.meuble %}2 mois{%else%}1 mois{% endif %} de loyer hors charges, à titre de dépôt de garantie, destiné à couvrir l’inexécution éventuelle de ses obligations contractuelles.
     </p>
     <p>
       Ce dépôt de garantie ne produit aucun intérêt pour le locataire. Il sera restitué dans les délais et selon les modalités prévus à l’article 22 de la loi du 6 juillet 1989 précitée, dans un délai maximal de 2 mois à compter de la restitution des clés, déduction faite :
@@ -596,7 +596,7 @@
     <p>
       <ul>
         <li>
-          le propriétaire, en son domicile sus-indiqué;
+          le bailleur, en son domicile sus-indiqué;
         </li>
         <li>
            le locataire, dans les lieux loués;
@@ -642,15 +642,15 @@
     <div class="signature">
       <!-- Landlord signature blocks -->
       <h4 id="landlord-signature-header">
-        {% with count=bail.bien.proprietaires.all|length %}
-          Propriétaire{% if count > 1 %}s{% endif %}
+        {% with count=bail.bien.bailleurs.all|length %}
+          Bailleur{% if count > 1 %}s{% endif %}
         {% endwith %}
       </h4>
       <div class="signature-list">
-        {% for person in bail.bien.proprietaires.all %}
+        {% for bailleur in bail.bien.bailleurs.all %}
         <div class="signature-block">
           <!-- ID invisible pour PyMuPDF -->
-          <p style="color:white; margin: 0;">ID_SIGNATURE_PROP_{{ person.id }}</p>
+          <p style="color:white; margin: 0;">ID_SIGNATURE_BAILLEUR_{{ bailleur.signataire.id }}</p>
         </div>
         {% endfor %}
       </div>

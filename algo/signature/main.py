@@ -17,27 +17,26 @@ from pyhanko.sign.fields import (
 )
 from slugify import slugify
 
+from bail.models import Personne
+
 TAMPON_WIDTH_PX = 230
 TAMPON_HEIGHT_PX = 180
 SCALE_FACTOR = 4
 
 
-def get_signature_field_name(person):
+def get_signature_field_name(person: Personne):
     """
     Crée un nom de champ de signature basé sur l'ID et le nom de la personne.
     """
-    return slugify(f"{person.id}-{person.get_full_name()}")
+    return slugify(f"{person.id}-{person.full_name}")
 
 
-def get_named_dest_coordinates(pdf_path, person):
+def get_named_dest_coordinates(pdf_path, person: Personne, target_type=None):
     field_name = get_signature_field_name(person)
 
-    # Déterminer le préfixe selon le type de personne
-    from bail.models import Locataire, Proprietaire
-
-    if isinstance(person, Proprietaire):
-        target_marker = f"ID_SIGNATURE_PROP_{person.id}"
-    elif isinstance(person, Locataire):
+    if target_type == "bailleur":
+        target_marker = f"ID_SIGNATURE_BAILLEUR_{person.id}"
+    elif target_type == "locataire":
         target_marker = f"ID_SIGNATURE_LOC_{person.id}"
     else:
         # Fallback pour d'autres types si nécessaire

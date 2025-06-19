@@ -25,30 +25,204 @@ class DPEClass(models.TextChoices):
     NA = "NA", "Non soumis à DPE"
 
 
-class Proprietaire(models.Model):
-    """Model representing the property owner."""
+# ==============================
+# NOUVEAUX MODÈLES POUR BAILLEUR
+# ==============================
+
+
+class Personne(models.Model):
+    """Personne physique (propriétaire, signataire, etc.)"""
 
     nom = models.CharField(max_length=100)
     prenom = models.CharField(max_length=100)
-    adresse = models.CharField(max_length=255)
-    telephone = models.CharField(max_length=20)
+    date_naissance = models.DateField(
+        null=True, blank=True
+    )  # Optionnel pour certains cas
     email = models.EmailField()
+    adresse = models.TextField()
 
-    # Informations bancaires
+    # Informations bancaires (pour les propriétaires)
     iban = models.CharField(max_length=34, blank=True, null=True)
 
+    class Meta:
+        verbose_name = "Personne"
+        verbose_name_plural = "Personnes"
+
     def __str__(self):
+        return self.full_name
+
+    @property
+    def full_name(self):
         return f"{self.prenom} {self.nom}"
 
-    def get_full_name(self):
-        """Return the full name of the owner."""
-        return f"{self.prenom} {self.nom}"
+
+class Societe(models.Model):
+    """Société (propriétaire, mandataire, etc.)"""
+
+    siret = models.CharField(max_length=14)
+    raison_sociale = models.CharField(max_length=200)
+    forme_juridique = models.CharField(max_length=100)
+    adresse = models.TextField()
+    email = models.EmailField()
+
+    # Informations bancaires (pour les sociétés propriétaires)
+    iban = models.CharField(max_length=34, blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Société"
+        verbose_name_plural = "Sociétés"
+
+    def __str__(self):
+        return self.raison_sociale
+
+    @property
+    def full_name(self):
+        return f"{self.forme_juridique} {self.raison_sociale}"
+
+
+class Mandataire(models.Model):
+    """Mandataire/Agence qui gère pour le compte du propriétaire"""
+
+    # Un mandataire est toujours une société dans la pratique
+    societe = models.ForeignKey(
+        Societe, on_delete=models.CASCADE, related_name="mandats"
+    )
+
+    # Signataire du mandataire (personne physique qui signe)
+    signataire = models.ForeignKey(
+        Personne,
+        on_delete=models.CASCADE,
+        related_name="mandats_signes",
+        help_text="Personne physique qui signe pour le mandataire",
+    )
+
+    # Infos du mandat
+    numero_carte_professionnelle = models.CharField(max_length=50, blank=True)
+    date_debut_mandat = models.DateField()
+    date_fin_mandat = models.DateField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Mandataire"
+        verbose_name_plural = "Mandataires"
+
+    def __str__(self):
+        return f"{self.societe.raison_sociale} (Mandataire)"
+
+
+class Bailleur(models.Model):
+    """Bailleur (propriétaire ou société propriétaire)"""
+
+    # Un bailleur peut être soit une personne physique, soit une société
+    personne = models.ForeignKey(
+        Personne,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="bailleurs",
+        help_text="Personne physique bailleur",
+    )
+    societe = models.ForeignKey(
+        Societe,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="bailleurs",
+        help_text="Société bailleur",
+    )
+
+    signataire = models.ForeignKey(
+        Personne,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="bailleurs_signes",
+        help_text="Personne physique qui signe pour le bailleur",
+    )
+
+    class Meta:
+        verbose_name = "Bailleur"
+        verbose_name_plural = "Bailleurs"
+        constraints = [
+            # S'assurer qu'exactement un des deux champs est rempli
+            models.CheckConstraint(
+                check=(
+                    models.Q(personne__isnull=False, societe__isnull=True)
+                    | models.Q(personne__isnull=True, societe__isnull=False)
+                ),
+                name="bailleur_exactly_one_type",
+            )
+        ]
+
+    @property
+    def bailleur_type(self):
+        """Retourne le type de bailleur (personne ou société)"""
+        if self.personne:
+            return "personne"
+        elif self.societe:
+            return "societe"
+        return "inconnu"
+
+    @property
+    def full_name(self):
+        """Retourne le nom complet du bailleur."""
+        if self.personne:
+            return self.personne.full_name
+        elif self.societe:
+            return self.societe.full_name
+        return "Bailleur inconnu"
+
+    def save(self, *args, **kwargs):
+        """Automatiser la logique du signataire selon le type de bailleur."""
+        # Si c'est une personne physique, elle doit être son propre signataire
+        if self.personne and not self.signataire:
+            self.signataire = self.personne
+
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        """Validation supplémentaire du modèle."""
+        from django.core.exceptions import ValidationError
+
+        # Vérifier qu'on a exactement un type de bailleur
+        if not self.personne and not self.societe:
+            raise ValidationError(
+                "Un bailleur doit être soit une personne, soit une société."
+            )
+
+        if self.personne and self.societe:
+            raise ValidationError(
+                "Un bailleur ne peut pas être à la fois une personne et une société."
+            )
+
+        # Si c'est une personne physique, le signataire doit être cette personne
+        if self.personne and self.signataire and self.signataire != self.personne:
+            raise ValidationError(
+                "Pour une personne physique, le signataire doit être "
+                "la personne elle-même."
+            )
+
+        # Si c'est une société, un signataire est obligatoire
+        if self.societe and not self.signataire:
+            raise ValidationError(
+                "Une société doit avoir un signataire (personne physique)."
+            )
+
+    def __str__(self):
+        if self.personne:
+            return f"{self.personne.full_name} (Bailleur)"
+        elif self.societe:
+            return f"{self.societe.full_name} (Bailleur)"
+        return "Bailleur inconnu"
 
 
 class Bien(models.Model):
     """Model representing the rental property."""
 
-    proprietaires = models.ManyToManyField(Proprietaire, related_name="biens")
+    bailleurs = models.ManyToManyField(
+        Bailleur,
+        related_name="biens",
+        help_text="Un ou plusieurs bailleurs pour ce bien",
+    )
 
     adresse = models.CharField(max_length=255)
     latitude = models.FloatField(null=True, blank=True)
@@ -148,23 +322,21 @@ class Bien(models.Model):
         return f"{self.type_bien} - {self.adresse}"
 
 
-class Locataire(models.Model):
-    """Model representing the tenant."""
+class Locataire(Personne):
+    """Model representing the tenant (inherits from Personne)."""
 
-    # Données d'identité obligatoires
-    nom = models.CharField(max_length=100)
-    prenom = models.CharField(max_length=100)
-
-    # Données d'identité importantes mais techniquement optionnelles
-    date_naissance = models.DateField(null=True, blank=True)
+    # Données d'identité supplémentaires spécifiques au locataire
     lieu_naissance = models.CharField(max_length=100, blank=True)
 
-    # Coordonnées (au moins une nécessaire en pratique)
-    adresse_actuelle = models.CharField(max_length=255, blank=True)
-    telephone = models.CharField(max_length=20, blank=True)
-    email = models.EmailField(blank=True)
+    # Adresse actuelle (différente de l'adresse générale de Personne
+    # qui peut être l'adresse du bien loué)
+    adresse_actuelle = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Adresse actuelle du locataire avant emménagement",
+    )
 
-    # Données supplémentaires
+    # Données supplémentaires spécifiques au locataire
     profession = models.CharField(max_length=100, blank=True)
     employeur = models.CharField(max_length=100, blank=True)
     revenu_mensuel = models.DecimalField(
@@ -177,18 +349,28 @@ class Locataire(models.Model):
         help_text="Indique si une caution est requise pour ce locataire",
     )
 
-    def __str__(self):
-        return f"{self.prenom} {self.nom}"
+    class Meta:
+        verbose_name = "Locataire"
+        verbose_name_plural = "Locataires"
 
-    def get_full_name(self):
-        """Return the full name of the owner."""
-        return f"{self.prenom} {self.nom}"
+    def __str__(self):
+        return f"{self.prenom} {self.nom} (Locataire)"
 
 
 class BailSpecificites(models.Model):
     """Model representing the lease specifics."""
 
     bien = models.ForeignKey(Bien, on_delete=models.CASCADE, related_name="bails")
+
+    # Mandataire optionnel au niveau du bail
+    mandataire = models.ForeignKey(
+        Mandataire,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="baux_geres",
+        help_text="Mandataire qui gère ce bail",
+    )
     locataires = models.ManyToManyField(Locataire, related_name="bails")
     solidaires = models.BooleanField(
         default=False,
@@ -303,13 +485,16 @@ class BailSignatureRequest(models.Model):
         BailSpecificites, on_delete=models.CASCADE, related_name="signature_requests"
     )
 
-    # Soit un propriétaire, soit un locataire (un seul à la fois)
-    proprietaire = models.ForeignKey(
-        Proprietaire,
+    # Soit un signataire de bailleur, soit un locataire (un seul à la fois)
+    bailleur_signataire = models.ForeignKey(
+        Personne,
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name="signature_requests",
+        related_name="bailleur_signature_requests",
+        help_text=(
+            "Signataire du bailleur (personne physique ou représentant de société)"
+        ),
     )
     locataire = models.ForeignKey(
         Locataire,
@@ -328,7 +513,7 @@ class BailSignatureRequest(models.Model):
     link_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     class Meta:
-        unique_together = [("bail", "proprietaire"), ("bail", "locataire")]
+        unique_together = [("bail", "bailleur_signataire"), ("bail", "locataire")]
         ordering = ["order"]
 
     def __str__(self):
@@ -336,15 +521,15 @@ class BailSignatureRequest(models.Model):
         return f"Signature de {signataire} pour {self.bail}"
 
     def get_signataire_name(self):
-        if self.proprietaire:
-            return self.proprietaire.get_full_name()
+        if self.bailleur_signataire:
+            return self.bailleur_signataire.full_name
         elif self.locataire:
-            return self.locataire.get_full_name()
+            return self.locataire.full_name
         return "Inconnu"
 
     def get_email(self):
-        if self.proprietaire:
-            return self.proprietaire.email
+        if self.bailleur_signataire:
+            return self.bailleur_signataire.email
         elif self.locataire:
             return self.locataire.email
         return None

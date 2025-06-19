@@ -8,19 +8,74 @@ from faker import Faker
 
 from rent_control.choices import ConstructionPeriod, PropertyType, RoomCount
 
-from .models import BailSpecificites, Bien, DPEClass, Locataire, Proprietaire
+from .models import (
+    Bailleur,
+    BailSpecificites,
+    Bien,
+    DPEClass,
+    Locataire,
+    Personne,
+    Societe,
+)
 
 fake = Faker("fr_FR")
 
 
-class ProprietaireFactory(DjangoModelFactory):
+class PersonneFactory(DjangoModelFactory):
     class Meta:
-        model = Proprietaire
+        model = Personne
+
+    nom = factory.Faker("last_name")
+    prenom = factory.Faker("first_name")
+    email = factory.Faker("email")
+    adresse = factory.Faker("address")
+    date_naissance = factory.Faker("date_of_birth", minimum_age=18, maximum_age=80)
+
+
+class SocieteFactory(DjangoModelFactory):
+    class Meta:
+        model = Societe
+
+    siret = factory.Faker("numerify", text="##############")
+    raison_sociale = factory.Faker("company")
+    forme_juridique = factory.LazyFunction(
+        lambda: random.choice(["SARL", "SAS", "SCI", "EURL", "SA"])
+    )
+    email = factory.Faker("company_email")
+    adresse = factory.Faker("address")
+
+
+class BailleurFactory(DjangoModelFactory):
+    class Meta:
+        model = Bailleur
+
+    bailleur_type = factory.LazyFunction(lambda: random.choice(["personne", "societe"]))
+
+    # Créer soit personne soit société selon le type
+    personne = factory.SubFactory(PersonneFactory)
+    signataire = factory.SelfAttribute("personne")
+
+    @factory.post_generation
+    def setup_bailleur(self, create, extracted, **kwargs):
+        if not create:
+            return
+
+        if self.bailleur_type == "societe":
+            # Pour une société, créer la société et garder la personne comme signataire
+            self.societe = SocieteFactory()
+            self.personne = None
+            self.save()
+
+
+class ProprietaireFactory(DjangoModelFactory):
+    """Factory pour l'ancien modèle Proprietaire (à supprimer)"""
+
+    class Meta:
+        model = Personne  # Temporaire, en attendant suppression
 
     nom = factory.Faker("last_name")
     prenom = factory.Faker("first_name")
     adresse = factory.Faker("address")
-    telephone = factory.LazyFunction(lambda: f"+33 {fake.msisdn()[3:]}")
     email = factory.LazyAttribute(
         lambda o: f"{o.prenom.lower()}.{o.nom.lower()}@example.com"
     )
@@ -80,36 +135,40 @@ class BienFactory(DjangoModelFactory):
     additionnal_description = factory.Faker("paragraph")
 
     @factory.post_generation
-    def proprietaires(self, create, extracted, **kwargs):
+    def bailleurs(self, create, extracted, **kwargs):
         if not create:
             return
 
         if extracted:
-            # Add specific proprietaires if provided
-            for proprietaire in extracted:
-                self.proprietaires.add(proprietaire)
+            # Add specific bailleurs if provided
+            for bailleur in extracted:
+                self.bailleurs.add(bailleur)
         else:
-            # Add one proprietaire by default
-            self.proprietaires.add(ProprietaireFactory())
+            # Add one bailleur by default
+            self.bailleurs.add(BailleurFactory())
 
 
 class LocataireFactory(DjangoModelFactory):
     class Meta:
         model = Locataire
 
+    # Champs hérités de Personne
     nom = factory.Faker("last_name")
     prenom = factory.Faker("first_name")
     date_naissance = factory.LazyFunction(
-        lambda: fake.date_of_birth(minimum_age=18, maximum_age=70)
+        lambda: fake.date_between(start_date="-60y", end_date="-18y")
     )
-    lieu_naissance = factory.Faker("city")
-    adresse_actuelle = factory.Faker("address")
-    telephone = factory.LazyFunction(lambda: f"+33 {fake.msisdn()[3:]}")
     email = factory.LazyAttribute(
         lambda o: f"{o.prenom.lower()}.{o.nom.lower()}@example.com"
     )
+    adresse = factory.Faker("address")
+    iban = factory.LazyFunction(lambda: fake.iban())
 
-    # Données supplémentaires
+    # Champs spécifiques au locataire
+    lieu_naissance = factory.Faker("city")
+    adresse_actuelle = factory.Faker("address")
+
+    # Données supplémentaires spécifiques au locataire
     profession = factory.Faker("job")
     employeur = factory.Faker("company")
     revenu_mensuel = factory.LazyFunction(

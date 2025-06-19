@@ -2,6 +2,7 @@ import base64
 import logging
 import os
 from decimal import Decimal
+from typing import List
 
 from django.conf import settings
 from django.core.files.base import File
@@ -14,20 +15,39 @@ from algo.signature.main import (
     sign_pdf,
 )
 from authentication.utils import generate_otp
-from bail.models import BailSignatureRequest
+from bail.models import Bailleur, BailSignatureRequest, BailSpecificites, Personne
 
 logger = logging.getLogger(__name__)
 
 
-def prepare_pdf_with_signature_fields(pdf_path, bail):
-    landlords = list(bail.bien.proprietaires.all())
-    tenants = list(bail.locataires.all())
-    signatories = landlords + tenants
+def prepare_pdf_with_signature_fields(pdf_path, bail: BailSpecificites):
+    # Les signataires sont les signataires des bailleurs + les locataires
+
+    bailleurs: List[Bailleur] = bail.bien.bailleurs.all()
+    bailleur_signataires: Personne = [bailleur.signataire for bailleur in bailleurs]
 
     all_fields = []
 
-    for person in signatories:
-        page, rect, field_name = get_named_dest_coordinates(pdf_path, person)
+    for person in bailleur_signataires:
+        page, rect, field_name = get_named_dest_coordinates(
+            pdf_path, person, "bailleur"
+        )
+        if rect is None:
+            raise ValueError(f"Aucun champ de signature trouvé pour {person.email}")
+
+        all_fields.append(
+            {
+                "field_name": field_name,
+                "rect": rect,
+                "person": person,
+                "page": page,
+            }
+        )
+
+    for person in list(bail.locataires.all()):
+        page, rect, field_name = get_named_dest_coordinates(
+            pdf_path, person, "locataire"
+        )
         if rect is None:
             raise ValueError(f"Aucun champ de signature trouvé pour {person.email}")
 
@@ -48,9 +68,9 @@ def send_mail(subject, message, from_email, recipient_list):
     django_send_mail(subject, message, from_email, recipient_list)
 
 
-def process_signature(sig_req, signature_data_url):
+def process_signature(sig_req: BailSignatureRequest, signature_data_url):
     bail = sig_req.bail
-    signing_person = sig_req.proprietaire or sig_req.locataire
+    signing_person = sig_req.bailleur_signataire or sig_req.locataire
     signature_bytes = base64.b64decode(signature_data_url.split(",")[1])
     field_name = get_signature_field_name(signing_person)
 
@@ -83,8 +103,8 @@ def process_signature(sig_req, signature_data_url):
         logger.warning(f"Impossible de supprimer le fichier temporaire : {e}")
 
 
-def send_signature_email(signature_request):
-    person = signature_request.proprietaire or signature_request.locataire
+def send_signature_email(signature_request: BailSignatureRequest):
+    person = signature_request.bailleur_signataire or signature_request.locataire
     link = f"{settings.FRONTEND_URL}/bail/signing/{signature_request.link_token}/"
     message = f"""
 Bonjour {person.prenom},
@@ -106,13 +126,14 @@ L'équipe HESTIA
 
 
 def create_signature_requests(bail):
-    landlords = list(bail.bien.proprietaires.all())
+    bailleurs: List[Bailleur] = bail.bien.bailleurs.all()
+    bailleur_signataires: Personne = [bailleur.signataire for bailleur in bailleurs]
     tenants = list(bail.locataires.all())
 
-    for i, person in enumerate(landlords):
+    for i, signataire in enumerate(bailleur_signataires):
         otp = generate_otp()
         req = BailSignatureRequest.objects.create(
-            bail=bail, proprietaire=person, order=i, otp=otp
+            bail=bail, bailleur_signataire=signataire, order=i, otp=otp
         )
 
         if i == 0:
@@ -121,7 +142,7 @@ def create_signature_requests(bail):
     for i, person in enumerate(tenants):
         otp = generate_otp()
         req = BailSignatureRequest.objects.create(
-            bail=bail, locataire=person, order=i + len(landlords), otp=otp
+            bail=bail, locataire=person, order=i + len(bailleur_signataires), otp=otp
         )
 
 

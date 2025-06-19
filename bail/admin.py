@@ -1,32 +1,80 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import BailSpecificites, Bien, Document, Locataire, Proprietaire
+from .models import (
+    Bailleur,
+    BailSpecificites,
+    Bien,
+    Document,
+    Locataire,
+    Personne,
+    Societe,
+)
 
 
-class ProprietaireBiensInline(admin.TabularInline):
-    model = Bien.proprietaires.through
+class BailleurBiensInline(admin.TabularInline):
+    model = Bien.bailleurs.through
     extra = 1
     verbose_name = "Bien"
     verbose_name_plural = "Biens"
 
 
-@admin.register(Proprietaire)
-class ProprietaireAdmin(admin.ModelAdmin):
-    """Interface d'administration pour les propriétaires"""
+@admin.register(Bailleur)
+class BailleurAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les bailleurs"""
 
-    list_display = ("nom", "prenom", "email", "telephone", "count_biens")
-    search_fields = ("nom", "prenom", "email", "telephone")
-    inlines = [ProprietaireBiensInline]
+    list_display = (
+        "get_full_name",
+        "bailleur_type",
+        "get_email",
+        "count_biens",
+    )
+    search_fields = (
+        "personne__nom",
+        "personne__prenom",
+        "personne__email",
+        "societe__raison_sociale",
+        "societe__email",
+    )
+    list_filter = ()  # Suppression du filtre sur bailleur_type car c'est une propriété
+    inlines = [BailleurBiensInline]
 
     fieldsets = (
-        ("Identité", {"fields": ("nom", "prenom")}),
-        ("Coordonnées", {"fields": ("adresse", "telephone", "email")}),
-        ("Informations bancaires", {"fields": ("iban",), "classes": ("collapse",)}),
+        (
+            "Personne physique",
+            {
+                "fields": ("personne",),
+                "classes": ("collapse",),
+                "description": "Sélectionner si le bailleur est une personne physique",
+            },
+        ),
+        (
+            "Société",
+            {
+                "fields": ("societe",),
+                "classes": ("collapse",),
+                "description": "Sélectionner si le bailleur est une société",
+            },
+        ),
+        ("Signataire", {"fields": ("signataire",)}),
     )
 
+    def get_full_name(self, obj: Bailleur):
+        return obj.full_name
+
+    get_full_name.short_description = "Nom"
+
+    def get_email(self, obj):
+        if obj.personne:
+            return obj.personne.email
+        elif obj.societe:
+            return obj.societe.email
+        return "-"
+
+    get_email.short_description = "Email"
+
     def count_biens(self, obj):
-        """Affiche le nombre de biens du propriétaire"""
+        """Affiche le nombre de biens du bailleur"""
         count = obj.biens.count()
         return count
 
@@ -81,7 +129,7 @@ class BienAdmin(admin.ModelAdmin):
 
     list_display = (
         "adresse",
-        "display_proprietaires",
+        "display_bailleurs",
         "type_bien",
         "superficie",
         "display_nb_pieces",
@@ -94,11 +142,16 @@ class BienAdmin(admin.ModelAdmin):
         "classe_dpe",
         "periode_construction",
     )
-    search_fields = ("adresse", "proprietaires__nom", "proprietaires__prenom")
+    search_fields = (
+        "adresse",
+        "bailleurs__personne__nom",
+        "bailleurs__personne__prenom",
+        "bailleurs__societe__raison_sociale",
+    )
     inlines = [BailInline]
 
     fieldsets = (
-        ("Propriétaires", {"fields": ("proprietaires",)}),
+        ("Bailleurs", {"fields": ("bailleurs",)}),
         ("Localisation", {"fields": ("adresse", "latitude", "longitude")}),
         (
             "Caractéristiques",
@@ -158,22 +211,35 @@ class BienAdmin(admin.ModelAdmin):
 
     display_nb_pieces.short_description = "Pièces principales"
 
-    def display_proprietaires(self, obj):
-        return ", ".join([f"{p.prenom} {p.nom}" for p in obj.proprietaires.all()])
+    def display_bailleurs(self, obj):
+        bailleurs_names = []
+        for bailleur in obj.bailleurs.all():
+            if bailleur.personne:
+                nom_complet = f"{bailleur.personne.prenom} {bailleur.personne.nom}"
+                bailleurs_names.append(nom_complet)
+            elif bailleur.societe:
+                bailleurs_names.append(bailleur.societe.raison_sociale)
+        return ", ".join(bailleurs_names)
 
-    display_proprietaires.short_description = "Propriétaires"
+    display_bailleurs.short_description = "Bailleurs"
 
 
 @admin.register(Locataire)
 class LocataireAdmin(admin.ModelAdmin):
     """Interface d'administration pour les locataires"""
 
-    list_display = ("nom", "prenom", "email", "telephone", "count_bails")
-    search_fields = ("nom", "prenom", "email", "telephone")
+    list_display = ("get_nom", "get_prenom", "email", "count_bails")
+    search_fields = ("nom", "prenom", "email")
 
     fieldsets = (
-        ("Identité", {"fields": ("nom", "prenom", "date_naissance", "lieu_naissance")}),
-        ("Coordonnées", {"fields": ("adresse_actuelle", "telephone", "email")}),
+        (
+            "Informations personnelles",
+            {"fields": ("nom", "prenom", "date_naissance", "email", "adresse")},
+        ),
+        (
+            "Informations spécifiques",
+            {"fields": ("lieu_naissance", "adresse_actuelle")},
+        ),
         (
             "Informations professionnelles",
             {
@@ -188,7 +254,28 @@ class LocataireAdmin(admin.ModelAdmin):
                 "classes": ("collapse",),
             },
         ),
+        (
+            "Autres",
+            {
+                "fields": ("caution_requise", "iban"),
+                "classes": ("collapse",),
+            },
+        ),
     )
+
+    def get_nom(self, obj):
+        """Affiche le nom"""
+        return obj.nom
+
+    get_nom.short_description = "Nom"
+    get_nom.admin_order_field = "nom"
+
+    def get_prenom(self, obj):
+        """Affiche le prénom"""
+        return obj.prenom
+
+    get_prenom.short_description = "Prénom"
+    get_prenom.admin_order_field = "prenom"
 
     def count_bails(self, obj):
         """Affiche le nombre de bails du locataire"""
@@ -244,7 +331,11 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
         (
             "Encadrement des loyers",
             {
-                "fields": ("zone_tendue", "prix_reference", "complement_loyer"),
+                "fields": (
+                    "zone_tendue",
+                    "rent_price_id",
+                    "justificatif_complement_loyer",
+                ),
                 "classes": ("collapse",),
             },
         ),
@@ -308,3 +399,78 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
         if db_field.name == "bien":
             kwargs["queryset"] = Bien.objects.all()  # No select_related needed
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+
+@admin.register(Personne)
+class PersonneAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les personnes physiques"""
+
+    list_display = ("get_full_name", "email", "date_naissance", "count_bailleurs")
+    search_fields = ("nom", "prenom", "email")
+    list_filter = ("date_naissance",)
+
+    fieldsets = (
+        (
+            "Informations personnelles",
+            {"fields": ("nom", "prenom", "date_naissance", "email")},
+        ),
+        ("Adresse", {"fields": ("adresse",)}),
+        (
+            "Informations bancaires",
+            {
+                "fields": ("iban",),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    def get_full_name(self, obj):
+        """Affiche le nom complet"""
+        return obj.full_name
+
+    get_full_name.short_description = "Nom complet"
+    get_full_name.admin_order_field = "nom"
+
+    def count_bailleurs(self, obj):
+        """Affiche le nombre de bailleurs liés à cette personne"""
+        count = obj.bailleurs.count()
+        return count
+
+    count_bailleurs.short_description = "Bailleurs"
+
+
+@admin.register(Societe)
+class SocieteAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les sociétés"""
+
+    list_display = (
+        "raison_sociale",
+        "siret",
+        "forme_juridique",
+        "email",
+        "count_bailleurs",
+    )
+    search_fields = ("raison_sociale", "siret", "email", "forme_juridique")
+    list_filter = ("forme_juridique",)
+
+    fieldsets = (
+        (
+            "Informations de la société",
+            {"fields": ("raison_sociale", "siret", "forme_juridique")},
+        ),
+        ("Contact", {"fields": ("email", "adresse")}),
+        (
+            "Informations bancaires",
+            {
+                "fields": ("iban",),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    def count_bailleurs(self, obj):
+        """Affiche le nombre de bailleurs liés à cette société"""
+        count = obj.bailleurs.count()
+        return count
+
+    count_bailleurs.short_description = "Bailleurs"

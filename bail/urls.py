@@ -6,6 +6,7 @@ from bail.views import (
     generate_bail_pdf,
     generate_grille_vetuste_pdf,
     generate_notice_information_pdf,
+    get_company_data,
     get_rent_prices,
     get_signature_request,
     save_draft,
@@ -27,6 +28,7 @@ urlpatterns = [
         name="generate_notice_information_pdf",
     ),
     path("upload-diagnostics/", upload_diagnostics, name="upload_diagnostics"),
+    path("get-company-data/", get_company_data, name="get_company_data"),
     path("documents/<uuid:document_id>/", delete_document, name="delete_document"),
     path("confirm-signature/", confirm_signature_bail, name="confirm_signature_bail"),
     path(

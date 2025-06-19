@@ -3,6 +3,7 @@ import logging
 import os
 import uuid
 
+import requests
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
@@ -603,3 +604,374 @@ def get_rent_prices(request):
     except Exception as e:
         logger.error(f"❌ Erreur: {str(e)}")
         return JsonResponse({"error": f"Erreur: {str(e)}"}, status=500)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_company_data(request):
+    """
+    Récupère les données d'une société via l'API SIRENE (SIRET)
+    """
+    # Mapping des codes de formes juridiques INSEE vers leurs libellés
+    FORMES_JURIDIQUES = {
+        "1000": "Entrepreneur individuel",
+        "2110": "Indivision entre personnes physiques",
+        "2120": "Indivision avec personne morale",
+        "2210": "Société créée de fait entre personnes physiques",
+        "2220": "Société créée de fait avec personne morale",
+        "2310": "Société en participation entre personnes physiques",
+        "2320": "Société en participation avec personne morale",
+        "2385": "Société en participation de professions libérales",
+        "2400": "Fiducie",
+        "2700": "Paroisse hors zone concordataire",
+        "2900": "Autre groupement de droit privé non doté de la personnalité morale",
+        "3110": "Représentation ou agence commerciale d'état ou organisme public étranger",
+        "3120": "Société étrangère immatriculée au RCS",
+        "3205": "Organisation internationale",
+        "3210": "État collectivité ou établissement public étranger",
+        "3220": "Société étrangère non immatriculée au RCS",
+        "3290": "Autre personne morale de droit étranger",
+        "4110": "Établissement public national à caractère industriel ou commercial",
+        "4120": "Établissement public national à caractère administratif",
+        "4130": "Exploitant public",
+        "4140": "Établissement public local à caractère industriel ou commercial",
+        "4150": "Régie d'une collectivité locale à caractère industriel ou commercial",
+        "4160": "Institution Banque de France",
+        "5191": "SA à participation ouvrière à conseil d'administration",
+        "5192": "SA à participation ouvrière à directoire",
+        "5193": "SA à participation ouvrière à conseil d'administration (régime Alsace Moselle)",
+        "5194": "SA à participation ouvrière à directoire (régime Alsace Moselle)",
+        "5195": "SA d'économie mixte à conseil d'administration",
+        "5196": "SA d'économie mixte à directoire",
+        "5202": "SA à directoire",
+        "5203": "SA à conseil d'administration (régime Alsace Moselle)",
+        "5204": "SA à directoire (régime Alsace Moselle)",
+        "5305": "SA d'économie mixte à conseil d'administration (régime Alsace Moselle)",
+        "5306": "SA d'économie mixte à directoire (régime Alsace Moselle)",
+        "5307": "SA à capital variable à conseil d'administration",
+        "5308": "SA à capital variable à directoire",
+        "5309": "SA coopérative ouvrière de production à conseil d'administration",
+        "5310": "SA coopérative ouvrière de production à directoire",
+        "5385": "SA coopérative d'intérêt collectif à conseil d'administration",
+        "5386": "SA coopérative d'intérêt collectif à directoire",
+        "5410": "SARL",
+        "5415": "SARL d'économie mixte",
+        "5422": "SARL coopérative ouvrière de production",
+        "5426": "SARL coopérative d'intérêt collectif",
+        "5430": "SARL d'économie mixte à capital variable",
+        "5431": "SARL à capital variable",
+        "5432": "SARL unipersonnelle à capital variable",
+        "5442": "SARL coopérative ouvrière de production à capital variable",
+        "5443": "SARL coopérative d'intérêt collectif à capital variable",
+        "5449": "SARL de famille",
+        "5451": "SARL mixte d'intérêt agricole (SICA)",
+        "5453": "SARL mixte",
+        "5454": "SARL de travail temporaire",
+        "5455": "SARL de scop",
+        "5458": "SARL de SCIC",
+        "5459": "SARL de société d'aménagement foncier et d'établissement rural (SAFER)",
+        "5460": "SARL de groupe agricole d'exploitation en commun (GAEC)",
+        "5485": "SARL coopérative de consommation",
+        "5498": "SARL unipersonnelle",
+        "5499": "SARL",
+        "5505": "SA unipersonnelle",
+        "5510": "SAS",
+        "5515": "SASU",
+        "5520": "Société par actions simplifiée",
+        "5522": "Société par actions simplifiée à associé unique",
+        "5525": "SELAS",
+        "5530": "Société par actions simplifiée unipersonnelle",
+        "5531": "SELAS à associé unique",
+        "5532": "SELASU",
+        "5542": "SELAS à capital variable",
+        "5543": "SELAS unipersonnelle à capital variable",
+        "5546": "SELASU à capital variable",
+        "5547": "SAS à capital variable",
+        "5548": "SASU à capital variable",
+        "5551": "SA à conseil d'administration",
+        "5552": "SA à directoire",
+        "5559": "SA (forme non précisée)",
+        "5560": "SAS à forme particulière",
+        "5585": "SA coopérative d'intérêt collectif à forme particulière",
+        "5599": "SA",
+        "5605": "SCA",
+        "5610": "SCS",
+        "5615": "SNC",
+        "5620": "Société en participation",
+        "5625": "Société en participation à capital variable",
+        "5630": "SCP",
+        "5631": "SCP d'avocats",
+        "5632": "SCP d'avocats aux conseils",
+        "5633": "SCP d'avoués",
+        "5634": "SCP de commissaires aux comptes",
+        "5635": "SCP de commissaires-priseurs",
+        "5636": "SCP de greffiers de tribunal de commerce",
+        "5637": "SCP de notaires",
+        "5638": "SCP d'huissiers de justice",
+        "5639": "SCP de conseils juridiques",
+        "5640": "SCP de experts-comptables",
+        "5641": "SCP de vétérinaires",
+        "5642": "SCP de géomètres-experts",
+        "5643": "SCP d'architectes",
+        "5644": "SCP de médecins",
+        "5645": "SCP de dentistes",
+        "5646": "SCP d'infirmiers",
+        "5647": "SCP de masseurs kinésithérapeutes",
+        "5648": "SCP de directeurs de laboratoire d'analyse médicale",
+        "5649": "SCP de pharmaciens",
+        "5651": "SCP de commissaires aux comptes",
+        "5670": "Autre société civile professionnelle",
+        "5671": "SCP de pharmaciens d'officine",
+        "5672": "SCP de pharmaciens biologistes",
+        "5685": "Autre société civile",
+        "5690": "SCI",
+        "5691": "SCI de construction vente",
+        "5692": "SCI d'attribution",
+        "5693": "SCI coopérative de construction",
+        "5694": "SCI d'accession progressive à la propriété",
+        "5695": "SCI de gestion",
+        "5696": "SCI de copropriétaires",
+        "5697": "SCI d'investissement",
+        "5698": "SCI de patrimoine familial",
+        "5699": "Autre SCI",
+        "5710": "SAS",
+        "5720": "SASU",
+        "5785": "Autre société par actions",
+        "5800": "Société européenne",
+        "6100": "Caisse d'Épargne et de Prévoyance",
+        "6210": "GEIE",
+        "6220": "GIE",
+        "6316": "CUMA",
+        "6317": "Société coopérative agricole",
+        "6318": "Union de sociétés coopératives agricoles",
+        "6411": "Société d'assurance à forme mutuelle",
+        "6521": "SICAV",
+        "6532": "SAFER",
+        "6533": "SICA",
+        "6534": "GAEC",
+        "6535": "Groupement agricole foncier",
+        "6536": "CUMA",
+        "6537": "Société coopérative agricole de transformation",
+        "6538": "Société coopérative agricole de commercialisation",
+        "6539": "Union de sociétés coopératives agricoles",
+        "6540": "Société d'intérêt collectif agricole",
+        "6541": "SICA d'habitat rural",
+        "6542": "Société coopérative d'utilisation de matériel agricole",
+        "6543": "Société coopérative artisanale",
+        "6544": "Société coopérative d'intérêt maritime",
+        "6551": "Société coopérative de banque",
+        "6558": "Société coopérative de crédit",
+        "6560": "Société coopérative ou union de sociétés coopératives",
+        "6561": "Société coopérative de consommateurs",
+        "6562": "Société coopérative de commerçants détaillants",
+        "6563": "Société coopérative artisanale",
+        "6564": "Société coopérative d'intérêt maritime",
+        "6565": "Société coopérative de transport",
+        "6566": "Société coopérative ouvrière de production et de crédit",
+        "6567": "Société coopérative de crédit",
+        "6568": "Société coopérative de HLM",
+        "6569": "Société coopérative de production",
+        "6571": "Union d'économie sociale",
+        "6572": "Société mutuelle",
+        "6573": "Société anonyme coopérative",
+        "6574": "Société coopérative de production",
+        "6575": "Société coopérative de consommation",
+        "6576": "Société coopérative artisanale",
+        "6577": "Société coopérative d'intérêt collectif",
+        "6578": "Société coopérative maritime",
+        "6585": "Autre société coopérative",
+        "6588": "Société d'attribution d'immeubles en copropriété",
+        "6589": "Société coopérative de HLM",
+        "6595": "Caisse locale de crédit mutuel",
+        "6596": "Caisse de crédit agricole mutuel",
+        "6597": "Société de caution mutuelle",
+        "6598": "Assurance mutuelle agricole",
+        "6599": "Autre société mutuelle",
+        "7111": "Autorité constitutionnelle",
+        "7112": "Autorité administrative indépendante",
+        "7113": "Ministère",
+        "7120": "Service central d'un ministère",
+        "7150": "Service du ministère de la Défense",
+        "7160": "Service déconcentré à compétence nation. du ministère de la Défense",
+        "7171": "Service déconcentré de l'État à compétence (inter) régionale",
+        "7172": "Service déconcentré de l'État à compétence (inter) départementale",
+        "7179": "Service déconcentré de l'État à compétence territoriale",
+        "7190": "Ecole nationale non dotée de la personnalité morale",
+        "7210": "Commune",
+        "7220": "Département",
+        "7225": "Territoire d'Outre-Mer",
+        "7229": "Groupement de collectivités territoriales",
+        "7230": "Région",
+        "7312": "Commune associée",
+        "7313": "Section de commune",
+        "7314": "Ensemble urbain",
+        "7321": "Association syndicale autorisée",
+        "7322": "Association foncière urbaine",
+        "7323": "Association foncière de remembrement",
+        "7331": "Établissement public local d'enseignement",
+        "7340": "Secteur de commune",
+        "7341": "District urbain",
+        "7342": "District rural",
+        "7343": "Communauté urbaine",
+        "7344": "Communauté de communes",
+        "7345": "Communauté de villes",
+        "7346": "Communauté d'agglomération",
+        "7347": "Métropole",
+        "7348": "Syndicat intercommunal à vocation multiple",
+        "7349": "Syndicat intercommunal à vocation unique",
+        "7351": "Institution interdépartementale ou entente",
+        "7352": "Institution interrégionale ou entente",
+        "7353": "Syndicat intercommunal",
+        "7354": "Syndicat mixte communal",
+        "7355": "Autre syndicat mixte",
+        "7356": "Commission syndicale pour la gestion des biens indivis des communes",
+        "7361": "Centre communal d'action sociale",
+        "7362": "Caisse des écoles",
+        "7363": "Caisse de crédit municipal",
+        "7364": "Établissement d'hospitalisation",
+        "7365": "Syndicat interhospitalier",
+        "7366": "Établissement public local social et médico-social",
+        "7371": "Office public d'habitation à loyer modéré",
+        "7372": "Service départemental d'incendie et de secours",
+        "7373": "Établissement public local culturel",
+        "7378": "Régie d'une collectivité locale à caractère administratif",
+        "7379": "Établissement public administratif local",
+        "7381": "Organisme consulaire",
+        "7382": "Établissement public national ayant fonction d'administration centrale",
+        "7383": "Établissement public national à caractère scientifique culturel et professionnel",
+        "7384": "Autre établissement public national d'enseignement",
+        "7385": "Autre établissement public national administratif à compétence territoriale limitée",
+        "7389": "Établissement public national à caractère administratif",
+        "7410": "Groupement d'intérêt public (GIP)",
+        "7430": "Établissement public des cultes d'Alsace-Lorraine",
+        "7450": "Etablissement public, cercle et foyer dans les armées",
+        "7470": "Groupement de coopération sanitaire à gestion publique",
+        "7490": "Autre établissement public administratif",
+        "8110": "Régime général de la Sécurité Sociale",
+        "8120": "Régime spécial de Sécurité Sociale",
+        "8130": "Institution de retraite complémentaire",
+        "8140": "Mutualité sociale agricole",
+        "8150": "Régime maladie des non-salariés non agricoles",
+        "8160": "Régime vieillesse ne dépendant pas du régime général de la Sécurité Sociale",
+        "8170": "Régime d'assurance chômage",
+        "8190": "Autre régime de prévoyance sociale",
+        "8210": "Mutuelle",
+        "8250": "Assurance mutuelle agricole",
+        "8290": "Autre organisme mutualiste",
+        "8310": "Comité central d'entreprise",
+        "8311": "Comité d'établissement",
+        "8410": "Syndicat de salariés",
+        "8420": "Syndicat patronal",
+        "8450": "Ordre professionnel ou assimilé",
+        "8470": "Centre technique industriel ou comité professionnel du développement économique",
+        "8490": "Autre organisme professionnel",
+        "8510": "Institution de prévoyance",
+        "8520": "Institution de retraite supplémentaire",
+        "9110": "Congrégation",
+        "9150": "Association déclarée",
+        "9160": "Association déclarée d'insertion par l'économique",
+        "9170": "Association intermédiaire",
+        "9190": "Autre association déclarée",
+        "9210": "Association non déclarée",
+        "9220": "Association déclarée reconnue d'utilité publique",
+        "9230": "Association déclarée de loi 1901 à but non lucratif",
+        "9240": "Congrégation",
+        "9260": "Association de droit local (Bas-Rhin, Haut-Rhin et Moselle)",
+        "9300": "Fondation",
+        "9900": "Autre personne morale de droit privé",
+        "9970": "Groupement de coopération sanitaire à gestion privée",
+    }
+
+    siret = request.GET.get("siret")
+
+    if not siret:
+        return JsonResponse({"error": "Le numéro SIRET est requis"}, status=400)
+
+    # Valider le format SIRET (14 chiffres)
+    if not siret.isdigit() or len(siret) != 14:
+        return JsonResponse(
+            {"error": "Le numéro SIRET doit contenir exactement 14 chiffres"},
+            status=400,
+        )
+
+    try:
+        # Appel à l'API SIRENE
+        # 90020721800018
+        api_url = f"https://api.insee.fr/api-sirene/3.11/siret/{siret}"
+        headers = {
+            "accept": "application/json",
+            "X-INSEE-Api-Key-Integration": settings.SIRENE_API_KEY,
+        }
+
+        response = requests.get(api_url, headers=headers, timeout=10)
+
+        if response.status_code == 400:
+            return JsonResponse({"error": "Société non trouvée"}, status=404)
+
+        if response.status_code != 200:
+            return JsonResponse(
+                {"error": "Erreur lors de la récupération des données"}, status=500
+            )
+
+        data = response.json()
+
+        # Extraire les informations de l'établissement et de l'unité légale
+        if "etablissement" not in data:
+            return JsonResponse(
+                {"error": "Aucune donnée trouvée pour ce SIRET"}, status=404
+            )
+
+        etablissement = data["etablissement"]
+        unite_legale = etablissement.get("uniteLegale", {})
+        adresse_etablissement = etablissement.get("adresseEtablissement", {})
+
+        # Construire la réponse avec les données formatées
+        company_data = {
+            "raison_sociale": (
+                unite_legale.get("denominationUniteLegale")
+                or (
+                    f"{unite_legale.get('prenom1UniteLegale', '')} "
+                    f"{unite_legale.get('nomUniteLegale', '')}"
+                ).strip()
+                or None
+            ),
+            "forme_juridique": FORMES_JURIDIQUES.get(
+                unite_legale.get("categorieJuridiqueUniteLegale"),
+                unite_legale.get("categorieJuridiqueUniteLegale"),
+            ),
+            "adresse": {
+                "numero": adresse_etablissement.get("numeroVoieEtablissement", ""),
+                "voie": (
+                    f"{adresse_etablissement.get('typeVoieEtablissement', '')} "
+                    f"{adresse_etablissement.get('libelleVoieEtablissement', '')}"
+                ).strip(),
+                "code_postal": adresse_etablissement.get("codePostalEtablissement", ""),
+                "ville": adresse_etablissement.get("libelleCommuneEtablissement", ""),
+            },
+            "representant_legal": (
+                (
+                    f"{unite_legale.get('prenom1UniteLegale', '')} "
+                    f"{unite_legale.get('nomUniteLegale', '')}"
+                ).strip()
+                if (
+                    unite_legale.get("prenom1UniteLegale")
+                    or unite_legale.get("nomUniteLegale")
+                )
+                else None
+            ),
+        }
+
+        return JsonResponse(company_data)
+
+    except requests.exceptions.Timeout:
+        return JsonResponse(
+            {"error": "Timeout lors de la récupération des données"}, status=500
+        )
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erreur lors de l'appel à l'API SIRENE: {str(e)}")
+        return JsonResponse(
+            {"error": "Erreur lors de la récupération des données"}, status=500
+        )
+    except Exception as e:
+        logger.error(f"Erreur inattendue: {str(e)}")
+        return JsonResponse({"error": "Erreur interne du serveur"}, status=500)

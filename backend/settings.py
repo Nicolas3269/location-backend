@@ -236,3 +236,6 @@ CACHES = {
 
 # 👉 Très important pour Railway ou tout proxy HTTPS
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# SIRENE API KEY
+SIRENE_API_KEY = os.getenv("SIRENE_API_KEY")

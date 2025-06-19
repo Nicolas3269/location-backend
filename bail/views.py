@@ -62,7 +62,7 @@ def generate_bail_pdf(request):
 
         # Générer le PDF depuis le template HTML
         html = render_to_string(
-            "pdf/bail_wrapper.html",
+            "pdf/bail.html",
             {
                 "bail": bail,
                 "acte_de_cautionnement": acte_de_cautionnement,

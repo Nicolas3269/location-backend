@@ -680,17 +680,6 @@ def get_company_data(request):
                 "code_postal": adresse_etablissement.get("codePostalEtablissement", ""),
                 "ville": adresse_etablissement.get("libelleCommuneEtablissement", ""),
             },
-            "representant_legal": (
-                (
-                    f"{unite_legale.get('prenom1UniteLegale', '')} "
-                    f"{unite_legale.get('nomUniteLegale', '')}"
-                ).strip()
-                if (
-                    unite_legale.get("prenom1UniteLegale")
-                    or unite_legale.get("nomUniteLegale")
-                )
-                else None
-            ),
         }
 
         return JsonResponse(company_data)

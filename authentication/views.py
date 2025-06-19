@@ -259,14 +259,14 @@ def google_redirect_callback(request):
         if not google_token:
             logger.error("Aucun identifiant reçu de Google dans les données POST")
             # Rediriger vers le frontend avec erreur
-            return redirect(f"{settings.FRONTEND_URL}/bail?step=15&error=no_credential")
+            return redirect(f"{settings.FRONTEND_URL}/bail?step=16&error=no_credential")
 
         # Vérifier le token Google
         success, id_info, error_message = verify_google_token(google_token)
 
         if not success:
             logger.error(f"Échec de la vérification du token Google : {error_message}")
-            return redirect(f"{settings.FRONTEND_URL}/bail?step=15&error=invalid_token")
+            return redirect(f"{settings.FRONTEND_URL}/bail?step=16&error=invalid_token")
 
         # Créer ou récupérer l'utilisateur
         email = id_info.get("email")
@@ -284,7 +284,7 @@ def google_redirect_callback(request):
         tokens = get_tokens_for_user(user)
 
         # Créer une réponse de redirection vers le frontend
-        redirect_url = f"{settings.FRONTEND_URL}/bail?step=15"
+        redirect_url = f"{settings.FRONTEND_URL}/bail?step=16"
         response = redirect(redirect_url)
 
         # Configurer le refresh token en cookie HttpOnly
@@ -309,7 +309,7 @@ def google_redirect_callback(request):
 
     except Exception as e:
         logger.error(f"Erreur dans le callback de redirection Google : {str(e)}")
-        return redirect(f"{settings.FRONTEND_URL}/bail?step=15&error=callback_error")
+        return redirect(f"{settings.FRONTEND_URL}/bail?step=16&error=callback_error")
 
 
 @api_view(["GET"])

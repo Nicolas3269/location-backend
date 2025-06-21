@@ -200,11 +200,18 @@ def create_bien_from_form_data(form_data, save=True):
         eau_chaude_energie = form_data.get("eauChaude", {}).get("autreDetail", "")
 
     # Préparer les données pour créer le bien
+    fill_identification_fiscale = form_data.get("fillIdentificationFiscale") == "true"
+    identifiant_fiscal = (
+        form_data.get("identificationFiscale", "")
+        if fill_identification_fiscale
+        else ""
+    )
+
     bien_data = {
         "adresse": form_data.get("adresse", ""),
         "latitude": form_data.get("latitude"),
         "longitude": form_data.get("longitude"),
-        "identifiant_fiscal": form_data.get("identificationFiscale", ""),
+        "identifiant_fiscal": identifiant_fiscal,
         "regime_juridique": form_data.get("regimeJuridique", ""),
         "type_bien": type_bien,
         "etage": form_data.get("etage", ""),

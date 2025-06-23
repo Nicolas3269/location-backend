@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/rent_control/", include("rent_control.urls")),
     path("api/", include("bail.urls")),
     path("api/auth/", include("authentication.urls")),
+    path("api/notifications/", include("notifications.urls")),
 ]
 
 # Ajouter ceci pour servir les fichiers médias en développement

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "authentication",
     "bail",
     "rent_control",
+    "notifications",
 ]
 
 MIDDLEWARE = [

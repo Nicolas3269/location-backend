@@ -259,14 +259,18 @@ def google_redirect_callback(request):
         if not google_token:
             logger.error("Aucun identifiant reçu de Google dans les données POST")
             # Rediriger vers le frontend avec erreur
-            return redirect(f"{settings.FRONTEND_URL}/bail?step=16&error=no_credential")
+            base_url = settings.FRONTEND_URL
+            error_url = f"{base_url}/auth/google/callback?error=no_credential"
+            return redirect(error_url)
 
         # Vérifier le token Google
         success, id_info, error_message = verify_google_token(google_token)
 
         if not success:
             logger.error(f"Échec de la vérification du token Google : {error_message}")
-            return redirect(f"{settings.FRONTEND_URL}/bail?step=16&error=invalid_token")
+            base_url = settings.FRONTEND_URL
+            error_url = f"{base_url}/auth/google/callback?error=invalid_token"
+            return redirect(error_url)
 
         # Créer ou récupérer l'utilisateur
         email = id_info.get("email")
@@ -283,8 +287,9 @@ def google_redirect_callback(request):
         # Générer des tokens JWT
         tokens = get_tokens_for_user(user)
 
-        # Créer une réponse de redirection vers le frontend
-        redirect_url = f"{settings.FRONTEND_URL}/bail?step=16"
+        # Créer une réponse de redirection vers une route frontend dédiée
+        # qui gère la récupération de pre_auth_url depuis sessionStorage
+        redirect_url = f"{settings.FRONTEND_URL}/auth/google/callback"
         response = redirect(redirect_url)
 
         # Configurer le refresh token en cookie HttpOnly
@@ -309,7 +314,9 @@ def google_redirect_callback(request):
 
     except Exception as e:
         logger.error(f"Erreur dans le callback de redirection Google : {str(e)}")
-        return redirect(f"{settings.FRONTEND_URL}/bail?step=16&error=callback_error")
+        base_url = settings.FRONTEND_URL
+        error_url = f"{base_url}/auth/google/callback?error=callback_error"
+        return redirect(error_url)
 
 
 @api_view(["GET"])

@@ -279,7 +279,7 @@ def google_redirect_callback(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_user_profile(request):
-    """Vue pour récupérer le profil utilisateur complet"""
+    """Vue pour récupérer le profil utilisateur de base"""
     user = request.user
     return JsonResponse(
         {
@@ -292,3 +292,110 @@ def get_user_profile(request):
             },
         }
     )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_user_profile_detailed(request):
+    """Vue pour récupérer le profil utilisateur complet avec biens et locations"""
+    from django.db import models
+
+    from bail.models import Bailleur, Locataire, Personne
+
+    user = request.user
+
+    # Informations utilisateur de base
+    profile_data = {
+        "user": {
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "username": user.username,
+        },
+        "roles": {
+            "is_bailleur": False,
+            "is_locataire": False,
+        },
+        "biens": [],
+        "locations": [],
+    }
+
+    # Vérifier si l'utilisateur est un bailleur (propriétaire ou signataire)
+    try:
+        # Rechercher les personnes physiques avec cet email
+        personnes = Personne.objects.filter(email=user.email)
+
+        if personnes.exists():
+            # Vérifier si cette personne est un bailleur (propriétaire ou signataire)
+            bailleurs = Bailleur.objects.filter(
+                models.Q(personne__email=user.email)
+                | models.Q(signataire__email=user.email)
+            ).distinct()
+
+            if bailleurs.exists():
+                profile_data["roles"]["is_bailleur"] = True
+
+                # Récupérer tous les biens associés à ces bailleurs
+                biens = []
+                for bailleur in bailleurs:
+                    for bien in bailleur.biens.all():
+                        bien_data = {
+                            "id": bien.id,
+                            "adresse": bien.adresse,
+                            "type_bien": bien.get_type_bien_display(),
+                            "superficie": float(bien.superficie),
+                            "meuble": bien.meuble,
+                            "nombre_baux": bien.bails.count(),
+                            "baux_actifs": bien.bails.filter(is_draft=False).count(),
+                        }
+                        # Éviter les doublons
+                        if not any(b["id"] == bien.id for b in biens):
+                            biens.append(bien_data)
+
+                profile_data["biens"] = biens
+
+    except Exception as e:
+        error_msg = f"Erreur lors de la récupération des biens pour {user.email}: {e}"
+        logger.warning(error_msg)
+
+    # Vérifier si l'utilisateur est un locataire
+    try:
+        locataires = Locataire.objects.filter(email=user.email)
+
+        if locataires.exists():
+            profile_data["roles"]["is_locataire"] = True
+
+            # Récupérer toutes les locations (baux) associées à ces locataires
+            locations = []
+            for locataire in locataires:
+                for bail in locataire.bails.all():
+                    date_fin = bail.date_fin.isoformat() if bail.date_fin else None
+                    signatures_completes = not bail.signature_requests.filter(
+                        signed=False
+                    ).exists()
+
+                    location_data = {
+                        "id": bail.id,
+                        "bien_adresse": bail.bien.adresse,
+                        "bien_type": bail.bien.get_type_bien_display(),
+                        "date_debut": bail.date_debut.isoformat(),
+                        "date_fin": date_fin,
+                        "montant_loyer": float(bail.montant_loyer),
+                        "montant_charges": float(bail.montant_charges),
+                        "is_draft": bail.is_draft,
+                        "signatures_completes": signatures_completes,
+                    }
+                    # Éviter les doublons
+                    location_exists = any(
+                        location["id"] == bail.id for location in locations
+                    )
+                    if not location_exists:
+                        locations.append(location_data)
+
+            profile_data["locations"] = locations
+
+    except Exception as e:
+        error_msg = f"Erreur lors de la récupération des locations pour {user.email}"
+        logger.warning(f"{error_msg}: {e}")
+
+    return JsonResponse({"success": True, **profile_data})

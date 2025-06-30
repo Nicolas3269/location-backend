@@ -407,6 +407,24 @@ def save_draft(request):
     max_retries = 3
     retry_delay = 0.1  # 100ms
 
+    def create_or_get_user(email, first_name, last_name):
+        """Crée ou récupère un utilisateur, non vérifié par défaut"""
+        User = get_user_model()
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                "username": email,
+                "first_name": first_name,
+                "last_name": last_name,
+                "is_active": True,
+                # L'utilisateur n'est pas vérifié initialement
+                # Il sera vérifié lors de l'authentification automatique
+            },
+        )
+        if created:
+            logger.info(f"Créé nouvel utilisateur non vérifié: {email}")
+        return user
+
     for attempt in range(max_retries):
         try:
             with transaction.atomic():
@@ -443,11 +461,18 @@ def save_draft(request):
                         email=societe_data.get("email", ""),
                     )
 
-                    # Créer le signataire (personne physique)
+                    # Créer le signataire (personne physique) et son User
+                    signataire_email = landlord_data.get("email", "")
+                    create_or_get_user(
+                        signataire_email,
+                        landlord_data.get("firstName", ""),
+                        landlord_data.get("lastName", ""),
+                    )
+
                     signataire = Personne.objects.create(
                         nom=landlord_data.get("lastName", ""),
                         prenom=landlord_data.get("firstName", ""),
-                        email=landlord_data.get("email", ""),
+                        email=signataire_email,
                     )
 
                     # Créer le bailleur société
@@ -455,12 +480,20 @@ def save_draft(request):
                         societe=societe, signataire=signataire
                     )
                 else:
+                    # Créer l'utilisateur pour la personne physique
+                    landlord_email = landlord_data.get("email", "")
+                    create_or_get_user(
+                        landlord_email,
+                        landlord_data.get("firstName", ""),
+                        landlord_data.get("lastName", ""),
+                    )
+
                     # Créer la personne physique
                     personne = Personne.objects.create(
                         nom=landlord_data.get("lastName", ""),
                         prenom=landlord_data.get("firstName", ""),
                         adresse=landlord_data.get("address", ""),
-                        email=landlord_data.get("email", ""),
+                        email=landlord_email,
                     )
 
                     # Créer le bailleur personne physique
@@ -472,11 +505,19 @@ def save_draft(request):
                 bailleurs = [bailleur_principal]
                 other_landlords = form_data.get("otherLandlords", [])
                 for landlord in other_landlords:
+                    # Créer l'utilisateur pour le bailleur additionnel
+                    additional_email = landlord.get("email", "")
+                    create_or_get_user(
+                        additional_email,
+                        landlord.get("firstName", ""),
+                        landlord.get("lastName", ""),
+                    )
+
                     personne = Personne.objects.create(
                         nom=landlord.get("lastName", ""),
                         prenom=landlord.get("firstName", ""),
                         adresse=landlord.get("address", ""),
-                        email=landlord.get("email", ""),
+                        email=additional_email,
                     )
                     bailleur = Bailleur.objects.create(
                         personne=personne, signataire=personne
@@ -493,10 +534,18 @@ def save_draft(request):
                 locataires_data = form_data.get("locataires", [])
                 locataires = []
                 for locataire_data in locataires_data:
+                    # Créer l'utilisateur pour le locataire
+                    locataire_email = locataire_data.get("email", "")
+                    create_or_get_user(
+                        locataire_email,
+                        locataire_data.get("firstName", ""),
+                        locataire_data.get("lastName", ""),
+                    )
+
                     locataire = Locataire.objects.create(
                         nom=locataire_data.get("lastName", ""),
                         prenom=locataire_data.get("firstName", ""),
-                        email=locataire_data.get("email", ""),
+                        email=locataire_email,
                         caution_requise=locataire_data.get("cautionRequise", ""),
                         # Les autres champs ne sont pas fournis dans le formulaire
                     )

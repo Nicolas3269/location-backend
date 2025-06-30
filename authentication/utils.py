@@ -166,3 +166,24 @@ def verify_otp_only_and_generate_token(
     except Exception as e:
         logger.error(f"Erreur lors de la vérification de l'OTP: {str(e)}")
         return False, None, f"Erreur lors de la vérification: {str(e)}"
+
+
+def set_refresh_token_cookie(response, refresh_token):
+    """
+    Configure le refresh token en cookie HttpOnly de manière centralisée.
+    """
+    refresh_token_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
+    cookie_max_age = (
+        int(refresh_token_lifetime.total_seconds())
+        if refresh_token_lifetime
+        else 14 * 24 * 60 * 60  # 14 jours par défaut
+    )
+
+    response.set_cookie(
+        "jwt_refresh",
+        refresh_token,
+        max_age=cookie_max_age,
+        httponly=True,
+        secure=not settings.DEBUG,  # HTTPS en production seulement
+        samesite="Lax",
+    )

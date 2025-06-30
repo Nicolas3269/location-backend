@@ -5,6 +5,7 @@ import uuid
 
 import requests
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -16,6 +17,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
 
+from authentication.utils import get_tokens_for_user, set_refresh_token_cookie
 from bail.constants import FORMES_JURIDIQUES
 from bail.generate_bail.mapping import BailMapping
 from bail.models import (
@@ -157,20 +159,44 @@ def get_signature_request(request, token):
         )
 
     person = req.bailleur_signataire or req.locataire
-    return JsonResponse(
-        {
-            "person": {
-                "email": person.email,
-                "first_name": person.prenom,
-                "last_name": person.nom,
-            },
-            "bail_id": req.bail.id,
-        }
-    )
+    signer_email = person.email
+
+    # Préparer la réponse de base
+    response_data = {
+        "person": {
+            "email": signer_email,
+            "first_name": person.prenom,
+            "last_name": person.nom,
+        },
+        "bail_id": req.bail.id,
+    }
+
+    # Tenter d'authentifier automatiquement l'utilisateur
+    User = get_user_model()
+    try:
+        user = User.objects.get(email=signer_email)
+        tokens = get_tokens_for_user(user)
+
+        # Le refresh token sera placé en cookie, pas d'access token dans la réponse
+        response_data["user"] = {"email": user.email}
+
+        # Créer la réponse avec le refresh token en cookie
+        response = JsonResponse(response_data)
+
+        # Configurer le refresh token en cookie HttpOnly
+        set_refresh_token_cookie(response, tokens["refresh"])
+
+        logger.info(f"Auto-authentication successful for {signer_email}")
+        return response
+
+    except User.DoesNotExist:
+        logger.info(f"No user account found for {signer_email}")
+        # L'utilisateur n'a pas de compte, retourner sans authentification
+        return JsonResponse(response_data)
 
 
-@csrf_exempt  # au lieu de @csrf_exempt
-@ratelimit(key="ip", rate="5/m", block=True) if not settings.DEBUG else lambda x: x
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def confirm_signature_bail(request):
     try:
         data = json.loads(request.body)

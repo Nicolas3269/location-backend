@@ -17,6 +17,7 @@ from authentication.utils import (
     create_email_verification,
     get_tokens_for_user,
     send_verification_email_with_otp,
+    set_refresh_token_cookie,
     verify_google_token,
     verify_otp_only_and_generate_token,
 )
@@ -63,31 +64,16 @@ def login_with_google(request):
         # Générer des tokens JWT
         tokens = get_tokens_for_user(user)
 
-        # Créer la réponse avec seulement l'access token
+        # Créer la réponse (plus d'access token - c'est le rôle de authStore)
         response = JsonResponse(
             {
                 "success": True,
-                "tokens": {"access": tokens["access"]},
                 "user": {"email": user.email},
             }
         )
 
         # Configurer le refresh token en cookie HttpOnly
-        refresh_token_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
-        cookie_max_age = (
-            int(refresh_token_lifetime.total_seconds())
-            if refresh_token_lifetime
-            else 14 * 24 * 60 * 60
-        )
-
-        response.set_cookie(
-            "jwt_refresh",
-            tokens["refresh"],
-            max_age=cookie_max_age,
-            httponly=True,
-            secure=not settings.DEBUG,  # HTTPS en production seulement
-            samesite="Lax",
-        )
+        set_refresh_token_cookie(response, tokens["refresh"])
 
         return response
 
@@ -147,32 +133,17 @@ def verify_otp_login(request):
         if not success:
             return JsonResponse({"error": error_message}, status=400)
 
-        # Créer la réponse avec seulement l'access token
+        # Créer la réponse (plus d'access token - c'est le rôle de authStore)
         response = JsonResponse(
             {
                 "success": True,
                 "message": "Authentification réussie",
-                "tokens": {"access": tokens_dict["access"]},  # Seulement l'access token
                 "email": email,
             }
         )
 
         # Configurer le refresh token en cookie HttpOnly
-        refresh_token_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
-        cookie_max_age = (
-            int(refresh_token_lifetime.total_seconds())
-            if refresh_token_lifetime
-            else 14 * 24 * 60 * 60
-        )
-
-        response.set_cookie(
-            "jwt_refresh",
-            tokens_dict["refresh"],
-            max_age=cookie_max_age,
-            httponly=True,
-            secure=not settings.DEBUG,  # HTTPS en production seulement
-            samesite="Lax",
-        )
+        set_refresh_token_cookie(response, tokens_dict["refresh"])
 
         return response
 
@@ -293,21 +264,7 @@ def google_redirect_callback(request):
         response = redirect(redirect_url)
 
         # Configurer le refresh token en cookie HttpOnly
-        refresh_token_lifetime = settings.SIMPLE_JWT.get("REFRESH_TOKEN_LIFETIME")
-        cookie_max_age = (
-            int(refresh_token_lifetime.total_seconds())
-            if refresh_token_lifetime
-            else 14 * 24 * 60 * 60
-        )
-
-        response.set_cookie(
-            "jwt_refresh",
-            tokens["refresh"],
-            max_age=cookie_max_age,
-            httponly=True,
-            secure=settings.DEBUG is False,  # HTTPS en production
-            samesite="Lax",
-        )
+        set_refresh_token_cookie(response, tokens["refresh"])
 
         logger.info(f"Google auth successful for user {email}, redirecting to frontend")
         return response

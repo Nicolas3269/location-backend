@@ -36,7 +36,7 @@ def set_prices_for_ods_file(self, region, file_path, property_type=None):
     prices_data = extract_ods_file_to_json(file_path, property_type=property_type)
 
     # Récupérer toutes les zones correspondant à la région et l'année
-    areas = RentControlArea.objects.using("geodb").filter(
+    areas = RentControlArea.objects.filter(
         region=region, reference_year=DEFAULT_YEAR
     )
 
@@ -82,7 +82,7 @@ def import_pays_basque_prices(self, region):
     prices_data = retrieve_data_from_json_for_pays_basques()
 
     # Récupérer toutes les zones du Pays Basque
-    areas = RentControlArea.objects.using("geodb").filter(
+    areas = RentControlArea.objects.filter(
         region=region, reference_year=DEFAULT_YEAR
     )
 
@@ -147,7 +147,7 @@ def get_lyon_prices(self, url, region):
         try:
             properties = feature.get("properties", {})
             id_quartier = properties.get("gid")
-            areas = RentControlArea.objects.using("geodb").filter(
+            areas = RentControlArea.objects.filter(
                 region=region, reference_year=DEFAULT_YEAR, quartier_id=id_quartier
             )
             if not areas.exists() or len(areas) > 1:
@@ -205,7 +205,7 @@ def price_ile_de_france(
     }
     meubles = {"meuble": True, "non-meuble": False}
 
-    areas = RentControlArea.objects.using("geodb").filter(
+    areas = RentControlArea.objects.filter(
         region=region,
         reference_year=DEFAULT_YEAR,
     )

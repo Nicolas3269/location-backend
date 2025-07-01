@@ -114,20 +114,21 @@ SIMPLE_JWT = {
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.contrib.gis.db.backends.postgis",  # Retour à PostGIS
+        "NAME": os.getenv("POSTGRES_DB", "hestia_db"),
+        "USER": os.getenv("POSTGRES_USER", "postgres"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
+        "HOST": os.getenv(
+            "POSTGRES_HOST", "localhost"
+        ),  # localhost au lieu de postgres
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
         "OPTIONS": {
-            "timeout": 20,  # 20 seconds timeout for SQLite
+            "sslmode": "prefer",
         },
-    },
-    "geodb": {
-        "ENGINE": "django.contrib.gis.db.backends.spatialite",  # Changed from django.db.backends.sqlite3
-        "NAME": BASE_DIR / "geodb.sqlite3",
+        "CONN_MAX_AGE": 60,
+        "CONN_HEALTH_CHECKS": True,
     },
 }
-DATABASE_ROUTERS = ["backend.router.GeoRouter"]
-SPATIALITE_LIBRARY_PATH = "mod_spatialite"
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

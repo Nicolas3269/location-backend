@@ -142,7 +142,7 @@ class Command(BaseCommand):
                     reference_year = DEFAULT_YEAR
 
                 # Create the zone object
-                RentControlArea.objects.using("geodb").create(
+                RentControlArea.objects.create(
                     region=region,
                     zone_id=id_zone,
                     quartier_id=id_quartier,

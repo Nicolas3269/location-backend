@@ -9,6 +9,23 @@ services:
     volumes:
       - redis-data:/data
 
+  postgres:
+    image: postgis/postgis:16-master
+    container_name: postgres-postgis
+    environment:
+      POSTGRES_DB: hestia_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   hestia:
     build:
       context: .
@@ -18,8 +35,10 @@ services:
       - "8003:8000"
     depends_on:
       - redis
+      - postgres
     volumes:
       - .:/app
 
 volumes:
   redis-data:
+  postgres-data:

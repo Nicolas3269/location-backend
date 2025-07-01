@@ -820,28 +820,26 @@ def get_bien_detail(request, bien_id):
         bien = get_object_or_404(Bien, id=bien_id)
 
         # Vérifier que l'utilisateur a accès à ce bien
-        # (à adapter selon votre logique de permissions)
-        # Pour l'instant, on vérifie que l'utilisateur est propriétaire
-        # ou locataire du bien
+        # L'utilisateur doit être le signataire d'un des bailleurs du bien
+        # ou être un locataire d'un bail sur ce bien
         user_bails = BailSpecificites.objects.filter(bien=bien)
         has_access = False
 
-        for bail in user_bails:
-            # Vérifier si l'utilisateur est bailleur
-            for bailleur in bien.bailleurs.all():
-                if (bailleur.personne and hasattr(request.user, 'personne') and
-                        bailleur.personne == request.user.personne):
-                    has_access = True
-                    break
-                if (bailleur.societe and hasattr(request.user, 'societe') and
-                        bailleur.societe == request.user.societe):
-                    has_access = True
-                    break
+        # Récupérer l'email de l'utilisateur connecté
+        user_email = request.user.email
 
-            # Vérifier si l'utilisateur est locataire
-            if bail.locataires.filter(email=request.user.email).exists():
+        # Vérifier si l'utilisateur est signataire d'un des bailleurs
+        for bailleur in bien.bailleurs.all():
+            if bailleur.signataire and bailleur.signataire.email == user_email:
                 has_access = True
                 break
+
+        # Si pas encore d'accès, vérifier si l'utilisateur est locataire
+        if not has_access:
+            for bail in user_bails:
+                if bail.locataires.filter(email=user_email).exists():
+                    has_access = True
+                    break
 
         if not has_access:
             return JsonResponse(

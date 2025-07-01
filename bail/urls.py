@@ -6,6 +6,7 @@ from bail.views import (
     generate_bail_pdf,
     generate_grille_vetuste_pdf,
     generate_notice_information_pdf,
+    get_bien_detail,
     get_company_data,
     get_rent_prices,
     get_signature_request,
@@ -17,6 +18,7 @@ urlpatterns = [
     path("get-rent-prices/", get_rent_prices, name="get_rent_prices"),
     path("generate-bail/", generate_bail_pdf, name="generate_bail_pdf"),
     path("save-draft/", save_draft, name="save_draft"),
+    path("bien/detail/<int:bien_id>/", get_bien_detail, name="get_bien_detail"),
     path(
         "generate-grille-vetuste/",
         generate_grille_vetuste_pdf,

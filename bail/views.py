@@ -24,6 +24,7 @@ from bail.models import (
     Bailleur,
     BailSignatureRequest,
     BailSpecificites,
+    Bien,
     Document,
     DocumentType,
     Locataire,
@@ -805,3 +806,113 @@ def get_company_data(request):
     except Exception as e:
         logger.error(f"Erreur inattendue: {str(e)}")
         return JsonResponse({"error": "Erreur interne du serveur"}, status=500)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_bien_detail(request, bien_id):
+    """
+    Récupère les détails d'un bien avec ses pièces pour l'état des lieux.
+    Utilise le champ pieces_info JSONField existant.
+    """
+    try:
+        # Récupérer le bien
+        bien = get_object_or_404(Bien, id=bien_id)
+
+        # Vérifier que l'utilisateur a accès à ce bien
+        # (à adapter selon votre logique de permissions)
+        # Pour l'instant, on vérifie que l'utilisateur est propriétaire
+        # ou locataire du bien
+        user_bails = BailSpecificites.objects.filter(bien=bien)
+        has_access = False
+
+        for bail in user_bails:
+            # Vérifier si l'utilisateur est bailleur
+            for bailleur in bien.bailleurs.all():
+                if (bailleur.personne and hasattr(request.user, 'personne') and
+                        bailleur.personne == request.user.personne):
+                    has_access = True
+                    break
+                if (bailleur.societe and hasattr(request.user, 'societe') and
+                        bailleur.societe == request.user.societe):
+                    has_access = True
+                    break
+
+            # Vérifier si l'utilisateur est locataire
+            if bail.locataires.filter(email=request.user.email).exists():
+                has_access = True
+                break
+
+        if not has_access:
+            return JsonResponse(
+                {"error": "Vous n'avez pas accès à ce bien"},
+                status=403
+            )
+
+        # Convertir pieces_info en format de pièces pour le frontend
+        pieces_data = []
+        if bien.pieces_info:
+            # pieces_info contient des données comme
+            # {"chambres": 2, "salons": 1, "cuisines": 1, "sallesDeBain": 1}
+            piece_counter = 1
+
+            for piece_type, count in bien.pieces_info.items():
+                if isinstance(count, int) and count > 0:
+                    # Mapper les types de pièces du JSONField vers noms lisibles
+                    type_mapping = {
+                        "chambres": {"type": "bedroom", "nom_base": "Chambre"},
+                        "salons": {"type": "living", "nom_base": "Salon"},
+                        "cuisines": {"type": "kitchen", "nom_base": "Cuisine"},
+                        "sallesDeBain": {
+                            "type": "bathroom", "nom_base": "Salle de bain"
+                        },
+                        "sallesEau": {
+                            "type": "bathroom", "nom_base": "Salle d'eau"
+                        },
+                        "wc": {"type": "bathroom", "nom_base": "WC"},
+                        "entrees": {"type": "room", "nom_base": "Entrée"},
+                        "couloirs": {"type": "room", "nom_base": "Couloir"},
+                        "dressings": {"type": "room", "nom_base": "Dressing"},
+                        "celliers": {"type": "room", "nom_base": "Cellier"},
+                        "buanderies": {"type": "room", "nom_base": "Buanderie"},
+                    }
+
+                    if piece_type in type_mapping:
+                        mapping = type_mapping[piece_type]
+                        for i in range(count):
+                            nom = f"{mapping['nom_base']}"
+                            if count > 1:
+                                nom += f" {i + 1}"
+
+                            pieces_data.append({
+                                "id": piece_counter,
+                                "nom": nom,
+                                "type": mapping["type"]
+                            })
+                            piece_counter += 1
+
+        # Si aucune pièce n'est définie, créer des pièces par défaut
+        if not pieces_data:
+            pieces_data = [
+                {"id": 1, "nom": "Pièce principale", "type": "room"}
+            ]
+
+        # Données du bien
+        bien_data = {
+            "id": bien.id,
+            "adresse": bien.adresse,
+            "type_bien": bien.get_type_bien_display(),
+            "superficie": float(bien.superficie),
+            "meuble": bien.meuble,
+            "pieces": pieces_data,
+            "pieces_info": bien.pieces_info
+        }
+
+        return JsonResponse(bien_data)
+
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération du bien {bien_id}: {str(e)}")
+        return JsonResponse(
+            {"error": "Erreur lors de la récupération des données du bien"},
+            status=500
+        )

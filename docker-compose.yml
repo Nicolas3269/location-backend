@@ -26,18 +26,18 @@ services:
       timeout: 10s
       retries: 3
 
-  hestia:
-    build:
-      context: .
-    container_name: hestia-backend
-    env_file: .env
-    ports:
-      - "8003:8000"
-    depends_on:
-      - redis
-      - postgres
-    volumes:
-      - .:/app
+  # hestia:
+  #   build:
+  #     context: .
+  #   container_name: hestia-backend
+  #   env_file: .env
+  #   ports:
+  #     - "8003:8000"
+  #   depends_on:
+  #     - redis
+  #     - postgres
+  #   volumes:
+  #     - .:/app
 
 volumes:
   redis-data:

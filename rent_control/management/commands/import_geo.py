@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand
 from algo.encadrement_loyer.bordeaux.main import get_bordeaux_zone_geometries
 from algo.encadrement_loyer.grenoble.main import get_grenoble_zone_geometries
 from algo.encadrement_loyer.lille.main import get_lille_zone_geometries
+from algo.encadrement_loyer.montpellier.main import get_montpellier_zone_geometries
 from algo.encadrement_loyer.pays_basques.main import get_pays_basque_zone_geometries
 from rent_control.choices import Region
 from rent_control.models import RentControlArea
@@ -21,7 +22,7 @@ DATA = {
     # # # Can be done all in one
     Region.LYON: "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
     # # # #
-    Region.MONTPELLIER: "https://www.data.gouv.fr/fr/datasets/r/c00fa2a7-f84c-4ca4-8224-3b734242bae7",
+    Region.MONTPELLIER: "custom",
     Region.BORDEAUX: "custom",
     Region.PAYS_BASQUE: "custom",
     Region.LILLE: "custom",
@@ -52,8 +53,6 @@ class Command(BaseCommand):
 
         try:
             if region == Region.BORDEAUX:
-                # Bordeaux data is not available via the API
-                # You can add a different method to handle it if needed
                 data = get_bordeaux_zone_geometries()
 
             elif region == Region.LILLE:
@@ -62,6 +61,8 @@ class Command(BaseCommand):
                 data = get_pays_basque_zone_geometries()
             elif region == Region.GRENOBLE:
                 data = get_grenoble_zone_geometries()
+            elif region == Region.MONTPELLIER:
+                data = get_montpellier_zone_geometries()
             else:
                 response = requests.get(url)
                 response.raise_for_status()
@@ -119,7 +120,8 @@ class Command(BaseCommand):
                     reference_year = DEFAULT_YEAR
 
                 elif region == Region.MONTPELLIER:
-                    id_zone = properties.get("Zone")
+                    id_zone = properties.get("id_zone")
+                    zone_name = properties.get("zone_cal")
                     reference_year = DEFAULT_YEAR
 
                 elif region == Region.BORDEAUX:

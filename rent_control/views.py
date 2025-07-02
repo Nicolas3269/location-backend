@@ -8,6 +8,10 @@ from django.views.decorators.csrf import csrf_exempt
 from django_ratelimit.decorators import ratelimit
 
 from algo.encadrement_loyer.grenoble.main import ACCEPTED_ZONE, WHITELIST_ZONES
+from algo.encadrement_loyer.montpellier.main import (
+    ACCEPTED_ZONE as ACCEPTED_ZONE_MONTPELLIER,
+    WHITELIST_ZONES as WHITELIST_ZONES_MONTPELLIER,
+)
 from rent_control.choices import Region
 from rent_control.management.commands.constants import DEFAULT_YEAR
 from rent_control.models import RentControlArea, RentPrice
@@ -67,8 +71,22 @@ def get_rent_control_info(
         # Pour Grenoble, chercher d'abord s'il y au moins une zone ACCEPTED
         accepted_areas = area_query.filter(zone_id=ACCEPTED_ZONE)
         if accepted_areas.exists():
-            # S'il y a une zone ACCEPTED, prendre la première associé a la zone white listée
+            # S'il y a une zone ACCEPTED, prendre la première zone whitelistée
             whitelist_areas = area_query.filter(zone_id__in=WHITELIST_ZONES)
+            if whitelist_areas.exists():
+                area = whitelist_areas.first()
+            else:
+                return {}, None
+        else:
+            return {}, None
+    elif area_query.filter(region=Region.MONTPELLIER).exists():
+        # Pour Montpellier, même logique que Grenoble
+        accepted_areas = area_query.filter(zone_id=ACCEPTED_ZONE_MONTPELLIER)
+        if accepted_areas.exists():
+            # S'il y a une zone ACCEPTED, prendre la première zone whitelistée
+            whitelist_areas = area_query.filter(
+                zone_id__in=WHITELIST_ZONES_MONTPELLIER
+            )
             if whitelist_areas.exists():
                 area = whitelist_areas.first()
             else:

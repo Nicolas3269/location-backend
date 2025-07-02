@@ -21,7 +21,7 @@ DATA = {
     Region.PARIS: "custom",
     Region.EST_ENSEMBLE: "custom",
     Region.PLAINE_COMMUNE: "custom",
-    Region.LYON: "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
+    Region.LYON: "custom",
     Region.MONTPELLIER: "custom",
     Region.BORDEAUX: "custom",
     Region.PAYS_BASQUE: "custom",

@@ -12,21 +12,19 @@ from rent_control.models import RentControlArea
 from .constants import DEFAULT_YEAR
 
 DATA = {
-    # CAN BE DONE with the url
+    # # CAN BE DONE with the url
     Region.PARIS: "https://www.data.gouv.fr/fr/datasets/r/41a1c199-14ca-4cc7-a827-cc4779fed8c0",
     Region.EST_ENSEMBLE: "https://www.data.gouv.fr/fr/datasets/r/7d70e696-ef9d-429d-8284-79d0ecd59ccd",
     Region.PLAINE_COMMUNE: "https://www.data.gouv.fr/fr/datasets/r/de5c9cb9-6215-4e88-aef7-ea0041984d1d",
-    # #
-    # #
-    # Can be done all in one
+    # # # #
+    # # # #
+    # # # Can be done all in one
     Region.LYON: "https://www.data.gouv.fr/fr/datasets/r/57266456-f9c9-4ee0-9245-26bb4e537cd6",
-    # #
-    # #
-    # #
+    # # # #
     Region.MONTPELLIER: "https://www.data.gouv.fr/fr/datasets/r/c00fa2a7-f84c-4ca4-8224-3b734242bae7",
     Region.BORDEAUX: "custom",
-    Region.LILLE: "custom",
     Region.PAYS_BASQUE: "custom",
+    Region.LILLE: "custom",
     Region.GRENOBLE: "custom",
 }
 
@@ -92,14 +90,15 @@ class Command(BaseCommand):
 
                 # Mappage adapté pour Paris
                 if region == Region.PARIS:
+                    year = (
+                        int(properties.get("annee")) if properties.get("annee") else 0
+                    )
+                    if year < DEFAULT_YEAR:
+                        continue
                     id_zone = properties.get("id_zone")
                     id_quartier = properties.get("id_quartier")
                     zone_name = properties.get("nom_quartier")
-                    reference_year = (
-                        int(properties.get("annee"))
-                        if properties.get("annee")
-                        else DEFAULT_YEAR
-                    )
+                    reference_year = year
                 elif region == Region.EST_ENSEMBLE:
                     id_zone = properties.get("Zone")
                     id_quartier = properties.get("com_cv_code")
@@ -110,11 +109,8 @@ class Command(BaseCommand):
                     id_zone = properties.get("Zone")
                     id_quartier = properties.get("INSEE_COM")
                     zone_name = properties.get("NOM_COM")
-                    reference_year = (
-                        int(properties.get("annee"))
-                        if properties.get("annee")
-                        else DEFAULT_YEAR
-                    )
+                    reference_year = DEFAULT_YEAR
+
                 elif region == Region.LYON:
                     id_zone = properties.get("zonage")
                     # ici c'est probablemment la qu'on doit améliorer car c'est plusieurs id_quartier

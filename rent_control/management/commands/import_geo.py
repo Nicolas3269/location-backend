@@ -102,7 +102,7 @@ class Command(BaseCommand):
                 elif region == Region.EST_ENSEMBLE:
                     id_zone = properties.get("Zone")
                     id_quartier = properties.get("com_cv_code")
-                    zone_name = properties.get("arrdep_name")
+                    zone_name = properties.get("com_name")
                     reference_year = DEFAULT_YEAR
 
                 elif region == Region.PLAINE_COMMUNE:

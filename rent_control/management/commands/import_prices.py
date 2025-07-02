@@ -240,7 +240,7 @@ def price_ile_de_france(
 
 def price_est_ensemble(self, region):
     region_uri = "est-ensemble"
-    start_date = f"{DEFAULT_YEAR}-07-01"
+    start_date = f"{DEFAULT_YEAR}-06-01"
     property_types = {
         "appartement": PropertyType.APARTMENT,
         "maison": PropertyType.HOUSE,
@@ -253,7 +253,7 @@ def price_est_ensemble(self, region):
 
 def price_plaine_commune(self, region):
     region_uri = "plaine-commune"
-    start_date = f"{DEFAULT_YEAR}-07-01"
+    start_date = f"{DEFAULT_YEAR}-06-01"
     property_types = {
         "appartement": PropertyType.APARTMENT,
         "maison": PropertyType.HOUSE,

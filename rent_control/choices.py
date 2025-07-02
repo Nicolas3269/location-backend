@@ -10,6 +10,7 @@ class Region(TextChoices):
     BORDEAUX = "BORDEAUX", "Bordeaux"
     LILLE = "LILLE", "Lille"
     PAYS_BASQUE = "PAYS_BASQUE", "Pays Basque"
+    GRENOBLE = "GRENOBLE", "Grenoble"
 
 
 class PropertyType(TextChoices):

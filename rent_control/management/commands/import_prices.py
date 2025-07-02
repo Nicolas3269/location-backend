@@ -17,6 +17,8 @@ from algo.encadrement_loyer.pays_basques.combinaison import (
 from rent_control.choices import ConstructionPeriod, PropertyType, Region, RoomCount
 from rent_control.models import RentControlArea, RentPrice
 
+from .constants import DEFAULT_YEAR
+
 DATA = {
     Region.PARIS: "custom",
     Region.EST_ENSEMBLE: "custom",
@@ -26,8 +28,8 @@ DATA = {
     Region.BORDEAUX: "custom",
     Region.PAYS_BASQUE: "custom",
     Region.LILLE: "custom",
+    Region.GRENOBLE: "custom",
 }
-DEFAULT_YEAR = 2024
 
 
 def set_prices_for_ods_file(self, region, file_path, property_type=None):
@@ -36,9 +38,7 @@ def set_prices_for_ods_file(self, region, file_path, property_type=None):
     prices_data = extract_ods_file_to_json(file_path, property_type=property_type)
 
     # Récupérer toutes les zones correspondant à la région et l'année
-    areas = RentControlArea.objects.filter(
-        region=region, reference_year=DEFAULT_YEAR
-    )
+    areas = RentControlArea.objects.filter(region=region, reference_year=DEFAULT_YEAR)
 
     # Si aucune zone, signaler une erreur et sortir
     if not areas.exists():
@@ -82,9 +82,7 @@ def import_pays_basque_prices(self, region):
     prices_data = retrieve_data_from_json_for_pays_basques()
 
     # Récupérer toutes les zones du Pays Basque
-    areas = RentControlArea.objects.filter(
-        region=region, reference_year=DEFAULT_YEAR
-    )
+    areas = RentControlArea.objects.filter(region=region, reference_year=DEFAULT_YEAR)
 
     if not areas.exists():
         self.stdout.write(
@@ -349,6 +347,11 @@ class Command(BaseCommand):
 
             elif region == Region.PARIS:
                 price_paris(self, region)
+
+            elif region == Region.GRENOBLE:
+                extract_dir = "algo/encadrement_loyer/grenoble"
+                file_path = os.path.join(extract_dir, f"{DEFAULT_YEAR}.ods")
+                set_prices_for_ods_file(self, region, file_path, property_type=None)
 
             else:
                 raise ValueError(f"Unknown region: {region}")

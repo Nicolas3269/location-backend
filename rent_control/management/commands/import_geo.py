@@ -3,10 +3,13 @@ from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
 from django.core.management.base import BaseCommand
 
 from algo.encadrement_loyer.bordeaux.main import get_bordeaux_zone_geometries
+from algo.encadrement_loyer.grenoble.main import get_grenoble_zone_geometries
 from algo.encadrement_loyer.lille.main import get_lille_zone_geometries
 from algo.encadrement_loyer.pays_basques.main import get_pays_basque_zone_geometries
 from rent_control.choices import Region
 from rent_control.models import RentControlArea
+
+from .constants import DEFAULT_YEAR
 
 DATA = {
     # CAN BE DONE with the url
@@ -24,8 +27,8 @@ DATA = {
     Region.BORDEAUX: "custom",
     Region.LILLE: "custom",
     Region.PAYS_BASQUE: "custom",
+    Region.GRENOBLE: "custom",
 }
-DEFAULT_YEAR = 2024
 
 
 class Command(BaseCommand):
@@ -59,6 +62,8 @@ class Command(BaseCommand):
                 data = get_lille_zone_geometries(DEFAULT_YEAR)
             elif region == Region.PAYS_BASQUE:
                 data = get_pays_basque_zone_geometries()
+            elif region == Region.GRENOBLE:
+                data = get_grenoble_zone_geometries()
             else:
                 response = requests.get(url)
                 response.raise_for_status()
@@ -136,6 +141,11 @@ class Command(BaseCommand):
                     id_zone = properties.get("zone_encadr_loyers")
                     id_quartier = properties.get("gid")
                     zone_name = properties.get("nom_iris")
+                    reference_year = DEFAULT_YEAR
+
+                elif region == Region.GRENOBLE:
+                    id_zone = properties.get("code")
+                    zone_name = properties.get("zone_cal")
                     reference_year = DEFAULT_YEAR
                 else:
                     id_zone = properties.get("Zone", "")

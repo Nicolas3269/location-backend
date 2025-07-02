@@ -7,6 +7,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django_ratelimit.decorators import ratelimit
 
+from algo.encadrement_loyer.grenoble.main import ACCEPTED_ZONE, WHITELIST_ZONES
+from rent_control.choices import Region
 from rent_control.models import RentControlArea, RentPrice
 
 logger = logging.getLogger(__name__)
@@ -60,7 +62,20 @@ def get_rent_control_info(
     if not area_query.exists():
         return {}, None
 
-    area = area_query.first()
+    if area_query.filter(region=Region.GRENOBLE).exists():
+        # Pour Grenoble, chercher d'abord s'il y au moins une zone ACCEPTED
+        accepted_areas = area_query.filter(zone_id=ACCEPTED_ZONE)
+        if accepted_areas.exists():
+            # S'il y a une zone ACCEPTED, prendre la première associé a la zone white listée
+            whitelist_areas = area_query.filter(zone_id__in=WHITELIST_ZONES)
+            if whitelist_areas.exists():
+                area = whitelist_areas.first()
+            else:
+                return {}, None
+        else:
+            return {}, None
+    else:
+        area = area_query.first()
 
     # Récupérer les options disponibles si demandé
     options = get_available_options_for_area(area)

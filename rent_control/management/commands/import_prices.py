@@ -1,7 +1,5 @@
-import json
 import os
 
-import requests
 from django.core.management.base import BaseCommand
 
 from algo.encadrement_loyer.ile_de_france.main import (
@@ -103,75 +101,6 @@ def import_pays_basque_prices(self, region):
             price.areas.add(area)
 
         self.stdout.write(f"Created price: {price}")
-
-
-def get_lyon_prices(self, url, region):
-    dict_room_count = {
-        "1": RoomCount.ONE,
-        "2": RoomCount.TWO,
-        "3": RoomCount.THREE,
-        "4 et plus": RoomCount.FOUR_PLUS,
-    }
-    dict_construction_period = {
-        "avant 1946": ConstructionPeriod.BEFORE_1946,
-        "1946-1970": ConstructionPeriod.FROM_1946_TO_1970,
-        "1971-1990": ConstructionPeriod.FROM_1971_TO_1990,
-        "1991-2005": ConstructionPeriod.FROM_1990_TO_2005,
-        "après 2005": ConstructionPeriod.AFTER_2005,
-    }
-    dict_furnished = {
-        "meuble": True,
-        "non meuble": False,
-    }
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        data = response.json()
-    except Exception as e:
-        self.stdout.write(self.style.ERROR(f"Error fetching data: {e}"))
-        return
-    count = 0
-    for feature in data.get("features", []):
-        try:
-            properties = feature.get("properties", {})
-            id_quartier = properties.get("gid")
-            areas = RentControlArea.objects.filter(
-                region=region, reference_year=DEFAULT_YEAR, quartier_id=id_quartier
-            )
-            if not areas.exists() or len(areas) > 1:
-                self.stdout.write(
-                    self.style.ERROR(
-                        f"Issue with quartier_id {id_quartier} for {region} in {DEFAULT_YEAR}"
-                    )
-                )
-                return
-            area = areas.first()
-
-            valeurs = json.loads(properties["valeurs"])
-            for room_count, room_data in valeurs.items():
-                for construction_period, construction_data in room_data.items():
-                    for furnished, price_data in construction_data.items():
-                        price = RentPrice.objects.create(
-                            property_type=None,
-                            room_count=dict_room_count[room_count],
-                            construction_period=dict_construction_period[
-                                construction_period
-                            ],
-                            furnished=dict_furnished[furnished],
-                            reference_year=DEFAULT_YEAR,
-                            reference_price=price_data["loyer_reference"],
-                            min_price=price_data["loyer_reference_minore"],
-                            max_price=price_data["loyer_reference_majore"],
-                        )
-                        price.areas.add(area)
-            count += 1
-
-            if count % 100 == 0:
-                self.stdout.write(f"  Imported {count} zones so far...")
-
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f"Error importing feature: {e}"))
-            self.stdout.write(self.style.ERROR(f"Feature data: {properties}"))
 
 
 def price_ile_de_france(
@@ -319,8 +248,9 @@ class Command(BaseCommand):
                 import_pays_basque_prices(self, region)
 
             elif region == Region.LYON:
-                # Lyon data can be fetched from the URL
-                get_lyon_prices(self, url, region)
+                extract_dir = "algo/encadrement_loyer/lyon_Villeurbanne"
+                file_path = os.path.join(extract_dir, f"{DEFAULT_YEAR}.ods")
+                set_prices_for_ods_file(self, region, file_path, property_type=None)
 
             elif region == Region.EST_ENSEMBLE:
                 price_est_ensemble(self, region)

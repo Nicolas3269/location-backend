@@ -2,10 +2,9 @@ import json
 
 # Pour les references des coordonnées géométriques, voir le fichier data_year.json
 # Il faut choisir l'année pour laquelle on veut les données
-# https://ssilab-ddtm-encadrement-loyers-33.webself.net/baux-conclus-ou-renouveles-entre-le-142024-et-le-3132025#Meubl%c3%a9+1+1+1+1+1
-# Ce qui amène a cette url:
-# https://ssilab-ddtm-encadrement-loyers-33.webself.net/data-2024.json
-# https://cdonline.articque.com/share/display/ddtm59-loyers2024
+# https://ssilab-ddtm-encadrement-loyers-33.webself.net/baux-conclus-ou-renouveles-entre-le-142025-et-le-3132026
+# Dans le network de l'inspecteur, on peut trouver les données JSON pour chaque année::
+# https://cdonline.articque.com/share/json/edl2025?filename=0_1_0.cartojson&ts=1751126539
 # Charger les données des zones (remplacez 'data.json' par le chemin vers votre fichier JSON)
 from shapely.geometry import Point, Polygon
 

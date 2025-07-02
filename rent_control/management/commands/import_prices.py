@@ -49,18 +49,16 @@ def set_prices_for_ods_file(self, region, file_path, property_type=None):
 
     # Parcourir les données de prix extraites
     for price_data in prices_data:
-        # Rechercher un prix existant avec les mêmes caractéristiques ou en créer un nouveau
-        price, created = RentPrice.objects.get_or_create(
+        # Créer un nouveau prix
+        price = RentPrice.objects.create(
             property_type=price_data["property_type"],
             room_count=price_data["room_count"],
             construction_period=price_data["construction_period"],
             furnished=price_data["furnished"],
             reference_year=DEFAULT_YEAR,
-            defaults={
-                "reference_price": price_data["reference_price"],
-                "min_price": price_data["min_price"],
-                "max_price": price_data["max_price"],
-            },
+            reference_price=price_data["reference_price"],
+            min_price=price_data["min_price"],
+            max_price=price_data["max_price"],
         )
 
         # Pour chaque zone correspondant au critère de localisation du prix
@@ -68,10 +66,7 @@ def set_prices_for_ods_file(self, region, file_path, property_type=None):
             # Associer le prix à la zone
             price.areas.add(area)
 
-        if created:
-            self.stdout.write(f"Created price: {price}")
-        else:
-            self.stdout.write(f"Using existing price: {price}")
+        self.stdout.write(f"Created price: {price}")
 
 
 def import_pays_basque_prices(self, region):
@@ -92,27 +87,22 @@ def import_pays_basque_prices(self, region):
 
     # Parcourir les données et créer les prix
     for price_data in prices_data:
-        price, created = RentPrice.objects.get_or_create(
+        price = RentPrice.objects.create(
             property_type=price_data["property_type"],
             room_count=price_data["room_count"],
             construction_period=price_data["construction_period"],
             furnished=price_data["furnished"],
             reference_year=DEFAULT_YEAR,
-            defaults={
-                "reference_price": price_data["reference_price"],
-                "min_price": price_data["min_price"],
-                "max_price": price_data["max_price"],
-            },
+            reference_price=price_data["reference_price"],
+            min_price=price_data["min_price"],
+            max_price=price_data["max_price"],
         )
 
         # Associer à toutes les zones correspondantes
         for area in areas.filter(zone_id=price_data["zone_id"]):
             price.areas.add(area)
 
-        if created:
-            self.stdout.write(f"Created price: {price}")
-        else:
-            self.stdout.write(f"Using existing price: {price}")
+        self.stdout.write(f"Created price: {price}")
 
 
 def get_lyon_prices(self, url, region):
@@ -161,7 +151,7 @@ def get_lyon_prices(self, url, region):
             for room_count, room_data in valeurs.items():
                 for construction_period, construction_data in room_data.items():
                     for furnished, price_data in construction_data.items():
-                        price, created = RentPrice.objects.get_or_create(
+                        price = RentPrice.objects.create(
                             property_type=None,
                             room_count=dict_room_count[room_count],
                             construction_period=dict_construction_period[
@@ -169,11 +159,9 @@ def get_lyon_prices(self, url, region):
                             ],
                             furnished=dict_furnished[furnished],
                             reference_year=DEFAULT_YEAR,
-                            defaults={
-                                "reference_price": price_data["loyer_reference"],
-                                "min_price": price_data["loyer_reference_minore"],
-                                "max_price": price_data["loyer_reference_majore"],
-                            },
+                            reference_price=price_data["loyer_reference"],
+                            min_price=price_data["loyer_reference_minore"],
+                            max_price=price_data["loyer_reference_majore"],
                         )
                         price.areas.add(area)
             count += 1
@@ -229,27 +217,22 @@ def price_ile_de_france(
                     data = extract_data_from_kml(url)
 
                     for zone_id, price_data in data.items():
-                        price, created = RentPrice.objects.get_or_create(
+                        price = RentPrice.objects.create(
                             property_type=property_type,
                             room_count=room_count_v,
                             construction_period=construction_period_v,
                             furnished=furnished,
                             reference_year=DEFAULT_YEAR,
-                            defaults={
-                                "reference_price": price_data["ref"],
-                                "min_price": price_data["refmin"],
-                                "max_price": price_data["refmaj"],
-                            },
+                            reference_price=price_data["ref"],
+                            min_price=price_data["refmin"],
+                            max_price=price_data["refmaj"],
                         )
 
                         # Associer à toutes les zones correspondantes
                         for area in areas.filter(zone_id=zone_id):
                             price.areas.add(area)
 
-                        if created:
-                            self.stdout.write(f"Created price: {price}")
-                        else:
-                            self.stdout.write(f"Using existing price: {price}")
+                        self.stdout.write(f"Created price: {price}")
 
                 except Exception as e:
                     print(f"  Erreur: {e}")

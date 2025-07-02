@@ -4,6 +4,8 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import path
 
+from rent_control.management.commands.constants import DEFAULT_YEAR
+
 from .choices import Region
 from .models import RentControlArea, RentMap, RentPrice
 
@@ -157,7 +159,7 @@ class RentControlAreaAdmin(GISModelAdmin):
         zones = []
         if selected_region:
             zones = RentControlArea.objects.filter(
-                region=selected_region, reference_year=2024
+                region=selected_region, reference_year=DEFAULT_YEAR
             )
 
         # Générer des couleurs pour les zone_id
@@ -216,7 +218,7 @@ class RentControlAreaAdmin(GISModelAdmin):
             </style>
         </head>
         <body>
-            <h1>Carte des zones d'encadrement des loyers 2024-2025</h1>
+            <h1>Carte des zones d'encadrement des loyers 2025</h1>
             
             <div class="region-selector">
                 <form method="get">

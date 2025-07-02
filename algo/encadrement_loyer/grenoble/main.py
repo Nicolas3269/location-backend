@@ -25,23 +25,23 @@ CODE_COMMUNE = {
     "Seyssins": "38486",
     "Varces-Allières-et-Risset": "38524",
     "Venon": "38533",
-    # "Quaix-en-Chartreuse": "38420",: n'y ait pas malgré la carte
+    # "Quaix-en-Chartreuse": "38420",: n'y ait pas malgré la carte dans l'arret prefectoral
 }
 
 
 MAPPING_ZONE_CODE = {
-    "1.01": "Zone 1",
-    "1.02": "Zone 2",
-    "1.03": "Zone 3",
-    "1.04": "Zone A",
-    "1.05": "Zone B",
-    "1.06": "Zone C",
+    "1.01": "1",
+    "1.02": "2",
+    "1.03": "3",
+    "1.04": "a",
+    "1.05": "b",
+    "1.06": "c",
 }
 
 WHITELIST_ZONES = [
-    "Zone 1",
-    "Zone 2",
-    "Zone A",
+    "1",
+    "2",
+    "a",
 ]
 
 ACCEPTED_ZONE = "ACCEPTED"

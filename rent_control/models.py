@@ -1,5 +1,7 @@
 from django.contrib.gis.db import models
 
+from rent_control.management.commands.constants import DEFAULT_YEAR
+
 from .choices import ConstructionPeriod, PropertyType, Region, RoomCount
 
 
@@ -26,7 +28,7 @@ class RentPrice(models.Model):
     """Prix par caractéristiques de logement dans une zone"""
 
     areas = models.ManyToManyField(RentControlArea, related_name="prices")
-    reference_year = models.IntegerField(default=2024)
+    reference_year = models.IntegerField(default=DEFAULT_YEAR)
 
     # Caractéristiques avec énums
     property_type = models.CharField(

@@ -9,6 +9,7 @@ from django_ratelimit.decorators import ratelimit
 
 from algo.encadrement_loyer.grenoble.main import ACCEPTED_ZONE, WHITELIST_ZONES
 from rent_control.choices import Region
+from rent_control.management.commands.constants import DEFAULT_YEAR
 from rent_control.models import RentControlArea, RentPrice
 
 logger = logging.getLogger(__name__)
@@ -45,7 +46,7 @@ def get_rent_control_info(
     room_count=2,
     construction_period="avant 1946",
     furnished=False,
-    year=2024,
+    year=DEFAULT_YEAR,
 ):
     """
     Trouve les informations d'encadrement des loyers pour une localisation et

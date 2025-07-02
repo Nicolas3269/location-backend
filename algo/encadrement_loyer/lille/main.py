@@ -9,9 +9,11 @@ import json
 # Charger les données des zones (remplacez 'data.json' par le chemin vers votre fichier JSON)
 from shapely.geometry import Point, Polygon
 
+from rent_control.management.commands.constants import DEFAULT_YEAR
+
 extract_dir = "algo/encadrement_loyer/lille"
 
-year = 2024
+year = DEFAULT_YEAR
 
 
 def find_zone_data(zone_id, dataset):
@@ -101,9 +103,9 @@ if __name__ == "__main__":
     # Exemple d'utilisation avec les coordonnées d'une adresse
     latitude = 50.6364543  # Latitude de l'adresse
     longitude = 3.0685679  # Longitude de l'adresse
-    year = 2024
+    year = DEFAULT_YEAR
 
-    for year in range(2020, 2025):
+    for year in range(2020, DEFAULT_YEAR + 1):
         print(f"Année {year}")
         get_zone_data(latitude, longitude, year)
         print("")

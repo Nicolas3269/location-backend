@@ -144,7 +144,7 @@ class Command(BaseCommand):
                     reference_year = DEFAULT_YEAR
 
                 elif region == Region.GRENOBLE:
-                    id_zone = properties.get("code")
+                    id_zone = properties.get("id_zone")
                     zone_name = properties.get("zone_cal")
                     reference_year = DEFAULT_YEAR
                 else:

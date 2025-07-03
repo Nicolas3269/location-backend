@@ -7,7 +7,7 @@ from django.urls import path
 from rent_control.management.commands.constants import DEFAULT_YEAR
 
 from .choices import Region
-from .models import RentControlArea, RentMap, RentPrice
+from .models import RentControlArea, RentMap, RentPrice, ZoneTendue
 
 
 class RegionListFilter(admin.SimpleListFilter):
@@ -461,3 +461,52 @@ class RentMapView(admin.ModelAdmin):
 @admin.register(RentMap)
 class RentMapAdmin(RentMapView):
     pass
+
+
+@admin.register(ZoneTendue)
+class ZoneTendueAdmin(admin.ModelAdmin):
+    """Admin view for ZoneTendue"""
+
+    list_display = ("communes", "code_insee", "departements", "agglomerations")
+    list_filter = ("departements",)
+    search_fields = ("communes", "code_insee", "departements", "agglomerations")
+    ordering = ("departements", "communes")
+
+    # Pagination pour gérer les nombreux enregistrements
+    list_per_page = 50
+
+    # Grouper les champs dans le formulaire
+    fieldsets = (
+        ("Informations principales", {"fields": ("communes", "code_insee")}),
+        ("Localisation administrative", {"fields": ("departements", "agglomerations")}),
+    )
+
+    # Actions personnalisées
+    actions = ["export_selected_zones"]
+
+    def export_selected_zones(self, request, queryset):
+        """Exporter les zones sélectionnées en CSV"""
+        import csv
+
+        from django.http import HttpResponse
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="zones_tendues.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(["Code INSEE", "Communes", "Départements", "Agglomérations"])
+
+        for zone in queryset:
+            writer.writerow(
+                [
+                    zone.code_insee,
+                    zone.communes,
+                    zone.departements,
+                    zone.agglomerations or "",
+                ]
+            )
+
+        self.message_user(request, f"{queryset.count()} zones exportées avec succès.")
+        return response
+
+    export_selected_zones.short_description = "Exporter les zones sélectionnées en CSV"  # type: ignore

@@ -24,7 +24,7 @@ CODE_COMMUNE = {
     "Seyssinet-Pariset": "38485",
     "Seyssins": "38486",
     "Varces-Allières-et-Risset": "38524",
-    "Venon": "38533",
+    "Venon": "38533",  # -> pas ok
     # "Quaix-en-Chartreuse": "38420",: n'y ait pas malgré la carte dans l'arret prefectoral
 }
 

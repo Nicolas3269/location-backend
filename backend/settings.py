@@ -114,7 +114,7 @@ SIMPLE_JWT = {
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.contrib.gis.db.backends.postgis",  # Retour à PostGIS
+        "ENGINE": "django.contrib.gis.db.backends.postgis",  # PostGIS
         "NAME": os.getenv("POSTGRES_DB", "hestia_db"),
         "USER": os.getenv("POSTGRES_USER", "postgres"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
@@ -122,6 +122,19 @@ DATABASES = {
             "POSTGRES_HOST", "localhost"
         ),  # localhost au lieu de postgres
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "OPTIONS": {
+            "sslmode": "prefer",
+        },
+        "CONN_MAX_AGE": 60,
+        "CONN_HEALTH_CHECKS": True,
+    },
+    "local": {
+        "ENGINE": "django.contrib.gis.db.backends.postgis",
+        "NAME": "hestia_db",
+        "USER": "postgres",
+        "PASSWORD": "postgres",
+        "HOST": "localhost",
+        "PORT": "5432",
         "OPTIONS": {
             "sslmode": "prefer",
         },

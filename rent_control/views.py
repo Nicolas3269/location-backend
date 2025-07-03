@@ -10,6 +10,8 @@ from django_ratelimit.decorators import ratelimit
 from algo.encadrement_loyer.grenoble.main import ACCEPTED_ZONE, WHITELIST_ZONES
 from algo.encadrement_loyer.montpellier.main import (
     ACCEPTED_ZONE as ACCEPTED_ZONE_MONTPELLIER,
+)
+from algo.encadrement_loyer.montpellier.main import (
     WHITELIST_ZONES as WHITELIST_ZONES_MONTPELLIER,
 )
 from rent_control.choices import Region
@@ -84,9 +86,7 @@ def get_rent_control_info(
         accepted_areas = area_query.filter(zone_id=ACCEPTED_ZONE_MONTPELLIER)
         if accepted_areas.exists():
             # S'il y a une zone ACCEPTED, prendre la première zone whitelistée
-            whitelist_areas = area_query.filter(
-                zone_id__in=WHITELIST_ZONES_MONTPELLIER
-            )
+            whitelist_areas = area_query.filter(zone_id__in=WHITELIST_ZONES_MONTPELLIER)
             if whitelist_areas.exists():
                 area = whitelist_areas.first()
             else:

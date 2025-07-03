@@ -71,6 +71,39 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f"Error fetching data: {e}"))
             return
 
+        # Filtrage spécifique pour Paris
+        if region == Region.PARIS:
+            # Filtrer par année et dédupliquer par (id_zone, id_quartier, nom_quartier)
+            original_count = len(data.get("features", []))
+            filtered_features = []
+            seen_combinations = set()
+
+            for feature in data.get("features", []):
+                properties = feature.get("properties", {})
+                year = int(properties.get("annee")) if properties.get("annee") else 0
+
+                # Ne garder que les features de l'année par défaut
+                if year == DEFAULT_YEAR:
+                    # Créer un tuple unique pour éviter les doublons
+                    combination = (
+                        properties.get("id_zone"),
+                        properties.get("id_quartier"),
+                        properties.get("nom_quartier"),
+                    )
+
+                    # Ajouter seulement si pas encore vu
+                    if combination not in seen_combinations:
+                        seen_combinations.add(combination)
+                        filtered_features.append(feature)
+
+            # Remplacer les features par la version filtrée
+            data["features"] = filtered_features
+
+            self.stdout.write(
+                f"Paris: {original_count} features → {len(filtered_features)} "
+                f"after filtering (year={DEFAULT_YEAR}, deduplicated)"
+            )
+
         count = 0
         for feature in data.get("features", []):
             try:
@@ -91,15 +124,10 @@ class Command(BaseCommand):
 
                 # Mappage adapté pour Paris
                 if region == Region.PARIS:
-                    year = (
-                        int(properties.get("annee")) if properties.get("annee") else 0
-                    )
-                    if year < DEFAULT_YEAR:
-                        continue
                     id_zone = properties.get("id_zone")
                     id_quartier = properties.get("id_quartier")
                     zone_name = properties.get("nom_quartier")
-                    reference_year = year
+                    reference_year = DEFAULT_YEAR
                 elif region == Region.EST_ENSEMBLE:
                     id_zone = properties.get("Zone")
                     id_quartier = properties.get("com_cv_code")
@@ -114,7 +142,8 @@ class Command(BaseCommand):
 
                 elif region == Region.LYON:
                     id_zone = properties.get("zonage")
-                    # ici c'est probablemment la qu'on doit améliorer car c'est plusieurs id_quartier
+                    # Ici c'est probablement là qu'on doit améliorer
+                    # car c'est plusieurs id_quartier
                     id_quartier = properties.get("gid")
                     zone_name = properties.get("commune")
                     reference_year = DEFAULT_YEAR

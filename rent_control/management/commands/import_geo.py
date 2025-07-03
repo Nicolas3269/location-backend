@@ -90,7 +90,7 @@ class Command(BaseCommand):
                     geometry["coordinates"] = correct_coords
                 else:
                     print(
-                        f"[IMPORT ERROR] {region} MultiPolygon avec 1 polygone et plusieurs anneaux - région {region} non prévue."
+                        f"[IMPORT CHALLENGE] {region} MultiPolygon avec 1 polygone et plusieurs anneaux - région {region} non prévue."
                     )
 
             return GEOSGeometry(json.dumps(geometry))

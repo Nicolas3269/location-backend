@@ -41,7 +41,7 @@ DATABASES = {
 
 ```bash
 # Migration basique
-python manage.py migrate_rent_data
+python manage.py migrate_rent_data --clear-target
 
 # Avec options avancées
 python manage.py migrate_rent_data --batch-size 500 --clear-target --dry-run

@@ -1,3 +1,5 @@
+import json
+
 import requests
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
 from django.core.management.base import BaseCommand
@@ -46,6 +48,52 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS("Successfully imported rent control zones")
         )
+
+    def parse_geometry(
+        self, geometry: dict, properties: dict, region: str
+    ) -> MultiPolygon:
+        """
+        Prend un dict GeoJSON geometry et properties, retourne un MultiPolygon proprement construit.
+        Gère les cas spécifiques type Grenoble où plusieurs anneaux sont mal encodés.
+
+        :param geometry: Dictionnaire GeoJSON (clé "type" et "coordinates")
+        :param properties: Dictionnaire des propriétés associées
+        :param region: Code de la région (ex: "GRENOBLE", "LILLE", etc.)
+        :return: MultiPolygon Django GEOS prêt à stocker en base
+        """
+
+        if region in [Region.BORDEAUX, Region.LILLE]:
+            geom = GEOSGeometry(geometry)
+            # Pas besoin de vérifier geometry type ici, tu peux le faire après
+            if geom.geom_type == "Polygon":
+                geom = MultiPolygon(geom)
+            return geom
+
+        if not geometry or geometry.get("type") not in ("Polygon", "MultiPolygon"):
+            raise ValueError("Géométrie invalide ou non supportée.")
+
+        coords = geometry.get("coordinates")
+
+        if geometry.get("type") == "Polygon":
+            if len(coords) > 1:
+                print(
+                    f"[IMPORT CHALLENGE] {region} Polygon avec plusieurs anneaux détecté, structure complexe non gérée."
+                )
+            return MultiPolygon(GEOSGeometry(json.dumps(geometry)))
+
+        elif geometry.get("type") == "MultiPolygon":
+            if len(coords) == 1 and len(coords[0]) > 1:
+                if region == Region.GRENOBLE:
+                    correct_coords = []
+                    for ring in coords[0]:
+                        correct_coords.append([ring])
+                    geometry["coordinates"] = correct_coords
+                else:
+                    print(
+                        f"[IMPORT ERROR] {region} MultiPolygon avec 1 polygone et plusieurs anneaux - région {region} non prévue."
+                    )
+
+            return GEOSGeometry(json.dumps(geometry))
 
     def import_geojson(self, url, region):
         """Import GeoJSON data into the database"""
@@ -111,17 +159,7 @@ class Command(BaseCommand):
                 properties = feature.get("properties", {})
                 id_quartier = None
                 zone_name = None
-                if region in [Region.BORDEAUX, Region.LILLE]:
-                    geom = GEOSGeometry(geometry)
-                    # Pas besoin de vérifier geometry type ici, tu peux le faire après
-                    if geom.geom_type == "Polygon":
-                        geom = MultiPolygon(geom)
-                else:
-                    if geometry and geometry.get("type") in ("Polygon", "MultiPolygon"):
-                        geom = GEOSGeometry(str(geometry))
-                        if geometry.get("type") == "Polygon":
-                            geom = MultiPolygon(geom)
-
+                geom = self.parse_geometry(geometry, properties, region)
                 # Mappage adapté pour Paris
                 if region == Region.PARIS:
                     id_zone = properties.get("id_zone")

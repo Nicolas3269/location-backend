@@ -162,12 +162,14 @@ class RentControlAreaAdmin(GISModelAdmin):
                 region=selected_region, reference_year=DEFAULT_YEAR
             )
 
-        # Générer des couleurs pour les zone_id
+        # Générer des couleurs pour les zone_id (exclure ACCEPTED)
         zone_colors = {}
-        unique_zone_ids = set(zone.zone_id for zone in zones)
+        unique_zone_ids = set(
+            zone.zone_id for zone in zones if zone.zone_id != "ACCEPTED"
+        )
 
         for i, zone_id in enumerate(unique_zone_ids):
-            hue = (i * 137) % 360  # Distribue les couleurs de manière harmonieuse
+            hue = (i * 137) % 360  # Distribue les couleurs harmonieusement
             zone_colors[zone_id] = f"hsl({hue}, 70%, 60%)"
 
         # Préparer le contexte pour le template
@@ -255,19 +257,25 @@ class RentControlAreaAdmin(GISModelAdmin):
         """
 
         # Ajouter le code JavaScript pour chaque zone
+        # Première passe : zones normales (pas ACCEPTED)
         for zone in zones:
+            if zone.zone_id == "ACCEPTED":
+                continue  # Skip ACCEPTED zones for now
+
             color = zone_colors.get(zone.zone_id, "#ff0000")
-            html_content += f"""
-                    try {{
-                        var geojson = {zone.geometry.geojson};
-                        
-                        var layer = L.geoJSON(geojson, {{
+            style_config = f"""
                             style: {{
                                 color: '#333',
                                 weight: 1,
                                 fillColor: "{color}",
                                 fillOpacity: 0.7
-                            }},
+                            }},"""
+
+            html_content += f"""
+                    try {{
+                        var geojson = {zone.geometry.geojson};
+                        
+                        var layer = L.geoJSON(geojson, {{{style_config}
                             onEachFeature: function(feature, layer) {{
                                 layer.bindPopup(
                                     "<strong>{zone.zone_name or "Zone " + zone.zone_id}</strong><br>" +
@@ -276,6 +284,37 @@ class RentControlAreaAdmin(GISModelAdmin):
                                     "<a href='/admin/rent_control/rentcontrolarea/{zone.id}/change/'>Modifier</a>"
                                 );
                             }}
+                        }}).addTo(map);
+                        
+                        // Étendre les limites
+                        if (bounds === null) {{
+                            bounds = layer.getBounds();
+                        }} else {{
+                            bounds.extend(layer.getBounds());
+                        }}
+                    }} catch (e) {{
+                        console.error("Erreur avec la zone {zone.id}: " + e);
+                    }}
+            """
+
+        # Deuxième passe : zones ACCEPTED (affichées au-dessus)
+        for zone in zones:
+            if zone.zone_id != "ACCEPTED":
+                continue  # Only process ACCEPTED zones now
+
+            style_config = """
+                            style: {
+                                color: '#000',
+                                weight: 3,
+                                fillOpacity: 0
+                            },
+                            interactive: false,"""
+
+            html_content += f"""
+                    try {{
+                        var geojson = {zone.geometry.geojson};
+                        
+                        var layer = L.geoJSON(geojson, {{{style_config}
                         }}).addTo(map);
                         
                         // Étendre les limites
@@ -303,9 +342,10 @@ class RentControlAreaAdmin(GISModelAdmin):
                         div.innerHTML = '<h4>Légende des zones</h4>';
         """
 
-        # Ajouter les entrées de légende
+        # Ajouter les entrées de légende (exclure ACCEPTED)
         for zone_id, color in zone_colors.items():
-            html_content += f"""
+            if zone_id != "ACCEPTED":
+                html_content += f"""
                         div.innerHTML += '<div class="legend-item"><span class="color-box" style="background: {color}"></span>Zone {zone_id}</div>';
             """
 

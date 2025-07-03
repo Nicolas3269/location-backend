@@ -1,0 +1,23 @@
+Zone 2
+Rue d'arménie grenoble
+Latitude: 
+45.1924472
+Longitude: 
+5.7114342
+
+Venon
+45.175298
+5.8104591
+
+
+
+MONTPELLIER C'EST OK MALGRE
+[IMPORT ERROR] MONTPELLIER MultiPolygon avec 1 polygone et plusieurs anneaux - région MONTPELLIER non prévue.
+[IMPORT ERROR] MONTPELLIER MultiPolygon avec 1 polygone et plusieurs anneaux - région MONTPELLIER non prévue.
+[IMPORT ERROR] MONTPELLIER MultiPolygon avec 1 polygone et plusieurs anneaux - région MONTPELLIER non prévue.
+[IMPORT ERROR] MONTPELLIER MultiPolygon avec 1 polygone et plusieurs anneaux - région MONTPELLIER non prévue.
+[IMPORT ERROR] MONTPELLIER MultiPolygon avec 1 polygone et plusieurs anneaux - région MONTPELLIER non prévue.
+
+A VOIR SI BESOIN (mais ici on a part de principe que c'est ok)
+[IMPORT CHALLENGE] EST_ENSEMBLE Polygon avec plusieurs anneaux détecté, structure complexe non gérée.
+

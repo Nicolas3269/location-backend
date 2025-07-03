@@ -47,7 +47,13 @@ def get_rent_price_for_bien(bien: Bien, area_id):
         "room_count": room_count_filter,
         "construction_period": bien.periode_construction,
     }
-    if area.region not in [Region.PARIS, Region.LILLE, Region.LYON]:
+    if area.region not in [
+        Region.PARIS,
+        Region.LILLE,
+        Region.LYON,
+        Region.MONTPELLIER,
+        Region.GRENOBLE,
+    ]:
         # Pour les zones hors Paris, Lille, Lyon, on utilise le type de bien
         filters["property_type"] = bien.type_bien
 

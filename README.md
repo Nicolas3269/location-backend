@@ -12,7 +12,7 @@ python manage.py migrate rent_control --database=geodb
 
 ### Vue d'ensemble
 
-Le projet utilise un système de migration Django personnalisé pour transférer efficacement les données volumineuses de `rent_control` (zones géographiques et prix) depuis une base de données locale vers la production (Railway).
+Le projet utilise un système de migration Django personnalisé pour transférer efficacement les données volumineuses de `rent_control` (zones géographiques et prix) depuis une base de données locale vers la production.
 
 ### Configuration des bases de données
 
@@ -20,11 +20,11 @@ Le projet utilise une configuration multi-base dans `settings.py` :
 
 ```python
 DATABASES = {
-    "default": {  # Production/Railway
+    "default": {  # Production
         "ENGINE": "django.contrib.gis.db.backends.postgis",
         "NAME": os.getenv("POSTGRES_DB", "hestia_db"),
         "USER": os.getenv("POSTGRES_USER", "postgres"),
-        # ... autres paramètres Railway
+        # ... autres paramètres
     },
     "local": {  # Base de données locale
         "ENGINE": "django.contrib.gis.db.backends.postgis",
@@ -96,7 +96,7 @@ Pour une base avec ~3000 zones et ~2400 prix :
 
 ```bash
 # Connexion échouée
-❌ Vérifiez vos variables d'environnement Railway
+❌ Vérifiez vos variables d'environnement de Production
 
 # Données existantes
 ⚠️  Utilisez --force ou --clear-target

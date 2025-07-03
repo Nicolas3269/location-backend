@@ -9,7 +9,7 @@ from rent_control.models import RentControlArea, RentPrice
 
 class Command(BaseCommand):
     help = (
-        "Migre les données rent_control de la DB locale vers Railway "
+        "Migre les données rent_control de la DB locale vers Production "
         "en utilisant Django ORM"
     )
 
@@ -66,7 +66,7 @@ class Command(BaseCommand):
 
         self.stdout.write("🔗 Test des connexions...")
 
-        # Test connexion par défaut (production/Railway)
+        # Test connexion par défaut (production)
         try:
             default_cursor = connections["default"].cursor()
             default_cursor.execute("SELECT version();")
@@ -166,11 +166,11 @@ class Command(BaseCommand):
         migrated_count = 0
         batch = []
 
-        # Mapping pour les IDs (local -> railway)
+        # Mapping pour les IDs (local -> Prod)
         id_mapping = {}
 
         for i, area in enumerate(local_areas.iterator(chunk_size=self.batch_size)):
-            # Créer une nouvelle instance pour Railway
+            # Créer une nouvelle instance pour Production
             new_area = RentControlArea(
                 region=area.region,
                 reference_year=area.reference_year,
@@ -244,7 +244,7 @@ class Command(BaseCommand):
         m2m_relations = []
 
         for i, price in enumerate(local_prices.iterator(chunk_size=self.batch_size)):
-            # Créer une nouvelle instance pour Railway
+            # Créer une nouvelle instance pour Production
             new_price = RentPrice(
                 reference_year=price.reference_year,
                 property_type=price.property_type,

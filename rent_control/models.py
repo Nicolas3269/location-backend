@@ -54,3 +54,32 @@ class RentMap(RentControlArea):
         proxy = True
         verbose_name = "Carte des zones"
         verbose_name_plural = "Carte des zones"
+
+
+class ZoneTendue(models.Model):
+    """Zone tendue selon la classification INSEE"""
+
+    agglomerations = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        verbose_name="Agglomérations (unités urbaines au sens de l'INSEE)",
+    )
+    departements = models.CharField(
+        max_length=255, null=False, verbose_name="Départements"
+    )
+    communes = models.CharField(max_length=255, null=False, verbose_name="Communes")
+    code_insee = models.CharField(
+        max_length=10,
+        null=False,
+        db_index=True,
+        verbose_name="Code INSEE",
+    )
+
+    class Meta:
+        indexes = [models.Index(fields=["code_insee"])]
+        verbose_name = "Zone tendue"
+        verbose_name_plural = "Zones tendues"
+
+    def __str__(self):
+        return f"{self.communes} ({self.code_insee})"

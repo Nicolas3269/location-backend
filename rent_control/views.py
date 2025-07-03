@@ -1,8 +1,10 @@
 import json
 import logging
 
+import requests
 from django.conf import settings
 from django.contrib.gis.geos import Point
+from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django_ratelimit.decorators import ratelimit
@@ -16,7 +18,7 @@ from algo.encadrement_loyer.montpellier.main import (
 )
 from rent_control.choices import Region
 from rent_control.management.commands.constants import DEFAULT_YEAR
-from rent_control.models import RentControlArea, RentPrice
+from rent_control.models import RentControlArea, RentPrice, ZoneTendue
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +45,60 @@ def get_available_options_for_area(area):
             area_prices.values_list("furnished", flat=True).distinct()
         ),
     }
+
+
+def check_zone_tendue_via_ban(lat, lng):
+    """
+    Utilise l'API BAN pour récupérer le code INSEE et vérifier si c'est une zone tendue
+    https://adresse.data.gouv.fr/outils/api-doc/adresse#reverse
+    Pour garantir un usage équitable de ce service très sollicité, une limite d'usage est appliquée. Elle est de 50 appels/IP/seconde.
+    """
+    try:
+        # Appel à l'API BAN pour géocodage inverse
+        ban_url = "https://api-adresse.data.gouv.fr/reverse/"
+        params = {
+            "lon": lng,
+            "lat": lat,
+            "limit": 5,
+        }
+
+        response = requests.get(ban_url, params=params, timeout=10)
+        response.raise_for_status()
+
+        data = response.json()
+
+        if data.get("features"):
+            # Récupérer le premier résultat
+            feature = data["features"][0]
+            properties = feature.get("properties", {})
+            citycode = properties.get("citycode")
+            city = properties.get("city", "")
+
+            if citycode or city:
+                # Vérifier si ce code INSEE ou cette commune est dans les zones tendues
+                # Recherche par code INSEE OU par nom de commune (insensible à la casse)
+                zone_tendue_exists = ZoneTendue.objects.filter(
+                    Q(code_insee=citycode) | Q(communes__icontains=city)
+                ).exists()
+
+                return {
+                    "is_zone_tendue": zone_tendue_exists,
+                    "citycode": citycode,
+                    "city": city,
+                    "postcode": properties.get("postcode", ""),
+                }
+
+        return {
+            "is_zone_tendue": False,
+            "error": "Aucune commune trouvée pour ces coordonnées",
+        }
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Erreur lors de l'appel à l'API BAN: {str(e)}")
+        return {"is_zone_tendue": False, "error": f"Erreur API BAN: {str(e)}"}
+    except Exception as e:
+        logger.error(f"Erreur lors de la vérification zone tendue: {str(e)}")
+        return {"is_zone_tendue": False, "error": f"Erreur: {str(e)}"}
 
 
 def get_rent_control_info(
@@ -120,26 +176,23 @@ def check_zone(request):
             # Récupérer les options disponibles ET l'area
             options, area = get_rent_control_info(lat, lng)
 
-            is_zone_tendue = len(options) > 0 and area is not None
+            # Vérifier si c'est une zone tendue via l'API BAN
+            ban_result = check_zone_tendue_via_ban(lat, lng)
 
+            is_zone_tendue = ban_result["is_zone_tendue"]
             if is_zone_tendue:
-                return JsonResponse(
-                    {
-                        "zoneTendue": True,
-                        "message": "⚠️ Cette adresse est dans une zone critique.",
-                        "options": options,
-                        "areaId": area.id,
-                    }
-                )
+                message = "⚠️ Cette adresse est dans une zone critique."
             else:
-                return JsonResponse(
-                    {
-                        "zoneTendue": False,
-                        "message": "✅ Cette adresse est sûre.",
-                        "options": {},
-                        "areaId": None,
-                    }
-                )
+                message = "✅ Cette adresse est sûre."
+
+            return JsonResponse(
+                {
+                    "zoneTendue": is_zone_tendue,
+                    "message": message,
+                    "options": options,
+                    "areaId": area.id if area else None,
+                }
+            )
 
         except Exception as e:
             logger.error(f"❌ Erreur Django: {str(e)}")

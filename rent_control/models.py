@@ -83,3 +83,22 @@ class ZoneTendue(models.Model):
 
     def __str__(self):
         return f"{self.communes} ({self.code_insee})"
+
+
+class PermisDeLouer(models.Model):
+    """Permis de louer par ville"""
+
+    raw_data = models.TextField(verbose_name="Raw data")
+    villes = models.CharField(max_length=255, null=False, verbose_name="Villes")
+    specificite_par_quartier = models.BooleanField(
+        default=False, verbose_name="Spécificités par Quartier"
+    )
+    date_inconnues = models.BooleanField(default=False, verbose_name="Date inconnue")
+
+    class Meta:
+        indexes = [models.Index(fields=["villes"])]
+        verbose_name = "Permis de louer"
+        verbose_name_plural = "Permis de louer"
+
+    def __str__(self):
+        return f"{self.villes}"

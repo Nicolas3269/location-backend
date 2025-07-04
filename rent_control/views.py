@@ -18,7 +18,7 @@ from algo.encadrement_loyer.montpellier.main import (
 )
 from rent_control.choices import Region
 from rent_control.management.commands.constants import DEFAULT_YEAR
-from rent_control.models import RentControlArea, RentPrice, ZoneTendue
+from rent_control.models import PermisDeLouer, RentControlArea, RentPrice, ZoneTendue
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +47,13 @@ def get_available_options_for_area(area):
     }
 
 
-def check_zone_tendue_via_ban(lat, lng):
+def check_zone_status_via_ban(lat, lng):
     """
     Utilise l'API BAN pour récupérer le code INSEE et vérifier si c'est une zone tendue
+    et si elle requiert un permis de louer
     https://adresse.data.gouv.fr/outils/api-doc/adresse#reverse
-    Pour garantir un usage équitable de ce service très sollicité, une limite d'usage est appliquée. Elle est de 50 appels/IP/seconde.
+    Pour garantir un usage équitable de ce service très sollicité,
+    une limite d'usage est appliquée. Elle est de 50 appels/IP/seconde.
     """
     try:
         # Appel à l'API BAN pour géocodage inverse
@@ -76,13 +78,20 @@ def check_zone_tendue_via_ban(lat, lng):
 
             if citycode or city:
                 # Vérifier si ce code INSEE ou cette commune est dans les zones tendues
-                # Recherche par code INSEE OU par nom de commune (insensible à la casse)
+                # Recherche par code INSEE OU par nom de commune (exact, insensible)
                 zone_tendue_exists = ZoneTendue.objects.filter(
-                    Q(code_insee=citycode) | Q(communes__icontains=city)
+                    Q(code_insee=citycode) | Q(communes__iexact=city)
+                ).exists()
+
+                # Vérifier si cette ville nécessite un permis de louer
+                # Recherche par nom de ville (comparaison exacte, insensible à la casse)
+                permis_louer_exists = PermisDeLouer.objects.filter(
+                    Q(villes__iexact=city)
                 ).exists()
 
                 return {
                     "is_zone_tendue": zone_tendue_exists,
+                    "is_permis_de_louer": permis_louer_exists,
                     "citycode": citycode,
                     "city": city,
                     "postcode": properties.get("postcode", ""),
@@ -90,15 +99,24 @@ def check_zone_tendue_via_ban(lat, lng):
 
         return {
             "is_zone_tendue": False,
+            "is_permis_de_louer": False,
             "error": "Aucune commune trouvée pour ces coordonnées",
         }
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Erreur lors de l'appel à l'API BAN: {str(e)}")
-        return {"is_zone_tendue": False, "error": f"Erreur API BAN: {str(e)}"}
+        return {
+            "is_zone_tendue": False,
+            "is_permis_de_louer": False,
+            "error": f"Erreur API BAN: {str(e)}",
+        }
     except Exception as e:
-        logger.error(f"Erreur lors de la vérification zone tendue: {str(e)}")
-        return {"is_zone_tendue": False, "error": f"Erreur: {str(e)}"}
+        logger.error(f"Erreur lors de la vérification zone tendue/permis: {str(e)}")
+        return {
+            "is_zone_tendue": False,
+            "is_permis_de_louer": False,
+            "error": f"Erreur: {str(e)}",
+        }
 
 
 def get_rent_control_info(
@@ -176,10 +194,12 @@ def check_zone(request):
             # Récupérer les options disponibles ET l'area
             options, area = get_rent_control_info(lat, lng)
 
-            # Vérifier si c'est une zone tendue via l'API BAN
-            ban_result = check_zone_tendue_via_ban(lat, lng)
+            # Vérifier si c'est une zone tendue et si elle nécessite un permis de louer
+            ban_result = check_zone_status_via_ban(lat, lng)
 
             is_zone_tendue = ban_result["is_zone_tendue"]
+            is_permis_de_louer = ban_result["is_permis_de_louer"]
+
             if is_zone_tendue:
                 message = "⚠️ Cette adresse est dans une zone critique."
             else:
@@ -188,6 +208,7 @@ def check_zone(request):
             return JsonResponse(
                 {
                     "zoneTendue": is_zone_tendue,
+                    "permisDeLouer": is_permis_de_louer,
                     "message": message,
                     "options": options,
                     "areaId": area.id if area else None,

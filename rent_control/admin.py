@@ -7,7 +7,7 @@ from django.urls import path
 from rent_control.management.commands.constants import DEFAULT_YEAR
 
 from .choices import Region
-from .models import RentControlArea, RentMap, RentPrice, ZoneTendue
+from .models import PermisDeLouer, RentControlArea, RentMap, RentPrice, ZoneTendue
 
 
 class RegionListFilter(admin.SimpleListFilter):
@@ -510,3 +510,67 @@ class ZoneTendueAdmin(admin.ModelAdmin):
         return response
 
     export_selected_zones.short_description = "Exporter les zones sélectionnées en CSV"  # type: ignore
+
+
+@admin.register(PermisDeLouer)
+class PermisDeLouerAdmin(admin.ModelAdmin):
+    """Admin view for PermisDeLouer"""
+
+    list_display = (
+        "villes",
+        "specificite_par_quartier",
+        "date_inconnues",
+        "raw_data_preview",
+    )
+    list_filter = ("specificite_par_quartier", "date_inconnues")
+    search_fields = ("villes", "raw_data")
+    ordering = ("villes",)
+
+    # Pagination pour gérer les enregistrements
+    list_per_page = 50
+
+    # Grouper les champs dans le formulaire
+    fieldsets = (
+        ("Informations principales", {"fields": ("villes", "raw_data")}),
+        ("Spécificités", {"fields": ("specificite_par_quartier", "date_inconnues")}),
+    )
+
+    # Actions personnalisées
+    actions = ["export_selected_permis"]
+
+    def raw_data_preview(self, obj):
+        """Affiche un aperçu des données brutes"""
+        if len(obj.raw_data) > 50:
+            return f"{obj.raw_data[:50]}..."
+        return obj.raw_data
+
+    raw_data_preview.short_description = "Aperçu des données brutes"  # type: ignore
+
+    def export_selected_permis(self, request, queryset):
+        """Exporter les permis sélectionnés en CSV"""
+        import csv
+
+        from django.http import HttpResponse
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="permis_de_louer.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(
+            ["Raw data", "Villes", "Spécificité par Quartier", "Date inconnues"]
+        )
+
+        for permis in queryset:
+            writer.writerow(
+                [
+                    permis.raw_data,
+                    permis.villes,
+                    "Oui" if permis.specificite_par_quartier else "Non",
+                    "Oui" if permis.date_inconnues else "Non",
+                ]
+            )
+
+        self.message_user(request, f"{queryset.count()} permis exportés avec succès.")
+        return response
+
+    export_selected_permis.short_description = "Exporter les permis sélectionnés en CSV"  # type: ignore

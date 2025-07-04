@@ -88,6 +88,11 @@ class Command(BaseCommand):
                     for ring in coords[0]:
                         correct_coords.append([ring])
                     geometry["coordinates"] = correct_coords
+                if region == Region.MONTPELLIER:
+                    correct_coords = []
+                    for ring in coords[0]:
+                        correct_coords.append([ring])
+                    geometry["coordinates"] = correct_coords
                 else:
                     print(
                         f"[IMPORT CHALLENGE] {region} MultiPolygon avec 1 polygone et plusieurs anneaux - région {region} non prévue."

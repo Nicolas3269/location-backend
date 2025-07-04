@@ -88,7 +88,7 @@ class Command(BaseCommand):
                     for ring in coords[0]:
                         correct_coords.append([ring])
                     geometry["coordinates"] = correct_coords
-                if region == Region.MONTPELLIER:
+                elif region == Region.MONTPELLIER:
                     correct_coords = []
                     for ring in coords[0]:
                         correct_coords.append([ring])

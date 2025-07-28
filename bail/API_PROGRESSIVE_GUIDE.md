@@ -49,7 +49,7 @@ const createProperty = async (propertyData, proprietaireId) => {
       adresse: "456 Avenue des Champs, 75008 Paris",
       type_bien: "APPARTEMENT",
       superficie: 75.5,
-      nb_pieces: "T3",
+      nombre_pieces_principales: "T3",
       meuble: false,
       classe_dpe: "C",
       // ... autres champs du bien

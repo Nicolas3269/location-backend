@@ -132,7 +132,7 @@ class BienAdmin(admin.ModelAdmin):
         "display_bailleurs",
         "type_bien",
         "superficie",
-        "display_nb_pieces",
+        "display_nombre_pieces_principales",
         "meuble",
         "display_dpe_class",
     )
@@ -205,11 +205,11 @@ class BienAdmin(admin.ModelAdmin):
 
     display_dpe_class.short_description = "DPE"
 
-    def display_nb_pieces(self, obj):
+    def display_nombre_pieces_principales(self, obj):
         """Affiche le nombre de pièces principales calculé"""
         return f"{obj.nombre_pieces_principales} pièces"
 
-    display_nb_pieces.short_description = "Pièces principales"
+    display_nombre_pieces_principales.short_description = "Pièces principales"
 
     def display_bailleurs(self, obj):
         bailleurs_names = []

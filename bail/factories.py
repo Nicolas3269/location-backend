@@ -6,7 +6,7 @@ import factory
 from factory.django import DjangoModelFactory
 from faker import Faker
 
-from rent_control.choices import ConstructionPeriod, PropertyType, RoomCount
+from rent_control.choices import ConstructionPeriod, PropertyType
 
 from .models import (
     Bailleur,
@@ -112,9 +112,6 @@ class BienFactory(DjangoModelFactory):
         lambda: decimal.Decimal(random.uniform(20.0, 150.0)).quantize(
             decimal.Decimal("0.01")
         )
-    )
-    nb_pieces = factory.LazyFunction(
-        lambda: random.choice([c[0] for c in RoomCount.choices])
     )
     meuble = factory.LazyFunction(lambda: random.choice([True, False]))
 

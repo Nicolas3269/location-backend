@@ -174,7 +174,7 @@
       <u>Nombre de pièces :</u> 
     </p>
     <p>
-      Le logement loué est constitué comme suit, soit {{bail.bien.nb_pieces}} {% if bail.bien.nb_pieces == "1" %}pièce principale{% else %}pièces principales{% endif %} :
+      Le logement loué est constitué comme suit, soit {{bail.bien.nombre_pieces_principales}} {% if bail.bien.nombre_pieces_principales == 1 %}pièce principale{% else %}pièces principales{% endif %} :
       {{pieces_info|safe}}
     </p>
     <br>

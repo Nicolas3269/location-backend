@@ -843,8 +843,7 @@ def get_bien_detail(request, bien_id):
 
         if not has_access:
             return JsonResponse(
-                {"error": "Vous n'avez pas accès à ce bien"},
-                status=403
+                {"error": "Vous n'avez pas accès à ce bien"}, status=403
             )
 
         # Convertir pieces_info en format de pièces pour le frontend
@@ -862,11 +861,10 @@ def get_bien_detail(request, bien_id):
                         "salons": {"type": "living", "nom_base": "Salon"},
                         "cuisines": {"type": "kitchen", "nom_base": "Cuisine"},
                         "sallesDeBain": {
-                            "type": "bathroom", "nom_base": "Salle de bain"
+                            "type": "bathroom",
+                            "nom_base": "Salle de bain",
                         },
-                        "sallesEau": {
-                            "type": "bathroom", "nom_base": "Salle d'eau"
-                        },
+                        "sallesEau": {"type": "bathroom", "nom_base": "Salle d'eau"},
                         "wc": {"type": "bathroom", "nom_base": "WC"},
                         "entrees": {"type": "room", "nom_base": "Entrée"},
                         "couloirs": {"type": "room", "nom_base": "Couloir"},
@@ -882,18 +880,18 @@ def get_bien_detail(request, bien_id):
                             if count > 1:
                                 nom += f" {i + 1}"
 
-                            pieces_data.append({
-                                "id": piece_counter,
-                                "nom": nom,
-                                "type": mapping["type"]
-                            })
+                            pieces_data.append(
+                                {
+                                    "id": piece_counter,
+                                    "nom": nom,
+                                    "type": mapping["type"],
+                                }
+                            )
                             piece_counter += 1
 
         # Si aucune pièce n'est définie, créer des pièces par défaut
         if not pieces_data:
-            pieces_data = [
-                {"id": 1, "nom": "Pièce principale", "type": "room"}
-            ]
+            pieces_data = [{"id": 1, "nom": "Pièce principale", "type": "room"}]
 
         # Données du bien
         bien_data = {
@@ -903,7 +901,7 @@ def get_bien_detail(request, bien_id):
             "superficie": float(bien.superficie),
             "meuble": bien.meuble,
             "pieces": pieces_data,
-            "pieces_info": bien.pieces_info
+            "pieces_info": bien.pieces_info,
         }
 
         return JsonResponse(bien_data)
@@ -911,6 +909,5 @@ def get_bien_detail(request, bien_id):
     except Exception as e:
         logger.error(f"Erreur lors de la récupération du bien {bien_id}: {str(e)}")
         return JsonResponse(
-            {"error": "Erreur lors de la récupération des données du bien"},
-            status=500
+            {"error": "Erreur lors de la récupération des données du bien"}, status=500
         )

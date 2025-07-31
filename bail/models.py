@@ -14,6 +14,14 @@ from rent_control.choices import (
 )
 
 
+class BailStatus(models.TextChoices):
+    """Statuts possibles pour un bail"""
+
+    DRAFT = "draft", "Brouillon"
+    SIGNING_IN_PROGRESS = "signing_in_progress", "En cours de signature"
+    SIGNED = "signed", "Signé et finalisé"
+
+
 class DPEClass(models.TextChoices):
     A = "A", "A (≤ 70 kWh/m²/an)"
     B = "B", "B (71 à 110 kWh/m²/an)"
@@ -454,12 +462,37 @@ class BailSpecificites(models.Model):
         verbose_name="Diagnostic de Performance Énergétique PDF",
     )
 
-    # Statut du brouillon
-    is_draft = models.BooleanField(
-        default=True,
-        verbose_name="Brouillon",
-        help_text="Indique si le bail est encore en mode brouillon",
+    # Statut du bail
+    status = models.CharField(
+        max_length=20,
+        choices=BailStatus.choices,
+        default=BailStatus.DRAFT,
+        verbose_name="Statut",
+        help_text="Statut actuel du bail dans son cycle de vie",
     )
+
+    def check_and_update_status(self):
+        """
+        Vérifie et met à jour automatiquement le statut du bail selon les signatures
+        """
+        current_status = self.status
+
+        if self.status == BailStatus.DRAFT:
+            # Si des signatures existent, passer en "signing_in_progress"
+            if self.signature_requests.exists():
+                self.status = BailStatus.SIGNING_IN_PROGRESS
+
+        if self.status == BailStatus.SIGNING_IN_PROGRESS:
+            # Si toutes les signatures sont complètes, passer en "signed"
+            if (
+                self.signature_requests.exists()
+                and not self.signature_requests.filter(signed=False).exists()
+            ):
+                self.status = BailStatus.SIGNED
+
+        # Sauvegarder seulement si le statut a effectivement changé
+        if current_status != self.status:
+            self.save(update_fields=["status"])
 
     def get_rent_price(self):
         """
@@ -533,6 +566,14 @@ class BailSignatureRequest(models.Model):
         elif self.locataire:
             return self.locataire.email
         return None
+
+    def save(self, *args, **kwargs):
+        """Override save pour mettre à jour automatiquement le statut du bail"""
+        super().save(*args, **kwargs)
+
+        # Mettre à jour le statut du bail associé
+        if self.bail:
+            self.bail.check_and_update_status()
 
 
 class DocumentType(models.TextChoices):

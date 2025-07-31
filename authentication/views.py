@@ -346,7 +346,7 @@ def get_user_profile_detailed(request):
                             "superficie": float(bien.superficie),
                             "meuble": bien.meuble,
                             "nombre_baux": bien.bails.count(),
-                            "baux_actifs": bien.bails.filter(is_draft=False).count(),
+                            "baux_actifs": bien.bails.filter(status="signed").count(),
                         }
                         # Éviter les doublons
                         if not any(b["id"] == bien.id for b in biens):
@@ -382,7 +382,7 @@ def get_user_profile_detailed(request):
                         "date_fin": date_fin,
                         "montant_loyer": float(bail.montant_loyer),
                         "montant_charges": float(bail.montant_charges),
-                        "is_draft": bail.is_draft,
+                        "status": bail.status,
                         "signatures_completes": signatures_completes,
                     }
                     # Éviter les doublons

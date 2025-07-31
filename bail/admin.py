@@ -297,9 +297,9 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
         "montant_loyer",
         "zone_tendue",
         "display_documents_status",
-        "is_draft",
+        "status",
     )
-    list_filter = ("zone_tendue", "date_debut", "is_draft")
+    list_filter = ("zone_tendue", "date_debut", "status")
     search_fields = ("bien__adresse", "locataires__nom", "locataires__prenom")
     date_hierarchy = "date_debut"
     inlines = [DocumentInline]
@@ -355,7 +355,7 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
             "Documents et annexes",
             {
                 "fields": (
-                    "is_draft",
+                    "status",
                     "pdf",
                     "latest_pdf",
                     "grille_vetuste_pdf",

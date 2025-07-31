@@ -586,7 +586,7 @@ def save_draft(request):
                     justificatif_complement_loyer=modalites.get(
                         "justificationPrix", ""
                     ),
-                    is_draft=True,  # Brouillon
+                    status='draft',  # Brouillon
                 )
 
                 # Associer les locataires au bail
@@ -910,4 +910,96 @@ def get_bien_detail(request, bien_id):
         logger.error(f"Erreur lors de la récupération du bien {bien_id}: {str(e)}")
         return JsonResponse(
             {"error": "Erreur lors de la récupération des données du bien"}, status=500
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_bien_baux(request, bien_id):
+    """
+    Récupère tous les baux (actifs et finalisés) d'un bien spécifique
+    """
+    try:
+        # Récupérer le bien
+        bien = get_object_or_404(Bien, id=bien_id)
+
+        # Vérifier que l'utilisateur a accès à ce bien
+        user_email = request.user.email
+        has_access = False
+
+        # Vérifier si l'utilisateur est signataire d'un des bailleurs
+        for bailleur in bien.bailleurs.all():
+            if bailleur.signataire and bailleur.signataire.email == user_email:
+                has_access = True
+                break
+
+        if not has_access:
+            return JsonResponse(
+                {"error": "Vous n'avez pas accès à ce bien"}, status=403
+            )
+
+        # Récupérer tous les baux du bien
+        baux = BailSpecificites.objects.filter(bien=bien).order_by('-date_debut')
+
+        baux_data = []
+        for bail in baux:
+            # Récupérer les locataires
+            locataires = [
+                {
+                    "nom": locataire.nom,
+                    "prenom": locataire.prenom,
+                    "email": locataire.email,
+                }
+                for locataire in bail.locataires.all()
+            ]
+
+            # Déterminer le statut du bail
+            signatures_completes = not bail.signature_requests.filter(
+                signed=False
+            ).exists()
+
+            pdf_url = (
+                request.build_absolute_uri(bail.pdf.url) if bail.pdf else None
+            )
+            latest_pdf_url = (
+                request.build_absolute_uri(bail.latest_pdf.url)
+                if bail.latest_pdf
+                else None
+            )
+            created_at = (
+                bail.date_signature.isoformat() if bail.date_signature else None
+            )
+
+            bail_data = {
+                "id": bail.id,
+                "date_debut": bail.date_debut.isoformat(),
+                "date_fin": bail.date_fin.isoformat() if bail.date_fin else None,
+                "montant_loyer": float(bail.montant_loyer),
+                "montant_charges": float(bail.montant_charges),
+                "status": bail.status,
+                "signatures_completes": signatures_completes,
+                "locataires": locataires,
+                "pdf_url": pdf_url,
+                "latest_pdf_url": latest_pdf_url,
+                "created_at": created_at,
+            }
+            baux_data.append(bail_data)
+
+        return JsonResponse({
+            "success": True,
+            "bien": {
+                "id": bien.id,
+                "adresse": bien.adresse,
+                "type_bien": bien.get_type_bien_display(),
+                "superficie": float(bien.superficie),
+                "meuble": bien.meuble,
+            },
+            "baux": baux_data
+        })
+
+    except Exception as e:
+        error_msg = f"Erreur lors de la récupération des baux du bien {bien_id}"
+        logger.error(f"{error_msg}: {str(e)}")
+        return JsonResponse(
+            {"error": "Erreur lors de la récupération des baux"}, status=500
         )

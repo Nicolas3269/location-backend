@@ -12,7 +12,7 @@ from bail.views import (
     get_rent_prices,
     get_signature_request,
     save_draft,
-    upload_diagnostics,
+    upload_document,
 )
 
 urlpatterns = [
@@ -31,7 +31,7 @@ urlpatterns = [
         generate_notice_information_pdf,
         name="generate_notice_information_pdf",
     ),
-    path("upload-diagnostics/", upload_diagnostics, name="upload_diagnostics"),
+    path("upload-document/", upload_document, name="upload_document"),
     path("get-company-data/", get_company_data, name="get_company_data"),
     path("documents/<uuid:document_id>/", delete_document, name="delete_document"),
     path("confirm-signature/", confirm_signature_bail, name="confirm_signature_bail"),

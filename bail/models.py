@@ -422,7 +422,7 @@ class BailSpecificites(models.Model):
     permis_de_louer = models.BooleanField(
         default=False,
         verbose_name="Permis de louer",
-        help_text="Indique si un permis de louer est requis pour ce bien"
+        help_text="Indique si un permis de louer est requis pour ce bien",
     )
 
     rent_price_id = models.IntegerField(
@@ -589,6 +589,7 @@ class DocumentType(models.TextChoices):
     GRILLE_VETUSTE = "grille_vetuste", "Grille de vétusté"
     NOTICE_INFORMATION = "notice_information", "Notice d'information"
     DIAGNOSTIC = "diagnostic", "Diagnostic"
+    PERMIS_DE_LOUER = "permis_de_louer", "Permis de louer"
     AUTRE = "autre", "Autre document"
 
 

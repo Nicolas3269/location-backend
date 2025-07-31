@@ -316,8 +316,8 @@ def generate_notice_information_pdf(request):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def upload_diagnostics(request):
-    """Upload de diagnostics pour un bien spécifique"""
+def upload_document(request):
+    """Upload générique de documents pour un bail spécifique"""
     try:
         # Vérifier si des fichiers sont fournis
         if not request.FILES:
@@ -326,10 +326,27 @@ def upload_diagnostics(request):
             )
 
         bail_id = request.POST.get("bail_id")
+        document_type = request.POST.get("document_type")
 
         if not bail_id:
             return JsonResponse(
                 {"success": False, "error": "ID du bail requis"}, status=400
+            )
+
+        if not document_type:
+            return JsonResponse(
+                {"success": False, "error": "Type de document requis"}, status=400
+            )
+
+        # Vérifier que le type de document est valide
+        valid_types = [choice[0] for choice in DocumentType.choices]
+        if document_type not in valid_types:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": f"Type de document invalide. Types acceptés: {valid_types}",
+                },
+                status=400,
             )
 
         bail = get_object_or_404(BailSpecificites, id=bail_id)
@@ -337,27 +354,39 @@ def upload_diagnostics(request):
 
         uploaded_files = []
 
-        # Récupérer tous les fichiers uploadés avec le nom 'diagnostic_files'
-        diagnostic_files = request.FILES.getlist("diagnostic_files")
+        # Récupérer tous les fichiers uploadés avec le nom 'files'
+        files = request.FILES.getlist("files")
 
         # Traiter chaque fichier uploadé
-        for diagnostic_file in diagnostic_files:
-            # Vérifier le type de fichier
-            if not diagnostic_file.name.lower().endswith(".pdf"):
+        for file in files:
+            # Vérifier le type de fichier selon le type de document
+            allowed_extensions = [".pdf"]
+
+            file_extension = None
+            for ext in allowed_extensions:
+                if file.name.lower().endswith(ext):
+                    file_extension = ext
+                    break
+
+            if not file_extension:
+                extensions_str = ", ".join(allowed_extensions)
+                error_msg = (
+                    f"Le fichier {file.name} doit être de type: {extensions_str}"
+                )
                 return JsonResponse(
                     {
                         "success": False,
-                        "error": f"Le fichier {diagnostic_file.name} doit être PDF",
+                        "error": error_msg,
                     },
                     status=400,
                 )
 
             # Vérifier la taille du fichier (max 10MB)
-            if diagnostic_file.size > 10 * 1024 * 1024:
+            if file.size > 10 * 1024 * 1024:
                 return JsonResponse(
                     {
                         "success": False,
-                        "error": f"Le fichier {diagnostic_file.name} trop volumineux",
+                        "error": f"Le fichier {file.name} trop volumineux (max 10MB)",
                     },
                     status=400,
                 )
@@ -366,9 +395,9 @@ def upload_diagnostics(request):
             document = Document.objects.create(
                 bail=bail,
                 bien=bien,
-                type_document=DocumentType.DIAGNOSTIC,
-                nom_original=diagnostic_file.name,
-                file=diagnostic_file,
+                type_document=document_type,
+                nom_original=file.name,
+                file=file,
                 uploade_par=request.user,
             )
 
@@ -377,22 +406,27 @@ def upload_diagnostics(request):
                     "id": str(document.id),
                     "name": document.nom_original,
                     "url": request.build_absolute_uri(document.url),
-                    "type": "Diagnostic",
+                    "type": document.get_type_document_display(),
                     "created_at": document.date_creation.isoformat(),
                 }
             )
 
+        document_type_display = DocumentType(document_type).label
+        success_msg = (
+            f"{len(uploaded_files)} document(s) de type "
+            f"'{document_type_display}' uploadé(s) avec succès"
+        )
         return JsonResponse(
             {
                 "success": True,
                 "documents": uploaded_files,
-                "message": f"{len(uploaded_files)} diagnostic(s) uploadé(s) "
-                f"avec succès",
+                "message": success_msg,
             }
         )
 
     except Exception as e:
-        logger.exception("Erreur lors de l'upload des diagnostics")
+        log_msg = f"Erreur lors de l'upload des documents de type {document_type}"
+        logger.exception(log_msg)
         return JsonResponse(
             {"success": False, "error": f"Erreur lors de l'upload: {str(e)}"},
             status=500,

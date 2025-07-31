@@ -374,6 +374,16 @@ def get_user_profile_detailed(request):
                         signed=False
                     ).exists()
 
+                    # Construire les URLs complètes pour les PDFs
+                    pdf_url = (
+                        request.build_absolute_uri(bail.pdf.url) if bail.pdf else None
+                    )
+                    latest_pdf_url = (
+                        request.build_absolute_uri(bail.latest_pdf.url)
+                        if bail.latest_pdf
+                        else None
+                    )
+
                     location_data = {
                         "id": bail.id,
                         "bien_adresse": bail.bien.adresse,
@@ -384,6 +394,13 @@ def get_user_profile_detailed(request):
                         "montant_charges": float(bail.montant_charges),
                         "status": bail.status,
                         "signatures_completes": signatures_completes,
+                        "pdf_url": pdf_url,
+                        "latest_pdf_url": latest_pdf_url,
+                        "created_at": (
+                            bail.date_signature.isoformat()
+                            if bail.date_signature
+                            else None
+                        ),
                     }
                     # Éviter les doublons
                     location_exists = any(

@@ -586,7 +586,7 @@ def save_draft(request):
                     justificatif_complement_loyer=modalites.get(
                         "justificationPrix", ""
                     ),
-                    status='draft',  # Brouillon
+                    status="draft",  # Brouillon
                 )
 
                 # Associer les locataires au bail
@@ -939,7 +939,7 @@ def get_bien_baux(request, bien_id):
             )
 
         # Récupérer tous les baux du bien
-        baux = BailSpecificites.objects.filter(bien=bien).order_by('-date_debut')
+        baux = BailSpecificites.objects.filter(bien=bien).order_by("-date_debut")
 
         baux_data = []
         for bail in baux:
@@ -958,9 +958,7 @@ def get_bien_baux(request, bien_id):
                 signed=False
             ).exists()
 
-            pdf_url = (
-                request.build_absolute_uri(bail.pdf.url) if bail.pdf else None
-            )
+            pdf_url = request.build_absolute_uri(bail.pdf.url) if bail.pdf else None
             latest_pdf_url = (
                 request.build_absolute_uri(bail.latest_pdf.url)
                 if bail.latest_pdf
@@ -985,17 +983,19 @@ def get_bien_baux(request, bien_id):
             }
             baux_data.append(bail_data)
 
-        return JsonResponse({
-            "success": True,
-            "bien": {
-                "id": bien.id,
-                "adresse": bien.adresse,
-                "type_bien": bien.get_type_bien_display(),
-                "superficie": float(bien.superficie),
-                "meuble": bien.meuble,
-            },
-            "baux": baux_data
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "bien": {
+                    "id": bien.id,
+                    "adresse": bien.adresse,
+                    "type_bien": bien.get_type_bien_display(),
+                    "superficie": float(bien.superficie),
+                    "meuble": bien.meuble,
+                },
+                "baux": baux_data,
+            }
+        )
 
     except Exception as e:
         error_msg = f"Erreur lors de la récupération des baux du bien {bien_id}"

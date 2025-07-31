@@ -617,9 +617,11 @@
       Sont annexés au présent contrat :</p>
     <p>
       <ul>
+        {% if is_copropriete %}
         <li>
-          le cas échéant, un extrait du règlement de copropriété (concernant la destination de l’immeuble, la jouissance et l’usage des parties privatives et communes et précisant la quote-part afférente au lot loué) ;
+          un extrait du règlement de copropriété (concernant la destination de l'immeuble, la jouissance et l'usage des parties privatives et communes et précisant la quote-part afférente au lot loué) ;
         </li>
+        {% endif %}
         <li>
            le dossier de diagnostic technique comprenant : 
           <ul>
@@ -633,9 +635,11 @@
         <li>
           une notice d'information relative aux droits et aux obligations des locataires et des bailleurs;
         </li>
+        {% if potentiel_permis_de_louer %}
         <li>
           le cas échéant, une autorisation préalable de mise en location;
         </li>
+        {% endif %}
       </ul>
       </p>
   </div>

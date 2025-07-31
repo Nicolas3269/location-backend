@@ -89,6 +89,10 @@ def generate_bail_pdf(request):
                 "prix_majore": BailMapping.prix_majore(bail),
                 "complement_loyer": BailMapping.complement_loyer(bail),
                 "justificatif_complement_loyer": bail.justificatif_complement_loyer,
+                "is_copropriete": BailMapping.is_copropriete(bail),
+                "potentiel_permis_de_louer": BailMapping.potentiel_permis_de_louer(
+                    bail
+                ),
             },
         )
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
@@ -583,6 +587,7 @@ def save_draft(request):
                     rent_price_id=rent_price_id,
                     depot_garantie=depot_garantie,
                     zone_tendue=form_data.get("zoneTendue", False),
+                    permis_de_louer=form_data.get("permisDeLouer", False),
                     justificatif_complement_loyer=modalites.get(
                         "justificationPrix", ""
                     ),

@@ -419,6 +419,12 @@ class BailSpecificites(models.Model):
     zone_tendue = models.BooleanField(
         default=False, help_text="Situé en zone d'encadrement des loyers"
     )
+    permis_de_louer = models.BooleanField(
+        default=False,
+        verbose_name="Permis de louer",
+        help_text="Indique si un permis de louer est requis pour ce bien"
+    )
+
     rent_price_id = models.IntegerField(
         null=True,
         blank=True,

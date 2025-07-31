@@ -241,3 +241,13 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
         return None
+
+    @staticmethod
+    def is_copropriete(bail: BailSpecificites):
+        """Vérifie si le bail est dans une copropriété"""
+        return bail.bien.regime_juridique == RegimeJuridique.COPROPRIETE
+
+    @staticmethod
+    def potentiel_permis_de_louer(bail: BailSpecificites):
+        """Vérifie si le bail peut être soumis à un permis de louer"""
+        return bail.permis_de_louer

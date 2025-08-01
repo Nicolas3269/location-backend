@@ -18,6 +18,7 @@ from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
 
 from authentication.utils import get_tokens_for_user, set_refresh_token_cookie
+from backend.pdf_utils import get_static_pdf_iframe_url, get_pdf_iframe_url
 from bail.constants import FORMES_JURIDIQUES
 from bail.generate_bail.mapping import BailMapping
 from bail.models import (
@@ -269,9 +270,8 @@ def confirm_signature_bail(request):
 def generate_grille_vetuste_pdf(request):
     """Retourne l'URL de la grille de vétusté statique"""
     try:
-        # URL media du fichier PDF avec URL complète
-        media_pdf_url = f"{settings.MEDIA_URL}bails/grille_vetuste.pdf"
-        full_url = request.build_absolute_uri(media_pdf_url)
+        # Utiliser notre nouvelle route PDF pour iframe
+        full_url = get_static_pdf_iframe_url(request, "bails/grille_vetuste.pdf")
 
         return JsonResponse(
             {
@@ -294,9 +294,8 @@ def generate_grille_vetuste_pdf(request):
 def generate_notice_information_pdf(request):
     """Retourne l'URL de la notice d'information statique"""
     try:
-        # URL media du fichier PDF
-        media_pdf_url = f"{settings.MEDIA_URL}bails/notice_information.pdf"
-        full_url = request.build_absolute_uri(media_pdf_url)
+        # Utiliser notre nouvelle route PDF pour iframe
+        full_url = get_static_pdf_iframe_url(request, "bails/notice_information.pdf")
 
         return JsonResponse(
             {
@@ -997,9 +996,9 @@ def get_bien_baux(request, bien_id):
                 signed=False
             ).exists()
 
-            pdf_url = request.build_absolute_uri(bail.pdf.url) if bail.pdf else None
+            pdf_url = get_pdf_iframe_url(request, bail.pdf) if bail.pdf else None
             latest_pdf_url = (
-                request.build_absolute_uri(bail.latest_pdf.url)
+                get_pdf_iframe_url(request, bail.latest_pdf)
                 if bail.latest_pdf
                 else None
             )

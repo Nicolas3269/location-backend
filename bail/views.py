@@ -238,12 +238,65 @@ def generate_etat_lieux_pdf(request):
             save_etat_lieux_photos,
         )
 
+        # Supprimer les anciens états des lieux du même type pour ce bail
+        # On ne peut avoir qu'un seul état des lieux d'entrée et un seul de sortie
+        etat_lieux_type = form_data.get("type", "entree")
+        anciens_etats_lieux = EtatLieux.objects.filter(
+            bail_id=bail_id, type_etat_lieux=etat_lieux_type
+        )
+
+        if anciens_etats_lieux.exists():
+            count = anciens_etats_lieux.count()
+            logger.info(
+                f"Suppression de {count} ancien(s) état(s) des lieux "
+                f"de type '{etat_lieux_type}' pour le bail {bail_id}"
+            )
+            # Supprimer les fichiers PDF associés
+            for ancien_etat_lieux in anciens_etats_lieux:
+                if ancien_etat_lieux.pdf:
+                    try:
+                        ancien_etat_lieux.pdf.delete(save=False)
+                    except Exception as e:
+                        logger.warning(
+                            f"Impossible de supprimer le PDF de l'état des lieux "
+                            f"{ancien_etat_lieux.id}: {e}"
+                        )
+            # Supprimer les objets (les photos seront supprimées en cascade)
+            anciens_etats_lieux.delete()
+
         etat_lieux: EtatLieux = create_etat_lieux_from_form_data(
             form_data, bail_id, request.user
         )
 
         # Sauvegarder les photos si présentes
         if uploaded_photos:
+            # Supprimer toutes les photos existantes pour cet état des lieux
+            # (au cas où il y en aurait déjà)
+            from bail.models import EtatLieuxPhoto
+
+            photos_existantes = EtatLieuxPhoto.objects.filter(
+                piece__bien=etat_lieux.bail.bien
+            )
+            if photos_existantes.exists():
+                count = photos_existantes.count()
+                bien_id = etat_lieux.bail.bien.id
+                logger.info(
+                    f"Suppression de {count} photo(s) existante(s) "
+                    f"pour le bien {bien_id}"
+                )
+                # Supprimer les fichiers image du disque
+                for photo in photos_existantes:
+                    if photo.image:
+                        try:
+                            photo.image.delete(save=False)
+                        except Exception as e:
+                            logger.warning(
+                                f"Impossible de supprimer l'image "
+                                f"{photo.image.path}: {e}"
+                            )
+                # Supprimer les objets de la base
+                photos_existantes.delete()
+
             save_etat_lieux_photos(
                 etat_lieux, uploaded_photos, form_data.get("photo_references", [])
             )
@@ -277,16 +330,16 @@ def generate_etat_lieux_pdf(request):
                 logger.info(f"Photo: {photo.nom_original}, élément: {element_key}")
                 if element_key not in photos_by_element:
                     photos_by_element[element_key] = []
-                
+
                 # Convertir l'image en Base64 pour WeasyPrint
                 photo_data_url = image_to_base64_data_url(photo.image)
                 if photo_data_url:
                     # Créer un objet photo enrichi avec la data URL
                     photo_enrichi = {
-                        'id': photo.id,
-                        'nom_original': photo.nom_original,
-                        'data_url': photo_data_url,  # Base64 data URL
-                        'url': photo.image.url,  # URL originale (pour debug)
+                        "id": photo.id,
+                        "nom_original": photo.nom_original,
+                        "data_url": photo_data_url,  # Base64 data URL
+                        "url": photo.image.url,  # URL originale (pour debug)
                     }
                     photos_by_element[element_key].append(photo_enrichi)
                 else:

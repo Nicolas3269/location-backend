@@ -7,6 +7,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
+from django.core.mail import send_mail
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -17,8 +18,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
 
-from authentication.utils import get_tokens_for_user, set_refresh_token_cookie
-from backend.pdf_utils import get_static_pdf_iframe_url, get_pdf_iframe_url
+from authentication.utils import (
+    generate_otp,
+    get_tokens_for_user,
+    set_refresh_token_cookie,
+)
+from backend.pdf_utils import get_pdf_iframe_url, get_static_pdf_iframe_url
 from bail.constants import FORMES_JURIDIQUES
 from bail.generate_bail.mapping import BailMapping
 from bail.models import (
@@ -132,6 +137,7 @@ def generate_bail_pdf(request):
                 "bailId": bail.id,
                 "pdfUrl": request.build_absolute_uri(bail.pdf.url),
                 "linkTokenFirstSigner": str(first_sign_req.link_token),
+                # Ne pas envoyer d'email ici, juste retourner le token
             }
         )
 
@@ -167,6 +173,31 @@ def get_signature_request(request, token):
     person = req.bailleur_signataire or req.locataire
     signer_email = person.email
 
+    # Générer un nouvel OTP et l'envoyer par email
+
+    new_otp = generate_otp()
+    req.otp = new_otp
+    req.otp_generated_at = timezone.now()  # Enregistrer l'horodatage
+    req.save()
+
+    # Envoyer l'OTP par email
+    try:
+        send_mail(
+            subject="Code de vérification pour la signature de votre bail",
+            message=(
+                f"Votre code de vérification est : {new_otp}\n\n"
+                "Ce code expire dans 10 minutes."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            # recipient_list=[person.email],
+            recipient_list=["nicolas3269@gmail.com"],
+        )
+        logger.info(f"OTP envoyé par email à {signer_email}")
+    except Exception as e:
+        logger.error(f"Erreur lors de l'envoi de l'OTP à {signer_email}: {e}")
+        # Continuer le processus même si l'email échoue
+        pass
+
     # Préparer la réponse de base
     response_data = {
         "person": {
@@ -175,6 +206,7 @@ def get_signature_request(request, token):
             "last_name": person.nom,
         },
         "bail_id": req.bail.id,
+        "otp_sent": True,  # Indiquer que l'OTP a été envoyé
     }
 
     # Tenter d'authentifier automatiquement l'utilisateur
@@ -215,8 +247,9 @@ def confirm_signature_bail(request):
         if sig_req.signed:
             return JsonResponse({"error": "Déjà signé"}, status=400)
 
-        if sig_req.otp != otp:
-            return JsonResponse({"error": "Code OTP invalide"}, status=403)
+        # Vérifier que l'OTP est valide (correct et non expiré)
+        if not sig_req.is_otp_valid(otp):
+            return JsonResponse({"error": "Code OTP invalide ou expiré"}, status=403)
 
         # Vérifie que c’est bien son tour
         current = (

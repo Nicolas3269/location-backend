@@ -14,7 +14,6 @@ from algo.signature.main import (
     get_signature_field_name,
     sign_pdf,
 )
-from authentication.utils import generate_otp
 from bail.models import Bailleur, BailSignatureRequest, BailSpecificites, Personne
 
 logger = logging.getLogger(__name__)
@@ -111,8 +110,6 @@ Bonjour {person.prenom},
 
 Veuillez signer le bail en suivant ce lien : {link}
 
-Votre code de confirmation est : {signature_request.otp}
-
 Merci,
 L'équipe HESTIA
 """
@@ -131,19 +128,16 @@ def create_signature_requests(bail):
     tenants = list(bail.locataires.all())
 
     for i, signataire in enumerate(bailleur_signataires):
-        otp = generate_otp()
-        req = BailSignatureRequest.objects.create(
-            bail=bail, bailleur_signataire=signataire, order=i, otp=otp
+        BailSignatureRequest.objects.create(
+            bail=bail, bailleur_signataire=signataire, order=i, otp=""
         )
-
-        if i == 0:
-            send_signature_email(req)  # Seul le premier reçoit un lien immédiatement
+        # OTP sera généré quand l'utilisateur arrive sur la page
 
     for i, person in enumerate(tenants):
-        otp = generate_otp()
-        req = BailSignatureRequest.objects.create(
-            bail=bail, locataire=person, order=i + len(bailleur_signataires), otp=otp
+        BailSignatureRequest.objects.create(
+            bail=bail, locataire=person, order=i + len(bailleur_signataires), otp=""
         )
+        # OTP sera généré quand l'utilisateur arrive sur la page
 
 
 def create_bien_from_form_data(form_data, save=True):

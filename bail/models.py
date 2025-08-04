@@ -546,7 +546,12 @@ class BailSignatureRequest(models.Model):
     order = models.PositiveSmallIntegerField(
         help_text="Ordre de signature dans le processus"
     )
-    otp = models.CharField(max_length=6)
+    otp = models.CharField(max_length=6, blank=True, default="")
+    otp_generated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Horodatage de génération de l'OTP (pour vérifier l'expiration)",
+    )
     signed = models.BooleanField(default=False)
     signed_at = models.DateTimeField(null=True, blank=True)
     link_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
@@ -572,6 +577,37 @@ class BailSignatureRequest(models.Model):
         elif self.locataire:
             return self.locataire.email
         return None
+
+    def is_otp_valid(self, otp_value, expiry_minutes=10):
+        """
+        Vérifie si l'OTP fourni est valide (correct et non expiré).
+
+        Args:
+            otp_value (str): L'OTP à vérifier
+            expiry_minutes (int): Durée de validité en minutes (défaut: 10)
+
+        Returns:
+            bool: True si l'OTP est valide, False sinon
+        """
+        # Vérifier que l'OTP correspond
+        if self.otp != otp_value:
+            return False
+
+        # Vérifier que l'OTP n'est pas vide
+        if not self.otp:
+            return False
+
+        # Vérifier que l'horodatage existe
+        if not self.otp_generated_at:
+            return False
+
+        # Vérifier que l'OTP n'a pas expiré
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        expiry_time = self.otp_generated_at + timedelta(minutes=expiry_minutes)
+        return timezone.now() <= expiry_time
 
     def save(self, *args, **kwargs):
         """Override save pour mettre à jour automatiquement le statut du bail"""

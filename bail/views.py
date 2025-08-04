@@ -33,6 +33,7 @@ from bail.models import (
     Bien,
     Document,
     DocumentType,
+    EtatLieux,
     Locataire,
     Personne,
     Societe,
@@ -40,6 +41,7 @@ from bail.models import (
 from bail.utils import (
     create_bien_from_form_data,
     create_signature_requests,
+    prepare_etat_lieux_pdf_with_signature_fields,
     prepare_pdf_with_signature_fields,
     process_signature,
     send_signature_email,
@@ -143,6 +145,196 @@ def generate_bail_pdf(request):
 
     except Exception as e:
         logger.exception("Erreur lors de la génération du bail PDF")
+        return JsonResponse(
+            {"success": False, "error": f"Erreur lors de la génération: {str(e)}"},
+            status=500,
+        )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_etat_lieux_pdf(request):
+    """
+    Génère un PDF d'état des lieux à partir des données du formulaire
+    """
+    try:
+        # Vérifier si c'est du FormData (avec photos) ou du JSON simple
+        if request.content_type and "multipart/form-data" in request.content_type:
+            # Traitement des données avec photos
+            json_data_str = request.POST.get("json_data")
+            if not json_data_str:
+                return JsonResponse(
+                    {"success": False, "error": "json_data est requis"}, status=400
+                )
+
+            form_data = json.loads(json_data_str)
+
+            # Traiter les photos uploadées
+            uploaded_photos = {}
+            photo_references = form_data.get("photo_references", [])
+
+            for photo_ref in photo_references:
+                field_name = photo_ref["file_field_name"]
+                if field_name in request.FILES:
+                    uploaded_file = request.FILES[field_name]
+
+                    # Créer une clé unique pour cette photo
+                    photo_key = (
+                        f"{photo_ref['room_id']}_{photo_ref['element_key']}_"
+                        f"{photo_ref['photo_index']}"
+                    )
+                    uploaded_photos[photo_key] = uploaded_file
+
+            logger.info(f"Reçu {len(uploaded_photos)} photos uploadées")
+        else:
+            # Traitement des données JSON simple (sans photos)
+            form_data = json.loads(request.body)
+            uploaded_photos = {}
+
+        bail_id = form_data.get("bail_id")
+
+        if not bail_id:
+            return JsonResponse(
+                {"success": False, "error": "bail_id est requis"}, status=400
+            )
+
+        # Créer l'état des lieux à partir des données du formulaire
+        from bail.utils import (
+            create_etat_lieux_from_form_data,
+            create_etat_lieux_signature_requests,
+            save_etat_lieux_photos,
+        )
+
+        etat_lieux: EtatLieux = create_etat_lieux_from_form_data(
+            form_data, bail_id, request.user
+        )
+
+        # Sauvegarder les photos si présentes
+        if uploaded_photos:
+            save_etat_lieux_photos(
+                etat_lieux, uploaded_photos, form_data.get("photo_references", [])
+            )
+
+        # Préparer les données complètes pour le template
+        from bail.models import EtatLieuxPhoto
+
+        # Récupérer toutes les photos liées aux pièces du bien
+        photos = EtatLieuxPhoto.objects.filter(
+            piece__bien=etat_lieux.bail.bien
+        ).select_related("piece")
+
+        logger.info(f"Nombre de photos trouvées: {photos.count()}")
+
+        # Créer la structure complète des pièces avec éléments enrichis
+        pieces_enrichies = []
+
+        for piece_detail in etat_lieux.pieces_details.all():
+            piece = piece_detail.piece
+
+            # Récupérer les photos de cette pièce
+            piece_photos = photos.filter(piece=piece)
+            logger.info(
+                f"Pièce {piece.nom} ({piece.id}): {piece_photos.count()} photos"
+            )
+
+            # Grouper les photos par élément
+            photos_by_element = {}
+            for photo in piece_photos:
+                element_key = photo.element_key
+                logger.info(f"Photo: {photo.nom_original}, élément: {element_key}")
+                if element_key not in photos_by_element:
+                    photos_by_element[element_key] = []
+                photos_by_element[element_key].append(photo)
+
+            # Enrichir chaque élément avec ses données et ses photos
+            elements_enrichis = []
+            if piece_detail.elements:
+                for element_key, element_data in piece_detail.elements.items():
+                    element_enrichi = {
+                        "key": element_key,
+                        "name": element_key.replace("_", " ").title(),
+                        "state": element_data.get("state", ""),
+                        "state_display": {
+                            "TB": "Très bon",
+                            "B": "Bon",
+                            "P": "Passable",
+                            "M": "Mauvais",
+                        }.get(element_data.get("state", ""), "Non renseigné"),
+                        "state_css_class": {
+                            "TB": "state-excellent",
+                            "B": "state-good",
+                            "P": "state-fair",
+                            "M": "state-poor",
+                        }.get(element_data.get("state", ""), "state-empty"),
+                        "comment": element_data.get("comment", ""),
+                        "photos": photos_by_element.get(element_key, []),
+                    }
+                    elements_enrichis.append(element_enrichi)
+
+            piece_enrichie = {"piece": piece, "elements": elements_enrichis}
+            pieces_enrichies.append(piece_enrichie)
+
+            logger.info(
+                f"Pièce {piece.nom} enrichie avec {len(elements_enrichis)} éléments"
+            )
+
+        # Générer le PDF depuis le template HTML
+        html = render_to_string(
+            "pdf/etat_lieux.html",
+            {
+                "etat_lieux": etat_lieux,
+                "now": timezone.now(),
+                "bail": etat_lieux.bail,
+                "pieces_enrichies": pieces_enrichies,
+            },
+        )
+        pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
+
+        # Noms de fichiers
+        base_filename = f"etat_lieux_{etat_lieux.id}_{uuid.uuid4().hex}"
+        pdf_filename = f"{base_filename}.pdf"
+        tmp_pdf_path = f"/tmp/{pdf_filename}"
+
+        try:
+            # 1. Sauver temporairement
+            with open(tmp_pdf_path, "wb") as f:
+                f.write(pdf_bytes)
+
+            # 2. Ajouter champs de signature
+            prepare_etat_lieux_pdf_with_signature_fields(tmp_pdf_path, etat_lieux)
+
+            # 3. Recharger dans etat_lieux.pdf
+            with open(tmp_pdf_path, "rb") as f:
+                etat_lieux.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
+
+        finally:
+            # 4. Supprimer le fichier temporaire
+            try:
+                os.remove(tmp_pdf_path)
+            except Exception as e:
+                logger.warning(
+                    f"Impossible de supprimer le fichier temporaire {tmp_pdf_path}: {e}"
+                )
+
+        # Créer les demandes de signature
+        create_etat_lieux_signature_requests(etat_lieux)
+
+        first_sign_req = etat_lieux.signature_requests.order_by("order").first()
+
+        return JsonResponse(
+            {
+                "success": True,
+                "etatLieuxId": str(etat_lieux.id),
+                "pdfUrl": request.build_absolute_uri(etat_lieux.pdf.url),
+                "linkTokenFirstSigner": str(first_sign_req.link_token)
+                if first_sign_req
+                else None,
+                "type": etat_lieux.type_etat_lieux,
+            }
+        )
+
+    except Exception as e:
+        logger.exception("Erreur lors de la génération de l'état des lieux PDF")
         return JsonResponse(
             {"success": False, "error": f"Erreur lors de la génération: {str(e)}"},
             status=500,
@@ -376,7 +568,9 @@ def upload_document(request):
             return JsonResponse(
                 {
                     "success": False,
-                    "error": f"Type de document invalide. Types acceptés: {valid_types}",
+                    "error": (
+                        f"Type de document invalide. Types acceptés: {valid_types}"
+                    ),
                 },
                 status=400,
             )
@@ -884,7 +1078,7 @@ def get_company_data(request):
 def get_bien_detail(request, bien_id):
     """
     Récupère les détails d'un bien avec ses pièces pour l'état des lieux.
-    Utilise le champ pieces_info JSONField existant.
+    Crée des EtatLieuxPiece en base si elles n'existent pas déjà.
     """
     try:
         # Récupérer le bien
@@ -917,52 +1111,20 @@ def get_bien_detail(request, bien_id):
                 {"error": "Vous n'avez pas accès à ce bien"}, status=403
             )
 
-        # Convertir pieces_info en format de pièces pour le frontend
+        # Récupérer ou créer les pièces pour ce bien
+        from bail.utils import get_or_create_pieces_for_bien
+
+        pieces = get_or_create_pieces_for_bien(bien)
+
         pieces_data = []
-        if bien.pieces_info:
-            # pieces_info contient des données comme
-            # {"chambres": 2, "salons": 1, "cuisines": 1, "sallesDeBain": 1}
-            piece_counter = 1
-
-            for piece_type, count in bien.pieces_info.items():
-                if isinstance(count, int) and count > 0:
-                    # Mapper les types de pièces du JSONField vers noms lisibles
-                    type_mapping = {
-                        "chambres": {"type": "bedroom", "nom_base": "Chambre"},
-                        "salons": {"type": "living", "nom_base": "Salon"},
-                        "cuisines": {"type": "kitchen", "nom_base": "Cuisine"},
-                        "sallesDeBain": {
-                            "type": "bathroom",
-                            "nom_base": "Salle de bain",
-                        },
-                        "sallesEau": {"type": "bathroom", "nom_base": "Salle d'eau"},
-                        "wc": {"type": "bathroom", "nom_base": "WC"},
-                        "entrees": {"type": "room", "nom_base": "Entrée"},
-                        "couloirs": {"type": "room", "nom_base": "Couloir"},
-                        "dressings": {"type": "room", "nom_base": "Dressing"},
-                        "celliers": {"type": "room", "nom_base": "Cellier"},
-                        "buanderies": {"type": "room", "nom_base": "Buanderie"},
-                    }
-
-                    if piece_type in type_mapping:
-                        mapping = type_mapping[piece_type]
-                        for i in range(count):
-                            nom = f"{mapping['nom_base']}"
-                            if count > 1:
-                                nom += f" {i + 1}"
-
-                            pieces_data.append(
-                                {
-                                    "id": piece_counter,
-                                    "nom": nom,
-                                    "type": mapping["type"],
-                                }
-                            )
-                            piece_counter += 1
-
-        # Si aucune pièce n'est définie, créer des pièces par défaut
-        if not pieces_data:
-            pieces_data = [{"id": 1, "nom": "Pièce principale", "type": "room"}]
+        for piece in pieces:
+            pieces_data.append(
+                {
+                    "id": str(piece.id),
+                    "nom": piece.nom,
+                    "type": piece.type_piece,
+                }
+            )
 
         # Données du bien
         bien_data = {

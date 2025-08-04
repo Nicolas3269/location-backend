@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>État des lieux {{ etat_lieux.get_type_etat_lieux_display }}</title>
+    <style>
+        @page {
+            margin: 2cm;
+            size: A4;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .bien-info {
+            background-color: #f5f5f5;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+        }
+        
+        .bien-info h2 {
+            margin-top: 0;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .info-item {
+            margin-bottom: 5px;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 120px;
+        }
+        
+        .piece {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            page-break-inside: avoid;
+        }
+        
+        .piece-header {
+            background-color: #3498db;
+            color: white;
+            padding: 10px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .piece-content {
+            padding: 15px;
+        }
+        
+        .elements-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .elements-table th,
+        .elements-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .elements-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .state-excellent { background-color: #d4edda; }
+        .state-good { background-color: #d1ecf1; }
+        .state-fair { background-color: #ffeaa7; }
+        .state-poor { background-color: #f8d7da; }
+        .state-empty { background-color: #f8f9fa; }
+        
+        .equipment-section {
+            margin-top: 20px;
+        }
+        
+        .equipment-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        
+        .equipment-item {
+            background-color: #f8f9fa;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .signature-section {
+            margin-top: 40px;
+            page-break-before: always;
+        }
+        
+        .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+        
+        .signature-block {
+            border: 1px solid #ddd;
+            padding: 20px;
+            min-height: 150px;
+        }
+        
+        .signature-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        
+        .signature-info {
+            margin-bottom: 20px;
+        }
+        
+        .signature-line {
+            border-bottom: 1px solid #333;
+            height: 60px;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        .signature-label {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            font-size: 10px;
+            color: #666;
+        }
+        
+        .date-field {
+            margin-top: 20px;
+            font-size: 10px;
+        }
+        
+        .comments-section {
+            margin-top: 20px;
+            min-height: 60px;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        
+        .comments-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .photos-section {
+            margin-top: 15px;
+        }
+        
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .photo-item {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+            background-color: #f8f9fa;
+        }
+        
+        .photo-image {
+            max-width: 100%;
+            max-height: 120px;
+            width: auto;
+            height: auto;
+        }
+        
+        .photo-caption {
+            font-size: 10px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .element-photos {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-left: 3px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <!-- En-tête du document -->
+    <div class="header">
+        <h1>État des lieux {{ etat_lieux.get_type_etat_lieux_display }}</h1>
+        <p>Document généré le {{ now|date:"d/m/Y à H:i" }}</p>
+    </div>
+
+    <!-- Informations du bien -->
+    <div class="bien-info">
+        <h2>Informations du bien</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Adresse :</span>
+                {{ etat_lieux.bail.bien.adresse }}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Type :</span>
+                {{ etat_lieux.bail.bien.get_type_bien_display }}
+            </div>
+            <div class="info-item">
+                <span class="info-label">Superficie :</span>
+                {{ etat_lieux.bail.bien.superficie }} m²
+            </div>
+            <div class="info-item">
+                <span class="info-label">Meublé :</span>
+                {% if etat_lieux.bail.bien.meuble %}Oui{% else %}Non{% endif %}
+            </div>
+        </div>
+    </div>    <!-- Détail des pièces -->
+    {% for piece_data in pieces_enrichies %}
+    <div class="piece">
+        <div class="piece-header">
+            {{ piece_data.piece.nom }} ({{ piece_data.piece.get_type_piece_display|default:piece_data.piece.type_piece }})
+        </div>
+        <div class="piece-content">
+            <!-- Table des éléments avec photos -->
+            <table class="elements-table">
+                <thead>
+                    <tr>
+                        <th>Élément</th>
+                        <th>État</th>
+                        <th>Observations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for element in piece_data.elements %}
+                    <tr>
+                        <td>{{ element.name }}</td>
+                        <td class="{{ element.state_css_class }}">
+                            {{ element.state_display }}
+                        </td>
+                        <td>{{ element.comment|default:"-" }}</td>
+                    </tr>
+                    
+                    <!-- Photos pour cet élément -->
+                    {% if element.photos %}
+                    <tr>
+                        <td colspan="3">
+                            <div class="element-photos">
+                                <h5>Photos - {{ element.name }}</h5>
+                                <div class="photos-grid">
+                                    {% for photo in element.photos %}
+                                    <div class="photo-item">
+                                        <img src="{{ photo.image.url }}" alt="{{ photo.nom_original }}" class="photo-image" />
+                                        <div class="photo-caption">{{ photo.nom_original }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <!-- Équipements -->
+            {% if piece_data.piece.equipments %}
+            <div class="equipment-section">
+                <h4>Équipements</h4>
+                <ul class="equipment-list">
+                    {% for equipment in piece_data.piece.equipments %}
+                    <li class="equipment-item">
+                        {{ equipment.name }} - Quantité: {{ equipment.quantity }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Mobilier (si meublé) -->
+            {% if etat_lieux.bail.bien.meuble and piece_data.piece.mobilier %}
+            <div class="equipment-section">
+                <h4>Mobilier</h4>
+                <ul class="equipment-list">
+                    {% for mobilier in piece_data.piece.mobilier %}
+                    <li class="equipment-item">
+                        {{ mobilier.name }} - Quantité: {{ mobilier.quantity }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Section commentaires généraux -->
+    <div class="comments-section">
+        <div class="comments-title">Observations générales :</div>
+        <div style="min-height: 80px;">
+            <!-- Espace pour les commentaires généraux -->
+        </div>
+    </div>
+
+    <!-- Section signatures -->
+     <div class="section signature-section">
+    <h2>7. Signatures</h2>
+    <div class="signature">
+      <!-- Landlord signature blocks -->
+      <h4 id="landlord-signature-header">
+        {% with count=etat_lieux.bail.bien.bailleurs.all|length %}
+          Bailleur{% if count > 1 %}s{% endif %}
+        {% endwith %}
+      </h4>
+      <div class="signature-list">
+        {% for bailleur in etat_lieux.bail.bien.bailleurs.all %}
+        <div class="signature-block">
+          <!-- ID invisible pour PyMuPDF -->
+          <p style="color:white; margin: 0;">ID_SIGNATURE_BAILLEUR_{{ bailleur.signataire.id }}</p>
+        </div>
+        {% endfor %}
+      </div>
+  
+      <!-- Tenant signature blocks -->
+      <h4 id="tenant-signature-header">
+        {% with count=etat_lieux.bail.locataires.all|length %}
+          Locataire{% if count > 1 %}s{% endif %}
+        {% endwith %}
+      </h4>
+      <div class="signature-list">
+        {% for person in etat_lieux.bail.locataires.all %}
+        <div class="signature-block">
+          <!-- ID invisible pour PyMuPDF -->
+          <p style="color:white; margin: 0;">ID_SIGNATURE_LOC_{{ person.id }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,5 +1,7 @@
+import base64
 import json
 import logging
+import mimetypes
 import os
 import uuid
 
@@ -52,6 +54,37 @@ from rent_control.utils import get_rent_price_for_bien
 logger = logging.getLogger(__name__)
 
 INDICE_IRL = 145.47
+
+
+def image_to_base64_data_url(image_field):
+    """
+    Convertit un ImageField Django en data URL Base64 pour WeasyPrint.
+    Évite les timeouts lors de la génération de PDF avec des URLs externes.
+    """
+    if not image_field or not hasattr(image_field, "path"):
+        return None
+
+    try:
+        # Lire le contenu du fichier
+        with open(image_field.path, "rb") as img_file:
+            img_data = img_file.read()
+
+        # Déterminer le type MIME
+        content_type, _ = mimetypes.guess_type(image_field.path)
+        if not content_type:
+            content_type = "image/jpeg"  # Fallback
+
+        # Encoder en Base64
+        img_base64 = base64.b64encode(img_data).decode("utf-8")
+
+        # Retourner la data URL complète
+        return f"data:{content_type};base64,{img_base64}"
+
+    except Exception as e:
+        logger.warning(
+            f"Erreur lors de la conversion en Base64 de {image_field.path}: {e}"
+        )
+        return None
 
 
 @api_view(["POST"])
@@ -237,14 +270,29 @@ def generate_etat_lieux_pdf(request):
                 f"Pièce {piece.nom} ({piece.id}): {piece_photos.count()} photos"
             )
 
-            # Grouper les photos par élément
+            # Grouper les photos par élément et convertir en Base64
             photos_by_element = {}
             for photo in piece_photos:
                 element_key = photo.element_key
                 logger.info(f"Photo: {photo.nom_original}, élément: {element_key}")
                 if element_key not in photos_by_element:
                     photos_by_element[element_key] = []
-                photos_by_element[element_key].append(photo)
+                
+                # Convertir l'image en Base64 pour WeasyPrint
+                photo_data_url = image_to_base64_data_url(photo.image)
+                if photo_data_url:
+                    # Créer un objet photo enrichi avec la data URL
+                    photo_enrichi = {
+                        'id': photo.id,
+                        'nom_original': photo.nom_original,
+                        'data_url': photo_data_url,  # Base64 data URL
+                        'url': photo.image.url,  # URL originale (pour debug)
+                    }
+                    photos_by_element[element_key].append(photo_enrichi)
+                else:
+                    logger.warning(
+                        f"Impossible de convertir la photo {photo.nom_original}"
+                    )
 
             # Enrichir chaque élément avec ses données et ses photos
             elements_enrichis = []

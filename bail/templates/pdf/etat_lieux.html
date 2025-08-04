@@ -282,7 +282,7 @@
                                 <div class="photos-grid">
                                     {% for photo in element.photos %}
                                     <div class="photo-item">
-                                        <img src="{{ photo.image.url }}" alt="{{ photo.nom_original }}" class="photo-image" />
+                                        <img src="{{ photo.data_url }}" alt="{{ photo.nom_original }}" class="photo-image" />
                                         <div class="photo-caption">{{ photo.nom_original }}</div>
                                     </div>
                                     {% endfor %}

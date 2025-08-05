@@ -162,7 +162,7 @@
         <h3>Bailleur</h3>
         <div class="info-row">
             <span class="label">Nom :</span>
-            {{ bailleur_full_name }}
+            {{ premier_bailleur.full_name }}
         </div>
         <div class="info-row">
             <span class="label">Adresse :</span>
@@ -203,12 +203,23 @@
     </div>
     
     <p>
-        Je soussigné(e) <strong>{{ bailleur_full_name }}</strong>, 
-        propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
-        reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
-        locataire dudit logement, la somme de <strong>{{ montant_loyer }}€</strong> 
-        ({{ montant_en_lettres }}) correspondant au loyer du mois de 
-        <strong>{{ mois|lower }} {{ annee }}</strong>.
+        {% if bailleur_type == "personne_physique" %}
+            Je soussigné(e) <strong>{{ premier_bailleur.personne.prenom }} {{ premier_bailleur.personne.nom }}</strong>, 
+            propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
+            reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
+            locataire dudit logement, la somme de <strong>{{ montant_loyer }}€</strong> 
+            ({{ montant_en_lettres }}) correspondant au loyer du mois de 
+            <strong>{{ mois|lower }} {{ annee }}</strong>.
+        {% elif bailleur_type == "societe" %}
+            Je soussigné(e) <strong>{{ premier_bailleur.signataire.prenom }} {{ premier_bailleur.signataire.nom }}</strong>, 
+            représentant de la société <strong>{{ premier_bailleur.societe.raison_sociale }}</strong> 
+            ({{ premier_bailleur.societe.forme_juridique }}), 
+            propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
+            reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
+            locataire dudit logement, la somme de <strong>{{ montant_loyer }}€</strong> 
+            ({{ montant_en_lettres }}) correspondant au loyer du mois de 
+            <strong>{{ mois|lower }} {{ annee }}</strong>.
+        {% endif %}
     </p>
     
     <p>
@@ -224,7 +235,13 @@
         
         <!-- Bloc 2: Signature -->
         <div class="signature-block">
-            <div class="signature-title">Signature du bailleur</div>
+            <div class="signature-title">
+                {% if bailleur_type == "personne_physique" %}
+                    Signature du bailleur
+                {% elif bailleur_type == "societe" %}
+                    Signature du représentant
+                {% endif %}
+            </div>
             <div class="signature-image">
                 {% if bailleur_signature %}
                     <img src="{{ bailleur_signature }}" alt="Signature" style="max-width: 350px; max-height: 80px; height: auto;" />
@@ -232,6 +249,7 @@
                     <em style="color: #6c757d;">Signature à apposer</em>
                 {% endif %}
             </div>
+            <div class="signature-name">{{ signataire_full_name }}</div>
         </div>
     </div>
     

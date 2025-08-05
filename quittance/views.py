@@ -123,6 +123,23 @@ def generate_quittance_pdf(request):
                 status=400,
             )
 
+        # Déterminer qui signe et le texte approprié
+        if premier_bailleur.personne:
+            # Personne physique
+            signataire_full_name = premier_bailleur.personne.full_name
+            bailleur_type = "personne_physique"
+            bailleur_adresse = premier_bailleur.personne.adresse
+        elif premier_bailleur.societe and premier_bailleur.signataire:
+            # Société avec signataire
+            signataire_full_name = premier_bailleur.signataire.full_name
+            bailleur_type = "societe"
+            bailleur_adresse = premier_bailleur.societe.adresse
+        else:
+            return JsonResponse(
+                {"success": False, "error": "Configuration de bailleur invalide"},
+                status=400,
+            )
+
         # Supprimer les anciennes quittances pour la même période
         anciennes_quittances = Quittance.objects.filter(
             bail=bail, mois=mois, annee=annee
@@ -156,9 +173,8 @@ def generate_quittance_pdf(request):
             montant_loyer=montant_loyer,
         )
 
-        # Générer la signature automatique du bailleur
-        bailleur_full_name = premier_bailleur.full_name
-        signature_data_url = generate_text_signature(bailleur_full_name)
+        # Générer la signature automatique (signataire qui signe)
+        signature_data_url = generate_text_signature(signataire_full_name)
 
         context = {
             "bail": bail,
@@ -170,8 +186,10 @@ def generate_quittance_pdf(request):
             "montant_loyer": montant_loyer,
             "montant_en_lettres": montant_en_lettres,
             # Informations du bailleur
-            "bailleur_full_name": bailleur_full_name,
-            "bailleur_adresse": premier_bailleur.adresse,
+            "premier_bailleur": premier_bailleur,
+            "bailleur_type": bailleur_type,
+            "signataire_full_name": signataire_full_name,
+            "bailleur_adresse": bailleur_adresse,
             "bailleur_signature": signature_data_url,
             # Informations du locataire
             "locataire_full_name": premier_locataire.full_name,
@@ -215,7 +233,7 @@ def generate_quittance_pdf(request):
                 "pdfUrl": request.build_absolute_uri(quittance.pdf.url),
                 "filename": pdf_filename,
                 "context_info": {
-                    "bailleur": f"{premier_bailleur.full_name}",
+                    "bailleur": f"{signataire_full_name}",
                     "locataire": f"{premier_locataire.full_name}",
                     "periode": f"{mois} {annee}",
                     "montant": f"{montant_loyer}€",

@@ -11,36 +11,61 @@
         }
         
         body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            line-height: 1.4;
-            color: #333;
+            font-family: 'Times New Roman', 'Arial', serif;
+            font-size: 12pt;
+            color: #3e3c41;
+            background-color: #ffffff;
+            line-height: 1.6em;
+        }
+        
+        h1, h2, h3 {
+            color: #4a6b85;
+            margin-top: 2em;
+        }
+        
+        .document-title {
+            text-align: center;
+            font-size: 20pt;
+            font-weight: bold;
+            margin-top: 0;
+            margin-bottom: 0.2cm;
+            color: #4a6b85;
+        }
+        
+        .document-subtitle {
+            text-align: center;
+            font-size: 12pt;
+            font-style: italic;
+            margin-bottom: 2cm;
         }
         
         .header {
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #333;
+            border-bottom: 2px solid #4a6b85;
             padding-bottom: 20px;
         }
         
         .header h1 {
-            font-size: 20px;
+            font-size: 20pt;
             margin-bottom: 10px;
-            text-transform: uppercase;
+            color: #4a6b85;
+            font-weight: bold;
         }
         
         .bien-info {
-            background-color: #f5f5f5;
+            background-color: #f8f9fa;
             padding: 15px;
             margin-bottom: 20px;
-            border: 1px solid #ddd;
+            border: 1px solid #4a6b85;
+            border-left: 4px solid #4a6b85;
         }
         
         .bien-info h2 {
             margin-top: 0;
-            font-size: 16px;
-            color: #2c3e50;
+            font-size: 16pt;
+            color: #4a6b85;
+            font-weight: bold;
         }
         
         .info-grid {
@@ -51,7 +76,8 @@
         }
         
         .info-item {
-            margin-bottom: 5px;
+            margin-bottom: 0.5em;
+            line-height: 1.6em;
         }
         
         .info-label {
@@ -62,16 +88,16 @@
         
         .piece {
             margin-bottom: 30px;
-            border: 1px solid #ddd;
+            border: 1px solid #4a6b85;
             page-break-inside: avoid;
         }
         
         .piece-header {
-            background-color: #3498db;
+            background-color: #4a6b85;
             color: white;
             padding: 10px;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 14pt;
         }
         
         .piece-content {
@@ -89,11 +115,13 @@
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
+            line-height: 1.6em;
         }
         
         .elements-table th {
             background-color: #f8f9fa;
             font-weight: bold;
+            color: #4a6b85;
         }
         
         .state-excellent { background-color: #d4edda; }
@@ -106,6 +134,12 @@
             margin-top: 20px;
         }
         
+        .equipment-section h4 {
+            color: #4a6b85;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
         .equipment-list {
             list-style: none;
             padding: 0;
@@ -116,68 +150,62 @@
             background-color: #f8f9fa;
             padding: 8px;
             margin-bottom: 5px;
-            border-left: 3px solid #3498db;
+            border-left: 3px solid #4a6b85;
+            line-height: 1.6em;
         }
         
         .signature-section {
             margin-top: 40px;
             page-break-before: always;
+            margin-bottom: 0;
         }
         
-        .signatures {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            margin-top: 30px;
-        }
-        
-        .signature-block {
-            border: 1px solid #ddd;
-            padding: 20px;
-            min-height: 150px;
-        }
-        
-        .signature-title {
+        .signature-section h2 {
+            color: #4a6b85;
             font-weight: bold;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
-        }
-        
-        .signature-info {
             margin-bottom: 20px;
         }
         
-        .signature-line {
-            border-bottom: 1px solid #333;
-            height: 60px;
-            margin-top: 20px;
-            position: relative;
+        .signature {
+            margin-top: 0;
         }
         
-        .signature-label {
-            position: absolute;
-            bottom: -20px;
-            left: 0;
-            font-size: 10px;
-            color: #666;
+        .signature-list {
+            display: block;
+        }
+        
+        .signature-block {
+            width: 45%;
+            text-align: left;
+            margin-bottom: 40px;
+            min-height: 182px;
+            border-bottom: 1px dotted #999;
+        }
+        
+        .signature h4 {
+            color: #4a6b85;
+            font-weight: bold;
+            margin-bottom: 15px;
         }
         
         .date-field {
             margin-top: 20px;
-            font-size: 10px;
+            font-size: 11pt;
+            color: #4a6b85;
         }
         
         .comments-section {
             margin-top: 20px;
-            min-height: 60px;
-            border: 1px solid #ddd;
-            padding: 10px;
+            min-height: 80px;
+            border: 2px solid #4a6b85;
+            padding: 15px;
+            background-color: #f8f9fa;
         }
         
         .comments-title {
             font-weight: bold;
             margin-bottom: 10px;
+            color: #4a6b85;
         }
         
         .photos-section {
@@ -192,7 +220,7 @@
         }
         
         .photo-item {
-            border: 1px solid #ddd;
+            border: 1px solid #4a6b85;
             padding: 8px;
             text-align: center;
             background-color: #f8f9fa;
@@ -206,16 +234,23 @@
         }
         
         .photo-caption {
-            font-size: 10px;
-            color: #666;
+            font-size: 10pt;
+            color: #4a6b85;
             margin-top: 5px;
+            font-style: italic;
         }
         
         .element-photos {
             margin-top: 10px;
             padding: 10px;
             background-color: #f8f9fa;
-            border-left: 3px solid #3498db;
+            border-left: 3px solid #4a6b85;
+        }
+        
+        .element-photos h5 {
+            color: #4a6b85;
+            margin-bottom: 10px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -251,7 +286,7 @@
     {% for piece_data in pieces_enrichies %}
     <div class="piece">
         <div class="piece-header">
-            {{ piece_data.piece.nom }} ({{ piece_data.piece.get_type_piece_display|default:piece_data.piece.type_piece }})
+            {{ piece_data.piece.nom }}
         </div>
         <div class="piece-content">
             <!-- Table des éléments avec photos -->
@@ -336,7 +371,7 @@
 
     <!-- Section signatures -->
      <div class="section signature-section">
-    <h2>7. Signatures</h2>
+    <h2>Signatures</h2>
     <div class="signature">
       <!-- Landlord signature blocks -->
       <h4 id="landlord-signature-header">

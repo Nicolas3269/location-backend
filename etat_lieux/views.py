@@ -13,6 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
 
+from backend.pdf_utils import get_static_pdf_iframe_url
 from bail.models import (
     EtatLieux,
 )
@@ -57,7 +58,30 @@ def image_to_base64_data_url(image_field):
         return None
 
 
-# Create your views here.
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def generate_grille_vetuste_pdf(request):
+    """Retourne l'URL de la grille de vétusté statique"""
+    try:
+        # Utiliser notre nouvelle route PDF pour iframe
+        full_url = get_static_pdf_iframe_url(request, "bails/grille_vetuste.pdf")
+
+        return JsonResponse(
+            {
+                "success": True,
+                "grilleVetustUrl": full_url,
+                "filename": "grille_vetuste.pdf",
+            }
+        )
+
+    except Exception as e:
+        logger.exception("Erreur lors de la récupération de la grille de vétusté")
+        return JsonResponse(
+            {"success": False, "error": f"Erreur lors de la récupération: {str(e)}"},
+            status=500,
+        )
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_etat_lieux_pdf(request):

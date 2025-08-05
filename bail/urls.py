@@ -4,7 +4,6 @@ from bail.views import (
     confirm_signature_bail,
     delete_document,
     generate_bail_pdf,
-    generate_etat_lieux_pdf,
     generate_grille_vetuste_pdf,
     generate_notice_information_pdf,
     get_bien_baux,
@@ -40,10 +39,5 @@ urlpatterns = [
         "get-signature-request/<uuid:token>/",
         get_signature_request,
         name="get_signature_request",
-    ),
-    path(
-        "generate-etat-lieux/",
-        generate_etat_lieux_pdf,
-        name="generate_etat_lieux_pdf",
     ),
 ]

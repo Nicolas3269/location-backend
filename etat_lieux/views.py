@@ -124,11 +124,41 @@ def generate_etat_lieux_pdf(request):
             uploaded_photos = {}
 
         bail_id = form_data.get("bail_id")
+        bien_id = form_data.get("bien_id")
 
-        if not bail_id:
+        if not bail_id and not bien_id:
             return JsonResponse(
-                {"success": False, "error": "bail_id est requis"}, status=400
+                {"success": False, "error": "bail_id ou bien_id est requis"}, status=400
             )
+
+        # Si on a un bien_id, récupérer le bail actif pour ce bien
+        if bien_id and not bail_id:
+            try:
+                from bail.models import BailSpecificites
+
+                # Récupérer le bail le plus récent pour ce bien
+                bail = (
+                    BailSpecificites.objects.filter(bien_id=bien_id)
+                    .order_by("-date_debut")
+                    .first()
+                )
+                if not bail:
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": f"Aucun bail trouvé pour le bien {bien_id}",
+                        },
+                        status=404,
+                    )
+                bail_id = bail.id
+            except Exception as e:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": f"Erreur lors de la récupération du bail: {str(e)}",
+                    },
+                    status=400,
+                )
 
         # Créer l'état des lieux à partir des données du formulaire
 

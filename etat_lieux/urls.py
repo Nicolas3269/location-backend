@@ -1,7 +1,6 @@
 from django.urls import path
 
-from bail.views import generate_grille_vetuste_pdf
-from etat_lieux.views import generate_etat_lieux_pdf
+from etat_lieux.views import generate_etat_lieux_pdf, generate_grille_vetuste_pdf
 
 app_name = "etat_lieux"
 

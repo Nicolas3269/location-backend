@@ -301,30 +301,6 @@ def confirm_signature_bail(request):
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
-def generate_grille_vetuste_pdf(request):
-    """Retourne l'URL de la grille de vétusté statique"""
-    try:
-        # Utiliser notre nouvelle route PDF pour iframe
-        full_url = get_static_pdf_iframe_url(request, "bails/grille_vetuste.pdf")
-
-        return JsonResponse(
-            {
-                "success": True,
-                "grillVetustUrl": full_url,
-                "filename": "grille_vetuste.pdf",
-            }
-        )
-
-    except Exception as e:
-        logger.exception("Erreur lors de la récupération de la grille de vétusté")
-        return JsonResponse(
-            {"success": False, "error": f"Erreur lors de la récupération: {str(e)}"},
-            status=500,
-        )
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
 def generate_notice_information_pdf(request):
     """Retourne l'URL de la notice d'information statique"""
     try:

@@ -11,15 +11,15 @@ from algo.signature.main import (
     get_signature_field_name,
     sign_pdf,
 )
-from bail.models import (
-    BailSpecificites,
+from bail.models import BailSpecificites
+from bail.utils import send_mail
+from etat_lieux.models import (
     EtatLieux,
     EtatLieuxPhoto,
     EtatLieuxPiece,
     EtatLieuxPieceDetail,
     EtatLieuxSignatureRequest,
 )
-from bail.utils import send_mail
 
 logger = logging.getLogger(__name__)
 

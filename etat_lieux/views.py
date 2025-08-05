@@ -14,8 +14,9 @@ from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
 
 from backend.pdf_utils import get_static_pdf_iframe_url
-from bail.models import (
+from etat_lieux.models import (
     EtatLieux,
+    EtatLieuxPhoto,
 )
 from etat_lieux.utils import (
     create_etat_lieux_from_form_data,
@@ -165,7 +166,6 @@ def generate_etat_lieux_pdf(request):
         if uploaded_photos:
             # Supprimer toutes les photos existantes pour cet état des lieux
             # (au cas où il y en aurait déjà)
-            from bail.models import EtatLieuxPhoto
 
             photos_existantes = EtatLieuxPhoto.objects.filter(
                 piece__bien=etat_lieux.bail.bien
@@ -195,7 +195,6 @@ def generate_etat_lieux_pdf(request):
             )
 
         # Préparer les données complètes pour le template
-        from bail.models import EtatLieuxPhoto
 
         # Récupérer toutes les photos liées aux pièces du bien
         photos = EtatLieuxPhoto.objects.filter(

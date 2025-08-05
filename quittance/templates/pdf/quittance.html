@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Quittance de loyer - {{ mois|title }} {{ annee }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        
+        body {
+            font-family: 'Times New Roman', 'Arial', serif;
+            font-size: 12pt;
+            color: #3e3c41;
+            background-color: #ffffff;
+            line-height: 1.6em;
+        }
+        
+        h1, h2, h3 {
+            color: #4a6b85;
+            margin-top: 2em;
+        }
+        
+        .document-title {
+            text-align: center;
+            font-size: 20pt;
+            font-weight: bold;
+            margin-top: 0;
+            margin-bottom: 0.2cm;
+            color: #4a6b85;
+        }
+        
+        .document-subtitle {
+            text-align: center;
+            font-size: 12pt;
+            font-style: italic;
+            margin-bottom: 2cm;
+        }
+        
+        p {
+            line-height: 1.6em;
+            text-align: justify;
+            margin-bottom: 1em;
+        }
+        
+        .info-section {
+            margin-bottom: 2em;
+        }
+        
+        .info-section h3 {
+            color: #4a6b85;
+            margin-bottom: 0.5em;
+            margin-top: 1.5em;
+        }
+        
+        .info-row {
+            margin-bottom: 0.5em;
+            line-height: 1.6em;
+        }
+        
+        .label {
+            font-weight: bold;
+            display: inline-block;
+            width: 150px;
+        }
+        
+        .amount-section {
+            border: 2px solid #4a6b85;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+            background-color: #f8f9fa;
+        }
+        
+        .amount-number {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #4a6b85;
+        }
+        
+        .amount-words {
+            font-style: italic;
+            font-size: 14pt;
+        }
+        
+        .period-highlight {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-left: 4px solid #4a6b85;
+            margin: 20px 0;
+        }
+        
+        .signature-section {
+            margin-top: 3em;
+            page-break-inside: avoid;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        
+        .signature-location {
+            text-align: left;
+            margin-bottom: 30px;
+            font-size: 11pt;
+        }
+        
+        .signature-block {
+            text-align: left;
+            margin-bottom: 40px;
+            min-height: 120px;
+            border-bottom: 1px dotted #999;
+            padding: 20px 0;
+        }
+        
+        .signature-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 11pt;
+            color: #4a6b85;
+        }
+        
+        .signature-image {
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border: 2px dashed #4a6b85;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .signature-name {
+            font-weight: bold;
+            font-size: 11pt;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            color: #4a6b85;
+        }
+        
+        .align-right {
+            text-align: right;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            font-size: 10pt;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="document-title">QUITTANCE DE LOYER</div>
+    <div class="document-subtitle">Période : {{ mois|title }} {{ annee }}</div>
+    
+    <div class="info-section">
+        <h3>Bailleur</h3>
+        <div class="info-row">
+            <span class="label">Nom :</span>
+            {{ bailleur_full_name }}
+        </div>
+        <div class="info-row">
+            <span class="label">Adresse :</span>
+            {{ bailleur_adresse }}
+        </div>
+    </div>
+    
+    <div class="info-section">
+        <h3>Locataire</h3>
+        <div class="info-row">
+            <span class="label">Nom :</span>
+            {{ locataire_full_name }}
+        </div>
+        <div class="info-row">
+            <span class="label">Adresse du bien loué :</span>
+            {{ adresse_bien }}
+        </div>
+    </div>
+    
+    <div class="period-highlight">
+        <div class="info-row">
+            <span class="label">Période de location :</span>
+            {{ mois|title }} {{ annee }}
+        </div>
+        <div class="info-row">
+            <span class="label">Date de paiement :</span>
+            {{ date_paiement|date:"d/m/Y" }}
+        </div>
+    </div>
+    
+    <div class="amount-section">
+        <div class="amount-number">
+            Montant du loyer : {{ montant_loyer }}€
+        </div>
+        <div class="amount-words">
+            Soit : {{ montant_en_lettres }}
+        </div>
+    </div>
+    
+    <p>
+        Je soussigné(e) <strong>{{ bailleur_full_name }}</strong>, 
+        propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
+        reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
+        locataire dudit logement, la somme de <strong>{{ montant_loyer }}€</strong> 
+        ({{ montant_en_lettres }}) correspondant au loyer du mois de 
+        <strong>{{ mois|lower }} {{ annee }}</strong>.
+    </p>
+    
+    <p>
+        Le paiement a été effectué le <strong>{{ date_paiement|date:"d/m/Y" }}</strong>.
+    </p>
+    
+    <div class="signature-section">
+        <!-- Bloc 1: Lieu et date -->
+        <div class="signature-location">
+            <div>Fait à : {{ bailleur_adresse }}</div>
+            <div>Le : {{ date_generation|date:"d/m/Y" }}</div>
+        </div>
+        
+        <!-- Bloc 2: Signature -->
+        <div class="signature-block">
+            <div class="signature-title">Signature du bailleur</div>
+            <div class="signature-image">
+                {% if bailleur_signature %}
+                    <img src="{{ bailleur_signature }}" alt="Signature" style="max-width: 350px; max-height: 80px; height: auto;" />
+                {% else %}
+                    <em style="color: #6c757d;">Signature à apposer</em>
+                {% endif %}
+            </div>
+            <div class="signature-name">{{ bailleur_full_name }}</div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>
+            Cette quittance annule tous les reçus qui auraient pu être donnés précédemment 
+            pour le même terme de loyer.
+        </p>
+        <p>
+            <em>Article 21 de la loi n°89-462 du 6 juillet 1989 : 
+            "Le bailleur est tenu de transmettre gratuitement une quittance au locataire qui en fait la demande."</em>
+        </p>
+    </div>
+</body>
+</html>

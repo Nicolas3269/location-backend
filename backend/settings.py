@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "rent_control",
     "notifications",
     "etat_lieux",
+    "quittance",
 ]
 
 MIDDLEWARE = [

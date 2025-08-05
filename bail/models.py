@@ -179,6 +179,15 @@ class Bailleur(models.Model):
             return self.societe.full_name
         return "Bailleur inconnu"
 
+    @property
+    def adresse(self):
+        """Retourne l'adresse du bailleur."""
+        if self.personne:
+            return self.personne.adresse
+        elif self.societe:
+            return self.societe.adresse
+        return "Adresse inconnue"
+
     def save(self, *args, **kwargs):
         """Automatiser la logique du signataire selon le type de bailleur."""
         # Si c'est une personne physique, elle doit être son propre signataire

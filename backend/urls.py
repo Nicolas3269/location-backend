@@ -32,6 +32,7 @@ urlpatterns = [
     path("api/auth/", include("authentication.urls")),
     path("api/notifications/", include("notifications.urls")),
     path("api/etat_lieux/", include("etat_lieux.urls")),
+    path("api/quittance/", include("quittance.urls")),
     # Nouvelle route pour servir les PDFs en iframe sans X-Frame-Options
     path("pdf/<path:file_path>", serve_pdf_for_iframe, name="serve_pdf_iframe"),
 ]

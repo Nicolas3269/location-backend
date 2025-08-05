@@ -22,12 +22,13 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views.static import serve
+
 from .pdf_views import serve_pdf_for_iframe
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/rent_control/", include("rent_control.urls")),
-    path("api/", include("bail.urls")),
+    path("api/bail/", include("bail.urls")),
     path("api/auth/", include("authentication.urls")),
     path("api/notifications/", include("notifications.urls")),
     path("api/etat_lieux/", include("etat_lieux.urls")),

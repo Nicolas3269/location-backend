@@ -14,6 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
 
 from backend.pdf_utils import get_static_pdf_iframe_url
+from bail.models import BailSpecificites
 from etat_lieux.models import (
     EtatLieux,
     EtatLieuxPhoto,
@@ -134,8 +135,6 @@ def generate_etat_lieux_pdf(request):
         # Si on a un bien_id, récupérer le bail actif pour ce bien
         if bien_id and not bail_id:
             try:
-                from bail.models import BailSpecificites
-
                 # Récupérer le bail le plus récent pour ce bien
                 bail = (
                     BailSpecificites.objects.filter(bien_id=bien_id)

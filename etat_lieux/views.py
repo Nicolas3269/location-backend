@@ -369,7 +369,6 @@ def generate_etat_lieux_pdf(request):
         )
 
 
-# Vues pour la signature de l'état des lieux
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def get_etat_lieux_signature_request(request, token):

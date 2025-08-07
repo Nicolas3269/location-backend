@@ -10,11 +10,10 @@ from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
-from django.views.decorators.csrf import csrf_exempt
-from django_ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from weasyprint import HTML
+
 from backend.pdf_utils import get_pdf_iframe_url, get_static_pdf_iframe_url
 from bail.constants import FORMES_JURIDIQUES
 from bail.generate_bail.mapping import BailMapping
@@ -29,19 +28,19 @@ from bail.models import (
     Personne,
     Societe,
 )
+from bail.utils import (
+    create_bien_from_form_data,
+    create_signature_requests,
+)
+from etat_lieux.utils import get_or_create_pieces_for_bien
+from rent_control.models import RentPrice
+from rent_control.utils import get_rent_price_for_bien
+from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
     confirm_signature_generic,
     get_signature_request_generic,
     resend_otp_generic,
 )
-from bail.utils import (
-    create_bien_from_form_data,
-    create_signature_requests,
-    prepare_pdf_with_signature_fields,
-)
-from etat_lieux.utils import get_or_create_pieces_for_bien
-from rent_control.models import RentPrice
-from rent_control.utils import get_rent_price_for_bien
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +108,8 @@ def generate_bail_pdf(request):
                 f.write(pdf_bytes)
 
             # 2. Ajouter champs
-            prepare_pdf_with_signature_fields(tmp_pdf_path, bail)
+            prepare_pdf_with_signature_fields_generic(tmp_pdf_path, bail)
+
             # 3. Recharger dans bail.pdf
             with open(tmp_pdf_path, "rb") as f:
                 bail.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
@@ -133,7 +133,6 @@ def generate_bail_pdf(request):
                 "bailId": bail.id,
                 "pdfUrl": request.build_absolute_uri(bail.pdf.url),
                 "linkTokenFirstSigner": str(first_sign_req.link_token),
-                # Ne pas envoyer d'email ici, juste retourner le token
             }
         )
 
@@ -147,14 +146,13 @@ def generate_bail_pdf(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
-@csrf_exempt  
 def get_signature_request(request, token):
     """Vue pour récupérer les informations d'une demande de signature de bail"""
     return get_signature_request_generic(request, token, BailSignatureRequest)
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def confirm_signature_bail(request):
     """Vue pour confirmer une signature de bail"""
     return confirm_signature_generic(request, BailSignatureRequest, "bail")
@@ -883,8 +881,7 @@ def get_bien_baux(request, bien_id):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
-@csrf_exempt
+@permission_classes([IsAuthenticated])
 def resend_otp_bail(request):
     """
     Renvoie un OTP pour la signature de bail

@@ -23,9 +23,9 @@ from etat_lieux.models import (
 from etat_lieux.utils import (
     create_etat_lieux_from_form_data,
     create_etat_lieux_signature_requests,
-    prepare_etat_lieux_pdf_with_signature_fields,
     save_etat_lieux_photos,
 )
+from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
     confirm_signature_generic,
     get_signature_request_generic,
@@ -329,7 +329,7 @@ def generate_etat_lieux_pdf(request):
                 f.write(pdf_bytes)
 
             # 2. Ajouter champs de signature
-            prepare_etat_lieux_pdf_with_signature_fields(tmp_pdf_path, etat_lieux)
+            prepare_pdf_with_signature_fields_generic(tmp_pdf_path, etat_lieux.bail)
 
             # 3. Recharger dans etat_lieux.pdf
             with open(tmp_pdf_path, "rb") as f:
@@ -380,7 +380,7 @@ def get_etat_lieux_signature_request(request, token):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def confirm_signature_etat_lieux(request):
     """
     Confirme la signature d'un état des lieux
@@ -389,7 +389,7 @@ def confirm_signature_etat_lieux(request):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def resend_otp_etat_lieux(request):
     """
     Renvoie un OTP pour la signature d'état des lieux

@@ -1,61 +1,12 @@
 import logging
 from decimal import Decimal
-from typing import List
 
 from django.conf import settings
 from django.core.mail import send_mail as django_send_mail
 
-from algo.signature.main import (
-    add_signature_fields_dynamic,
-    get_named_dest_coordinates,
-)
-from bail.models import Bailleur, BailSignatureRequest, BailSpecificites, Personne
+from bail.models import BailSignatureRequest
 
 logger = logging.getLogger(__name__)
-
-
-def prepare_pdf_with_signature_fields(pdf_path, bail: BailSpecificites):
-    # Les signataires sont les signataires des bailleurs + les locataires
-
-    bailleurs: List[Bailleur] = bail.bien.bailleurs.all()
-    bailleur_signataires: Personne = [bailleur.signataire for bailleur in bailleurs]
-
-    all_fields = []
-
-    for person in bailleur_signataires:
-        page, rect, field_name = get_named_dest_coordinates(
-            pdf_path, person, "bailleur"
-        )
-        if rect is None:
-            raise ValueError(f"Aucun champ de signature trouvé pour {person.email}")
-
-        all_fields.append(
-            {
-                "field_name": field_name,
-                "rect": rect,
-                "person": person,
-                "page": page,
-            }
-        )
-
-    for person in list(bail.locataires.all()):
-        page, rect, field_name = get_named_dest_coordinates(
-            pdf_path, person, "locataire"
-        )
-        if rect is None:
-            raise ValueError(f"Aucun champ de signature trouvé pour {person.email}")
-
-        all_fields.append(
-            {
-                "field_name": field_name,
-                "rect": rect,
-                "person": person,
-                "page": page,
-            }
-        )
-
-    # Ajouter les champs de signature
-    add_signature_fields_dynamic(pdf_path, all_fields)
 
 
 def send_mail(subject, message, from_email, recipient_list):
@@ -83,21 +34,13 @@ L'équipe HESTIA
 
 
 def create_signature_requests(bail):
-    bailleurs: List[Bailleur] = bail.bien.bailleurs.all()
-    bailleur_signataires: Personne = [bailleur.signataire for bailleur in bailleurs]
-    tenants = list(bail.locataires.all())
+    """
+    Crée les demandes de signature pour un bail.
+    Utilise la fonction générique pour factoriser le code.
+    """
+    from signature.services import create_signature_requests_generic
 
-    for i, signataire in enumerate(bailleur_signataires):
-        BailSignatureRequest.objects.create(
-            bail=bail, bailleur_signataire=signataire, order=i, otp=""
-        )
-        # OTP sera généré quand l'utilisateur arrive sur la page
-
-    for i, person in enumerate(tenants):
-        BailSignatureRequest.objects.create(
-            bail=bail, locataire=person, order=i + len(bailleur_signataires), otp=""
-        )
-        # OTP sera généré quand l'utilisateur arrive sur la page
+    create_signature_requests_generic(bail, BailSignatureRequest)
 
 
 def create_bien_from_form_data(form_data, save=True):

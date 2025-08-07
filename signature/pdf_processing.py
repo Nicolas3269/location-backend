@@ -6,6 +6,13 @@ import base64
 import logging
 import os
 
+from algo.signature.main import (
+    add_signature_fields_dynamic,
+    get_named_dest_coordinates,
+    sign_pdf,
+)
+from bail.models import BailSpecificites
+
 logger = logging.getLogger(__name__)
 
 
@@ -69,9 +76,6 @@ def process_signature_generic(signature_request, signature_data_url):
         )
         final_tmp_path = f"/tmp/{base_name}_signed_temp.pdf"
 
-        # Appeler la vraie fonction sign_pdf
-        from algo.signature.main import sign_pdf
-
         logger.info(
             f"Appel de sign_pdf avec: source={source_path}, output={final_tmp_path}, field={field_name}"
         )
@@ -115,3 +119,74 @@ def process_signature_generic(signature_request, signature_data_url):
     except Exception as e:
         logger.error(f"Erreur lors du traitement de la signature générique: {e}")
         return False
+
+
+def prepare_pdf_with_signature_fields_generic(pdf_path, bail: BailSpecificites):
+    """
+    Version générique pour préparer un PDF avec les champs de signature
+    Fonctionne avec n'importe quel document signable (bail, état des lieux, etc.)
+
+    Args:
+        pdf_path: Chemin vers le PDF à préparer
+        document: Instance du document signable (BailSpecificites, EtatLieux, etc.)
+    """
+    try:
+        # Récupérer tous les signataires
+        bailleurs = bail.bien.bailleurs.all()
+        bailleur_signataires = [
+            bailleur.signataire for bailleur in bailleurs if bailleur.signataire
+        ]
+        locataires = list(bail.locataires.all())
+
+        all_fields = []
+
+        # Ajouter les champs pour les bailleurs signataires
+        for person in bailleur_signataires:
+            page, rect, field_name = get_named_dest_coordinates(
+                pdf_path, person, "bailleur"
+            )
+            if rect is None:
+                logger.warning(f"Aucun champ de signature trouvé pour {person.email}")
+                continue
+
+            all_fields.append(
+                {
+                    "field_name": field_name,
+                    "rect": rect,
+                    "person": person,
+                    "page": page,
+                }
+            )
+
+        # Ajouter les champs pour les locataires
+        for person in locataires:
+            page, rect, field_name = get_named_dest_coordinates(
+                pdf_path, person, "locataire"
+            )
+            if rect is None:
+                logger.warning(f"Aucun champ de signature trouvé pour {person.email}")
+                continue
+
+            all_fields.append(
+                {
+                    "field_name": field_name,
+                    "rect": rect,
+                    "person": person,
+                    "page": page,
+                }
+            )
+
+        if not all_fields:
+            raise ValueError("Aucun champ de signature trouvé dans le PDF")
+
+        # Ajouter les champs de signature au PDF
+        add_signature_fields_dynamic(pdf_path, all_fields)
+        logger.info(f"Ajouté {len(all_fields)} champs de signature au PDF")
+
+        return True
+
+    except Exception as e:
+        logger.error(
+            f"Erreur lors de la préparation du PDF avec champs de signature: {e}"
+        )
+        raise

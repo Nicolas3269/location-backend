@@ -2,16 +2,11 @@
 Vues génériques pour la signature de documents
 """
 
-import json
 import logging
 
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
 
 from authentication.utils import get_tokens_for_user, set_refresh_token_cookie
 
@@ -24,9 +19,6 @@ from .services import (
 logger = logging.getLogger(__name__)
 
 
-@csrf_exempt
-@require_http_methods(["GET"])
-@permission_classes([AllowAny])
 def get_signature_request_generic(request, token, model_class):
     """
     Vue générique pour récupérer les informations d'une demande de signature
@@ -136,9 +128,6 @@ def get_signature_request_generic(request, token, model_class):
         )
 
 
-@csrf_exempt
-@require_http_methods(["POST"])
-@permission_classes([AllowAny])
 def confirm_signature_generic(request, model_class, document_type):
     """
     Vue générique pour confirmer une signature
@@ -149,7 +138,7 @@ def confirm_signature_generic(request, model_class, document_type):
         document_type: Type de document ("bail" ou "etat_lieux")
     """
     try:
-        data = json.loads(request.body)
+        data = request.data
         token = data.get("token")
         otp = data.get("otp")
         signature_data_url = data.get("signatureImage")
@@ -212,11 +201,6 @@ def confirm_signature_generic(request, model_class, document_type):
 
         return JsonResponse(response_data)
 
-    except json.JSONDecodeError:
-        return JsonResponse(
-            {"error": "Données JSON invalides"},
-            status=400,
-        )
     except Exception as e:
         logger.exception("Erreur lors de la signature du document")
         return JsonResponse(
@@ -228,14 +212,12 @@ def confirm_signature_generic(request, model_class, document_type):
         )
 
 
-@api_view(["POST"])
-@permission_classes([AllowAny])
 def resend_otp_generic(request, model_class, document_type):
     """
     Vue générique pour renvoyer un OTP
 
     Args:
-        request: HttpRequest
+        request: DRF Request object
         model_class: Classe du modèle de signature
         document_type: Type de document
     """
@@ -260,6 +242,7 @@ def resend_otp_generic(request, model_class, document_type):
         # Générer un nouvel OTP et l'envoyer par email
         sig_req.generate_otp()
         from .services import send_otp_email
+
         success = send_otp_email(sig_req, document_type)
 
         if success:

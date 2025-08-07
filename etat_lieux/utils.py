@@ -1,16 +1,7 @@
-import base64
 import logging
-import os
 
 from django.conf import settings
-from django.core.files.base import File
 
-from algo.signature.main import (
-    add_signature_fields_dynamic,
-    get_named_dest_coordinates,
-    get_signature_field_name,
-    sign_pdf,
-)
 from bail.models import BailSpecificites
 from bail.utils import send_mail
 from etat_lieux.models import (
@@ -27,42 +18,11 @@ logger = logging.getLogger(__name__)
 def create_etat_lieux_signature_requests(etat_lieux):
     """
     Crée les demandes de signature pour un état des lieux.
-    Réutilise la logique des baux pour factoriser.
+    Utilise la fonction générique pour factoriser le code.
     """
+    from signature.services import create_signature_requests_generic
 
-    # Supprimer les anciennes demandes de signature
-    EtatLieuxSignatureRequest.objects.filter(etat_lieux=etat_lieux).delete()
-
-    # Récupérer les signataires depuis le bail associé
-    bail = etat_lieux.bail
-    bailleurs = bail.bien.bailleurs.all()
-    bailleur_signataires = [bailleur.signataire for bailleur in bailleurs]
-    locataires = bail.locataires.all()
-
-    order = 1
-
-    # Créer les demandes pour les bailleurs signataires
-    for signataire in bailleur_signataires:
-        if signataire:
-            EtatLieuxSignatureRequest.objects.create(
-                etat_lieux=etat_lieux,
-                bailleur_signataire=signataire,
-                order=order,
-            )
-            order += 1
-
-    # Créer les demandes pour les locataires
-    for locataire in locataires:
-        EtatLieuxSignatureRequest.objects.create(
-            etat_lieux=etat_lieux,
-            locataire=locataire,
-            order=order,
-        )
-        order += 1
-
-    logger.info(
-        f"Créé {order - 1} demandes de signature pour l'état des lieux {etat_lieux.id}"
-    )
+    create_signature_requests_generic(etat_lieux, EtatLieuxSignatureRequest)
 
 
 def send_etat_lieux_signature_email(signature_request):
@@ -111,125 +71,6 @@ def send_etat_lieux_signature_email(signature_request):
             f"Erreur lors de l'envoi de l'email de signature à {person.email}: {e}"
         )
         raise
-
-
-def prepare_etat_lieux_pdf_with_signature_fields(pdf_path, etat_lieux):
-    """
-    Prépare le PDF d'état des lieux avec les champs de signature.
-    Factorisation de la logique de préparation des signatures.
-    """
-    # Réutiliser la logique existante en adaptant pour l'état des lieux
-    bail = etat_lieux.bail
-    bailleurs = bail.bien.bailleurs.all()
-    bailleur_signataires = [bailleur.signataire for bailleur in bailleurs]
-
-    all_fields = []
-
-    # Ajouter les champs pour les bailleurs signataires
-    for person in bailleur_signataires:
-        if person:
-            page, rect, field_name = get_named_dest_coordinates(
-                pdf_path, person, "bailleur"
-            )
-            if rect is None:
-                logger.warning(f"Aucun champ de signature trouvé pour {person.email}")
-                continue
-
-            all_fields.append(
-                {
-                    "field_name": field_name,
-                    "rect": rect,
-                    "person": person,
-                    "page": page,
-                }
-            )
-
-    # Ajouter les champs pour les locataires
-    for person in bail.locataires.all():
-        page, rect, field_name = get_named_dest_coordinates(
-            pdf_path, person, "locataire"
-        )
-        if rect is None:
-            logger.warning(f"Aucun champ de signature trouvé pour {person.email}")
-            continue
-
-        all_fields.append(
-            {
-                "field_name": field_name,
-                "rect": rect,
-                "person": person,
-                "page": page,
-            }
-        )
-
-    if not all_fields:
-        raise ValueError("Aucun champ de signature trouvé dans le PDF")
-
-    # Ajouter les champs de signature au PDF
-    add_signature_fields_dynamic(pdf_path, all_fields)
-    logger.info(
-        f"Ajouté {len(all_fields)} champs de signature au PDF de l'état des lieux"
-    )
-
-
-def process_etat_lieux_signature(signature_request, signature_data_url):
-    """
-    Traite une signature d'état des lieux.
-    Factorisation de la logique de traitement des signatures.
-    """
-    # Décoder l'image de signature
-    if not signature_data_url.startswith("data:image/"):
-        raise ValueError("Format d'image de signature invalide")
-
-    header, encoded = signature_data_url.split(",", 1)
-    signature_data = base64.b64decode(encoded)
-
-    # Sauvegarder l'image de signature
-    signature_filename = f"signature_{signature_request.id}.png"
-    signature_request.signature_image.save(
-        signature_filename,
-        File(signature_data),
-        save=True,
-    )
-
-    # Obtenir les informations de signature
-    person = signature_request.bailleur_signataire or signature_request.locataire
-    etat_lieux = signature_request.etat_lieux
-
-    # Signer le PDF
-    input_pdf_path = etat_lieux.pdf.path
-    output_pdf_path = input_pdf_path.replace(".pdf", "_signed.pdf")
-
-    field_name = get_signature_field_name(
-        person, "bailleur" if signature_request.bailleur_signataire else "locataire"
-    )
-
-    sign_pdf(
-        input_pdf_path,
-        output_pdf_path,
-        signature_request.signature_image.path,
-        field_name,
-    )
-
-    # Mettre à jour le PDF de l'état des lieux avec la version signée
-    with open(output_pdf_path, "rb") as f:
-        etat_lieux.pdf.save(
-            os.path.basename(output_pdf_path),
-            File(f),
-            save=True,
-        )
-
-    # Nettoyer le fichier temporaire
-    try:
-        os.remove(output_pdf_path)
-    except Exception as e:
-        logger.warning(
-            f"Impossible de supprimer le fichier temporaire {output_pdf_path}: {e}"
-        )
-
-    logger.info(
-        f"Signature de {person.email} appliquée à l'état des lieux {etat_lieux.id}"
-    )
 
 
 def get_or_create_pieces_for_bien(bien):

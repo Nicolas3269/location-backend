@@ -132,7 +132,7 @@ def send_otp_email(signature_request, document_type="document"):
 
     # Sujet et message spécifiques à l'OTP
     subject = f"Code de vérification pour la signature de votre {document_display_name}"
-    
+
     text_message = f"""
     Bonjour {signature_request.get_signataire_name()},
 
@@ -222,3 +222,84 @@ def get_next_signer(signature_request):
         AbstractSignatureRequest ou None
     """
     return signature_request.get_next_signature_request()
+
+
+def create_signature_requests_generic(document, signature_request_model):
+    """
+    Fonction générique pour créer des demandes de signature pour un document.
+    Fonctionne avec bail et état des lieux.
+
+    Args:
+        document: Instance du document signable (BailSpecificites, EtatLieux, etc.)
+        signature_request_model: Modèle de demande de signature
+    """
+    # Déterminer le champ de relation vers le document
+    document_field_name = None
+    for field in signature_request_model._meta.get_fields():
+        if field.is_relation and not field.many_to_many and not field.one_to_many:
+            if hasattr(
+                field.related_model, "_meta"
+            ) and field.related_model._meta.model is type(document):
+                document_field_name = field.name
+                break
+
+    if not document_field_name:
+        raise ValueError(
+            f"Impossible de trouver le champ de relation vers "
+            f"{type(document)} dans {signature_request_model}"
+        )
+
+    # Supprimer les anciennes demandes de signature
+    signature_request_model.objects.filter(**{document_field_name: document}).delete()
+
+    # Déduire le bail depuis le document
+    from bail.models import BailSpecificites
+    from etat_lieux.models import EtatLieux
+
+    if isinstance(document, BailSpecificites):
+        bail = document
+    elif isinstance(document, EtatLieux):
+        bail = document.bail
+    else:
+        raise ValueError(
+            f"Type de document non supporté: {type(document)}. "
+            f"Types supportés: BailSpecificites, EtatLieux"
+        )
+
+    bailleurs = bail.bien.bailleurs.all()
+    bailleur_signataires = [
+        bailleur.signataire for bailleur in bailleurs if bailleur.signataire
+    ]
+    locataires = list(bail.locataires.all())
+
+    order = 1
+
+    # Créer les demandes pour les bailleurs signataires
+    for signataire in bailleur_signataires:
+        if signataire:
+            signature_request_model.objects.create(
+                **{
+                    document_field_name: document,
+                    "bailleur_signataire": signataire,
+                    "order": order,
+                    "otp": "",
+                }
+            )
+            order += 1
+
+    # Créer les demandes pour les locataires
+    for locataire in locataires:
+        signature_request_model.objects.create(
+            **{
+                document_field_name: document,
+                "locataire": locataire,
+                "order": order,
+                "otp": "",
+            }
+        )
+        order += 1
+
+    logger.info(
+        f"Créé {order - 1} demandes de signature pour "
+        f"{type(document).__name__} {document.id}"
+    )

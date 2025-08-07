@@ -12,6 +12,8 @@ from rent_control.choices import (
     RegimeJuridique,
     SystemType,
 )
+from signature.models import AbstractSignatureRequest
+from signature.models_base import SignableDocumentMixin
 
 
 class BailStatus(models.TextChoices):
@@ -374,7 +376,7 @@ class Locataire(Personne):
         return f"{self.prenom} {self.nom} (Locataire)"
 
 
-class BailSpecificites(models.Model):
+class BailSpecificites(SignableDocumentMixin):
     """Model representing the lease specifics."""
 
     bien = models.ForeignKey(Bien, on_delete=models.CASCADE, related_name="bails")
@@ -446,17 +448,6 @@ class BailSpecificites(models.Model):
         "du plafond d'encadrement",
     )
 
-    pdf = models.FileField(
-        upload_to="bail_pdfs/", null=True, blank=True, verbose_name="Bail PDF"
-    )
-
-    latest_pdf = models.FileField(
-        upload_to="bail_pdfs/",
-        null=True,
-        blank=True,
-        verbose_name="Dernière version signée",
-    )
-
     # Annexes du bail
     grille_vetuste_pdf = models.FileField(
         upload_to="bail_pdfs/",
@@ -524,16 +515,25 @@ class BailSpecificites(models.Model):
         except RentPrice.DoesNotExist:
             return None
 
+    # Interface SignableDocument
+    def get_document_name(self):
+        """Retourne le nom du type de document"""
+        return "Bail"
+
+    def get_file_prefix(self):
+        """Retourne le préfixe pour les noms de fichiers"""
+        return "bail"
+
     def __str__(self):
         return f"Bail {self.bien} - ({self.date_debut})"
 
 
-class BailSignatureRequest(models.Model):
+class BailSignatureRequest(AbstractSignatureRequest):
     bail = models.ForeignKey(
         BailSpecificites, on_delete=models.CASCADE, related_name="signature_requests"
     )
 
-    # Soit un signataire de bailleur, soit un locataire (un seul à la fois)
+    # Override les champs pour spécifier les related_name différents d'EtatLieux
     bailleur_signataire = models.ForeignKey(
         Personne,
         null=True,
@@ -549,74 +549,32 @@ class BailSignatureRequest(models.Model):
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name="signature_requests",
+        related_name="bail_signature_requests",
     )
-
-    order = models.PositiveSmallIntegerField(
-        help_text="Ordre de signature dans le processus"
-    )
-    otp = models.CharField(max_length=6, blank=True, default="")
-    otp_generated_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="Horodatage de génération de l'OTP (pour vérifier l'expiration)",
-    )
-    signed = models.BooleanField(default=False)
-    signed_at = models.DateTimeField(null=True, blank=True)
-    link_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
 
     class Meta:
         unique_together = [("bail", "bailleur_signataire"), ("bail", "locataire")]
         ordering = ["order"]
 
-    def __str__(self):
-        signataire = self.get_signataire_name()
-        return f"Signature de {signataire} pour {self.bail}"
+    def get_document_name(self):
+        """Retourne le nom du document à signer"""
+        return f"Contrat de bail - {self.bail.bien.adresse}"
 
-    def get_signataire_name(self):
-        if self.bailleur_signataire:
-            return self.bailleur_signataire.full_name
-        elif self.locataire:
-            return self.locataire.full_name
-        return "Inconnu"
+    def get_document(self):
+        """Retourne l'objet document associé"""
+        return self.bail
 
-    def get_email(self):
-        if self.bailleur_signataire:
-            return self.bailleur_signataire.email
-        elif self.locataire:
-            return self.locataire.email
-        return None
-
-    def is_otp_valid(self, otp_value, expiry_minutes=10):
-        """
-        Vérifie si l'OTP fourni est valide (correct et non expiré).
-
-        Args:
-            otp_value (str): L'OTP à vérifier
-            expiry_minutes (int): Durée de validité en minutes (défaut: 10)
-
-        Returns:
-            bool: True si l'OTP est valide, False sinon
-        """
-        # Vérifier que l'OTP correspond
-        if self.otp != otp_value:
-            return False
-
-        # Vérifier que l'OTP n'est pas vide
-        if not self.otp:
-            return False
-
-        # Vérifier que l'horodatage existe
-        if not self.otp_generated_at:
-            return False
-
-        # Vérifier que l'OTP n'a pas expiré
-        from datetime import timedelta
-
-        from django.utils import timezone
-
-        expiry_time = self.otp_generated_at + timedelta(minutes=expiry_minutes)
-        return timezone.now() <= expiry_time
+    def get_next_signature_request(self):
+        """Retourne la prochaine demande de signature dans l'ordre"""
+        return (
+            BailSignatureRequest.objects.filter(
+                bail=self.bail,
+                signed=False,
+                order__gt=self.order,
+            )
+            .order_by("order")
+            .first()
+        )
 
     def save(self, *args, **kwargs):
         """Override save pour mettre à jour automatiquement le statut du bail"""

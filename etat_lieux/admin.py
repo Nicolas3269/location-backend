@@ -51,11 +51,11 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         "bail__id",
     )
 
-    readonly_fields = ("id", "date_creation", "date_modification", "pdf_link")
+    readonly_fields = ("id", "date_creation", "date_modification", "pdf_link", "latest_pdf_link")
 
     fieldsets = (
         (None, {"fields": ("id", "bail", "type_etat_lieux")}),
-        ("PDF", {"fields": ("pdf", "pdf_link"), "classes": ("collapse",)}),
+        ("PDF", {"fields": ("pdf", "pdf_link", "latest_pdf", "latest_pdf_link"), "classes": ("collapse",)}),
         (
             "Métadonnées",
             {
@@ -87,7 +87,17 @@ class EtatLieuxAdmin(admin.ModelAdmin):
             )
         return "Pas de PDF"
 
-    pdf_link.short_description = "PDF"
+    pdf_link.short_description = "PDF Original"
+
+    def latest_pdf_link(self, obj):
+        """Affiche un lien vers le PDF signé s'il existe"""
+        if obj.latest_pdf:
+            return format_html(
+                '<a href="{}" target="_blank">Télécharger PDF Signé</a>', obj.latest_pdf.url
+            )
+        return "Pas de PDF signé"
+
+    latest_pdf_link.short_description = "PDF Signé"
 
 
 @admin.register(EtatLieuxPiece)
@@ -181,19 +191,19 @@ class EtatLieuxSignatureRequestAdmin(admin.ModelAdmin):
         "order",
         "signed",
         "signed_at",
-        "date_creation",
+        "created_at",
     )
 
     list_filter = (
         "signed",
         "etat_lieux__type_etat_lieux",
-        "date_creation",
+        "created_at",
     )
 
     search_fields = (
         "bailleur_signataire__email",
         "locataire__email",
-        "etat_lieux__bien__adresse",
+        "etat_lieux__bail__bien__adresse",
     )
 
     readonly_fields = (
@@ -201,7 +211,7 @@ class EtatLieuxSignatureRequestAdmin(admin.ModelAdmin):
         "link_token",
         "otp_generated_at",
         "signed_at",
-        "date_creation",
+        "created_at",
         "signature_image_link",
     )
 
@@ -225,7 +235,7 @@ class EtatLieuxSignatureRequestAdmin(admin.ModelAdmin):
                 ),
             },
         ),
-        ("Métadonnées", {"fields": ("id", "date_creation"), "classes": ("collapse",)}),
+        ("Métadonnées", {"fields": ("id", "created_at"), "classes": ("collapse",)}),
     )
 
     def etat_lieux_display(self, obj):

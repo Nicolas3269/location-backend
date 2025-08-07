@@ -5,6 +5,8 @@ from django.db import models
 from django.utils import timezone
 
 from bail.models import BailSpecificites, Bien, Locataire, Personne
+from signature.models import AbstractSignatureRequest
+from signature.models_base import SignableDocumentMixin
 
 
 class EtatLieuxType(models.TextChoices):
@@ -24,7 +26,7 @@ class ElementState(models.TextChoices):
     EMPTY = "", "Non renseigné"
 
 
-class EtatLieux(models.Model):
+class EtatLieux(SignableDocumentMixin):
     """Modèle principal pour l'état des lieux"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -39,14 +41,6 @@ class EtatLieux(models.Model):
         max_length=10, choices=EtatLieuxType.choices, help_text="Type d'état des lieux"
     )
 
-    # PDF généré
-    pdf = models.FileField(
-        upload_to="etat_lieux_pdfs/",
-        null=True,
-        blank=True,
-        help_text="PDF de l'état des lieux généré",
-    )
-
     # Timestamps
     date_creation = models.DateTimeField(default=timezone.now)
     date_modification = models.DateTimeField(auto_now=True)
@@ -59,6 +53,15 @@ class EtatLieux(models.Model):
     def __str__(self):
         type_display = self.get_type_etat_lieux_display()
         return f"État des lieux {type_display} - {self.bail.bien.adresse}"
+
+    # Interface SignableDocument
+    def get_document_name(self):
+        """Retourne le nom du type de document"""
+        return "État des lieux"
+
+    def get_file_prefix(self):
+        """Retourne le préfixe pour les noms de fichiers"""
+        return "etat_lieux"
 
 
 class EtatLieuxPiece(models.Model):
@@ -116,7 +119,7 @@ class EtatLieuxPieceDetail(models.Model):
         return f"{self.piece.nom} - {self.etat_lieux}"
 
 
-class EtatLieuxSignatureRequest(models.Model):
+class EtatLieuxSignatureRequest(AbstractSignatureRequest):
     """Demande de signature pour un état des lieux"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -125,7 +128,7 @@ class EtatLieuxSignatureRequest(models.Model):
         EtatLieux, on_delete=models.CASCADE, related_name="signature_requests"
     )
 
-    # Signataire (peut être bailleur ou locataire)
+    # Override les champs related_name pour éviter les conflits avec bail
     bailleur_signataire = models.ForeignKey(
         Personne,
         on_delete=models.CASCADE,
@@ -141,22 +144,7 @@ class EtatLieuxSignatureRequest(models.Model):
         related_name="etat_lieux_signatures_locataire",
     )
 
-    # Ordre de signature
-    order = models.IntegerField(help_text="Ordre de signature")
-
-    # Token et OTP
-    link_token = models.UUIDField(default=uuid.uuid4, unique=True)
-    otp = models.CharField(max_length=6, null=True, blank=True)
-    otp_generated_at = models.DateTimeField(null=True, blank=True)
-
-    # Signature
-    signed = models.BooleanField(default=False)
-    signed_at = models.DateTimeField(null=True, blank=True)
-    signature_image = models.ImageField(
-        upload_to="etat_lieux_signatures/", null=True, blank=True
-    )
-
-    # Timestamps
+    # Garder l'ancien champ pour compatibilité
     date_creation = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -164,24 +152,26 @@ class EtatLieuxSignatureRequest(models.Model):
         verbose_name_plural = "Demandes signature état des lieux"
         ordering = ["order"]
 
-    def __str__(self):
-        signer = self.bailleur_signataire or self.locataire
-        return f"Signature {self.etat_lieux} - {signer}"
+    def get_document_name(self):
+        """Retourne le nom du document à signer"""
+        type_display = self.etat_lieux.get_type_etat_lieux_display()
+        return f"{type_display} - {self.etat_lieux.bail.bien.adresse}"
 
-    def is_otp_valid(self, otp_input):
-        """Vérifie si l'OTP est valide et non expiré"""
-        if not self.otp or not self.otp_generated_at:
-            return False
+    def get_document(self):
+        """Retourne l'objet document associé"""
+        return self.etat_lieux
 
-        if self.otp != otp_input:
-            return False
-
-        # Vérifier l'expiration (10 minutes)
-        expiry_time = timezone.timedelta(minutes=10)
-        if timezone.now() - self.otp_generated_at > expiry_time:
-            return False
-
-        return True
+    def get_next_signature_request(self):
+        """Retourne la prochaine demande de signature dans l'ordre"""
+        return (
+            EtatLieuxSignatureRequest.objects.filter(
+                etat_lieux=self.etat_lieux,
+                signed=False,
+                order__gt=self.order,
+            )
+            .order_by("order")
+            .first()
+        )
 
 
 class EtatLieuxPhoto(models.Model):

@@ -7,22 +7,14 @@ import requests
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-from django.core.mail import send_mail
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
-from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django_ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from weasyprint import HTML
-
-from authentication.utils import (
-    generate_otp,
-    get_tokens_for_user,
-    set_refresh_token_cookie,
-)
 from backend.pdf_utils import get_pdf_iframe_url, get_static_pdf_iframe_url
 from bail.constants import FORMES_JURIDIQUES
 from bail.generate_bail.mapping import BailMapping
@@ -37,12 +29,15 @@ from bail.models import (
     Personne,
     Societe,
 )
+from signature.views import (
+    confirm_signature_generic,
+    get_signature_request_generic,
+    resend_otp_generic,
+)
 from bail.utils import (
     create_bien_from_form_data,
     create_signature_requests,
     prepare_pdf_with_signature_fields,
-    process_signature,
-    send_signature_email,
 )
 from etat_lieux.utils import get_or_create_pieces_for_bien
 from rent_control.models import RentPrice
@@ -150,153 +145,19 @@ def generate_bail_pdf(request):
         )
 
 
-@csrf_exempt
-@ratelimit(key="ip", rate="5/m", block=True) if not settings.DEBUG else lambda x: x
+@api_view(["GET"])
+@permission_classes([AllowAny])
+@csrf_exempt  
 def get_signature_request(request, token):
-    req = get_object_or_404(BailSignatureRequest, link_token=token)
-
-    if req.signed:
-        return JsonResponse(
-            {"error": "Cette signature a déjà été complétée."}, status=400
-        )
-
-    current = (
-        BailSignatureRequest.objects.filter(bail=req.bail, signed=False)
-        .order_by("order")
-        .first()
-    )
-
-    if req != current:
-        return JsonResponse(
-            {"error": "Ce n'est pas encore votre tour de signer."}, status=403
-        )
-
-    person = req.bailleur_signataire or req.locataire
-    signer_email = person.email
-
-    # Générer un nouvel OTP et l'envoyer par email
-
-    new_otp = generate_otp()
-    req.otp = new_otp
-    req.otp_generated_at = timezone.now()  # Enregistrer l'horodatage
-    req.save()
-
-    # Envoyer l'OTP par email
-    try:
-        send_mail(
-            subject="Code de vérification pour la signature de votre bail",
-            message=(
-                f"Votre code de vérification est : {new_otp}\n\n"
-                "Ce code expire dans 10 minutes."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            # recipient_list=[person.email],
-            recipient_list=["nicolas3269@gmail.com"],
-        )
-        logger.info(f"OTP envoyé par email à {signer_email}")
-    except Exception as e:
-        logger.error(f"Erreur lors de l'envoi de l'OTP à {signer_email}: {e}")
-        # Continuer le processus même si l'email échoue
-        pass
-
-    # Préparer la réponse de base
-    response_data = {
-        "person": {
-            "email": signer_email,
-            "first_name": person.prenom,
-            "last_name": person.nom,
-        },
-        "bail_id": req.bail.id,
-        "otp_sent": True,  # Indiquer que l'OTP a été envoyé
-    }
-
-    # Tenter d'authentifier automatiquement l'utilisateur
-    User = get_user_model()
-    try:
-        user = User.objects.get(email=signer_email)
-        tokens = get_tokens_for_user(user)
-
-        # Le refresh token sera placé en cookie, pas d'access token dans la réponse
-        response_data["user"] = {"email": user.email}
-
-        # Créer la réponse avec le refresh token en cookie
-        response = JsonResponse(response_data)
-
-        # Configurer le refresh token en cookie HttpOnly
-        set_refresh_token_cookie(response, tokens["refresh"])
-
-        logger.info(f"Auto-authentication successful for {signer_email}")
-        return response
-
-    except User.DoesNotExist:
-        logger.info(f"No user account found for {signer_email}")
-        # L'utilisateur n'a pas de compte, retourner sans authentification
-        return JsonResponse(response_data)
+    """Vue pour récupérer les informations d'une demande de signature de bail"""
+    return get_signature_request_generic(request, token, BailSignatureRequest)
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def confirm_signature_bail(request):
-    try:
-        data = json.loads(request.body)
-        token = data.get("token")
-        otp = data.get("otp")
-        signature_data_url = data.get("signatureImage")
-
-        sig_req = get_object_or_404(BailSignatureRequest, link_token=token)
-
-        if sig_req.signed:
-            return JsonResponse({"error": "Déjà signé"}, status=400)
-
-        # Vérifier que l'OTP est valide (correct et non expiré)
-        if not sig_req.is_otp_valid(otp):
-            return JsonResponse({"error": "Code OTP invalide ou expiré"}, status=403)
-
-        # Vérifie que c’est bien son tour
-        current = (
-            BailSignatureRequest.objects.filter(bail=sig_req.bail, signed=False)
-            .order_by("order")
-            .first()
-        )
-
-        if sig_req != current:
-            return JsonResponse({"error": "Ce n’est pas encore votre tour"}, status=403)
-
-        if not signature_data_url or not otp:
-            return JsonResponse(
-                {"success": False, "error": "Données manquantes"}, status=400
-            )
-
-        process_signature(sig_req, signature_data_url)
-
-        # Marquer comme signé
-        sig_req.signed = True
-        sig_req.signed_at = timezone.now()
-        sig_req.save()
-
-        # Envoi au suivant
-        next_req = (
-            BailSignatureRequest.objects.filter(bail=sig_req.bail, signed=False)
-            .order_by("order")
-            .first()
-        )
-
-        if next_req:
-            send_signature_email(next_req)
-
-        bail_url = f"{sig_req.bail.pdf.url.rsplit('.', 1)[0]}_signed.pdf"
-        bail_absolute_url = request.build_absolute_uri(bail_url)
-        return JsonResponse({"success": True, "pdfUrl": bail_absolute_url})
-
-    except Exception as e:
-        logger.exception("Erreur lors de la signature du PDF")
-        return JsonResponse(
-            {
-                "success": False,
-                "error": str(e),
-            },
-            status=500,
-        )
+    """Vue pour confirmer une signature de bail"""
+    return confirm_signature_generic(request, BailSignatureRequest, "bail")
 
 
 @api_view(["POST"])
@@ -1019,3 +880,13 @@ def get_bien_baux(request, bien_id):
         return JsonResponse(
             {"error": "Erreur lors de la récupération des baux"}, status=500
         )
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@csrf_exempt
+def resend_otp_bail(request):
+    """
+    Renvoie un OTP pour la signature de bail
+    """
+    return resend_otp_generic(request, BailSignatureRequest, "bail")

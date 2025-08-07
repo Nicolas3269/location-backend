@@ -1,18 +1,13 @@
-import base64
 import logging
-import os
 from decimal import Decimal
 from typing import List
 
 from django.conf import settings
-from django.core.files.base import File
 from django.core.mail import send_mail as django_send_mail
 
 from algo.signature.main import (
     add_signature_fields_dynamic,
     get_named_dest_coordinates,
-    get_signature_field_name,
-    sign_pdf,
 )
 from bail.models import Bailleur, BailSignatureRequest, BailSpecificites, Personne
 
@@ -65,41 +60,6 @@ def prepare_pdf_with_signature_fields(pdf_path, bail: BailSpecificites):
 
 def send_mail(subject, message, from_email, recipient_list):
     django_send_mail(subject, message, from_email, recipient_list)
-
-
-def process_signature(sig_req: BailSignatureRequest, signature_data_url):
-    bail = sig_req.bail
-    signing_person = sig_req.bailleur_signataire or sig_req.locataire
-    signature_bytes = base64.b64decode(signature_data_url.split(",")[1])
-    field_name = get_signature_field_name(signing_person)
-
-    # Chemin source : soit latest_pdf (s'il existe), soit le PDF d'origine
-    source_path = bail.latest_pdf.path if bail.latest_pdf else bail.pdf.path
-    file_name = os.path.basename(source_path).replace("_signed", "").replace(".pdf", "")
-    # Chemin final temporaire toujours fixe
-    final_tmp_path = f"/tmp/{file_name}_signed_temp.pdf"
-
-    # Appeler `sign_pdf` pour ajouter la signature du signataire courant
-    sign_pdf(
-        source_path,
-        final_tmp_path,
-        signing_person,
-        field_name,
-        signature_bytes,
-    )
-    # Supprimer l'ancien fichier latest_pdf si existant
-    if bail.latest_pdf and bail.latest_pdf.name:
-        bail.latest_pdf.delete(save=False)
-
-    # Mettre à jour le champ latest_pdf dans le modèle
-    with open(final_tmp_path, "rb") as f:
-        bail.latest_pdf.save(f"{file_name}_signed.pdf", File(f), save=True)
-
-    # Nettoyage
-    try:
-        os.remove(final_tmp_path)
-    except Exception as e:
-        logger.warning(f"Impossible de supprimer le fichier temporaire : {e}")
 
 
 def send_signature_email(signature_request: BailSignatureRequest):

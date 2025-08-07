@@ -1,6 +1,12 @@
 from django.urls import path
 
-from etat_lieux.views import generate_etat_lieux_pdf, generate_grille_vetuste_pdf
+from etat_lieux.views import (
+    confirm_signature_etat_lieux,
+    generate_etat_lieux_pdf,
+    generate_grille_vetuste_pdf,
+    get_etat_lieux_signature_request,
+    resend_otp_etat_lieux,
+)
 
 app_name = "etat_lieux"
 
@@ -14,5 +20,21 @@ urlpatterns = [
         "generate-grille-vetuste/",
         generate_grille_vetuste_pdf,
         name="generate_grille_vetuste_pdf",
+    ),
+    # Routes pour la signature
+    path(
+        "signature/<str:token>/",
+        get_etat_lieux_signature_request,
+        name="get_etat_lieux_signature_request",
+    ),
+    path(
+        "confirm-signature/",
+        confirm_signature_etat_lieux,
+        name="confirm_signature_etat_lieux",
+    ),
+    path(
+        "resend-otp/",
+        resend_otp_etat_lieux,
+        name="resend_otp_etat_lieux",
     ),
 ]

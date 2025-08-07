@@ -10,7 +10,7 @@ from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from weasyprint import HTML
 
 from backend.pdf_utils import get_static_pdf_iframe_url
@@ -18,12 +18,18 @@ from bail.models import BailSpecificites
 from etat_lieux.models import (
     EtatLieux,
     EtatLieuxPhoto,
+    EtatLieuxSignatureRequest,
 )
 from etat_lieux.utils import (
     create_etat_lieux_from_form_data,
     create_etat_lieux_signature_requests,
     prepare_etat_lieux_pdf_with_signature_fields,
     save_etat_lieux_photos,
+)
+from signature.views import (
+    confirm_signature_generic,
+    get_signature_request_generic,
+    resend_otp_generic,
 )
 
 logger = logging.getLogger(__name__)
@@ -361,3 +367,31 @@ def generate_etat_lieux_pdf(request):
             {"success": False, "error": f"Erreur lors de la génération: {str(e)}"},
             status=500,
         )
+
+
+# Vues pour la signature de l'état des lieux
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_etat_lieux_signature_request(request, token):
+    """
+    Récupère les informations d'une demande de signature d'état des lieux
+    """
+    return get_signature_request_generic(request, token, EtatLieuxSignatureRequest)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def confirm_signature_etat_lieux(request):
+    """
+    Confirme la signature d'un état des lieux
+    """
+    return confirm_signature_generic(request, EtatLieuxSignatureRequest, "etat_lieux")
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def resend_otp_etat_lieux(request):
+    """
+    Renvoie un OTP pour la signature d'état des lieux
+    """
+    return resend_otp_generic(request, EtatLieuxSignatureRequest, "etat_lieux")

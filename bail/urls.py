@@ -10,6 +10,7 @@ from bail.views import (
     get_company_data,
     get_rent_prices,
     get_signature_request,
+    resend_otp_bail,
     save_draft,
     upload_document,
 )
@@ -34,4 +35,5 @@ urlpatterns = [
         get_signature_request,
         name="get_signature_request",
     ),
+    path("resend-otp/", resend_otp_bail, name="resend_otp_bail"),
 ]

@@ -13,20 +13,25 @@ logger = logging.getLogger(__name__)
 
 def send_signature_email(signature_request, document_type="document"):
     """
-    Envoie un email avec le lien de signature et l'OTP
+    Envoie un email avec le lien de signature (sans OTP - généré à l'accès)
 
     Args:
         signature_request: Instance de AbstractSignatureRequest
         document_type: Type de document ("bail" ou "etat_lieux")
     """
-    # Générer un nouvel OTP
-    otp = signature_request.generate_otp()
+    # Plus besoin de générer l'OTP ici - il sera généré lors de l'accès à la page
 
     # Récupérer l'email du signataire
     email = signature_request.get_signataire_email()
     if not email:
         logger.error(f"Pas d'email pour {signature_request}")
         return False
+
+    # Convertir le document_type technique vers un nom lisible
+    document_display_name = {
+        "bail": "bail",
+        "etat_lieux": "état des lieux",
+    }.get(document_type, document_type)
 
     # Déterminer le type de document pour l'email
     if document_type == "bail":
@@ -36,7 +41,7 @@ def send_signature_email(signature_request, document_type="document"):
         subject = "Signature électronique de votre état des lieux"
         template = "etat_lieux/email_signature.html"
     else:
-        subject = f"Signature électronique de votre {document_type}"
+        subject = f"Signature électronique de votre {document_display_name}"
         template = None
 
     # Construire l'URL de signature selon le type de document
@@ -54,8 +59,7 @@ def send_signature_email(signature_request, document_type="document"):
     context = {
         "signataire_name": signature_request.get_signataire_name(),
         "signature_url": signature_url,
-        "otp": otp,
-        "document_type": document_type,
+        "document_type": document_display_name,
     }
 
     # Générer le contenu de l'email
@@ -72,14 +76,12 @@ def send_signature_email(signature_request, document_type="document"):
     text_message = f"""
     Bonjour {signature_request.get_signataire_name()},
 
-    Vous êtes invité(e) à signer électroniquement votre {document_type}.
+    Vous êtes invité(e) à signer électroniquement votre {document_display_name}.
 
     Pour accéder au document et le signer, cliquez sur le lien suivant :
     {signature_url}
 
-    Votre code de vérification (OTP) est : {otp}
-
-    Ce code est valable pendant 10 minutes.
+    Un code de vérification (OTP) vous sera envoyé par email lors de l'accès à la page.
 
     Cordialement,
     L'équipe Hestia
@@ -99,6 +101,67 @@ def send_signature_email(signature_request, document_type="document"):
         return True
     except Exception as e:
         logger.error(f"Erreur lors de l'envoi de l'email à {email}: {e}")
+        return False
+
+
+def send_otp_email(signature_request, document_type="document"):
+    """
+    Envoie un email avec le code OTP pour la signature
+
+    Args:
+        signature_request: Instance de AbstractSignatureRequest
+        document_type: Type de document ("bail" ou "etat_lieux")
+    """
+    # Récupérer l'email du signataire
+    email = signature_request.get_signataire_email()
+    if not email:
+        logger.error(f"Pas d'email pour {signature_request}")
+        return False
+
+    # Convertir le document_type technique vers un nom lisible
+    document_display_name = {
+        "bail": "bail",
+        "etat_lieux": "état des lieux",
+    }.get(document_type, document_type)
+
+    # Récupérer l'OTP généré
+    otp = signature_request.otp
+    if not otp:
+        logger.error("Aucun OTP généré pour cette demande de signature")
+        return False
+
+    # Sujet et message spécifiques à l'OTP
+    subject = f"Code de vérification pour la signature de votre {document_display_name}"
+    
+    text_message = f"""
+    Bonjour {signature_request.get_signataire_name()},
+
+    Voici votre code de vérification (OTP) pour signer votre {document_display_name} :
+
+    {otp}
+
+    Ce code est valable pendant 10 minutes.
+
+    Si vous n'avez pas demandé ce code, ignorez cet email.
+
+    Cordialement,
+    L'équipe Hestia
+    """
+
+    # Envoyer l'email
+    try:
+        send_mail(
+            subject=subject,
+            message=text_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            html_message=None,
+            fail_silently=False,
+        )
+        logger.info(f"Email OTP envoyé à {email}")
+        return True
+    except Exception as e:
+        logger.error(f"Erreur lors de l'envoi de l'email OTP à {email}: {e}")
         return False
 
 

@@ -80,11 +80,11 @@ def get_signature_request_generic(request, token, model_class):
         person = sig_req.bailleur_signataire or sig_req.locataire
         signer_email = sig_req.get_signataire_email()
 
-        # Envoyer l'OTP par email avec le service générique
-        from .services import send_signature_email
+        # Envoyer l'OTP par email
+        from .services import send_otp_email
 
         document_type = "bail" if hasattr(sig_req, "bail") else "etat_lieux"
-        send_signature_email(sig_req, document_type)
+        send_otp_email(sig_req, document_type)
 
         # Préparer la réponse dans le nouveau format unifié
         response_data.update(
@@ -191,17 +191,10 @@ def confirm_signature_generic(request, model_class, document_type):
         # Récupérer le document
         document = sig_req.get_document()
 
-        # Envoi au suivant - utiliser la fonction spécifique au type
+        # Envoi au suivant - utiliser la fonction générique pour tous les types
         next_req = get_next_signer(sig_req)
         if next_req:
-            if document_type == "bail":
-                # Pour le bail, utiliser l'ancienne fonction spécifique
-                from bail.utils import send_signature_email as send_bail_signature_email
-
-                send_bail_signature_email(next_req)
-            else:
-                # Pour les autres types, utiliser la fonction générique
-                send_signature_email(next_req, document_type)
+            send_signature_email(next_req, document_type)
 
         # Préparer la réponse
         response_data = {
@@ -264,8 +257,10 @@ def resend_otp_generic(request, model_class, document_type):
                 status=400,
             )
 
-        # Renvoyer l'email avec un nouvel OTP
-        success = send_signature_email(sig_req, document_type)
+        # Générer un nouvel OTP et l'envoyer par email
+        sig_req.generate_otp()
+        from .services import send_otp_email
+        success = send_otp_email(sig_req, document_type)
 
         if success:
             return JsonResponse(

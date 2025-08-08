@@ -41,6 +41,23 @@ class EtatLieux(SignableDocumentMixin):
         max_length=10, choices=EtatLieuxType.choices, help_text="Type d'état des lieux"
     )
 
+    # Informations complémentaires
+    nombre_cles = models.JSONField(
+        default=dict, 
+        help_text="Nombre et types de clés remises",
+        blank=True
+    )
+    equipements_chauffage = models.JSONField(
+        default=dict,
+        help_text="Équipements de chauffage et eau chaude",
+        blank=True
+    )
+    compteurs = models.JSONField(
+        default=dict,
+        help_text="Relevés des compteurs",
+        blank=True
+    )
+
     # Timestamps
     date_creation = models.DateTimeField(default=timezone.now)
     date_modification = models.DateTimeField(auto_now=True)

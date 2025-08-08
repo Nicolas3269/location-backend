@@ -257,7 +257,7 @@
 <body>
     <!-- En-tête du document -->
     <div class="header">
-        <h1>État des lieux {{ etat_lieux.get_type_etat_lieux_display }}</h1>
+        <h1>{{ etat_lieux.get_type_etat_lieux_display }}</h1>
     </div>
 
     <!-- Informations du bien -->
@@ -281,7 +281,232 @@
                 {% if etat_lieux.bail.bien.meuble %}Oui{% else %}Non{% endif %}
             </div>
         </div>
-    </div>    <!-- Détail des pièces -->
+    </div>
+
+    <!-- Informations complémentaires -->
+    {% if etat_lieux.nombre_cles %}
+    <div class="bien-info">
+        <h2>Clés remises</h2>
+        <div class="info-grid">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tbody>
+                    {% if etat_lieux.nombre_cles.immeuble and etat_lieux.nombre_cles.immeuble.count > 0 %}
+                    <tr>
+                        <td style="padding: 5px 8px; width: 200px;">Immeuble :</td>
+                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.immeuble.count }} clé{% if etat_lieux.nombre_cles.immeuble.count > 1 %}s{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if etat_lieux.nombre_cles.entree and etat_lieux.nombre_cles.entree.count > 0 %}
+                    <tr>
+                        <td style="padding: 5px 8px; width: 200px;">Entrée :</td>
+                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.entree.count }} clé{% if etat_lieux.nombre_cles.entree.count > 1 %}s{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if etat_lieux.nombre_cles.boiteAuxLettres and etat_lieux.nombre_cles.boiteAuxLettres.count > 0 %}
+                    <tr>
+                        <td style="padding: 5px 8px; width: 200px;">Boîte aux lettres :</td>
+                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.boiteAuxLettres.count }} clé{% if etat_lieux.nombre_cles.boiteAuxLettres.count > 1 %}s{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if etat_lieux.nombre_cles.cave and etat_lieux.nombre_cles.cave.count > 0 %}
+                    <tr>
+                        <td style="padding: 5px 8px; width: 200px;">Cave :</td>
+                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.cave.count }} clé{% if etat_lieux.nombre_cles.cave.count > 1 %}s{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if etat_lieux.nombre_cles.portail and etat_lieux.nombre_cles.portail.count > 0 %}
+                    <tr>
+                        <td style="padding: 5px 8px; width: 200px;">Portail :</td>
+                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.portail.count }} clé{% if etat_lieux.nombre_cles.portail.count > 1 %}s{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if etat_lieux.nombre_cles.parking and etat_lieux.nombre_cles.parking.count > 0 %}
+                    <tr>
+                        <td style="padding: 5px 8px; width: 200px;">Parking :</td>
+                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.parking.count }} clé{% if etat_lieux.nombre_cles.parking.count > 1 %}s{% endif %}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if etat_lieux.bail.bien.chauffage_energie or etat_lieux.bail.bien.eau_chaude_energie or etat_lieux.equipements_chauffage %}
+    <div class="bien-info">
+        <h2>Chauffage et eau chaude</h2>
+        <div class="info-grid">
+            {% if etat_lieux.bail.bien.chauffage_energie %}
+            <div class="info-row" style="margin-bottom: 20px;">
+                <div style="margin-bottom: 8px;">
+                    <span class="info-label" style="font-weight: bold; display: inline-block; min-width: 150px;">Chauffage :</span>
+                    <span style="text-transform: capitalize;">{{ etat_lieux.bail.bien.chauffage_energie|default:"Non renseigné" }}</span>
+                </div>
+                <div style="margin-left: 20px;">
+                    <span style="margin-right: 40px;">
+                        {% if etat_lieux.bail.bien.chauffage_type == "collectif" %}☑{% else %}☐{% endif %} Collectif
+                    </span>
+                    <span>
+                        {% if etat_lieux.bail.bien.chauffage_type == "individuel" %}☑{% else %}☐{% endif %} Individuel
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if etat_lieux.bail.bien.eau_chaude_energie %}
+            <div class="info-row" style="margin-bottom: 20px;">
+                <div style="margin-bottom: 8px;">
+                    <span class="info-label" style="font-weight: bold; display: inline-block; min-width: 150px;">Eau chaude :</span>
+                    <span style="text-transform: capitalize;">{{ etat_lieux.bail.bien.eau_chaude_energie|default:"Non renseigné" }}</span>
+                </div>
+                <div style="margin-left: 20px;">
+                    <span style="margin-right: 40px;">
+                        {% if etat_lieux.bail.bien.eau_chaude_type == "collectif" %}☑{% else %}☐{% endif %} Collectif
+                    </span>
+                    <span>
+                        {% if etat_lieux.bail.bien.eau_chaude_type == "individuel" %}☑{% else %}☐{% endif %} Individuel
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if etat_lieux.equipements_chauffage %}
+                {% if etat_lieux.equipements_chauffage.radiateurs or etat_lieux.equipements_chauffage.chaudiere or etat_lieux.equipements_chauffage.chauffeEau %}
+                <div class="info-row" style="margin-top: 15px;">
+                    <div style="font-weight: bold; margin-bottom: 8px;">Équipements installés :</div>
+                    <ul style="margin: 0 0 5px 20px; padding-left: 10px; list-style-type: none;">
+                    {% if etat_lieux.equipements_chauffage.radiateurs %}
+                        <li style="margin-bottom: 3px;">• Radiateurs : {{ etat_lieux.equipements_chauffage.radiateurs }}</li>
+                    {% endif %}
+                    {% if etat_lieux.equipements_chauffage.chaudiere %}
+                        <li style="margin-bottom: 3px;">• Chaudière : {{ etat_lieux.equipements_chauffage.chaudiere }}</li>
+                    {% endif %}
+                    {% if etat_lieux.equipements_chauffage.chauffeEau %}
+                        <li style="margin-bottom: 3px;">• Chauffe-eau : {{ etat_lieux.equipements_chauffage.chauffeEau }}</li>
+                    {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+                
+                {% if etat_lieux.equipements_chauffage.equipements %}
+                <div class="info-row" style="margin-top: 15px;">
+                    <div style="font-weight: bold; margin-bottom: 8px;">Autres équipements :</div>
+                    <ul style="margin: 0 0 5px 20px; padding-left: 10px; list-style-type: none;">
+                    {% for equipement in etat_lieux.equipements_chauffage.equipements %}
+                        <li style="margin-bottom: 3px;">• {{ equipement }}</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if etat_lieux.compteurs %}
+    <div class="bien-info">
+        <h2>Relevés des compteurs</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            <thead>
+                <tr style="border-bottom: 2px solid #4a6b85;">
+                    <th style="text-align: left; padding: 10px 8px; font-weight: bold; width: 25%;">Type</th>
+                    <th style="text-align: left; padding: 10px 8px; font-weight: bold; width: 35%;">N° Compteur</th>
+                    <th style="text-align: left; padding: 10px 8px; font-weight: bold; width: 40%;">Relevé</th>
+                </tr>
+            </thead>
+                <tbody>
+                    {% if etat_lieux.compteurs.electricite %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px; vertical-align: top;">Électricité</td>
+                        <td style="padding: 8px; vertical-align: top;">{{ etat_lieux.compteurs.electricite.numero|default:"-" }}</td>
+                        <td style="padding: 8px;">
+                            {% if etat_lieux.compteurs.electricite.hp or etat_lieux.compteurs.electricite.hc %}
+                                {% if etat_lieux.compteurs.electricite.hp %}
+                                    <div>Heures pleines : {{ etat_lieux.compteurs.electricite.hp }} kWh</div>
+                                {% endif %}
+                                {% if etat_lieux.compteurs.electricite.hc %}
+                                    <div>Heures creuses : {{ etat_lieux.compteurs.electricite.hc }} kWh</div>
+                                {% endif %}
+                            {% elif etat_lieux.compteurs.electricite.releve %}
+                                {{ etat_lieux.compteurs.electricite.releve }} kWh
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if etat_lieux.compteurs.gaz %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px; vertical-align: top;">Gaz</td>
+                        <td style="padding: 8px; vertical-align: top;">{{ etat_lieux.compteurs.gaz.numero|default:"-" }}</td>
+                        <td style="padding: 8px;">
+                            {% if etat_lieux.compteurs.gaz.index %}
+                                Index : {{ etat_lieux.compteurs.gaz.index }} m³
+                            {% elif etat_lieux.compteurs.gaz.releve %}
+                                {{ etat_lieux.compteurs.gaz.releve }} m³
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if etat_lieux.compteurs.eau %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px; vertical-align: top;">Eau</td>
+                        <td style="padding: 8px; vertical-align: top;">{{ etat_lieux.compteurs.eau.numero|default:"-" }}</td>
+                        <td style="padding: 8px;">
+                            {% if etat_lieux.compteurs.eau.froide or etat_lieux.compteurs.eau.chaude %}
+                                {% if etat_lieux.compteurs.eau.froide %}
+                                    <div>Eau froide : {{ etat_lieux.compteurs.eau.froide }} m³</div>
+                                {% endif %}
+                                {% if etat_lieux.compteurs.eau.chaude %}
+                                    <div>Eau chaude : {{ etat_lieux.compteurs.eau.chaude }} m³</div>
+                                {% endif %}
+                            {% elif etat_lieux.compteurs.eau.releve %}
+                                {{ etat_lieux.compteurs.eau.releve }} m³
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if etat_lieux.compteurs.fioul %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px;">Fioul</td>
+                        <td style="padding: 8px;">-</td>
+                        <td style="padding: 8px;">{{ etat_lieux.compteurs.fioul.releve|default:"-" }}</td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if etat_lieux.compteurs.bois %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px;">Bois</td>
+                        <td style="padding: 8px;">-</td>
+                        <td style="padding: 8px;">{{ etat_lieux.compteurs.bois.releve|default:"-" }}</td>
+                    </tr>
+                    {% endif %}
+                    
+                    {% if etat_lieux.compteurs.autre %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 8px;">Autre</td>
+                        <td style="padding: 8px;">-</td>
+                        <td style="padding: 8px;">{{ etat_lieux.compteurs.autre.releve|default:"-" }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Détail des pièces -->
     {% for piece_data in pieces_enrichies %}
     <div class="piece">
         <div class="piece-header">

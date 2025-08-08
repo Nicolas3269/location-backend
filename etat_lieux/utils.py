@@ -136,10 +136,13 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
     # Récupérer le bail
     bail = BailSpecificites.objects.get(id=bail_id)
 
-    # Créer l'état des lieux principal
+    # Créer l'état des lieux principal avec les informations complémentaires
     etat_lieux = EtatLieux.objects.create(
         bail=bail,
         type_etat_lieux=form_data.get("type", "entree"),
+        nombre_cles=form_data.get("nombreCles", {}),
+        equipements_chauffage=form_data.get("equipementsChauffage", {}),
+        compteurs=form_data.get("compteurs", {}),
     )
 
     # Récupérer les pièces du bien (ou les créer si elles n'existent pas)

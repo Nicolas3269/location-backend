@@ -1,6 +1,6 @@
 from django.contrib import admin
-from django.utils.html import format_html
 from django.urls import reverse
+from django.utils.html import format_html
 
 from .models import Quittance
 
@@ -83,7 +83,7 @@ class QuittanceAdmin(admin.ModelAdmin):
         bail_url = reverse("admin:bail_bailspecificites_change", args=[obj.bail.pk])
         return format_html(
             '<a href="{}" title="Voir la quittance">{}</a><br>'
-            '<small>{}</small><br>'
+            "<small>{}</small><br>"
             '<small><a href="{}" title="Voir le bail">📋 Bail</a></small>',
             quittance_url,
             obj.bail.bien.adresse,

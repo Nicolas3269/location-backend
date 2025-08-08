@@ -719,6 +719,28 @@ def get_company_data(request):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
+def get_bail_bien_id(request, bail_id):
+    """
+    Récupère le bien_id associé à un bail.
+    Endpoint simple pour obtenir le bien_id depuis un bail_id.
+    """
+    try:
+        bail = get_object_or_404(BailSpecificites, id=bail_id)
+        return JsonResponse({
+            "success": True,
+            "bail_id": bail_id,
+            "bien_id": bail.bien.id if bail.bien else None,
+        })
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération du bien_id pour le bail {bail_id}: {e}")
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=500)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def get_bien_detail(request, bien_id):
     """
     Récupère les détails d'un bien avec ses pièces pour l'état des lieux.

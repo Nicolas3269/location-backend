@@ -5,12 +5,18 @@ from etat_lieux.views import (
     generate_etat_lieux_pdf,
     generate_grille_vetuste_pdf,
     get_etat_lieux_signature_request,
+    get_or_create_pieces,
     resend_otp_etat_lieux,
 )
 
 app_name = "etat_lieux"
 
 urlpatterns = [
+    path(
+        "pieces/<int:bien_id>/",
+        get_or_create_pieces,
+        name="get_or_create_pieces",
+    ),
     path(
         "generate-etat-lieux/",
         generate_etat_lieux_pdf,

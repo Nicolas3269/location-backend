@@ -35,6 +35,53 @@ from signature.views import (
 logger = logging.getLogger(__name__)
 
 
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def get_or_create_pieces(request, bien_id):
+    """
+    Récupère ou crée les pièces pour un bien donné.
+    Retourne les pièces avec leurs UUIDs pour synchronisation avec le frontend.
+    """
+    try:
+        from bail.models import Bien
+        
+        # Récupérer le bien
+        try:
+            bien = Bien.objects.get(id=bien_id)
+        except Bien.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": f"Bien {bien_id} non trouvé"},
+                status=404,
+            )
+        
+        # Récupérer ou créer les pièces
+        from etat_lieux.utils import get_or_create_pieces_for_bien
+        
+        pieces = get_or_create_pieces_for_bien(bien)
+        
+        # Formater la réponse avec les UUIDs
+        pieces_data = []
+        for piece in pieces:
+            pieces_data.append({
+                "id": str(piece.id),  # UUID as string
+                "nom": piece.nom,
+                "type": piece.type_piece,
+            })
+        
+        return JsonResponse({
+            "success": True,
+            "pieces": pieces_data,
+            "bien_id": bien_id,
+        })
+        
+    except Exception as e:
+        logger.exception(f"Erreur lors de la récupération des pièces pour le bien {bien_id}")
+        return JsonResponse(
+            {"success": False, "error": str(e)},
+            status=500,
+        )
+
+
 def image_to_base64_data_url(image_field):
     """
     Convertit un ImageField Django en data URL Base64 pour WeasyPrint.

@@ -5,6 +5,7 @@ from bail.views import (
     delete_document,
     generate_bail_pdf,
     generate_notice_information_pdf,
+    get_bail_bien_id,
     get_bien_baux,
     get_bien_detail,
     get_company_data,
@@ -19,6 +20,7 @@ urlpatterns = [
     path("get-rent-prices/", get_rent_prices, name="get_rent_prices"),
     path("generate-bail/", generate_bail_pdf, name="generate_bail_pdf"),
     path("save-draft/", save_draft, name="save_draft"),
+    path("bail/<str:bail_id>/bien-id/", get_bail_bien_id, name="get_bail_bien_id"),
     path("bien/detail/<int:bien_id>/", get_bien_detail, name="get_bien_detail"),
     path("bien/<int:bien_id>/baux/", get_bien_baux, name="get_bien_baux"),
     path(

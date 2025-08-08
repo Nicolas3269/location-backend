@@ -132,6 +132,8 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
     Crée un état des lieux à partir des données du formulaire.
     Simple et direct.
     """
+    from django.utils.dateparse import parse_datetime
+    from datetime import datetime
 
     # Récupérer le bail
     bail = BailSpecificites.objects.get(id=bail_id)
@@ -144,6 +146,29 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
         equipements_chauffage=form_data.get("equipementsChauffage", {}),
         compteurs=form_data.get("compteurs", {}),
     )
+    
+    # Mettre à jour la date appropriée sur le bail selon le type
+    date_etat_lieux = form_data.get("dateEtatLieux")
+    if date_etat_lieux:
+        # Parser la date si c'est une chaîne
+        if isinstance(date_etat_lieux, str):
+            date_parsed = parse_datetime(date_etat_lieux)
+            if date_parsed:
+                date_etat_lieux = date_parsed.date()
+            else:
+                # Essayer de parser comme date simple
+                try:
+                    date_etat_lieux = datetime.fromisoformat(date_etat_lieux.replace('Z', '+00:00')).date()
+                except:
+                    date_etat_lieux = None
+        
+        if date_etat_lieux and etat_lieux.type_etat_lieux == "entree":
+            bail.date_etat_lieux_entree = date_etat_lieux
+            bail.save(update_fields=["date_etat_lieux_entree"])
+        elif date_etat_lieux and etat_lieux.type_etat_lieux == "sortie":
+            # Stocker la date de sortie dans date_fin du bail
+            bail.date_fin = date_etat_lieux
+            bail.save(update_fields=["date_fin"])
 
     # Récupérer les pièces du bien (ou les créer si elles n'existent pas)
     pieces = get_or_create_pieces_for_bien(bail.bien)

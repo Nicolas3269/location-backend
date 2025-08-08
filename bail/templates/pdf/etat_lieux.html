@@ -258,6 +258,13 @@
     <!-- En-tête du document -->
     <div class="header">
         <h1>{{ etat_lieux.get_type_etat_lieux_display }}</h1>
+        <p style="text-align: center; margin-top: 10px; font-size: 14pt; color: #4a6b85;">
+            {% if etat_lieux.type_etat_lieux == "entree" %}
+                Date d'entrée : {{ etat_lieux.bail.date_etat_lieux_entree|date:"d F Y"|default:"Non renseignée" }}
+            {% else %}
+                Date de sortie : {{ etat_lieux.bail.date_fin|date:"d F Y"|default:"Non renseignée" }}
+            {% endif %}
+        </p>
     </div>
 
     <!-- Informations du bien -->

@@ -130,10 +130,13 @@ def get_or_create_pieces_for_bien(bien):
 def create_etat_lieux_from_form_data(form_data, bail_id, user):
     """
     Crée un état des lieux à partir des données du formulaire.
-    Simple et direct.
+    Gère la création/récupération des pièces avec leurs UUIDs.
+    Supprime et recrée les pièces si nécessaire pour éviter les incohérences.
     """
-    from django.utils.dateparse import parse_datetime
+    import uuid as uuid_module
     from datetime import datetime
+
+    from django.utils.dateparse import parse_datetime
 
     # Récupérer le bail
     bail = BailSpecificites.objects.get(id=bail_id)
@@ -146,7 +149,7 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
         equipements_chauffage=form_data.get("equipementsChauffage", {}),
         compteurs=form_data.get("compteurs", {}),
     )
-    
+
     # Mettre à jour la date appropriée sur le bail selon le type
     date_etat_lieux = form_data.get("dateEtatLieux")
     if date_etat_lieux:
@@ -158,10 +161,12 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
             else:
                 # Essayer de parser comme date simple
                 try:
-                    date_etat_lieux = datetime.fromisoformat(date_etat_lieux.replace('Z', '+00:00')).date()
+                    date_etat_lieux = datetime.fromisoformat(
+                        date_etat_lieux.replace("Z", "+00:00")
+                    ).date()
                 except:
                     date_etat_lieux = None
-        
+
         if date_etat_lieux and etat_lieux.type_etat_lieux == "entree":
             bail.date_etat_lieux_entree = date_etat_lieux
             bail.save(update_fields=["date_etat_lieux_entree"])
@@ -170,24 +175,101 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
             bail.date_fin = date_etat_lieux
             bail.save(update_fields=["date_fin"])
 
-    # Récupérer les pièces du bien (ou les créer si elles n'existent pas)
-    pieces = get_or_create_pieces_for_bien(bail.bien)
+    # Gérer les pièces selon le contexte
+    # Si on a des rooms avec pieceUuid, on doit créer/récupérer les pièces avec ces UUIDs
+    rooms_data = form_data.get("rooms", [])
+    pieces_by_uuid = {}
+
+    # Collecter tous les UUIDs des rooms pour savoir quelles pièces garder/créer
+    room_uuids = set()
+    for room_data in rooms_data:
+        piece_uuid = room_data.get("pieceUuid") or room_data.get("id")
+        if piece_uuid:
+            room_uuids.add(piece_uuid)
+
+    # Récupérer les pièces existantes du bien
+    existing_pieces = EtatLieuxPiece.objects.filter(bien=bail.bien)
+    existing_uuids = {str(piece.id) for piece in existing_pieces}
+
+    # IMPORTANT: Supprimer les pièces qui ne sont plus dans les rooms
+    # pour éviter les incohérences lors de la régénération
+    pieces_to_delete = existing_pieces.exclude(id__in=room_uuids)
+    if pieces_to_delete.exists():
+        logger.info(f"Suppression de {pieces_to_delete.count()} pièces obsolètes")
+        pieces_to_delete.delete()
+
+    # Récupérer les pièces restantes
+    for piece in existing_pieces.filter(id__in=room_uuids):
+        pieces_by_uuid[str(piece.id)] = piece
+
+    # Créer les nouvelles pièces avec les UUIDs fournis
+    for room_data in rooms_data:
+        piece_uuid = room_data.get("pieceUuid") or room_data.get("id")
+        if piece_uuid and piece_uuid not in pieces_by_uuid:
+            try:
+                # Vérifier si c'est un UUID valide
+                uuid_obj = uuid_module.UUID(piece_uuid)
+
+                # Créer ou mettre à jour la pièce
+                piece, created = EtatLieuxPiece.objects.update_or_create(
+                    id=uuid_obj,
+                    defaults={
+                        "bien": bail.bien,
+                        "nom": room_data.get("name", "Pièce"),
+                        "type_piece": room_data.get("type", "room"),
+                    },
+                )
+                pieces_by_uuid[piece_uuid] = piece
+                action = "Créé" if created else "Mis à jour"
+                logger.info(f"{action} pièce {piece.nom} avec UUID {piece_uuid}")
+            except (ValueError, TypeError) as e:
+                logger.warning(f"UUID invalide {piece_uuid}: {e}")
+                # Si l'UUID n'est pas valide, ignorer cette room
+                continue
+
+    # Si aucune pièce n'a été créée/trouvée, utiliser la méthode traditionnelle
+    if not pieces_by_uuid:
+        logger.warning(
+            "Aucune pièce créée depuis les rooms, utilisation de la méthode par défaut"
+        )
+        pieces = get_or_create_pieces_for_bien(bail.bien)
+        pieces_by_uuid = {str(p.id): p for p in pieces}
+
+    pieces = list(pieces_by_uuid.values())
 
     # Créer les détails pour chaque pièce depuis les données du formulaire
-    rooms_by_id = {}
+    # Créer un mapping par UUID pour un matching direct et rapide
+    rooms_by_uuid = {}
+
     for room_data in form_data.get("rooms", []):
-        room_id = room_data.get("id")
-        if room_id:
-            rooms_by_id[room_id] = room_data
+        # Utiliser pieceUuid (ou id comme fallback) pour le mapping direct
+        # Dans le mode standalone, id et pieceUuid sont identiques
+        piece_uuid = room_data.get("pieceUuid") or room_data.get("id")
+        if piece_uuid:
+            rooms_by_uuid[piece_uuid] = room_data
+
+    logger.info(f"Rooms disponibles par UUID: {list(rooms_by_uuid.keys())[:5]}")
 
     for piece in pieces:
-        room_data = rooms_by_id.get(str(piece.id), {})
+        # Utiliser directement l'UUID de la pièce pour trouver la room correspondante
+        room_data = rooms_by_uuid.get(str(piece.id), None)
+
+        if not room_data:
+            logger.warning(
+                f"Pas de room data trouvée pour la pièce '{piece.nom}' (UUID: {piece.id})"
+            )
+            logger.debug(f"UUIDs disponibles: {list(rooms_by_uuid.keys())}")
+        else:
+            logger.debug(
+                f"Room data trouvée pour la pièce {piece.nom} via UUID {piece.id}"
+            )
+
         EtatLieuxPieceDetail.objects.create(
             etat_lieux=etat_lieux,
             piece=piece,
-            elements=room_data.get("elements", {}),
-            equipments=room_data.get("equipments", []),
-            mobilier=room_data.get("mobilier", []),
+            elements=room_data.get("elements", {}) if room_data else {},
+            equipments=room_data.get("equipments", []) if room_data else [],
+            mobilier=room_data.get("mobilier", []) if room_data else [],
         )
 
     logger.info(f"État des lieux créé: {etat_lieux.id} avec {len(pieces)} pièces")
@@ -197,7 +279,7 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
 def save_etat_lieux_photos(etat_lieux, uploaded_photos, photo_references):
     """
     Sauvegarde les photos uploadées pour un état des lieux.
-    Super simple maintenant !
+    Les photos sont maintenant liées aux EtatLieuxPieceDetail spécifiques.
     """
 
     if not uploaded_photos:
@@ -205,23 +287,35 @@ def save_etat_lieux_photos(etat_lieux, uploaded_photos, photo_references):
 
     saved_photos = []
 
-    # Récupérer toutes les pièces du bien
-    pieces = etat_lieux.bail.bien.pieces_etat_lieux.all()
-    pieces_map = {str(piece.id): piece for piece in pieces}
+    # Récupérer tous les piece_details de cet état des lieux
+    piece_details = etat_lieux.pieces_details.all()
+
+    # Créer un mapping par UUID de pièce -> piece_detail
+    piece_details_by_piece_uuid = {str(pd.piece.id): pd for pd in piece_details}
+
+    logger.info(
+        f"Photos upload - PieceDetails disponibles: {len(piece_details_by_piece_uuid)}"
+    )
 
     for photo_ref in photo_references:
-        frontend_room_id = photo_ref["room_id"]  # UUID de la pièce
+        # Utiliser l'UUID de la pièce pour trouver le piece_detail
+        piece_uuid = photo_ref.get("piece_uuid") or photo_ref.get(
+            "room_id"
+        )  # room_id pour compatibilité
+
         photo_key = (
-            f"{frontend_room_id}_{photo_ref['element_key']}_{photo_ref['photo_index']}"
+            f"{piece_uuid}_{photo_ref['element_key']}_{photo_ref['photo_index']}"
         )
 
-        if photo_key in uploaded_photos and frontend_room_id in pieces_map:
-            uploaded_file = uploaded_photos[photo_key]
-            piece = pieces_map[frontend_room_id]
+        # Trouver le piece_detail correspondant
+        piece_detail = piece_details_by_piece_uuid.get(piece_uuid)
 
-            # Créer la photo directement liée à la pièce
+        if photo_key in uploaded_photos and piece_detail:
+            uploaded_file = uploaded_photos[photo_key]
+
+            # Créer la photo liée au piece_detail (spécifique à cet état des lieux)
             photo = EtatLieuxPhoto.objects.create(
-                piece=piece,
+                piece_detail=piece_detail,
                 element_key=photo_ref["element_key"],
                 photo_index=photo_ref["photo_index"],
                 image=uploaded_file,
@@ -231,14 +325,22 @@ def save_etat_lieux_photos(etat_lieux, uploaded_photos, photo_references):
             saved_photos.append(
                 {
                     "id": str(photo.id),
-                    "piece_id": str(photo.piece.id),
-                    "piece_nom": photo.piece.nom,
+                    "piece_detail_id": str(photo.piece_detail.id),
+                    "piece_nom": photo.piece_detail.piece.nom,
                     "element_key": photo.element_key,
                     "photo_index": photo.photo_index,
                     "url": photo.image.url,
                     "original_name": photo.nom_original,
                 }
             )
+        else:
+            logger.warning(
+                f"Photo non sauvegardée - piece_uuid: {piece_uuid}, "
+                f"piece_detail trouvé: {piece_detail is not None}, "
+                f"photo dans uploads: {photo_key in uploaded_photos}"
+            )
 
-    logger.info(f"Sauvegardé {len(saved_photos)} photos")
+    logger.info(
+        f"Sauvegardé {len(saved_photos)} photos sur {len(photo_references)} références"
+    )
     return saved_photos

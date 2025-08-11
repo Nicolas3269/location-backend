@@ -397,7 +397,7 @@ class BailSpecificites(SignableDocumentMixin):
     )
 
     # Durée du bail
-    date_debut = models.DateField()
+    date_debut = models.DateField(null=True, blank=True)
     date_fin = models.DateField(null=True, blank=True)
 
     # Loyer et charges

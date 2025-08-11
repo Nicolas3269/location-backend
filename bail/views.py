@@ -462,7 +462,11 @@ def save_draft(request):
 
                 # 4. Créer le bail
                 start_date_str = form_data.get("startDate", "")
-                start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                start_date = (
+                    datetime.strptime(start_date_str, "%Y-%m-%d").date()
+                    if start_date_str
+                    else None
+                )
                 modalites = form_data.get("modalites", {})
                 solidaire_string = form_data.get("solidaires", "")
                 solidaires = solidaire_string.lower() == "true"
@@ -726,17 +730,18 @@ def get_bail_bien_id(request, bail_id):
     """
     try:
         bail = get_object_or_404(BailSpecificites, id=bail_id)
-        return JsonResponse({
-            "success": True,
-            "bail_id": bail_id,
-            "bien_id": bail.bien.id if bail.bien else None,
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "bail_id": bail_id,
+                "bien_id": bail.bien.id if bail.bien else None,
+            }
+        )
     except Exception as e:
-        logger.error(f"Erreur lors de la récupération du bien_id pour le bail {bail_id}: {e}")
-        return JsonResponse({
-            "success": False,
-            "error": str(e)
-        }, status=500)
+        logger.error(
+            f"Erreur lors de la récupération du bien_id pour le bail {bail_id}: {e}"
+        )
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 @api_view(["GET"])

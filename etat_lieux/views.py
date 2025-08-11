@@ -18,6 +18,7 @@ from bail.models import BailSpecificites
 from etat_lieux.models import (
     EtatLieux,
     EtatLieuxPhoto,
+    EtatLieuxPieceDetail,
     EtatLieuxSignatureRequest,
 )
 from etat_lieux.utils import (
@@ -44,7 +45,7 @@ def get_or_create_pieces(request, bien_id):
     """
     try:
         from bail.models import Bien
-        
+
         # Récupérer le bien
         try:
             bien = Bien.objects.get(id=bien_id)
@@ -53,29 +54,35 @@ def get_or_create_pieces(request, bien_id):
                 {"success": False, "error": f"Bien {bien_id} non trouvé"},
                 status=404,
             )
-        
+
         # Récupérer ou créer les pièces
         from etat_lieux.utils import get_or_create_pieces_for_bien
-        
+
         pieces = get_or_create_pieces_for_bien(bien)
-        
+
         # Formater la réponse avec les UUIDs
         pieces_data = []
         for piece in pieces:
-            pieces_data.append({
-                "id": str(piece.id),  # UUID as string
-                "nom": piece.nom,
-                "type": piece.type_piece,
-            })
-        
-        return JsonResponse({
-            "success": True,
-            "pieces": pieces_data,
-            "bien_id": bien_id,
-        })
-        
+            pieces_data.append(
+                {
+                    "id": str(piece.id),  # UUID as string
+                    "nom": piece.nom,
+                    "type": piece.type_piece,
+                }
+            )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "pieces": pieces_data,
+                "bien_id": bien_id,
+            }
+        )
+
     except Exception as e:
-        logger.exception(f"Erreur lors de la récupération des pièces pour le bien {bien_id}")
+        logger.exception(
+            f"Erreur lors de la récupération des pièces pour le bien {bien_id}"
+        )
         return JsonResponse(
             {"success": False, "error": str(e)},
             status=500,
@@ -227,8 +234,19 @@ def generate_etat_lieux_pdf(request):
                 f"Suppression de {count} ancien(s) état(s) des lieux "
                 f"de type '{etat_lieux_type}' pour le bail {bail_id}"
             )
-            # Supprimer les fichiers PDF associés
+
             for ancien_etat_lieux in anciens_etats_lieux:
+                # Supprimer d'abord les détails des pièces associés
+                # (même si on_delete=CASCADE devrait le faire automatiquement)
+                EtatLieuxPieceDetail.objects.filter(
+                    etat_lieux=ancien_etat_lieux
+                ).delete()
+
+                # Supprimer les demandes de signature associées
+                # (au cas où on_delete=CASCADE ne fonctionnerait pas correctement)
+                ancien_etat_lieux.signature_requests.all().delete()
+
+                # Supprimer le fichier PDF associé
                 if ancien_etat_lieux.pdf:
                     try:
                         ancien_etat_lieux.pdf.delete(save=False)
@@ -237,8 +255,9 @@ def generate_etat_lieux_pdf(request):
                             f"Impossible de supprimer le PDF de l'état des lieux "
                             f"{ancien_etat_lieux.id}: {e}"
                         )
-            # Supprimer les objets (les photos seront supprimées en cascade)
-            anciens_etats_lieux.delete()
+
+                # Maintenant supprimer l'état des lieux lui-même
+                ancien_etat_lieux.delete()
 
         etat_lieux: EtatLieux = create_etat_lieux_from_form_data(
             form_data, bail_id, request.user
@@ -246,31 +265,10 @@ def generate_etat_lieux_pdf(request):
 
         # Sauvegarder les photos si présentes
         if uploaded_photos:
-            # Supprimer toutes les photos existantes pour cet état des lieux
-            # (au cas où il y en aurait déjà)
-
-            photos_existantes = EtatLieuxPhoto.objects.filter(
-                piece__bien=etat_lieux.bail.bien
-            )
-            if photos_existantes.exists():
-                count = photos_existantes.count()
-                bien_id = etat_lieux.bail.bien.id
-                logger.info(
-                    f"Suppression de {count} photo(s) existante(s) "
-                    f"pour le bien {bien_id}"
-                )
-                # Supprimer les fichiers image du disque
-                for photo in photos_existantes:
-                    if photo.image:
-                        try:
-                            photo.image.delete(save=False)
-                        except Exception as e:
-                            logger.warning(
-                                f"Impossible de supprimer l'image "
-                                f"{photo.image.path}: {e}"
-                            )
-                # Supprimer les objets de la base
-                photos_existantes.delete()
+            # Ne PAS supprimer toutes les photos du bien !
+            # Les photos sont liées aux pièces, pas aux états des lieux
+            # Chaque état des lieux peut avoir ses propres photos
+            logger.info(f"Traitement de {len(uploaded_photos)} photos uploadées")
 
             save_etat_lieux_photos(
                 etat_lieux, uploaded_photos, form_data.get("photo_references", [])
@@ -278,12 +276,10 @@ def generate_etat_lieux_pdf(request):
 
         # Préparer les données complètes pour le template
 
-        # Récupérer toutes les photos liées aux pièces du bien
-        photos = EtatLieuxPhoto.objects.filter(
-            piece__bien=etat_lieux.bail.bien
-        ).select_related("piece")
+        # Les photos sont maintenant liées aux piece_details spécifiques à cet état des lieux
+        # Pas besoin de requête supplémentaire, on va les récupérer via les piece_details
 
-        logger.info(f"Nombre de photos trouvées: {photos.count()}")
+        logger.info(f"Préparation des données pour le PDF de l'état des lieux {etat_lieux.id}")
 
         # Créer la structure complète des pièces avec éléments enrichis
         pieces_enrichies = []
@@ -291,10 +287,10 @@ def generate_etat_lieux_pdf(request):
         for piece_detail in etat_lieux.pieces_details.all():
             piece = piece_detail.piece
 
-            # Récupérer les photos de cette pièce
-            piece_photos = photos.filter(piece=piece)
+            # Récupérer les photos de ce piece_detail (spécifiques à cet état des lieux)
+            piece_photos = piece_detail.photos.all()
             logger.info(
-                f"Pièce {piece.nom} ({piece.id}): {piece_photos.count()} photos"
+                f"Pièce {piece.nom} - État des lieux {etat_lieux.id}: {piece_photos.count()} photos"
             )
 
             # Grouper les photos par élément et convertir en Base64

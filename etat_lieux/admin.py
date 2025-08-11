@@ -286,14 +286,14 @@ class EtatLieuxPhotoAdmin(admin.ModelAdmin):
     list_filter = (
         "element_key",
         "date_upload",
-        "piece__nom",
+        "piece_detail__piece__nom",
     )
 
     search_fields = (
-        "piece__nom",
+        "piece_detail__piece__nom",
         "element_key",
         "nom_original",
-        "piece__bien__adresse",
+        "piece_detail__piece__bien__adresse",
     )
 
     readonly_fields = (
@@ -303,7 +303,7 @@ class EtatLieuxPhotoAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
-        (None, {"fields": ("piece", "element_key", "photo_index")}),
+        (None, {"fields": ("piece_detail", "element_key", "photo_index")}),
         ("Fichier", {"fields": ("image", "image_preview", "nom_original")}),
         (
             "Métadonnées",
@@ -316,7 +316,9 @@ class EtatLieuxPhotoAdmin(admin.ModelAdmin):
 
     def piece_display(self, obj):
         """Affichage de la pièce et du bien"""
-        return f"{obj.piece.nom} - {obj.piece.bien.adresse}"
+        piece = obj.piece_detail.piece
+        etat_lieux = obj.piece_detail.etat_lieux
+        return f"{piece.nom} - {etat_lieux.get_type_etat_lieux_display()}"
 
     piece_display.short_description = "Pièce"
 

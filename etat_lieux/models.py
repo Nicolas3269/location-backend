@@ -192,16 +192,16 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
 
 
 class EtatLieuxPhoto(models.Model):
-    """Photos associées aux éléments d'état des lieux"""
+    """Photos associées aux éléments d'un état des lieux spécifique"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    # Relation avec la pièce (qui contient déjà la relation vers l'état des lieux)
-    piece = models.ForeignKey(
-        EtatLieuxPiece,
+    # Relation avec le détail de pièce spécifique à un état des lieux
+    piece_detail = models.ForeignKey(
+        EtatLieuxPieceDetail,
         on_delete=models.CASCADE,
         related_name="photos",
-        help_text="Pièce à laquelle cette photo est associée",
+        help_text="Détail de pièce spécifique à un état des lieux",
     )
 
     # Localisation de la photo dans le formulaire
@@ -223,7 +223,9 @@ class EtatLieuxPhoto(models.Model):
     class Meta:
         verbose_name = "Photo état des lieux"
         verbose_name_plural = "Photos état des lieux"
-        ordering = ["piece", "element_key", "photo_index"]
+        ordering = ["piece_detail", "element_key", "photo_index"]
 
     def __str__(self):
-        return f"Photo {self.piece.nom}/{self.element_key} - {self.piece.bien}"
+        piece_nom = self.piece_detail.piece.nom
+        etat_id = str(self.piece_detail.etat_lieux.id)[:8]
+        return f"Photo {piece_nom}/{self.element_key} - EDL {etat_id}"

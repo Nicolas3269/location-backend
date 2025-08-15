@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     gcc \
     curl \
+    unzip \
     libsqlite3-dev \
     libsqlite3-mod-spatialite \
     libspatialite8 \
@@ -43,6 +44,14 @@ RUN poetry config virtualenvs.create false && \
 
 # Copy the rest of the code
 COPY . .
+
+# Download and install Ubuntu font for WeasyPrint PDF generation
+RUN mkdir -p /usr/share/fonts/truetype/ubuntu/ && \
+    curl -L -o /tmp/ubuntu-font.zip "https://fonts.google.com/download?family=Ubuntu" && \
+    unzip /tmp/ubuntu-font.zip -d /tmp/ubuntu-font && \
+    cp /tmp/ubuntu-font/*.ttf /usr/share/fonts/truetype/ubuntu/ && \
+    rm -rf /tmp/ubuntu-font* && \
+    fc-cache -f -v
 
 # Static files will be collected at runtime
 

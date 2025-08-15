@@ -47,10 +47,13 @@ COPY . .
 
 # Download and install Ubuntu font for WeasyPrint PDF generation
 RUN mkdir -p /usr/share/fonts/truetype/ubuntu/ && \
-    curl -L -o /tmp/ubuntu-font.zip "https://fonts.google.com/download?family=Ubuntu" && \
-    unzip /tmp/ubuntu-font.zip -d /tmp/ubuntu-font && \
-    cp /tmp/ubuntu-font/*.ttf /usr/share/fonts/truetype/ubuntu/ && \
-    rm -rf /tmp/ubuntu-font* && \
+    curl -L -o /tmp/Ubuntu-Regular.ttf "https://github.com/google/fonts/raw/main/ufl/ubuntu/Ubuntu-Regular.ttf" && \
+    curl -L -o /tmp/Ubuntu-Bold.ttf "https://github.com/google/fonts/raw/main/ufl/ubuntu/Ubuntu-Bold.ttf" && \
+    curl -L -o /tmp/Ubuntu-Italic.ttf "https://github.com/google/fonts/raw/main/ufl/ubuntu/Ubuntu-Italic.ttf" && \
+    curl -L -o /tmp/Ubuntu-BoldItalic.ttf "https://github.com/google/fonts/raw/main/ufl/ubuntu/Ubuntu-BoldItalic.ttf" && \
+    curl -L -o /tmp/Ubuntu-Light.ttf "https://github.com/google/fonts/raw/main/ufl/ubuntu/Ubuntu-Light.ttf" && \
+    curl -L -o /tmp/Ubuntu-Medium.ttf "https://github.com/google/fonts/raw/main/ufl/ubuntu/Ubuntu-Medium.ttf" && \
+    mv /tmp/Ubuntu-*.ttf /usr/share/fonts/truetype/ubuntu/ && \
     fc-cache -f -v
 
 # Static files will be collected at runtime

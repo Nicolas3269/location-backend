@@ -13,19 +13,18 @@ RUN apt-get update && apt-get install -y \
     gcc \
     curl \
     libsqlite3-dev \
-    libsqlite3-mod-spatialite \  
-    libspatialite7 \
-    gdal-bin \                   
-    libgdal-dev \                 
+    libsqlite3-mod-spatialite \
+    libspatialite8 \
+    gdal-bin \
+    libgdal-dev \
     libgeos-dev \
     libproj-dev \
     libxml2 libxslt1.1 libffi-dev \
     # WeasyPrint deps 👇
     libcairo2 \
-    pango1.0-tools \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
     libjpeg-dev \
     fonts-liberation \
     fonts-dejavu-core \

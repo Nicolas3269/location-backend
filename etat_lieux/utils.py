@@ -103,6 +103,7 @@ def get_or_create_pieces_for_bien(bien):
         "sallesDeBain": {"type": "bathroom", "nom_base": "Salle de bain"},
         "sallesEau": {"type": "bathroom", "nom_base": "Salle d'eau"},
         "wc": {"type": "bathroom", "nom_base": "WC"},
+        "bureau": {"type": "other", "nom_base": "Bureau"},
         "entrees": {"type": "room", "nom_base": "Entrée"},
         "couloirs": {"type": "room", "nom_base": "Couloir"},
         "dressings": {"type": "room", "nom_base": "Dressing"},

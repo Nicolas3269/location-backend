@@ -98,7 +98,7 @@ def get_or_create_pieces_for_bien(bien):
     # Créer les pièces basées sur pieces_info
     type_mapping = {
         "chambres": {"type": "bedroom", "nom_base": "Chambre"},
-        "salons": {"type": "living", "nom_base": "Salon"},
+        "sejours": {"type": "living", "nom_base": "Séjour"},
         "cuisines": {"type": "kitchen", "nom_base": "Cuisine"},
         "sallesDeBain": {"type": "bathroom", "nom_base": "Salle de bain"},
         "sallesEau": {"type": "bathroom", "nom_base": "Salle d'eau"},

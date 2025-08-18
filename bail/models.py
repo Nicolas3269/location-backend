@@ -327,15 +327,15 @@ class Bien(models.Model):
     @property
     def nombre_pieces_principales(self):
         """
-        Calcule le nombre de pièces principales (chambres + salons).
+        Calcule le nombre de pièces principales (chambres + sejours).
         Utilisé pour le matching avec RentPrice.
         """
         if not self.pieces_info:
             return 0
 
         chambres = self.pieces_info.get("chambres", 0)
-        salons = self.pieces_info.get("salons", 0)
-        return chambres + salons
+        sejours = self.pieces_info.get("sejours", 0)
+        return chambres + sejours
 
     def __str__(self):
         return f"{self.type_bien} - {self.adresse}"

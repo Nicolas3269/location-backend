@@ -78,7 +78,7 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
             "chambres": ("chambre", "chambres"),
             "sallesDeBain": ("salle de bain", "salles de bain"),
             "cuisines": ("cuisine", "cuisines"),
-            "salons": ("séjour", "séjours"),
+            "sejours": ("séjour", "séjours"),
             "wc": ("WC", "WC"),
             "bureau": ("bureau", "bureaux"),
         }

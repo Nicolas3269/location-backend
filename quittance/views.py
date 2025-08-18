@@ -176,6 +176,12 @@ def generate_quittance_pdf(request):
         # Générer la signature automatique (signataire qui signe)
         signature_data_url = generate_text_signature(signataire_full_name)
 
+        # Formater le montant du loyer (sans décimales si entier)
+        if montant_loyer % 1 == 0:
+            montant_loyer_formate = f"{int(montant_loyer)}"
+        else:
+            montant_loyer_formate = f"{montant_loyer:.2f}"
+
         context = {
             "bail": bail,
             "quittance": quittance,
@@ -183,7 +189,7 @@ def generate_quittance_pdf(request):
             "annee": annee,
             "date_paiement": date_paiement_obj,
             "date_generation": timezone.now().date(),
-            "montant_loyer": montant_loyer,
+            "montant_loyer": montant_loyer_formate,
             "montant_en_lettres": montant_en_lettres,
             # Informations du bailleur
             "premier_bailleur": premier_bailleur,

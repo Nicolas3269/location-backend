@@ -867,19 +867,19 @@ def get_bien_baux(request, bien_id):
                 {"error": "Vous n'avez pas accès à ce bien"}, status=403
             )
 
-        # Récupérer tous les baux du bien
-        baux = Bail.objects.filter(bien=bien).order_by("-date_debut")
+        # Récupérer tous les baux du bien via les locations
+        baux = Bail.objects.filter(location__bien=bien).order_by("-location__date_debut")
 
         baux_data = []
         for bail in baux:
-            # Récupérer les locataires
+            # Récupérer les locataires depuis la location
             locataires = [
                 {
                     "nom": locataire.nom,
                     "prenom": locataire.prenom,
                     "email": locataire.email,
                 }
-                for locataire in bail.locataires.all()
+                for locataire in bail.location.locataires.all()
             ]
 
             # Déterminer le statut du bail
@@ -899,10 +899,11 @@ def get_bien_baux(request, bien_id):
 
             bail_data = {
                 "id": bail.id,
-                "date_debut": bail.date_debut.isoformat(),
-                "date_fin": bail.date_fin.isoformat() if bail.date_fin else None,
-                "montant_loyer": float(bail.montant_loyer),
-                "montant_charges": float(bail.montant_charges),
+                "location_id": str(bail.location.id),
+                "date_debut": bail.location.date_debut.isoformat() if bail.location.date_debut else None,
+                "date_fin": bail.location.date_fin.isoformat() if bail.location.date_fin else None,
+                "montant_loyer": float(bail.location.rent_terms.montant_loyer) if hasattr(bail.location, "rent_terms") else 0,
+                "montant_charges": float(bail.location.rent_terms.montant_charges) if hasattr(bail.location, "rent_terms") else 0,
                 "status": bail.status,
                 "signatures_completes": signatures_completes,
                 "locataires": locataires,

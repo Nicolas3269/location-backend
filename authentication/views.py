@@ -334,17 +334,29 @@ def get_user_profile_detailed(request):
                 profile_data["roles"]["is_bailleur"] = True
 
                 # Récupérer tous les biens associés à ces bailleurs
+                from bail.models import Bail
+                from location.models import Bien, Location
+
                 biens = []
                 for bailleur in bailleurs:
-                    for bien in bailleur.biens.all():
+                    # Un bailleur est lié aux biens via la relation ManyToMany
+                    for bien in Bien.objects.filter(bailleurs=bailleur):
+                        # Compter les locations et bails actifs pour ce bien
+                        nombre_locations = Location.objects.filter(bien=bien).count()
+                        # Compter les bails actifs via les locations
+                        baux_actifs = Bail.objects.filter(
+                            location__bien=bien, status="signed"
+                        ).count()
+
                         bien_data = {
                             "id": bien.id,
                             "adresse": bien.adresse,
                             "type_bien": bien.get_type_bien_display(),
                             "superficie": float(bien.superficie),
                             "meuble": bien.meuble,
-                            "nombre_baux": bien.bails.count(),
-                            "baux_actifs": bien.bails.filter(status="signed").count(),
+                            "nombre_locations": nombre_locations,
+                            "nombre_baux": nombre_locations,  # Pour compatibilité
+                            "baux_actifs": baux_actifs,
                         }
                         # Éviter les doublons
                         if not any(b["id"] == bien.id for b in biens):
@@ -363,40 +375,71 @@ def get_user_profile_detailed(request):
         if locataires.exists():
             profile_data["roles"]["is_locataire"] = True
 
-            # Récupérer toutes les locations (baux) associées à ces locataires
+            # Récupérer toutes les locations associées à ces locataires
+            from bail.models import Bail
+            from location.models import Location
+
             locations = []
             for locataire in locataires:
-                for bail in locataire.bails.all():
-                    date_fin = bail.date_fin.isoformat() if bail.date_fin else None
-                    signatures_completes = not bail.signature_requests.filter(
-                        signed=False
-                    ).exists()
+                # Les locataires sont liés aux locations via ManyToMany
+                for location in Location.objects.filter(locataires=locataire):
+                    # Récupérer le bail actif de cette location s'il existe
+                    bail = Bail.objects.filter(
+                        location=location, is_active=True
+                    ).first()
 
-                    # Construire les URLs complètes pour les PDFs
-                    pdf_url = (
-                        request.build_absolute_uri(bail.pdf.url) if bail.pdf else None
+                    date_fin = (
+                        location.date_fin.isoformat() if location.date_fin else None
                     )
-                    latest_pdf_url = (
-                        request.build_absolute_uri(bail.latest_pdf.url)
-                        if bail.latest_pdf
-                        else None
-                    )
+
+                    # Si un bail existe, vérifier les signatures
+                    signatures_completes = True
+                    pdf_url = None
+                    latest_pdf_url = None
+                    status = "draft"
+
+                    if bail:
+                        signatures_completes = not bail.signature_requests.filter(
+                            signed=False
+                        ).exists()
+                        pdf_url = (
+                            request.build_absolute_uri(bail.pdf.url)
+                            if bail.pdf
+                            else None
+                        )
+                        latest_pdf_url = (
+                            request.build_absolute_uri(bail.latest_pdf.url)
+                            if bail.latest_pdf
+                            else None
+                        )
+                        status = bail.status
+
+                    # Récupérer les montants depuis RentTerms
+                    montant_loyer = 0
+                    montant_charges = 0
+                    if hasattr(location, "rent_terms"):
+                        montant_loyer = float(location.rent_terms.montant_loyer or 0)
+                        montant_charges = float(
+                            location.rent_terms.montant_charges or 0
+                        )
 
                     location_data = {
-                        "id": bail.id,
-                        "bien_adresse": bail.bien.adresse,
-                        "bien_type": bail.bien.get_type_bien_display(),
-                        "date_debut": bail.date_debut.isoformat(),
+                        "id": str(location.id),
+                        "bien_adresse": location.bien.adresse,
+                        "bien_type": location.bien.get_type_bien_display(),
+                        "date_debut": location.date_debut.isoformat()
+                        if location.date_debut
+                        else None,
                         "date_fin": date_fin,
-                        "montant_loyer": float(bail.montant_loyer),
-                        "montant_charges": float(bail.montant_charges),
-                        "status": bail.status,
+                        "montant_loyer": montant_loyer,
+                        "montant_charges": montant_charges,
+                        "status": status,
                         "signatures_completes": signatures_completes,
                         "pdf_url": pdf_url,
                         "latest_pdf_url": latest_pdf_url,
                         "created_at": (
                             bail.date_signature.isoformat()
-                            if bail.date_signature
+                            if bail and bail.date_signature
                             else None
                         ),
                     }

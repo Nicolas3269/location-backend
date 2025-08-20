@@ -1,22 +1,25 @@
+"""
+Nouveau modèle Quittance refactorisé
+À renommer en models.py après validation
+"""
+
 import uuid
 
 from django.db import models
-from django.utils import timezone
 
-from bail.models import BailSpecificites
+from location.models import BaseModel, Location
 
 
-class Quittance(models.Model):
-    """Modèle pour stocker les quittances générées"""
+class Quittance(BaseModel):
+    """Quittance de loyer"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    # Relation avec le bail
-    bail = models.ForeignKey(
-        BailSpecificites, on_delete=models.CASCADE, related_name="quittances"
+    location = models.ForeignKey(
+        Location, on_delete=models.CASCADE, related_name="quittances"
     )
 
-    # Période de la quittance
+    # Période
     mois = models.CharField(
         max_length=20, help_text="Mois en français (janvier, février, etc.)"
     )
@@ -25,10 +28,7 @@ class Quittance(models.Model):
     # Date de paiement
     date_paiement = models.DateField(help_text="Date à laquelle le loyer a été payé")
 
-    # Montant
-    montant_loyer = models.DecimalField(max_digits=10, decimal_places=2)
-
-    # PDF généré
+    # Document
     pdf = models.FileField(
         upload_to="quittances_pdfs/",
         null=True,
@@ -36,16 +36,33 @@ class Quittance(models.Model):
         help_text="PDF de la quittance généré",
     )
 
-    # Timestamps
-    date_creation = models.DateTimeField(default=timezone.now)
-    date_modification = models.DateTimeField(auto_now=True)
+    @property
+    def montant_loyer(self):
+        """Récupère le montant du loyer depuis RentTerms"""
+        if hasattr(self.location, "rent_terms"):
+            return self.location.rent_terms.montant_loyer
+        return None
+
+    @property
+    def montant_charges(self):
+        """Récupère le montant des charges depuis RentTerms"""
+        if hasattr(self.location, "rent_terms"):
+            return self.location.rent_terms.montant_charges
+        return None
+
+    @property
+    def montant_total(self):
+        """Calcule le montant total (loyer + charges)"""
+        loyer = self.montant_loyer or 0
+        charges = self.montant_charges or 0
+        return loyer + charges
 
     class Meta:
         verbose_name = "Quittance"
         verbose_name_plural = "Quittances"
-        ordering = ["-date_creation"]
-        # Une seule quittance par mois/année/bail
-        unique_together = [["bail", "mois", "annee"]]
+        ordering = ["-created_at"]
+        unique_together = [["location", "mois", "annee"]]
+        db_table = "quittance_quittance"
 
     def __str__(self):
-        return f"Quittance {self.mois} {self.annee} - {self.bail.bien.adresse}"
+        return f"Quittance {self.mois} {self.annee} - {self.location.bien.adresse}"

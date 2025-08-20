@@ -15,12 +15,10 @@ from bail.views import (
     save_draft,
     upload_document,
 )
-from bail.views_partial import create_partial_bail
-
 urlpatterns = [
     path("get-rent-prices/", get_rent_prices, name="get_rent_prices"),
     path("generate-bail/", generate_bail_pdf, name="generate_bail_pdf"),
-    path("create-partial/", create_partial_bail, name="create_partial_bail"),
+    # La route create-partial est maintenant dans quittance/urls.py
     path("save-draft/", save_draft, name="save_draft"),
     path("bail/<str:bail_id>/bien-id/", get_bail_bien_id, name="get_bail_bien_id"),
     path("bien/detail/<int:bien_id>/", get_bien_detail, name="get_bien_detail"),

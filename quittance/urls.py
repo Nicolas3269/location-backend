@@ -1,8 +1,12 @@
 from django.urls import path
+
 from . import views
 
-app_name = 'quittance'
+app_name = "quittance"
 
 urlpatterns = [
-    path('generate/', views.generate_quittance_pdf, name='generate'),
+    path("generate/", views.generate_quittance_pdf, name="generate"),
+    path(
+        "create-location/", views.create_location_for_quittance, name="create_location"
+    ),
 ]

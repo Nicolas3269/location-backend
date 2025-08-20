@@ -13,7 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
 
-from bail.models import Bailleur, BailSpecificites, Locataire
+from location.models import Bailleur, Locataire
 
 from .models import Quittance
 from .signature_utils import generate_text_signature
@@ -52,21 +52,23 @@ def amount_to_words_french(amount):
 @permission_classes([IsAuthenticated])
 def generate_quittance_pdf(request):
     """
-    Génère une quittance de loyer en PDF à partir des données du bail et des informations complémentaires
+    Génère une quittance de loyer en PDF à partir des données de la location
     """
     try:
         # Récupérer les données JSON
         data = json.loads(request.body)
 
-        bail_id = data.get("bail_id")
+        location_id = data.get("location_id")
+
         mois = data.get("mois")  # Format: "janvier", "février", etc.
         annee = data.get("annee")  # Format: 2025
         date_paiement = data.get("date_paiement")  # Format: "2025-01-15"
 
         # Validation des données requises
-        if not bail_id:
+        if not location_id:
             return JsonResponse(
-                {"success": False, "error": "bail_id est requis"}, status=400
+                {"success": False, "error": "location_id est requis"},
+                status=400,
             )
 
         if not mois or not annee:
@@ -79,16 +81,18 @@ def generate_quittance_pdf(request):
                 {"success": False, "error": "date_paiement est requise"}, status=400
             )
 
-        # Récupérer le bail
+        # Récupérer la location
+        from location.models import Location
+
         try:
-            bail = (
-                BailSpecificites.objects.select_related("bien", "mandataire")
+            location = (
+                Location.objects.select_related("bien", "mandataire")
                 .prefetch_related("locataires", "bien__bailleurs")
-                .get(id=bail_id)
+                .get(id=location_id)
             )
-        except BailSpecificites.DoesNotExist:
+        except Location.DoesNotExist:
             return JsonResponse(
-                {"success": False, "error": f"Bail {bail_id} introuvable"}, status=404
+                {"success": False, "error": "Location introuvable"}, status=404
             )
 
         # Convertir la date de paiement
@@ -104,22 +108,38 @@ def generate_quittance_pdf(request):
             )
 
         # Préparer les données pour le template
-        montant_loyer = float(bail.montant_loyer)
+        # Récupérer le montant du loyer depuis RentTerms
+        if hasattr(location, "rent_terms"):
+            montant_loyer = float(location.rent_terms.montant_loyer)
+        else:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "Aucune condition financière trouvée pour cette location",
+                },
+                status=400,
+            )
         montant_en_lettres = amount_to_words_french(montant_loyer)
 
         # Récupérer le premier bailleur et le premier locataire
-        premier_bailleur: Bailleur = bail.bien.bailleurs.first()
-        premier_locataire: Locataire = bail.locataires.first()
+        premier_bailleur: Bailleur = location.bien.bailleurs.first()
+        premier_locataire: Locataire = location.locataires.first()
 
         if not premier_bailleur:
             return JsonResponse(
-                {"success": False, "error": "Aucun bailleur trouvé pour ce bail"},
+                {
+                    "success": False,
+                    "error": "Aucun bailleur trouvé pour cette location",
+                },
                 status=400,
             )
 
         if not premier_locataire:
             return JsonResponse(
-                {"success": False, "error": "Aucun locataire trouvé pour ce bail"},
+                {
+                    "success": False,
+                    "error": "Aucun locataire trouvé pour cette location",
+                },
                 status=400,
             )
 
@@ -142,15 +162,10 @@ def generate_quittance_pdf(request):
 
         # Supprimer les anciennes quittances pour la même période
         anciennes_quittances = Quittance.objects.filter(
-            bail=bail, mois=mois, annee=annee
+            location=location, mois=mois, annee=annee
         )
 
         if anciennes_quittances.exists():
-            count = anciennes_quittances.count()
-            logger.info(
-                f"Suppression de {count} ancienne(s) quittance(s) "
-                f"pour {mois} {annee} du bail {bail_id}"
-            )
             # Supprimer les fichiers PDF associés
             for ancienne_quittance in anciennes_quittances:
                 if ancienne_quittance.pdf:
@@ -166,11 +181,10 @@ def generate_quittance_pdf(request):
 
         # Créer l'objet Quittance
         quittance = Quittance.objects.create(
-            bail=bail,
+            location=location,
             mois=mois,
             annee=annee,
             date_paiement=date_paiement_obj,
-            montant_loyer=montant_loyer,
         )
 
         # Générer la signature automatique (signataire qui signe)
@@ -183,7 +197,7 @@ def generate_quittance_pdf(request):
             montant_loyer_formate = f"{montant_loyer:.2f}"
 
         context = {
-            "bail": bail,
+            "location": location,
             "quittance": quittance,
             "mois": mois,
             "annee": annee,
@@ -200,7 +214,7 @@ def generate_quittance_pdf(request):
             # Informations du locataire
             "locataire_full_name": premier_locataire.full_name,
             # Adresse du bien loué
-            "adresse_bien": bail.bien.adresse,
+            "adresse_bien": location.bien.adresse,
         }
 
         # Générer le HTML depuis le template
@@ -253,3 +267,123 @@ def generate_quittance_pdf(request):
             {"success": False, "error": f"Erreur lors de la génération: {str(e)}"},
             status=500,
         )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_location_for_quittance(request):
+    """
+    Créer une location pour générer une quittance.
+    Cette fonction crée directement une Location avec les données minimales nécessaires.
+    """
+    try:
+        data = json.loads(request.body)
+
+        # Importer les modèles nécessaires
+        from location.models import (
+            Bailleur,
+            Bien,
+            Locataire,
+            Location,
+            Personne,
+            RentTerms,
+            Societe,
+        )
+
+        # 1. Créer le bien
+        bien = Bien.objects.create(
+            adresse=data.get("adresse", ""),
+            type_bien=data.get("typeBien", "appartement"),
+            superficie=data.get("superficie", 1),
+            regime_juridique=data.get("regimeJuridique", "monopropriete"),
+            dernier_etage=data.get("dernierEtage", False),
+            meuble=data.get("meuble", False),
+            classe_dpe=data.get("classeDpe", "NA"),
+        )
+
+        # 2. Créer le bailleur
+        landlord_data = data.get("landlord", {})
+        bailleur_type = data.get("bailleurType", "physique")
+
+        if bailleur_type == "morale":
+            # Créer la société
+            societe_data = data.get("societe", {})
+            societe = Societe.objects.create(
+                raison_sociale=societe_data.get("raisonSociale", ""),
+                forme_juridique=societe_data.get("formeJuridique", ""),
+                siret=data.get("siret", ""),
+                adresse=societe_data.get("adresse", ""),
+                email=landlord_data.get("email", ""),
+            )
+
+            # Créer le signataire
+            personne_signataire = Personne.objects.create(
+                nom=landlord_data.get("lastName", ""),
+                prenom=landlord_data.get("firstName", ""),
+                email=landlord_data.get("email", ""),
+                adresse=landlord_data.get("address", ""),
+            )
+
+            bailleur = Bailleur.objects.create(
+                societe=societe,
+                signataire=personne_signataire,
+            )
+        else:
+            # Créer la personne physique
+            personne_bailleur = Personne.objects.create(
+                nom=landlord_data.get("lastName", ""),
+                prenom=landlord_data.get("firstName", ""),
+                email=landlord_data.get("email", ""),
+                adresse=landlord_data.get("address", ""),
+            )
+
+            bailleur = Bailleur.objects.create(
+                personne=personne_bailleur,
+                signataire=personne_bailleur,
+            )
+
+        # Associer le bailleur au bien
+        bien.bailleurs.add(bailleur)
+
+        # 3. Créer les locataires
+        locataires = []
+        for locataire_data in data.get("locataires", []):
+            locataire = Locataire.objects.create(
+                nom=locataire_data.get("lastName", ""),
+                prenom=locataire_data.get("firstName", ""),
+                email=locataire_data.get("email", ""),
+                adresse=locataire_data.get("address", ""),
+            )
+            locataires.append(locataire)
+
+        # 4. Créer la location
+        location = Location.objects.create(
+            bien=bien,
+            created_from="quittance",
+        )
+
+        # Associer les locataires
+        location.locataires.set(locataires)
+
+        # 5. Créer les conditions financières
+        modalites = data.get("modalites", {})
+        RentTerms.objects.create(
+            location=location,
+            montant_loyer=modalites.get("prix", 0),
+            montant_charges=modalites.get("charges", 0),
+        )
+
+        logger.info(f"Location créée avec succès: {location.id}")
+
+        return JsonResponse(
+            {
+                "success": True,
+                "location_id": str(location.id),
+                "bien_id": str(bien.id),
+                "message": "Location créée avec succès pour quittance",
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"Erreur lors de la création de la location: {str(e)}")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)

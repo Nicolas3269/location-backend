@@ -98,7 +98,7 @@
     <p class="section-title">1° Désignation des parties</p>
     <p>
       <ul>
-        {% for bailleur in bail.bien.bailleurs.all %}
+        {% for bailleur in bail.location.bien.bailleurs.all %}
           {% if bailleur.personne %}
             <li>
               {{ bailleur.personne.prenom }} {{ bailleur.personne.nom }} ({{ bailleur.personne.email }}), 
@@ -115,18 +115,18 @@
       </ul>
     </p>
     <p class="align-right">
-      Dénommé{% if bail.bien.bailleurs.all|length > 1 %}s{% endif %} ci-après « le bailleur » ;
+      Dénommé{% if bail.location.bien.bailleurs.all|length > 1 %}s{% endif %} ci-après « le bailleur » ;
     </p>
     
     <p>
       <ul>
-      {% for locataire in bail.locataires.all %}
+      {% for locataire in bail.location.locataires.all %}
         <li>{{ locataire.prenom }} {{ locataire.nom }}{% if locataire.email %} ({{ locataire.email }}){% endif %}, personne physique{% if not forloop.last %};<br>{% endif %}</li>
       {% endfor %}
       </ul>
     </p>
     <p class="align-right">
-      Dénommé{% if bail.locataires.all|length > 1 %}s{% endif %} ci-après « le locataire » ;
+      Dénommé{% if bail.location.locataires.all|length > 1 %}s{% endif %} ci-après « le locataire » ;
     </p>
 
     <p class="section-title">2° Déclaration des parties</p>
@@ -167,14 +167,14 @@
       Conformément à l’article 3 de la loi du 6 juillet 1989, la surface habitable du logement a été déterminée selon les critères définis à l’article R. 111-2 du Code de la construction et de l’habitation. <br>
     </p>
     <p>
-      Elle s’élève à {{bail.bien.superficie}} mètres carrés. <br>
+      Elle s’élève à {{bail.location.bien.superficie}} mètres carrés. <br>
     </p>
     <p>
       <br>
       <u>Nombre de pièces :</u> 
     </p>
     <p>
-      Le logement loué est constitué comme suit, soit {{bail.bien.nombre_pieces_principales}} {% if bail.bien.nombre_pieces_principales == 1 %}pièce principale{% else %}pièces principales{% endif %} :
+      Le logement loué est constitué comme suit, soit {{bail.location.bien.nombre_pieces_principales}} {% if bail.location.bien.nombre_pieces_principales == 1 %}pièce principale{% else %}pièces principales{% endif %} :
       {{pieces_info|safe}}
     </p>
     <br>
@@ -209,7 +209,7 @@
     </p>
     <br>
     {% endif %}
-    {% if bail.bien.meuble%}
+    {% if bail.location.bien.meuble%}
     <p>
       <u>Équipements :</u> 
     </p>
@@ -256,9 +256,9 @@
     <p>
       <u>DPE :</u> 
     </p>
-    {% if bail.bien.classe_dpe != "NA"%}
+    {% if bail.location.bien.classe_dpe != "NA"%}
     <p>
-      Selon le diagnostic de performance énergétique (DPE), le logement présente une classe énergétique {{bail.bien.classe_dpe}}, avec un montant estimé des dépenses annuelles pour l’ensemble des usages (chauffage, eau chaude sanitaire, éclairage, etc.) évalué {{bail.bien.depenses_energetiques}}.
+      Selon le diagnostic de performance énergétique (DPE), le logement présente une classe énergétique {{bail.location.bien.classe_dpe}}, avec un montant estimé des dépenses annuelles pour l’ensemble des usages (chauffage, eau chaude sanitaire, éclairage, etc.) évalué {{bail.location.bien.depenses_energetiques}}.
     </p>
 
     {% else %}
@@ -291,31 +291,31 @@
    
     <p><strong>1° Date de prise d’effet du contrat</strong></p>
     <p>
-    Le présent contrat prend effet à compter du {{bail.date_debut|date:"j F Y"}}.
+    Le présent contrat prend effet à compter du {{bail.location.date_debut|date:"j F Y"}}.
     </p>
     
     <p><strong>2° Durée</strong></p>
     <p>
-    La présente location est consentie et acceptée pour une durée de {% if bail.bien.meuble %}1 an{%else%}3 ans{% endif %} à compter de la date de prise d’effet du présent contrat de location.
+    La présente location est consentie et acceptée pour une durée de {% if bail.location.bien.meuble %}1 an{%else%}3 ans{% endif %} à compter de la date de prise d’effet du présent contrat de location.
     </p>
     <p>
-    À l'expiration de cette période, le présent contrat se poursuivra par tacite reconduction pour des périodes successives de {% if bail.bien.meuble %}1 an{%else%}3 ans{% endif %}, à défaut de volonté contraire manifestée par l'une ou l'autre des parties selon les règles suivantes.
+    À l'expiration de cette période, le présent contrat se poursuivra par tacite reconduction pour des périodes successives de {% if bail.location.bien.meuble %}1 an{%else%}3 ans{% endif %}, à défaut de volonté contraire manifestée par l'une ou l'autre des parties selon les règles suivantes.
     </p>
     
     <p><strong>3° Congés</strong></p>
     <p>
     <em>Congé par le locataire.</em> – Le locataire pourra donner congé à tout moment en cours de contrat. 
-    Ce congé devra être délivré au moins {% if bail.zone_tendue %}1 mois{%else%}3 mois{% endif %} à l'avance par lettre recommandée avec demande d'avis de réception ou par acte d'huissier. 
+    Ce congé devra être délivré au moins {% if bail.location.rent_terms.zone_tendue %}1 mois{%else%}3 mois{% endif %} à l'avance par lettre recommandée avec demande d'avis de réception ou par acte d'huissier. 
     Le délai de préavis est décompté à partir de la date de réception de la lettre de congé par le bailleur. À l'expiration du préavis, le locataire devra libérer les lieux le lendemain du dernier jour au plus tard à midi.
     </p>
     
-    <p><em>Congé par le bailleur.</em> – Le bailleur pourra donner congé au locataire dans les formes et aux conditions prévues par l’article 25-8 de la loi du 6 juillet 1989, sauf si le locataire bénéficie, en raison de son âge ou du montant de ses ressources, des mesures de protection édictées par l’article 25-8, II de la loi du 6 juillet 1989 précitée. Ce congé sera délivré pour la date d'expiration du contrat, moyennant un délai de préavis de {% if bail.zone_tendue %}3 mois{%else%}6 mois{% endif %}, soit par lettre recommandée avec demande d'avis de réception soit par acte d'huissier ou être remis en main propre contre récépissé ou émargement. 
-      Le délai de {% if bail.zone_tendue %}3 mois{%else%}6 mois{% endif %} courra à compter du jour de la réception de la lettre recommandée ou de la signification de l'acte d'huissier ou de la reprise en main propre.
+    <p><em>Congé par le bailleur.</em> – Le bailleur pourra donner congé au locataire dans les formes et aux conditions prévues par l’article 25-8 de la loi du 6 juillet 1989, sauf si le locataire bénéficie, en raison de son âge ou du montant de ses ressources, des mesures de protection édictées par l’article 25-8, II de la loi du 6 juillet 1989 précitée. Ce congé sera délivré pour la date d'expiration du contrat, moyennant un délai de préavis de {% if bail.location.rent_terms.zone_tendue %}3 mois{%else%}6 mois{% endif %}, soit par lettre recommandée avec demande d'avis de réception soit par acte d'huissier ou être remis en main propre contre récépissé ou émargement. 
+      Le délai de {% if bail.location.rent_terms.zone_tendue %}3 mois{%else%}6 mois{% endif %} courra à compter du jour de la réception de la lettre recommandée ou de la signification de l'acte d'huissier ou de la reprise en main propre.
     </p>
     <p>
       Le bailleur ne pourra se fonder que sur la décision de reprendre le logement pour l'habiter, la décision de vendre le logement, ou sur un motif légitime et sérieux, notamment l'inexécution par le locataire de l'une des obligations lui incombant (article 25-8 de la loi du 6 juillet 1989 et la notice d’information jointe).
     </p>
-    <p>À défaut de congé donné par l'une ou l'autre des parties dans les formes et délais sus indiqués, le contrat sera reconduit tacitement aux mêmes clauses et conditions pour une durée de {% if bail.bien.meuble %}1 an{%else%}3 ans{% endif %}.
+    <p>À défaut de congé donné par l'une ou l'autre des parties dans les formes et délais sus indiqués, le contrat sera reconduit tacitement aux mêmes clauses et conditions pour une durée de {% if bail.location.bien.meuble %}1 an{%else%}3 ans{% endif %}.
     </p>
     
     <p><strong>4° Abandon du domicile</strong></p>
@@ -412,7 +412,7 @@
       En cas de décès du locataire, il y aura solidarité et indivisibilité entre tous ses héritiers et représentants comme aussi entre chacun de ces derniers et tous autres coobligés pour le paiement des loyers et accessoires ainsi que pour l'exécution, en général, du présent contrat et les frais de la signification prescrite par l'article 877 du Code civil seront à la charge exclusive de ceux à qui elle sera faite.
     </p>
 
-    {% if bail.locataires.all|length > 1 and bail.solidaires %}
+    {% if bail.location.locataires.all|length > 1 and bail.location.solidaires %}
     <p>
       Les locataires seront tenus solidairement de l’accomplissement de l’ensemble des obligations résultant du présent contrat, ce qu’ils acceptent.
     </p>
@@ -424,14 +424,14 @@
     
     <p><strong>1° Fixation du loyer initial</strong></p>
     <p>
-    Le loyer convenu est en conséquence chiffré à la somme de {{bail.montant_loyer}} euros par mois, charges en sus. Ce loyer sera payable mensuellement à terme à échoir, par tout moyen, dans les 10 premiers jours de chaque mois. Le premier paiement interviendra le jour de la remise des clés.
+    Le loyer convenu est en conséquence chiffré à la somme de {{bail.location.rent_terms.montant_loyer}} euros par mois, charges en sus. Ce loyer sera payable mensuellement à terme à échoir, par tout moyen, dans les 10 premiers jours de chaque mois. Le premier paiement interviendra le jour de la remise des clés.
     </p>
 
     <p>
     Au titre du trimestre de référence de l’IRL (Indice de référence des loyers) à la date du présent contrat, l’indice s’élève à {{indice_irl}}. 
     </p>
 
-    {% if bail.zone_tendue %}
+    {% if bail.location.rent_terms.zone_tendue %}
     <p>
       Modalités particulières de fixation initiale du loyer applicables dans certaines zones tendues :
     </p>
@@ -472,12 +472,12 @@
     </p>
 
     <p><strong>3° Charges </strong></p>
-    {% if bail.type_charges == "forfaitaires" %}
+    {% if bail.location.rent_terms.type_charges == "forfaitaires" %}
     <p>
     En application de l’article 25-10 de la loi n°89-462 du 6 juillet 1989, les charges locatives sont récupérées sous la forme d’un forfait mensuel, versé simultanément au loyer, et non révisable rétroactivement. 
     </p>
     <p>
-    Le montant du forfait est fixé à {{bail.montant_charges}} euros par mois. Il inclut l’ensemble des charges récupérables habituellement dues par le locataire. 
+    Le montant du forfait est fixé à {{bail.location.rent_terms.montant_charges}} euros par mois. Il inclut l’ensemble des charges récupérables habituellement dues par le locataire. 
     </p>
     <p>
     Ce forfait n’est pas soumis à régularisation, mais il peut être révisé chaque année dans les mêmes conditions que le loyer, selon l’indice de référence applicable au contrat. 
@@ -487,12 +487,12 @@
     {% endif %}
 
 
-    {% if bail.type_charges == "provisionnelles" %}
+    {% if bail.location.rent_terms.type_charges == "provisionnelles" %}
     <p>
     Conformément à l’article 23 de la loi n°89-462 du 6 juillet 1989, les charges locatives sont récupérées sous forme de provisions mensuelles, versées en même temps que le loyer. 
     </p>
     <p>
-    Le montant de la provision est fixé à {{bail.montant_charges}} euros par mois. 
+    Le montant de la provision est fixé à {{bail.location.rent_terms.montant_charges}} euros par mois. 
     </p>
     <p>
     Une régularisation annuelle sera effectuée par le bailleur, sur la base des dépenses réelles engagées, avec transmission au locataire du détail des charges et éventuelles justifications. 
@@ -509,7 +509,7 @@
     <h2>Article 10 - Garantie - Cautionnement</h2>
     <p><strong>1° Dépôt de garantie</strong></p>
     <p>
-      Le locataire a versé au bailleur qui le reconnaît et lui en consent quittance la somme de {{bail.depot_garantie}} euros, correspondant à {% if bail.bien.meuble %}2 mois{%else%}1 mois{% endif %} de loyer hors charges, à titre de dépôt de garantie, destiné à couvrir l’inexécution éventuelle de ses obligations contractuelles.
+      Le locataire a versé au bailleur qui le reconnaît et lui en consent quittance la somme de {{bail.location.rent_terms.depot_garantie}} euros, correspondant à {% if bail.location.bien.meuble %}2 mois{%else%}1 mois{% endif %} de loyer hors charges, à titre de dépôt de garantie, destiné à couvrir l’inexécution éventuelle de ses obligations contractuelles.
     </p>
     <p>
       Ce dépôt de garantie ne produit aucun intérêt pour le locataire. Il sera restitué dans les délais et selon les modalités prévus à l’article 22 de la loi du 6 juillet 1989 précitée, dans un délai maximal de 2 mois à compter de la restitution des clés, déduction faite :
@@ -649,12 +649,12 @@
     <div class="signature">
       <!-- Landlord signature blocks -->
       <h4 id="landlord-signature-header">
-        {% with count=bail.bien.bailleurs.all|length %}
+        {% with count=bail.location.bien.bailleurs.all|length %}
           Bailleur{% if count > 1 %}s{% endif %}
         {% endwith %}
       </h4>
       <div class="signature-list">
-        {% for bailleur in bail.bien.bailleurs.all %}
+        {% for bailleur in bail.location.bien.bailleurs.all %}
         <div class="signature-block">
           <!-- ID invisible pour PyMuPDF -->
           <p style="color:white; margin: 0;">ID_SIGNATURE_BAILLEUR_{{ bailleur.signataire.id }}</p>
@@ -664,12 +664,12 @@
   
       <!-- Tenant signature blocks -->
       <h4 id="tenant-signature-header">
-        {% with count=bail.locataires.all|length %}
+        {% with count=bail.location.locataires.all|length %}
           Locataire{% if count > 1 %}s{% endif %}
         {% endwith %}
       </h4>
       <div class="signature-list">
-        {% for person in bail.locataires.all %}
+        {% for person in bail.location.locataires.all %}
         <div class="signature-block">
           <!-- ID invisible pour PyMuPDF -->
           <p style="color:white; margin: 0;">ID_SIGNATURE_LOC_{{ person.id }}</p>

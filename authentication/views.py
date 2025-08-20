@@ -3,6 +3,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import models
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_exempt
@@ -21,6 +22,7 @@ from authentication.utils import (
     verify_google_token,
     verify_otp_only_and_generate_token,
 )
+from location.models import Bailleur, Locataire, Personne
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -298,10 +300,6 @@ def get_user_profile(request):
 @permission_classes([IsAuthenticated])
 def get_user_profile_detailed(request):
     """Vue pour récupérer le profil utilisateur complet avec biens et locations"""
-    from django.db import models
-
-    from bail.models import Bailleur, Locataire, Personne
-
     user = request.user
 
     # Informations utilisateur de base

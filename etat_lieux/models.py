@@ -1,10 +1,14 @@
-# models.py
+"""
+Nouveau modèle EtatLieux refactorisé
+À renommer en models.py après validation
+"""
+
 import uuid
 
 from django.db import models
 from django.utils import timezone
 
-from bail.models import BailSpecificites, Bien, Locataire, Personne
+from location.models import BaseModel, Bien, Locataire, Location, Personne
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
 
@@ -26,50 +30,45 @@ class ElementState(models.TextChoices):
     EMPTY = "", "Non renseigné"
 
 
-class EtatLieux(SignableDocumentMixin):
-    """Modèle principal pour l'état des lieux"""
+class EtatLieux(SignableDocumentMixin, BaseModel):
+    """État des lieux"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    # Relations
-    bail = models.ForeignKey(
-        BailSpecificites, on_delete=models.CASCADE, related_name="etats_lieux"
+    location = models.ForeignKey(
+        Location, on_delete=models.CASCADE, related_name="etats_lieux"
     )
 
-    # Type et dates
-    type_etat_lieux = models.CharField(
-        max_length=10, choices=EtatLieuxType.choices, help_text="Type d'état des lieux"
+    type_etat_lieux = models.CharField(max_length=10, choices=EtatLieuxType.choices)
+
+    # Date de l'état des lieux
+    date_etat_lieux = models.DateField(default=timezone.now)
+    # Inventaire (garde en JSON car structure simple)
+    nombre_cles = models.JSONField(default=dict)
+    compteurs = models.JSONField(default=dict)
+    equipements_chauffage = models.JSONField(default=dict)
+
+    # PDF spécifique EDL
+    grille_vetuste_pdf = models.FileField(
+        upload_to="etat_lieux_pdfs/",
+        null=True,
+        blank=True,
+        verbose_name="Grille de vétusté PDF",
     )
 
-    # Informations complémentaires
-    nombre_cles = models.JSONField(
-        default=dict, 
-        help_text="Nombre et types de clés remises",
-        blank=True
-    )
-    equipements_chauffage = models.JSONField(
-        default=dict,
-        help_text="Équipements de chauffage et eau chaude",
-        blank=True
-    )
-    compteurs = models.JSONField(
-        default=dict,
-        help_text="Relevés des compteurs",
-        blank=True
-    )
-
-    # Timestamps
-    date_creation = models.DateTimeField(default=timezone.now)
-    date_modification = models.DateTimeField(auto_now=True)
+    # Note: Les détails des pièces sont dans EtatLieuxPieceDetail
+    # Note: Les photos sont dans EtatLieuxPhoto
+    # Note: date_signature est gérée par SignableDocumentMixin
 
     class Meta:
         verbose_name = "État des lieux"
         verbose_name_plural = "États des lieux"
-        ordering = ["-date_creation"]
+        ordering = ["-created_at"]
+        db_table = "etat_lieux_etatlieux"
 
     def __str__(self):
         type_display = self.get_type_etat_lieux_display()
-        return f"État des lieux {type_display} - {self.bail.bien.adresse}"
+        return f"État des lieux {type_display} - {self.location.bien.adresse}"
 
     # Interface SignableDocument
     def get_document_name(self):
@@ -98,13 +97,14 @@ class EtatLieuxPiece(models.Model):
     class Meta:
         verbose_name = "Pièce état des lieux"
         verbose_name_plural = "Pièces état des lieux"
-        unique_together = [["bien", "nom"]]  # Une seule pièce par nom et par bien
+        unique_together = [["bien", "nom"]]
+        db_table = "etat_lieux_piece"
 
     def __str__(self):
         return f"{self.nom} - {self.bien.adresse}"
 
 
-class EtatLieuxPieceDetail(models.Model):
+class EtatLieuxPieceDetail(BaseModel):
     """Détails d'une pièce pour un état des lieux spécifique"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -127,13 +127,57 @@ class EtatLieuxPieceDetail(models.Model):
     )
     mobilier = models.JSONField(default=list, help_text="Liste du mobilier de la pièce")
 
+    # Spécifique sortie
+    degradations = models.JSONField(default=list, blank=True)
+
     class Meta:
         verbose_name = "Détail pièce état des lieux"
         verbose_name_plural = "Détails pièces état des lieux"
         unique_together = [["etat_lieux", "piece"]]
+        db_table = "etat_lieux_piecedetail"
 
     def __str__(self):
         return f"{self.piece.nom} - {self.etat_lieux}"
+
+
+class EtatLieuxPhoto(BaseModel):
+    """Photos associées aux états des lieux"""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # Relation avec le détail de pièce spécifique à un état des lieux
+    piece_detail = models.ForeignKey(
+        EtatLieuxPieceDetail,
+        on_delete=models.CASCADE,
+        related_name="photos",
+        help_text="Détail de pièce spécifique à un état des lieux",
+    )
+
+    # Localisation de la photo dans le formulaire
+    element_key = models.CharField(
+        max_length=50, help_text="Clé de l'élément (sol, murs, etc.)"
+    )
+    photo_index = models.IntegerField(help_text="Index de la photo pour cet élément")
+
+    # Fichier photo
+    image = models.ImageField(
+        upload_to="etat_lieux_photos/",
+        help_text="Photo de l'élément",
+    )
+
+    # Métadonnées
+    nom_original = models.CharField(max_length=255, help_text="Nom original du fichier")
+
+    class Meta:
+        verbose_name = "Photo état des lieux"
+        verbose_name_plural = "Photos état des lieux"
+        ordering = ["piece_detail", "element_key", "photo_index"]
+        db_table = "etat_lieux_photo"
+
+    def __str__(self):
+        piece_nom = self.piece_detail.piece.nom
+        etat_id = str(self.piece_detail.etat_lieux.id)[:8]
+        return f"Photo {piece_nom}/{self.element_key} - EDL {etat_id}"
 
 
 class EtatLieuxSignatureRequest(AbstractSignatureRequest):
@@ -172,7 +216,7 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
     def get_document_name(self):
         """Retourne le nom du document à signer"""
         type_display = self.etat_lieux.get_type_etat_lieux_display()
-        return f"{type_display} - {self.etat_lieux.bail.bien.adresse}"
+        return f"{type_display} - {self.etat_lieux.location.bien.adresse}"
 
     def get_document(self):
         """Retourne l'objet document associé"""
@@ -189,43 +233,3 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
             .order_by("order")
             .first()
         )
-
-
-class EtatLieuxPhoto(models.Model):
-    """Photos associées aux éléments d'un état des lieux spécifique"""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    # Relation avec le détail de pièce spécifique à un état des lieux
-    piece_detail = models.ForeignKey(
-        EtatLieuxPieceDetail,
-        on_delete=models.CASCADE,
-        related_name="photos",
-        help_text="Détail de pièce spécifique à un état des lieux",
-    )
-
-    # Localisation de la photo dans le formulaire
-    element_key = models.CharField(
-        max_length=50, help_text="Clé de l'élément (sol, murs, etc.)"
-    )
-    photo_index = models.IntegerField(help_text="Index de la photo pour cet élément")
-
-    # Fichier photo
-    image = models.ImageField(
-        upload_to="etat_lieux_photos/",
-        help_text="Photo de l'élément",
-    )
-
-    # Métadonnées
-    nom_original = models.CharField(max_length=255, help_text="Nom original du fichier")
-    date_upload = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        verbose_name = "Photo état des lieux"
-        verbose_name_plural = "Photos état des lieux"
-        ordering = ["piece_detail", "element_key", "photo_index"]
-
-    def __str__(self):
-        piece_nom = self.piece_detail.piece.nom
-        etat_id = str(self.piece_detail.etat_lieux.id)[:8]
-        return f"Photo {piece_nom}/{self.element_key} - EDL {etat_id}"

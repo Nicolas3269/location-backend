@@ -14,10 +14,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from weasyprint import HTML
 
 from backend.pdf_utils import get_static_pdf_iframe_url
-from bail.models import BailSpecificites
 from etat_lieux.models import (
     EtatLieux,
-    EtatLieuxPhoto,
     EtatLieuxPieceDetail,
     EtatLieuxSignatureRequest,
 )
@@ -26,6 +24,7 @@ from etat_lieux.utils import (
     create_etat_lieux_signature_requests,
     save_etat_lieux_photos,
 )
+from location.models import Bien
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
     confirm_signature_generic,
@@ -44,8 +43,6 @@ def get_or_create_pieces(request, bien_id):
     Retourne les pièces avec leurs UUIDs pour synchronisation avec le frontend.
     """
     try:
-        from bail.models import Bien
-
         # Récupérer le bien
         try:
             bien = Bien.objects.get(id=bien_id)
@@ -184,55 +181,54 @@ def generate_etat_lieux_pdf(request):
             form_data = json.loads(request.body)
             uploaded_photos = {}
 
-        bail_id = form_data.get("bail_id")
+        location_id = form_data.get("location_id")
         bien_id = form_data.get("bien_id")
 
-        if not bail_id and not bien_id:
+        if not location_id and not bien_id:
             return JsonResponse(
-                {"success": False, "error": "bail_id ou bien_id est requis"}, status=400
+                {"success": False, "error": "location_id ou bien_id est requis"}, status=400
             )
 
-        # Si on a un bien_id, récupérer le bail actif pour ce bien
-        if bien_id and not bail_id:
+        # Si on a un bien_id, récupérer la location active pour ce bien
+        if bien_id and not location_id:
             try:
-                # Récupérer le bail le plus récent pour ce bien
-                bail = (
-                    BailSpecificites.objects.filter(bien_id=bien_id)
-                    .order_by("-date_debut")
-                    .first()
+                from location.models import Location
+                # Récupérer la location la plus récente pour ce bien
+                location = (
+                    Location.objects.filter(bien_id=bien_id).order_by("-created_at").first()
                 )
-                if not bail:
+                if not location:
                     return JsonResponse(
                         {
                             "success": False,
-                            "error": f"Aucun bail trouvé pour le bien {bien_id}",
+                            "error": f"Aucune location trouvée pour le bien {bien_id}",
                         },
                         status=404,
                     )
-                bail_id = bail.id
+                location_id = location.id
             except Exception as e:
                 return JsonResponse(
                     {
                         "success": False,
-                        "error": f"Erreur lors de la récupération du bail: {str(e)}",
+                        "error": f"Erreur lors de la récupération de la location: {str(e)}",
                     },
                     status=400,
                 )
 
         # Créer l'état des lieux à partir des données du formulaire
 
-        # Supprimer les anciens états des lieux du même type pour ce bail
+        # Supprimer les anciens états des lieux du même type pour cette location
         # On ne peut avoir qu'un seul état des lieux d'entrée et un seul de sortie
         etat_lieux_type = form_data.get("type", "entree")
         anciens_etats_lieux = EtatLieux.objects.filter(
-            bail_id=bail_id, type_etat_lieux=etat_lieux_type
+            location_id=location_id, type_etat_lieux=etat_lieux_type
         )
 
         if anciens_etats_lieux.exists():
             count = anciens_etats_lieux.count()
             logger.info(
                 f"Suppression de {count} ancien(s) état(s) des lieux "
-                f"de type '{etat_lieux_type}' pour le bail {bail_id}"
+                f"de type '{etat_lieux_type}' pour la location {location_id}"
             )
 
             for ancien_etat_lieux in anciens_etats_lieux:
@@ -260,7 +256,7 @@ def generate_etat_lieux_pdf(request):
                 ancien_etat_lieux.delete()
 
         etat_lieux: EtatLieux = create_etat_lieux_from_form_data(
-            form_data, bail_id, request.user
+            form_data, location_id, request.user
         )
 
         # Sauvegarder les photos si présentes
@@ -279,7 +275,9 @@ def generate_etat_lieux_pdf(request):
         # Les photos sont maintenant liées aux piece_details spécifiques à cet état des lieux
         # Pas besoin de requête supplémentaire, on va les récupérer via les piece_details
 
-        logger.info(f"Préparation des données pour le PDF de l'état des lieux {etat_lieux.id}")
+        logger.info(
+            f"Préparation des données pour le PDF de l'état des lieux {etat_lieux.id}"
+        )
 
         # Créer la structure complète des pièces avec éléments enrichis
         pieces_enrichies = []
@@ -355,7 +353,7 @@ def generate_etat_lieux_pdf(request):
             {
                 "etat_lieux": etat_lieux,
                 "now": timezone.now(),
-                "bail": etat_lieux.bail,
+                "location": etat_lieux.location,
                 "pieces_enrichies": pieces_enrichies,
             },
         )
@@ -372,7 +370,7 @@ def generate_etat_lieux_pdf(request):
                 f.write(pdf_bytes)
 
             # 2. Ajouter champs de signature
-            prepare_pdf_with_signature_fields_generic(tmp_pdf_path, etat_lieux.bail)
+            prepare_pdf_with_signature_fields_generic(tmp_pdf_path, etat_lieux)
 
             # 3. Recharger dans etat_lieux.pdf
             with open(tmp_pdf_path, "rb") as f:

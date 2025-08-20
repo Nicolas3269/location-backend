@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.mail import send_mail as django_send_mail
 
 from bail.models import BailSignatureRequest
+from location.models import Bien
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,6 @@ def create_bien_from_form_data(form_data, save=True):
     Returns:
         Instance de Bien
     """
-    from bail.models import Bien
 
     # Mapper la période de construction (basé sur rent_control.choices)
     periode_construction_map = {

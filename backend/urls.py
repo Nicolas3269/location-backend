@@ -27,6 +27,7 @@ from .pdf_views import serve_pdf_for_iframe
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/location/", include("location.urls")),  # Nouvelle app centrale
     path("api/rent_control/", include("rent_control.urls")),
     path("api/bail/", include("bail.urls")),
     path("api/auth/", include("authentication.urls")),

@@ -11,7 +11,7 @@ from algo.signature.main import (
     get_named_dest_coordinates,
     sign_pdf,
 )
-from bail.models import BailSpecificites
+from bail.models import Bail
 
 logger = logging.getLogger(__name__)
 
@@ -121,22 +121,28 @@ def process_signature_generic(signature_request, signature_data_url):
         return False
 
 
-def prepare_pdf_with_signature_fields_generic(pdf_path, bail: BailSpecificites):
+def prepare_pdf_with_signature_fields_generic(pdf_path, document):
     """
     Version générique pour préparer un PDF avec les champs de signature
     Fonctionne avec n'importe quel document signable (bail, état des lieux, etc.)
 
     Args:
         pdf_path: Chemin vers le PDF à préparer
-        document: Instance du document signable (BailSpecificites, EtatLieux, etc.)
+        document: Instance du document signable (Bail, EtatLieux, etc.) qui a une relation 'location'
     """
     try:
+        # Récupérer la location du document
+        if hasattr(document, 'location'):
+            location = document.location
+        else:
+            raise ValueError(f"Le document {type(document).__name__} n'a pas de relation 'location'")
+        
         # Récupérer tous les signataires
-        bailleurs = bail.bien.bailleurs.all()
+        bailleurs = location.bien.bailleurs.all()
         bailleur_signataires = [
             bailleur.signataire for bailleur in bailleurs if bailleur.signataire
         ]
-        locataires = list(bail.locataires.all())
+        locataires = list(location.locataires.all())
 
         all_fields = []
 

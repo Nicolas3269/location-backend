@@ -10,37 +10,41 @@ class QuittanceAdmin(admin.ModelAdmin):
     """Administration des quittances de loyer"""
 
     list_display = [
-        "bail_info",
+        "location_info",
         "periode",
         "montant_loyer",
+        "montant_charges",
+        "montant_total",
         "date_paiement",
         "pdf_link",
-        "date_creation",
+        "created_at",
     ]
 
     list_filter = [
         "annee",
         "mois",
-        "date_creation",
+        "created_at",
         "date_paiement",
-        "bail__bien__type_bien",
     ]
 
     search_fields = [
-        "bail__bien__adresse",
-        "bail__locataires__nom",
-        "bail__locataires__prenom",
-        "bail__bien__bailleurs__personne__nom",
-        "bail__bien__bailleurs__personne__prenom",
-        "bail__bien__bailleurs__societe__raison_sociale",
+        "location__bien__adresse",
+        "location__locataires__nom",
+        "location__locataires__prenom",
+        "location__bien__bailleurs__personne__nom",
+        "location__bien__bailleurs__personne__prenom",
+        "location__bien__bailleurs__societe__raison_sociale",
     ]
 
     readonly_fields = [
         "id",
-        "date_creation",
-        "date_modification",
+        "created_at",
+        "updated_at",
         "pdf_preview",
         "periode_display",
+        "montant_loyer",
+        "montant_charges",
+        "montant_total",
     ]
 
     fieldsets = (
@@ -49,11 +53,21 @@ class QuittanceAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "id",
-                    "bail",
+                    "location",
                     "periode_display",
-                    "montant_loyer",
                     "date_paiement",
                 )
+            },
+        ),
+        (
+            "Montants",
+            {
+                "fields": (
+                    "montant_loyer",
+                    "montant_charges",
+                    "montant_total",
+                ),
+                "description": "Ces montants sont récupérés automatiquement depuis les conditions financières de la location",
             },
         ),
         (
@@ -69,30 +83,38 @@ class QuittanceAdmin(admin.ModelAdmin):
             "Dates",
             {
                 "fields": (
-                    "date_creation",
-                    "date_modification",
+                    "created_at",
+                    "updated_at",
                 ),
                 "classes": ("collapse",),
             },
         ),
     )
 
-    def bail_info(self, obj):
-        """Affiche les informations du bail avec lien vers la quittance"""
-        quittance_url = reverse("admin:quittance_quittance_change", args=[obj.pk])
-        bail_url = reverse("admin:bail_bailspecificites_change", args=[obj.bail.pk])
+    def location_info(self, obj):
+        """Affiche les informations de la location avec lien"""
+        location_url = reverse("admin:location_location_change", args=[obj.location.pk])
+        locataires = ", ".join([f"{loc.prenom} {loc.nom}" for loc in obj.location.locataires.all()])
+        
+        # Chercher s'il y a un bail actif pour cette location
+        bail = obj.location.bails.filter(is_active=True).first()
+        bail_link = ""
+        if bail:
+            bail_url = reverse("admin:bail_bail_change", args=[bail.pk])
+            bail_link = f'<br><small><a href="{bail_url}" title="Voir le bail">📋 Bail actif</a></small>'
+        
         return format_html(
-            '<a href="{}" title="Voir la quittance">{}</a><br>'
-            "<small>{}</small><br>"
-            '<small><a href="{}" title="Voir le bail">📋 Bail</a></small>',
-            quittance_url,
-            obj.bail.bien.adresse,
-            ", ".join([f"{loc.prenom} {loc.nom}" for loc in obj.bail.locataires.all()]),
-            bail_url,
+            '<a href="{}" title="Voir la location">{}</a><br>'
+            "<small>{}</small>"
+            "{}",
+            location_url,
+            obj.location.bien.adresse,
+            locataires,
+            bail_link,
         )
 
-    bail_info.short_description = "Bail / Locataires"
-    bail_info.admin_order_field = "bail__bien__adresse"
+    location_info.short_description = "Location / Locataires"
+    location_info.admin_order_field = "location__bien__adresse"
 
     def periode(self, obj):
         """Affiche la période formatée"""
@@ -133,22 +155,22 @@ class QuittanceAdmin(admin.ModelAdmin):
         """Optimise les requêtes avec select_related et prefetch_related"""
         queryset = super().get_queryset(request)
         return queryset.select_related(
-            "bail",
-            "bail__bien",
-            "bail__mandataire",
+            "location",
+            "location__bien",
+            "location__mandataire",
         ).prefetch_related(
-            "bail__locataires",
-            "bail__bien__bailleurs",
-            "bail__bien__bailleurs__personne",
-            "bail__bien__bailleurs__societe",
+            "location__locataires",
+            "location__bien__bailleurs",
+            "location__bien__bailleurs__personne",
+            "location__bien__bailleurs__societe",
         )
 
     def has_add_permission(self, request):
-        """Empêche la création manuelle de quittances"""
+        """Empêche la création manuelle de quittances via l'admin"""
         return False
 
     def has_change_permission(self, request, obj=None):
-        """Autorise seulement la consultation"""
+        """Autorise seulement la consultation/modification pour les superutilisateurs"""
         return request.user.is_superuser
 
     def has_delete_permission(self, request, obj=None):

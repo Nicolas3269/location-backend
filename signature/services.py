@@ -230,7 +230,7 @@ def create_signature_requests_generic(document, signature_request_model):
     Fonctionne avec bail et état des lieux.
 
     Args:
-        document: Instance du document signable (BailSpecificites, EtatLieux, etc.)
+        document: Instance du document signable (Bail, EtatLieux, etc.)
         signature_request_model: Modèle de demande de signature
     """
     # Déterminer le champ de relation vers le document
@@ -252,25 +252,15 @@ def create_signature_requests_generic(document, signature_request_model):
     # Supprimer les anciennes demandes de signature
     signature_request_model.objects.filter(**{document_field_name: document}).delete()
 
-    # Déduire le bail depuis le document
-    from bail.models import BailSpecificites
-    from etat_lieux.models import EtatLieux
+    # Déduire la location depuis le document
 
-    if isinstance(document, BailSpecificites):
-        bail = document
-    elif isinstance(document, EtatLieux):
-        bail = document.bail
-    else:
-        raise ValueError(
-            f"Type de document non supporté: {type(document)}. "
-            f"Types supportés: BailSpecificites, EtatLieux"
-        )
+    location = document.location
 
-    bailleurs = bail.bien.bailleurs.all()
+    bailleurs = location.bien.bailleurs.all()
     bailleur_signataires = [
         bailleur.signataire for bailleur in bailleurs if bailleur.signataire
     ]
-    locataires = list(bail.locataires.all())
+    locataires = list(location.locataires.all())
 
     order = 1
 

@@ -2,7 +2,7 @@
 Utilitaires pour l'encadrement des loyers
 """
 
-from bail.models import Bien
+from location.models import Bien
 from rent_control.choices import Region
 from rent_control.models import RentControlArea, RentPrice
 

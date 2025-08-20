@@ -1,6 +1,7 @@
 from decimal import ROUND_HALF_UP, Decimal
 
-from bail.models import BailSpecificites, Bien
+from bail.models import Bail
+from location.models import Bien
 from rent_control.choices import PropertyType, RegimeJuridique, SystemType
 
 
@@ -203,51 +204,61 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
         """
 
     @staticmethod
-    def prix_majore(bail: BailSpecificites):
+    def prix_majore(bail: Bail):
         """Génère le prix majoré basé sur l'encadrement des loyers"""
-        rent_price = bail.get_rent_price()
-        if rent_price:
-            # Prix majoré = prix max de référence par m²
-            return Decimal(str(rent_price.max_price)).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP
-            )
+        # Accéder aux données depuis location.rent_terms
+        if hasattr(bail.location, "rent_terms"):
+            rent_price = bail.location.rent_terms.get_rent_price()
+            if rent_price:
+                # Prix majoré = prix max de référence par m²
+                return Decimal(str(rent_price.max_price)).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
         return None
 
     @staticmethod
-    def complement_loyer(bail: BailSpecificites):
+    def complement_loyer(bail: Bail):
         """Calcule le complément de loyer selon l'encadrement des loyers"""
-        rent_price = bail.get_rent_price()
-        if rent_price and bail.bien.superficie:
-            # Calcul : montant_loyer - superficie * prix_max_reference
-            loyer_max_autorise = Decimal(str(bail.bien.superficie)) * Decimal(
-                str(rent_price.max_price)
-            )
-            montant_loyer = Decimal(str(bail.montant_loyer))
+        # Accéder aux données depuis location.rent_terms
+        if hasattr(bail.location, "rent_terms"):
+            rent_price = bail.location.rent_terms.get_rent_price()
+            bien = bail.location.bien
+            if rent_price and bien.superficie:
+                # Calcul : montant_loyer - superficie * prix_max_reference
+                loyer_max_autorise = Decimal(str(bien.superficie)) * Decimal(
+                    str(rent_price.max_price)
+                )
+                montant_loyer = Decimal(str(bail.location.rent_terms.montant_loyer))
 
-            complement = montant_loyer - loyer_max_autorise
-            if complement > 0:
-                return complement.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                complement = montant_loyer - loyer_max_autorise
+                if complement > 0:
+                    return complement.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
         # Pas de complément si pas d'encadrement ou si le loyer est dans les clous
         return None
 
     @staticmethod
-    def prix_reference(bail: BailSpecificites):
+    def prix_reference(bail: Bail):
         """Récupère le prix de référence basé sur l'encadrement des loyers"""
-        rent_price = bail.get_rent_price()
-        if rent_price:
-            # Prix de référence par m²
-            return Decimal(str(rent_price.reference_price)).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP
-            )
+        # Accéder aux données depuis location.rent_terms
+        if hasattr(bail.location, "rent_terms"):
+            rent_price = bail.location.rent_terms.get_rent_price()
+            if rent_price:
+                # Prix de référence par m²
+                return Decimal(str(rent_price.reference_price)).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
         return None
 
     @staticmethod
-    def is_copropriete(bail: BailSpecificites):
+    def is_copropriete(bail: Bail):
         """Vérifie si le bail est dans une copropriété"""
-        return bail.bien.regime_juridique == RegimeJuridique.COPROPRIETE
+        return bail.location.bien.regime_juridique == RegimeJuridique.COPROPRIETE
 
     @staticmethod
-    def potentiel_permis_de_louer(bail: BailSpecificites):
+    def potentiel_permis_de_louer(bail: Bail):
         """Vérifie si le bail peut être soumis à un permis de louer"""
-        return bail.permis_de_louer
+        # Accéder au permis de louer depuis location.rent_terms
+        if hasattr(bail.location, "rent_terms"):
+            return bail.location.rent_terms.permis_de_louer
+        return False

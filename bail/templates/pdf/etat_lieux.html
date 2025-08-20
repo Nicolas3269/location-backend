@@ -261,9 +261,9 @@
         <h1>{{ etat_lieux.get_type_etat_lieux_display }}</h1>
         <p style="text-align: center; margin-top: 10px; font-size: 14pt; color: #4a6b85;">
             {% if etat_lieux.type_etat_lieux == "entree" %}
-                Date d'entrée : {{ etat_lieux.bail.date_etat_lieux_entree|date:"d F Y"|default:"Non renseignée" }}
+                Date d'entrée : {{ etat_lieux.date_etat_lieux|date:"d F Y"|default:"Non renseignée" }}
             {% else %}
-                Date de sortie : {{ etat_lieux.bail.date_fin|date:"d F Y"|default:"Non renseignée" }}
+                Date de sortie : {{ etat_lieux.date_etat_lieux|date:"d F Y"|default:"Non renseignée" }}
             {% endif %}
         </p>
     </div>
@@ -274,19 +274,19 @@
         <div class="info-grid">
             <div class="info-item">
                 <span class="info-label">Adresse :</span>
-                {{ etat_lieux.bail.bien.adresse }}
+                {{ etat_lieux.location.bien.adresse }}
             </div>
             <div class="info-item">
                 <span class="info-label">Type :</span>
-                {{ etat_lieux.bail.bien.get_type_bien_display }}
+                {{ etat_lieux.location.bien.get_type_bien_display }}
             </div>
             <div class="info-item">
                 <span class="info-label">Superficie :</span>
-                {{ etat_lieux.bail.bien.superficie }} m²
+                {{ etat_lieux.location.bien.superficie }} m²
             </div>
             <div class="info-item">
                 <span class="info-label">Meublé :</span>
-                {% if etat_lieux.bail.bien.meuble %}Oui{% else %}Non{% endif %}
+                {% if etat_lieux.location.bien.meuble %}Oui{% else %}Non{% endif %}
             </div>
         </div>
     </div>
@@ -345,39 +345,39 @@
     </div>
     {% endif %}
 
-    {% if etat_lieux.bail.bien.chauffage_energie or etat_lieux.bail.bien.eau_chaude_energie or etat_lieux.equipements_chauffage %}
+    {% if etat_lieux.location.bien.chauffage_energie or etat_lieux.location.bien.eau_chaude_energie or etat_lieux.equipements_chauffage %}
     <div class="bien-info">
         <h2>Chauffage et eau chaude</h2>
         <div class="info-grid">
-            {% if etat_lieux.bail.bien.chauffage_energie %}
+            {% if etat_lieux.location.bien.chauffage_energie %}
             <div class="info-row" style="margin-bottom: 20px;">
                 <div style="margin-bottom: 8px;">
                     <span class="info-label" style="font-weight: bold; display: inline-block; min-width: 150px;">Chauffage :</span>
-                    <span style="text-transform: capitalize;">{{ etat_lieux.bail.bien.chauffage_energie|default:"Non renseigné" }}</span>
+                    <span style="text-transform: capitalize;">{{ etat_lieux.location.bien.chauffage_energie|default:"Non renseigné" }}</span>
                 </div>
                 <div style="margin-left: 20px;">
                     <span style="margin-right: 40px;">
-                        {% if etat_lieux.bail.bien.chauffage_type == "collectif" %}☑{% else %}☐{% endif %} Collectif
+                        {% if etat_lieux.location.bien.chauffage_type == "collectif" %}☑{% else %}☐{% endif %} Collectif
                     </span>
                     <span>
-                        {% if etat_lieux.bail.bien.chauffage_type == "individuel" %}☑{% else %}☐{% endif %} Individuel
+                        {% if etat_lieux.location.bien.chauffage_type == "individuel" %}☑{% else %}☐{% endif %} Individuel
                     </span>
                 </div>
             </div>
             {% endif %}
             
-            {% if etat_lieux.bail.bien.eau_chaude_energie %}
+            {% if etat_lieux.location.bien.eau_chaude_energie %}
             <div class="info-row" style="margin-bottom: 20px;">
                 <div style="margin-bottom: 8px;">
                     <span class="info-label" style="font-weight: bold; display: inline-block; min-width: 150px;">Eau chaude :</span>
-                    <span style="text-transform: capitalize;">{{ etat_lieux.bail.bien.eau_chaude_energie|default:"Non renseigné" }}</span>
+                    <span style="text-transform: capitalize;">{{ etat_lieux.location.bien.eau_chaude_energie|default:"Non renseigné" }}</span>
                 </div>
                 <div style="margin-left: 20px;">
                     <span style="margin-right: 40px;">
-                        {% if etat_lieux.bail.bien.eau_chaude_type == "collectif" %}☑{% else %}☐{% endif %} Collectif
+                        {% if etat_lieux.location.bien.eau_chaude_type == "collectif" %}☑{% else %}☐{% endif %} Collectif
                     </span>
                     <span>
-                        {% if etat_lieux.bail.bien.eau_chaude_type == "individuel" %}☑{% else %}☐{% endif %} Individuel
+                        {% if etat_lieux.location.bien.eau_chaude_type == "individuel" %}☑{% else %}☐{% endif %} Individuel
                     </span>
                 </div>
             </div>
@@ -577,7 +577,7 @@
             {% endif %}
 
             <!-- Mobilier (si meublé) -->
-            {% if etat_lieux.bail.bien.meuble and piece_data.piece.mobilier %}
+            {% if etat_lieux.location.bien.meuble and piece_data.piece.mobilier %}
             <div class="equipment-section">
                 <h4>Mobilier</h4>
                 <ul class="equipment-list">
@@ -607,12 +607,12 @@
     <div class="signature">
       <!-- Landlord signature blocks -->
       <h4 id="landlord-signature-header">
-        {% with count=etat_lieux.bail.bien.bailleurs.all|length %}
+        {% with count=etat_lieux.location.bien.bailleurs.all|length %}
           Bailleur{% if count > 1 %}s{% endif %}
         {% endwith %}
       </h4>
       <div class="signature-list">
-        {% for bailleur in etat_lieux.bail.bien.bailleurs.all %}
+        {% for bailleur in etat_lieux.location.bien.bailleurs.all %}
         <div class="signature-block">
           <!-- ID invisible pour PyMuPDF -->
           <p style="color:white; margin: 0;">ID_SIGNATURE_BAILLEUR_{{ bailleur.signataire.id }}</p>
@@ -622,12 +622,12 @@
   
       <!-- Tenant signature blocks -->
       <h4 id="tenant-signature-header">
-        {% with count=etat_lieux.bail.locataires.all|length %}
+        {% with count=etat_lieux.location.locataires.all|length %}
           Locataire{% if count > 1 %}s{% endif %}
         {% endwith %}
       </h4>
       <div class="signature-list">
-        {% for person in etat_lieux.bail.locataires.all %}
+        {% for person in etat_lieux.location.locataires.all %}
         <div class="signature-block">
           <!-- ID invisible pour PyMuPDF -->
           <p style="color:white; margin: 0;">ID_SIGNATURE_LOC_{{ person.id }}</p>

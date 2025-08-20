@@ -17,7 +17,7 @@ from pyhanko.sign.fields import (
 )
 from slugify import slugify
 
-from bail.models import Personne
+from location.models import Personne
 
 TAMPON_WIDTH_PX = 230
 TAMPON_HEIGHT_PX = 180

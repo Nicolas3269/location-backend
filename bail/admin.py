@@ -2,97 +2,10 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from .models import (
-    Bailleur,
-    BailSpecificites,
-    Bien,
+    Bail,
+    BailSignatureRequest,
     Document,
-    Locataire,
-    Personne,
-    Societe,
 )
-
-
-class BailleurBiensInline(admin.TabularInline):
-    model = Bien.bailleurs.through
-    extra = 1
-    verbose_name = "Bien"
-    verbose_name_plural = "Biens"
-
-
-@admin.register(Bailleur)
-class BailleurAdmin(admin.ModelAdmin):
-    """Interface d'administration pour les bailleurs"""
-
-    list_display = (
-        "get_full_name",
-        "bailleur_type",
-        "get_email",
-        "count_biens",
-    )
-    search_fields = (
-        "personne__nom",
-        "personne__prenom",
-        "personne__email",
-        "societe__raison_sociale",
-        "societe__email",
-    )
-    list_filter = ()  # Suppression du filtre sur bailleur_type car c'est une propriété
-    inlines = [BailleurBiensInline]
-
-    fieldsets = (
-        (
-            "Personne physique",
-            {
-                "fields": ("personne",),
-                "classes": ("collapse",),
-                "description": "Sélectionner si le bailleur est une personne physique",
-            },
-        ),
-        (
-            "Société",
-            {
-                "fields": ("societe",),
-                "classes": ("collapse",),
-                "description": "Sélectionner si le bailleur est une société",
-            },
-        ),
-        ("Signataire", {"fields": ("signataire",)}),
-    )
-
-    def get_full_name(self, obj: Bailleur):
-        return obj.full_name
-
-    get_full_name.short_description = "Nom"
-
-    def get_email(self, obj):
-        if obj.personne:
-            return obj.personne.email
-        elif obj.societe:
-            return obj.societe.email
-        return "-"
-
-    get_email.short_description = "Email"
-
-    def count_biens(self, obj):
-        """Affiche le nombre de biens du bailleur"""
-        count = obj.biens.count()
-        return count
-
-    count_biens.short_description = "Biens"
-
-
-class BailInline(admin.TabularInline):
-    model = BailSpecificites
-    extra = 0
-    fields = ("get_locataires", "date_debut", "date_fin", "montant_loyer")
-    show_change_link = True
-    readonly_fields = ("get_locataires",)
-
-    def get_locataires(self, obj):
-        locataires = [f"{loc.prenom} {loc.nom}" for loc in obj.locataires.all()]
-        return ", ".join(locataires)
-
-    get_locataires.short_description = "Locataires"
 
 
 class DocumentInline(admin.TabularInline):
@@ -113,7 +26,7 @@ class DocumentInline(admin.TabularInline):
 
     def file_link(self, obj):
         """Affiche un lien vers le fichier"""
-        if obj.fichier:
+        if obj.file:
             return format_html(
                 '<a href="{}" target="_blank">📄 Voir le fichier</a>',
                 obj.file.url,
@@ -123,248 +36,136 @@ class DocumentInline(admin.TabularInline):
     file_link.short_description = "Fichier"
 
 
-@admin.register(Bien)
-class BienAdmin(admin.ModelAdmin):
-    """Interface d'administration pour les biens immobiliers"""
+class BailSignatureRequestInline(admin.TabularInline):
+    """Inline pour les demandes de signature d'un bail"""
 
-    list_display = (
-        "adresse",
-        "display_bailleurs",
-        "type_bien",
-        "superficie",
-        "display_nombre_pieces_principales",
-        "meuble",
-        "display_dpe_class",
-    )
-    list_filter = (
-        "type_bien",
-        "meuble",
-        "classe_dpe",
-        "periode_construction",
-    )
-    search_fields = (
-        "adresse",
-        "bailleurs__personne__nom",
-        "bailleurs__personne__prenom",
-        "bailleurs__societe__raison_sociale",
-    )
-    inlines = [BailInline]
-
-    fieldsets = (
-        ("Bailleurs", {"fields": ("bailleurs",)}),
-        ("Localisation", {"fields": ("adresse", "latitude", "longitude")}),
-        (
-            "Caractéristiques",
-            {
-                "fields": (
-                    "type_bien",
-                    "superficie",
-                    "etage",
-                    "porte",
-                    "dernier_etage",
-                    "periode_construction",
-                    "meuble",
-                )
-            },
-        ),
-        (
-            "DPE",
-            {
-                "fields": ("classe_dpe", "depenses_energetiques"),
-                "classes": ("collapse",),
-            },
-        ),
-        (
-            "Informations complémentaires",
-            {
-                "fields": ("annexes", "additionnal_description"),
-                "classes": ("collapse",),
-            },
-        ),
-    )
-
-    def display_dpe_class(self, obj):
-        """Affiche la classe DPE avec un code couleur"""
-        colors = {
-            "A": "#33a557",
-            "B": "#79c267",
-            "C": "#c3d545",
-            "D": "#fff12c",
-            "E": "#edc22e",
-            "F": "#ec6730",
-            "G": "#e53946",
-            "NA": "#aaaaaa",
-        }
-        color = colors.get(obj.classe_dpe, "#aaaaaa")
-        return format_html(
-            '<span style="font-weight: bold; color: white; '
-            'background-color: {}; padding: 3px 8px; border-radius: 3px;">{}</span>',
-            color,
-            obj.classe_dpe,
-        )
-
-    display_dpe_class.short_description = "DPE"
-
-    def display_nombre_pieces_principales(self, obj):
-        """Affiche le nombre de pièces principales calculé"""
-        return f"{obj.nombre_pieces_principales} pièces"
-
-    display_nombre_pieces_principales.short_description = "Pièces principales"
-
-    def display_bailleurs(self, obj):
-        bailleurs_names = []
-        for bailleur in obj.bailleurs.all():
-            if bailleur.personne:
-                nom_complet = f"{bailleur.personne.prenom} {bailleur.personne.nom}"
-                bailleurs_names.append(nom_complet)
-            elif bailleur.societe:
-                bailleurs_names.append(bailleur.societe.raison_sociale)
-        return ", ".join(bailleurs_names)
-
-    display_bailleurs.short_description = "Bailleurs"
+    model = BailSignatureRequest
+    extra = 0
+    fields = ("order", "bailleur_signataire", "locataire", "signed", "signed_at")
+    readonly_fields = ("link_token", "signed_at")
 
 
-@admin.register(Locataire)
-class LocataireAdmin(admin.ModelAdmin):
-    """Interface d'administration pour les locataires"""
-
-    list_display = ("get_nom", "get_prenom", "email", "count_bails")
-    search_fields = ("nom", "prenom", "email")
-
-    fieldsets = (
-        (
-            "Informations personnelles",
-            {"fields": ("nom", "prenom", "date_naissance", "email", "adresse")},
-        ),
-        (
-            "Informations spécifiques",
-            {"fields": ("lieu_naissance", "adresse_actuelle")},
-        ),
-        (
-            "Informations professionnelles",
-            {
-                "fields": ("profession", "employeur", "revenu_mensuel"),
-                "classes": ("collapse",),
-            },
-        ),
-        (
-            "Documents d'identité",
-            {
-                "fields": ("num_carte_identite", "date_emission_ci"),
-                "classes": ("collapse",),
-            },
-        ),
-        (
-            "Autres",
-            {
-                "fields": ("caution_requise", "iban"),
-                "classes": ("collapse",),
-            },
-        ),
-    )
-
-    def get_nom(self, obj):
-        """Affiche le nom"""
-        return obj.nom
-
-    get_nom.short_description = "Nom"
-    get_nom.admin_order_field = "nom"
-
-    def get_prenom(self, obj):
-        """Affiche le prénom"""
-        return obj.prenom
-
-    get_prenom.short_description = "Prénom"
-    get_prenom.admin_order_field = "prenom"
-
-    def count_bails(self, obj):
-        """Affiche le nombre de bails du locataire"""
-        count = obj.bails.count()
-        return count
-
-    count_bails.short_description = "Bails"
-
-
-@admin.register(BailSpecificites)
-class BailSpecificitesAdmin(admin.ModelAdmin):
+@admin.register(Bail)
+class BailAdmin(admin.ModelAdmin):
     """Interface d'administration pour les baux"""
 
     list_display = (
-        "bien",
+        "get_bien_address",
         "display_locataires",
-        "date_debut",
-        "date_fin",
-        "montant_loyer",
-        "zone_tendue",
-        "display_documents_status",
+        "get_date_debut",
+        "get_date_fin",
+        "get_montant_loyer",
         "status",
+        "display_documents_status",
+        "version",
+        "is_active",
     )
-    list_filter = ("zone_tendue", "date_debut", "status")
-    search_fields = ("bien__adresse", "locataires__nom", "locataires__prenom")
-    date_hierarchy = "date_debut"
-    inlines = [DocumentInline]
+    list_filter = ("status", "is_active", "version")
+    search_fields = (
+        "location__bien__adresse",
+        "location__locataires__nom",
+        "location__locataires__prenom",
+    )
+    date_hierarchy = "date_signature"
+    inlines = [DocumentInline, BailSignatureRequestInline]
 
     fieldsets = (
-        ("Parties concernées", {"fields": ("bien", "locataires")}),
+        ("Location associée", {"fields": ("location",)}),
         (
-            "Durée",
+            "Informations du bail",
             {
                 "fields": (
-                    "date_debut",
-                    "date_fin",
-                    "date_signature",
-                    "date_etat_lieux_entree",
-                )
-            },
-        ),
-        (
-            "Conditions financières",
-            {
-                "fields": (
-                    "montant_loyer",
-                    "montant_charges",
-                    "jour_paiement",
-                    "depot_garantie",
-                )
-            },
-        ),
-        (
-            "Encadrement des loyers",
-            {
-                "fields": (
-                    "zone_tendue",
-                    "rent_price_id",
-                    "justificatif_complement_loyer",
-                ),
-                "classes": ("collapse",),
-            },
-        ),
-        (
-            "Relevés compteurs",
-            {
-                "fields": (
-                    "releve_eau_entree",
-                    "releve_elec_entree",
-                    "releve_gaz_entree",
-                ),
-                "classes": ("collapse",),
-            },
-        ),
-        ("Observations", {"fields": ("observations",)}),
-        (
-            "Documents et annexes",
-            {
-                "fields": (
+                    "version",
+                    "is_active",
                     "status",
+                    "duree_mois",
+                )
+            },
+        ),
+        (
+            "Dates importantes",
+            {"fields": ("date_signature",)},
+        ),
+        (
+            "Clauses et observations",
+            {
+                "fields": (
+                    "clauses_particulieres",
+                    "observations",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Travaux",
+            {
+                "fields": (
+                    "travaux_bailleur",
+                    "travaux_locataire",
+                    "honoraires_ttc",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Documents PDF",
+            {
+                "fields": (
                     "pdf",
                     "latest_pdf",
-                    "grille_vetuste_pdf",
                     "notice_information_pdf",
+                    "dpe_pdf",
+                    "grille_vetuste_pdf",
                 ),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Justificatifs",
+            {
+                "fields": ("justificatifs",),
                 "classes": ("collapse",),
             },
         ),
     )
+
+    def get_bien_address(self, obj):
+        """Affiche l'adresse du bien"""
+        return obj.location.bien.adresse
+
+    get_bien_address.short_description = "Adresse du bien"
+    get_bien_address.admin_order_field = "location__bien__adresse"
+
+    def display_locataires(self, obj):
+        """Affiche les locataires"""
+        locataires = [
+            f"{loc.prenom} {loc.nom}" for loc in obj.location.locataires.all()
+        ]
+        return ", ".join(locataires)
+
+    display_locataires.short_description = "Locataires"
+
+    def get_date_debut(self, obj):
+        """Affiche la date de début de la location"""
+        return obj.location.date_debut
+
+    get_date_debut.short_description = "Date début"
+    get_date_debut.admin_order_field = "location__date_debut"
+
+    def get_date_fin(self, obj):
+        """Affiche la date de fin de la location"""
+        return obj.location.date_fin
+
+    get_date_fin.short_description = "Date fin"
+    get_date_fin.admin_order_field = "location__date_fin"
+
+    def get_montant_loyer(self, obj):
+        """Affiche le montant du loyer"""
+        if hasattr(obj.location, "rent_terms"):
+            return obj.location.rent_terms.montant_loyer
+        return "-"
+
+    get_montant_loyer.short_description = "Loyer"
 
     def display_documents_status(self, obj):
         """Affiche le statut des documents annexes"""
@@ -375,6 +176,8 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
             docs.append('<span style="color: green;">📋 Grille vétusté</span>')
         if obj.notice_information_pdf:
             docs.append('<span style="color: green;">📋 Notice info</span>')
+        if obj.dpe_pdf:
+            docs.append('<span style="color: green;">📋 DPE</span>')
 
         if not docs:
             return '<span style="color: gray;">Aucun document</span>'
@@ -384,93 +187,162 @@ class BailSpecificitesAdmin(admin.ModelAdmin):
     display_documents_status.short_description = "Documents"
     display_documents_status.allow_tags = True
 
-    def display_locataires(self, obj):
-        return ", ".join(
-            [
-                f"{locataire.prenom} {locataire.nom}"
-                for locataire in obj.locataires.all()
-            ]
-        )
-
-    display_locataires.short_description = "Locataires"
-
-    # Update formfield_for_foreignkey to remove proprietaire reference
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "bien":
-            kwargs["queryset"] = Bien.objects.all()  # No select_related needed
+        if db_field.name == "location":
+            kwargs["queryset"] = db_field.remote_field.model.objects.select_related(
+                "bien"
+            )
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
-@admin.register(Personne)
-class PersonneAdmin(admin.ModelAdmin):
-    """Interface d'administration pour les personnes physiques"""
-
-    list_display = ("get_full_name", "email", "date_naissance", "count_bailleurs")
-    search_fields = ("nom", "prenom", "email")
-    list_filter = ("date_naissance",)
-
-    fieldsets = (
-        (
-            "Informations personnelles",
-            {"fields": ("nom", "prenom", "date_naissance", "email")},
-        ),
-        ("Adresse", {"fields": ("adresse",)}),
-        (
-            "Informations bancaires",
-            {
-                "fields": ("iban",),
-                "classes": ("collapse",),
-            },
-        ),
-    )
-
-    def get_full_name(self, obj):
-        """Affiche le nom complet"""
-        return obj.full_name
-
-    get_full_name.short_description = "Nom complet"
-    get_full_name.admin_order_field = "nom"
-
-    def count_bailleurs(self, obj):
-        """Affiche le nombre de bailleurs liés à cette personne"""
-        count = obj.bailleurs.count()
-        return count
-
-    count_bailleurs.short_description = "Bailleurs"
-
-
-@admin.register(Societe)
-class SocieteAdmin(admin.ModelAdmin):
-    """Interface d'administration pour les sociétés"""
+@admin.register(Document)
+class DocumentAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les documents"""
 
     list_display = (
-        "raison_sociale",
-        "siret",
-        "forme_juridique",
-        "email",
-        "count_bailleurs",
+        "nom_original",
+        "type_document",
+        "get_bail_info",
+        "get_bien_info",
+        "date_creation",
+        "uploade_par",
     )
-    search_fields = ("raison_sociale", "siret", "email", "forme_juridique")
-    list_filter = ("forme_juridique",)
+    list_filter = ("type_document", "date_creation")
+    search_fields = (
+        "nom_original",
+        "bail__location__bien__adresse",
+        "bien__adresse",
+    )
+    date_hierarchy = "date_creation"
 
     fieldsets = (
         (
-            "Informations de la société",
-            {"fields": ("raison_sociale", "siret", "forme_juridique")},
-        ),
-        ("Contact", {"fields": ("email", "adresse")}),
-        (
-            "Informations bancaires",
+            "Relations",
             {
-                "fields": ("iban",),
+                "fields": ("bail", "bien"),
+                "description": "Un document peut être lié soit à un bail, soit à un bien",
+            },
+        ),
+        (
+            "Informations du document",
+            {
+                "fields": (
+                    "type_document",
+                    "nom_original",
+                    "file",
+                )
+            },
+        ),
+        (
+            "Métadonnées",
+            {
+                "fields": (
+                    "date_creation",
+                    "date_modification",
+                    "uploade_par",
+                ),
                 "classes": ("collapse",),
             },
         ),
     )
+    readonly_fields = ("date_creation", "date_modification")
 
-    def count_bailleurs(self, obj):
-        """Affiche le nombre de bailleurs liés à cette société"""
-        count = obj.bailleurs.count()
-        return count
+    def get_bail_info(self, obj):
+        """Affiche les informations du bail associé"""
+        if obj.bail:
+            return f"{obj.bail.location.bien.adresse}"
+        return "-"
 
-    count_bailleurs.short_description = "Nombre de bailleurs"
+    get_bail_info.short_description = "Bail"
+
+    def get_bien_info(self, obj):
+        """Affiche les informations du bien associé"""
+        if obj.bien:
+            return obj.bien.adresse
+        return "-"
+
+    get_bien_info.short_description = "Bien"
+
+
+@admin.register(BailSignatureRequest)
+class BailSignatureRequestAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les demandes de signature de bail"""
+
+    list_display = (
+        "bail_display",
+        "signataire_display",
+        "order",
+        "signed",
+        "signed_at",
+        "created_at",
+    )
+
+    list_filter = (
+        "signed",
+        "created_at",
+    )
+
+    search_fields = (
+        "bailleur_signataire__email",
+        "locataire__email",
+        "bail__location__bien__adresse",
+    )
+
+    readonly_fields = (
+        "link_token",
+        "otp_generated_at",
+        "signed_at",
+        "created_at",
+        "signature_image_link",
+    )
+
+    fieldsets = (
+        (None, {"fields": ("bail", "order", "bailleur_signataire", "locataire")}),
+        (
+            "Authentification",
+            {
+                "fields": ("link_token", "otp", "otp_generated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Signature",
+            {
+                "fields": (
+                    "signed",
+                    "signed_at",
+                    "signature_image",
+                    "signature_image_link",
+                ),
+            },
+        ),
+        ("Métadonnées", {"fields": ("created_at",), "classes": ("collapse",)}),
+    )
+
+    def bail_display(self, obj):
+        """Affichage du bail"""
+        return f"Bail {obj.bail.location.bien.adresse} - v{obj.bail.version}"
+
+    bail_display.short_description = "Bail"
+
+    def signataire_display(self, obj):
+        """Affichage du signataire"""
+        if obj.bailleur_signataire:
+            nom = f"{obj.bailleur_signataire.prenom} {obj.bailleur_signataire.nom}"
+            return f"Bailleur: {nom}"
+        elif obj.locataire:
+            return f"Locataire: {obj.locataire.prenom} {obj.locataire.nom}"
+        return "Aucun signataire"
+
+    signataire_display.short_description = "Signataire"
+
+    def signature_image_link(self, obj):
+        """Lien vers l'image de signature"""
+        if obj.signature_image:
+            return format_html(
+                '<a href="{}" target="_blank">Voir signature</a>',
+                obj.signature_image.url,
+            )
+        return "Pas de signature"
+
+    signature_image_link.short_description = "Image signature"

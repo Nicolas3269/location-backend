@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "django.contrib.gis",  # Add GeoDjango
     # Apps
     "authentication",
+    "location",
     "bail",
     "rent_control",
     "notifications",

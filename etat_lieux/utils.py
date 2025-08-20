@@ -2,7 +2,6 @@ import logging
 
 from django.conf import settings
 
-from bail.models import BailSpecificites
 from bail.utils import send_mail
 from etat_lieux.models import (
     EtatLieux,
@@ -47,7 +46,7 @@ def send_etat_lieux_signature_email(signature_request):
     Bonjour {person.prenom} {person.nom},
 
     Vous êtes invité(e) à signer l'état des lieux {etat_lieux.get_type_etat_lieux_display()} 
-    pour le bien situé à : {etat_lieux.bien.adresse}
+    pour le bien situé à : {etat_lieux.location.bien.adresse}
 
     Pour procéder à la signature, cliquez sur le lien suivant :
     {signature_url}
@@ -128,7 +127,7 @@ def get_or_create_pieces_for_bien(bien):
     return pieces_created
 
 
-def create_etat_lieux_from_form_data(form_data, bail_id, user):
+def create_etat_lieux_from_form_data(form_data, location_id, user):
     """
     Crée un état des lieux à partir des données du formulaire.
     Gère la création/récupération des pièces avec leurs UUIDs.
@@ -138,20 +137,22 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
     from datetime import datetime
 
     from django.utils.dateparse import parse_datetime
+    from location.models import Location
 
-    # Récupérer le bail
-    bail = BailSpecificites.objects.get(id=bail_id)
+    # Récupérer la location et le bien
+    location = Location.objects.select_related("bien").get(id=location_id)
+    bien = location.bien
 
     # Créer l'état des lieux principal avec les informations complémentaires
     etat_lieux = EtatLieux.objects.create(
-        bail=bail,
+        location=location,
         type_etat_lieux=form_data.get("type", "entree"),
         nombre_cles=form_data.get("nombreCles", {}),
         equipements_chauffage=form_data.get("equipementsChauffage", {}),
         compteurs=form_data.get("compteurs", {}),
     )
 
-    # Mettre à jour la date appropriée sur le bail selon le type
+    # Stocker la date de l'état des lieux
     date_etat_lieux = form_data.get("dateEtatLieux")
     if date_etat_lieux:
         # Parser la date si c'est une chaîne
@@ -168,13 +169,8 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
                 except:
                     date_etat_lieux = None
 
-        if date_etat_lieux and etat_lieux.type_etat_lieux == "entree":
-            bail.date_etat_lieux_entree = date_etat_lieux
-            bail.save(update_fields=["date_etat_lieux_entree"])
-        elif date_etat_lieux and etat_lieux.type_etat_lieux == "sortie":
-            # Stocker la date de sortie dans date_fin du bail
-            bail.date_fin = date_etat_lieux
-            bail.save(update_fields=["date_fin"])
+        etat_lieux.date_etat_lieux = date_etat_lieux
+        etat_lieux.save(update_fields=["date_etat_lieux"])
 
     # Gérer les pièces selon le contexte
     # Si on a des rooms avec pieceUuid, on doit créer/récupérer les pièces avec ces UUIDs
@@ -189,7 +185,7 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
             room_uuids.add(piece_uuid)
 
     # Récupérer les pièces existantes du bien
-    existing_pieces = EtatLieuxPiece.objects.filter(bien=bail.bien)
+    existing_pieces = EtatLieuxPiece.objects.filter(bien=bien)
     existing_uuids = {str(piece.id) for piece in existing_pieces}
 
     # IMPORTANT: Supprimer les pièces qui ne sont plus dans les rooms
@@ -215,7 +211,7 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
                 piece, created = EtatLieuxPiece.objects.update_or_create(
                     id=uuid_obj,
                     defaults={
-                        "bien": bail.bien,
+                        "bien": bien,
                         "nom": room_data.get("name", "Pièce"),
                         "type_piece": room_data.get("type", "room"),
                     },
@@ -233,7 +229,7 @@ def create_etat_lieux_from_form_data(form_data, bail_id, user):
         logger.warning(
             "Aucune pièce créée depuis les rooms, utilisation de la méthode par défaut"
         )
-        pieces = get_or_create_pieces_for_bien(bail.bien)
+        pieces = get_or_create_pieces_for_bien(bien)
         pieces_by_uuid = {str(p.id): p for p in pieces}
 
     pieces = list(pieces_by_uuid.values())

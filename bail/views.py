@@ -18,21 +18,25 @@ from backend.pdf_utils import get_pdf_iframe_url, get_static_pdf_iframe_url
 from bail.constants import FORMES_JURIDIQUES
 from bail.generate_bail.mapping import BailMapping
 from bail.models import (
-    Bailleur,
+    Bail,
     BailSignatureRequest,
-    BailSpecificites,
-    Bien,
     Document,
     DocumentType,
-    Locataire,
-    Personne,
-    Societe,
 )
 from bail.utils import (
     create_bien_from_form_data,
     create_signature_requests,
 )
 from etat_lieux.utils import get_or_create_pieces_for_bien
+from location.models import (
+    Bailleur,
+    Bien,
+    Locataire,
+    Location,
+    Personne,
+    RentTerms,
+    Societe,
+)
 from rent_control.models import RentPrice
 from rent_control.utils import get_rent_price_for_bien
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
@@ -59,10 +63,12 @@ def generate_bail_pdf(request):
                 {"success": False, "error": "bail_id est requis"}, status=400
             )
 
-        bail = get_object_or_404(BailSpecificites, id=bail_id)
+        bail = get_object_or_404(Bail, id=bail_id)
 
         # Vérifier si au moins un locataire a une caution requise
-        acte_de_cautionnement = bail.locataires.filter(caution_requise=True).exists()
+        acte_de_cautionnement = bail.location.locataires.filter(
+            caution_requise=True
+        ).exists()
 
         # Générer le PDF depuis le template HTML
         html = render_to_string(
@@ -70,26 +76,30 @@ def generate_bail_pdf(request):
             {
                 "bail": bail,
                 "acte_de_cautionnement": acte_de_cautionnement,
-                "title_bail": BailMapping.title_bail(bail.bien),
-                "subtitle_bail": BailMapping.subtitle_bail(bail.bien),
+                "title_bail": BailMapping.title_bail(bail.location.bien),
+                "subtitle_bail": BailMapping.subtitle_bail(bail.location.bien),
                 "article_objet_du_contrat": BailMapping.article_objet_du_contrat(
-                    bail.bien
+                    bail.location.bien
                 ),
-                "article_duree_contrat": BailMapping.article_duree_contrat(bail.bien),
-                "pieces_info": BailMapping.pieces_info(bail.bien),
+                "article_duree_contrat": BailMapping.article_duree_contrat(
+                    bail.location.bien
+                ),
+                "pieces_info": BailMapping.pieces_info(bail.location.bien),
                 "annexes_privatives_info": BailMapping.annexes_privatives_info(
-                    bail.bien
+                    bail.location.bien
                 ),
                 "annexes_collectives_info": BailMapping.annexes_collectives_info(
-                    bail.bien
+                    bail.location.bien
                 ),
-                "information_info": BailMapping.information_info(bail.bien),
-                "energy_info": BailMapping.energy_info(bail.bien),
+                "information_info": BailMapping.information_info(bail.location.bien),
+                "energy_info": BailMapping.energy_info(bail.location.bien),
                 "indice_irl": INDICE_IRL,
                 "prix_reference": BailMapping.prix_reference(bail),
                 "prix_majore": BailMapping.prix_majore(bail),
                 "complement_loyer": BailMapping.complement_loyer(bail),
-                "justificatif_complement_loyer": bail.justificatif_complement_loyer,
+                "justificatif_complement_loyer": bail.location.rent_terms.justificatif_complement_loyer
+                if hasattr(bail.location, "rent_terms")
+                else None,
                 "is_copropriete": BailMapping.is_copropriete(bail),
                 "potentiel_permis_de_louer": BailMapping.potentiel_permis_de_louer(
                     bail
@@ -219,8 +229,8 @@ def upload_document(request):
                 status=400,
             )
 
-        bail = get_object_or_404(BailSpecificites, id=bail_id)
-        bien = bail.bien
+        bail = get_object_or_404(Bail, id=bail_id)
+        bien = bail.location.bien
 
         uploaded_files = []
 
@@ -275,7 +285,7 @@ def upload_document(request):
                 {
                     "id": str(document.id),
                     "name": document.nom_original,
-                    "url": request.build_absolute_uri(document.url),
+                    "url": request.build_absolute_uri(document.file.url),
                     "type": document.get_type_document_display(),
                     "created_at": document.date_creation.isoformat(),
                 }
@@ -460,7 +470,7 @@ def save_draft(request):
                     )
                     locataires.append(locataire)
 
-                # 4. Créer le bail
+                # 4. Créer la Location (entité pivot)
                 start_date_str = form_data.get("startDate", "")
                 start_date = (
                     datetime.strptime(start_date_str, "%Y-%m-%d").date()
@@ -471,6 +481,17 @@ def save_draft(request):
                 solidaire_string = form_data.get("solidaires", "")
                 solidaires = solidaire_string.lower() == "true"
 
+                location = Location.objects.create(
+                    bien=bien,
+                    solidaires=solidaires,
+                    date_debut=start_date,
+                    created_from="bail",
+                )
+
+                # Associer les locataires à la location
+                location.locataires.set(locataires)
+
+                # 5. Créer les conditions financières (RentTerms)
                 montant_loyer = Decimal(str(modalites.get("prix", 0)))
                 is_meuble = bien.meuble
                 depot_garantie = 2 * montant_loyer if is_meuble else montant_loyer
@@ -483,32 +504,38 @@ def save_draft(request):
                         rent_price_id = rent_price.pk
                     except Exception as e:
                         logger.warning(f"Impossible de récupérer le RentPrice: {e}")
+                        rent_price_id = None
                 else:
                     rent_price_id = None
-                bail = BailSpecificites.objects.create(
-                    bien=bien,
-                    solidaires=solidaires,
-                    date_debut=start_date,
-                    montant_loyer=Decimal(str(modalites.get("prix", 0))),
-                    type_charges=modalites.get("chargeType", ""),
+
+                rent_terms = RentTerms.objects.create(
+                    location=location,
+                    montant_loyer=montant_loyer,
+                    type_charges=modalites.get("chargeType", "FORFAITAIRES"),
                     montant_charges=Decimal(str(modalites.get("chargeAmount", 0))),
-                    rent_price_id=rent_price_id,
                     depot_garantie=depot_garantie,
                     zone_tendue=form_data.get("zoneTendue", False),
                     permis_de_louer=form_data.get("permisDeLouer", False),
+                    rent_price_id=rent_price_id,
                     justificatif_complement_loyer=modalites.get(
                         "justificationPrix", ""
                     ),
-                    status="draft",  # Brouillon
                 )
 
-                # Associer les locataires au bail
-                bail.locataires.set(locataires)
+                # 6. Créer le bail
+                bail = Bail.objects.create(
+                    location=location,
+                    status="draft",  # Brouillon
+                    version=1,
+                    is_active=True,
+                    # duree_mois=12,  # Durée par défaut
+                )
 
                 return JsonResponse(
                     {
                         "success": True,
                         "bailId": bail.id,
+                        "locationId": str(location.id),
                         "message": "Brouillon sauvegardé avec succès",
                     }
                 )
@@ -729,7 +756,7 @@ def get_bail_bien_id(request, bail_id):
     Endpoint simple pour obtenir le bien_id depuis un bail_id.
     """
     try:
-        bail = get_object_or_404(BailSpecificites, id=bail_id)
+        bail = get_object_or_404(Bail, id=bail_id)
         return JsonResponse(
             {
                 "success": True,
@@ -758,7 +785,7 @@ def get_bien_detail(request, bien_id):
         # Vérifier que l'utilisateur a accès à ce bien
         # L'utilisateur doit être le signataire d'un des bailleurs du bien
         # ou être un locataire d'un bail sur ce bien
-        user_bails = BailSpecificites.objects.filter(bien=bien)
+        user_bails = Bail.objects.filter(bien=bien)
         has_access = False
 
         # Récupérer l'email de l'utilisateur connecté
@@ -841,7 +868,7 @@ def get_bien_baux(request, bien_id):
             )
 
         # Récupérer tous les baux du bien
-        baux = BailSpecificites.objects.filter(bien=bien).order_by("-date_debut")
+        baux = Bail.objects.filter(bien=bien).order_by("-date_debut")
 
         baux_data = []
         for bail in baux:

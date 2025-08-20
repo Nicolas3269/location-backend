@@ -35,31 +35,46 @@ class EtatLieuxAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "type_etat_lieux",
-        "bien_adresse",
-        "bail_id",
-        "date_creation",
+        "location_info",
+        "date_etat_lieux",
+        "created_at",
         "pdf_link",
     )
 
     list_filter = (
         "type_etat_lieux",
-        "date_creation",
+        "date_etat_lieux",
+        "created_at",
     )
 
     search_fields = (
-        "bail__bien__adresse",
-        "bail__id",
+        "location__bien__adresse",
+        "location__locataires__nom",
+        "location__locataires__prenom",
     )
 
-    readonly_fields = ("id", "date_creation", "date_modification", "pdf_link", "latest_pdf_link")
+    readonly_fields = ("id", "created_at", "updated_at", "pdf_link", "latest_pdf_link")
 
     fieldsets = (
-        (None, {"fields": ("id", "bail", "type_etat_lieux")}),
-        ("PDF", {"fields": ("pdf", "pdf_link", "latest_pdf", "latest_pdf_link"), "classes": ("collapse",)}),
+        (None, {"fields": ("id", "location", "type_etat_lieux", "date_etat_lieux")}),
+        (
+            "Inventaire",
+            {
+                "fields": ("nombre_cles", "compteurs", "equipements_chauffage"),
+                "classes": ("collapse",),
+            }
+        ),
+        (
+            "PDF",
+            {
+                "fields": ("pdf", "pdf_link", "latest_pdf", "latest_pdf_link", "grille_vetuste_pdf"),
+                "classes": ("collapse",)
+            }
+        ),
         (
             "Métadonnées",
             {
-                "fields": ("date_creation", "date_modification"),
+                "fields": ("created_at", "updated_at"),
                 "classes": ("collapse",),
             },
         ),
@@ -67,17 +82,17 @@ class EtatLieuxAdmin(admin.ModelAdmin):
 
     inlines = [EtatLieuxSignatureRequestInline]
 
-    def bien_adresse(self, obj):
-        """Affiche l'adresse du bien"""
-        return obj.bail.bien.adresse if obj.bail and obj.bail.bien else "-"
+    def location_info(self, obj):
+        """Affiche les informations de la location"""
+        bien_adresse = obj.location.bien.adresse
+        locataires = ", ".join([f"{loc.prenom} {loc.nom}" for loc in obj.location.locataires.all()])
+        return format_html(
+            "{}<br><small>{}</small>",
+            bien_adresse,
+            locataires
+        )
 
-    bien_adresse.short_description = "Adresse du bien"
-
-    def bail_id(self, obj):
-        """Affiche l'ID du bail"""
-        return obj.bail.id if obj.bail else "-"
-
-    bail_id.short_description = "ID Bail"
+    location_info.short_description = "Location"
 
     def pdf_link(self, obj):
         """Affiche un lien vers le PDF s'il existe"""
@@ -146,17 +161,17 @@ class EtatLieuxPieceDetailAdmin(admin.ModelAdmin):
 
     search_fields = (
         "piece__nom",
-        "etat_lieux__bail__bien__adresse",
+        "etat_lieux__location__bien__adresse",
     )
 
-    readonly_fields = ("elements", "equipments", "mobilier")
+    readonly_fields = ("elements", "equipments", "mobilier", "degradations")
 
     fieldsets = (
         (None, {"fields": ("etat_lieux", "piece")}),
         (
             "Données JSON",
             {
-                "fields": ("elements", "equipments", "mobilier"),
+                "fields": ("elements", "equipments", "mobilier", "degradations"),
                 "classes": ("collapse",),
             },
         ),
@@ -176,7 +191,7 @@ class EtatLieuxPieceDetailAdmin(admin.ModelAdmin):
 
     def etat_lieux_bien(self, obj):
         """Bien de l'état des lieux"""
-        return obj.etat_lieux.bail.bien.adresse
+        return obj.etat_lieux.location.bien.adresse
 
     etat_lieux_bien.short_description = "Bien"
 
@@ -191,19 +206,19 @@ class EtatLieuxSignatureRequestAdmin(admin.ModelAdmin):
         "order",
         "signed",
         "signed_at",
-        "created_at",
+        "date_creation",
     )
 
     list_filter = (
         "signed",
         "etat_lieux__type_etat_lieux",
-        "created_at",
+        "date_creation",
     )
 
     search_fields = (
         "bailleur_signataire__email",
         "locataire__email",
-        "etat_lieux__bail__bien__adresse",
+        "etat_lieux__location__bien__adresse",
     )
 
     readonly_fields = (
@@ -211,7 +226,7 @@ class EtatLieuxSignatureRequestAdmin(admin.ModelAdmin):
         "link_token",
         "otp_generated_at",
         "signed_at",
-        "created_at",
+        "date_creation",
         "signature_image_link",
     )
 
@@ -235,13 +250,13 @@ class EtatLieuxSignatureRequestAdmin(admin.ModelAdmin):
                 ),
             },
         ),
-        ("Métadonnées", {"fields": ("id", "created_at"), "classes": ("collapse",)}),
+        ("Métadonnées", {"fields": ("id", "date_creation"), "classes": ("collapse",)}),
     )
 
     def etat_lieux_display(self, obj):
         """Affichage de l'état des lieux"""
         etat_type = obj.etat_lieux.get_type_etat_lieux_display()
-        bien_adresse = obj.etat_lieux.bail.bien.adresse
+        bien_adresse = obj.etat_lieux.location.bien.adresse
         return f"{etat_type} - {bien_adresse}"
 
     etat_lieux_display.short_description = "État des lieux"
@@ -280,12 +295,12 @@ class EtatLieuxPhotoAdmin(admin.ModelAdmin):
         "photo_index",
         "nom_original",
         "image_preview",
-        "date_upload",
+        "created_at",
     )
 
     list_filter = (
         "element_key",
-        "date_upload",
+        "created_at",
         "piece_detail__piece__nom",
     )
 
@@ -298,7 +313,8 @@ class EtatLieuxPhotoAdmin(admin.ModelAdmin):
 
     readonly_fields = (
         "id",
-        "date_upload",
+        "created_at",
+        "updated_at",
         "image_preview",
     )
 
@@ -308,7 +324,7 @@ class EtatLieuxPhotoAdmin(admin.ModelAdmin):
         (
             "Métadonnées",
             {
-                "fields": ("id", "date_upload"),
+                "fields": ("id", "created_at", "updated_at"),
                 "classes": ("collapse",),
             },
         ),

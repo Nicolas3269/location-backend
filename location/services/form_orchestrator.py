@@ -467,7 +467,7 @@ class FormOrchestrator:
         # Si un bail existe, certains champs deviennent readonly
         from bail.models import Bail
 
-        if Bail.objects.filter(location=location, signed_at__isnull=False).exists():
+        if Bail.objects.filter(location=location, date_signature__isnull=False).exists():
             readonly.extend(
                 [
                     "bien.surface",

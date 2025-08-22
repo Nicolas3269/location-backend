@@ -226,26 +226,33 @@ class LocationAnalyzer:
         analysis = {
             "has_bail": Bail.objects.filter(location=location).exists(),
             "bail_signed": Bail.objects.filter(
-                location=location, signed_at__isnull=False
+                location=location, date_signature__isnull=False
             ).exists(),
             "quittances_count": Quittance.objects.filter(location=location).count(),
             "has_etat_lieux_entree": EtatLieux.objects.filter(
-                location=location, type_etat="entree"
+                location=location, type_etat_lieux="entree"
             ).exists(),
             "has_etat_lieux_sortie": EtatLieux.objects.filter(
-                location=location, type_etat="sortie"
+                location=location, type_etat_lieux="sortie"
             ).exists(),
         }
 
         # Dernière quittance
         last_quittance = (
             Quittance.objects.filter(location=location)
-            .order_by("-periode_debut")
+            .order_by("-annee", "-mois")
             .first()
         )
 
         if last_quittance:
-            analysis["last_quittance_date"] = last_quittance.periode_debut.isoformat()
+            # Créer une date à partir du mois et de l'année
+            from datetime import date
+            try:
+                last_date = date(last_quittance.annee, last_quittance.mois, 1)
+                analysis["last_quittance_date"] = last_date.isoformat()
+            except (ValueError, TypeError):
+                # Si les données ne sont pas valides, on ignore
+                pass
 
         return analysis
 

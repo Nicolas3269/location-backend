@@ -71,25 +71,25 @@ def get_rent_price_for_bien(bien: Bien, area_id):
     return rent_prices.first()
 
 
-def calculate_total_prices(rent_price, surface):
+def calculate_total_prices(rent_price, superficie):
     """
-    Calcule les prix totaux à partir d'un RentPrice et d'une surface.
+    Calcule les prix totaux à partir d'un RentPrice et d'une superficie.
 
     Args:
         rent_price: Instance de RentPrice
-        surface: Surface en m² (float)
+        superficie: superficie en m² (float)
 
     Returns:
         dict: Dictionnaire avec les prix calculés
     """
-    surface_float = float(surface)
+    superficie_float = float(superficie)
 
     return {
         "reference_price_per_m2": float(rent_price.reference_price),
         "min_price_per_m2": float(rent_price.min_price),
         "max_price_per_m2": float(rent_price.max_price),
-        "surface": surface_float,
-        "total_reference_price": float(rent_price.reference_price) * surface_float,
-        "total_min_price": float(rent_price.min_price) * surface_float,
-        "total_max_price": float(rent_price.max_price) * surface_float,
+        "superficie": superficie_float,
+        "total_reference_price": float(rent_price.reference_price) * superficie_float,
+        "total_min_price": float(rent_price.min_price) * superficie_float,
+        "total_max_price": float(rent_price.max_price) * superficie_float,
     }

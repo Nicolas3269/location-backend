@@ -114,7 +114,7 @@ def create_bien_from_form_data(form_data, save=True):
         "etage": form_data.get("etage", ""),
         "porte": form_data.get("porte", ""),
         "periode_construction": periode_construction,
-        "superficie": Decimal(str(form_data.get("surface", 0))),
+        "superficie": Decimal(str(form_data.get("superficie", 0))),
         "meuble": meuble,
         "classe_dpe": dpe_grade,
         "depenses_energetiques": depenses_energetiques,

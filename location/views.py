@@ -19,6 +19,322 @@ from rent_control.choices import ChargeType
 logger = logging.getLogger(__name__)
 
 
+def create_or_get_bailleur(data):
+    """
+    Crée ou récupère un bailleur depuis les données du formulaire.
+    Retourne le bailleur créé et les autres bailleurs si présents.
+    """
+    landlord_data = data.get("landlord", {})
+    bailleur_type = data.get("bailleur_type", "physique")
+
+    if bailleur_type == "morale":
+        # Créer la société
+        societe_data = data.get("societe", {})
+        societe = Societe.objects.create(
+            raison_sociale=societe_data.get("raisonSociale", ""),
+            forme_juridique=societe_data.get("formeJuridique", ""),
+            siret=data.get("siret", ""),
+            adresse=societe_data.get("adresse", ""),
+            email=landlord_data.get("email", ""),
+        )
+
+        # Créer le signataire
+        personne_signataire = Personne.objects.create(
+            nom=landlord_data.get("lastName", ""),
+            prenom=landlord_data.get("firstName", ""),
+            email=landlord_data.get("email", ""),
+            adresse=landlord_data.get("address", ""),
+        )
+
+        bailleur = Bailleur.objects.create(
+            societe=societe,
+            signataire=personne_signataire,
+        )
+    else:
+        # Créer la personne physique
+        personne_bailleur = Personne.objects.create(
+            nom=landlord_data.get("lastName", ""),
+            prenom=landlord_data.get("firstName", ""),
+            email=landlord_data.get("email", ""),
+            adresse=landlord_data.get("address", ""),
+        )
+
+        bailleur = Bailleur.objects.create(
+            personne=personne_bailleur,
+            signataire=personne_bailleur,
+        )
+
+    logger.info(f"Bailleur créé: {bailleur.id}")
+
+    # Créer les autres bailleurs si présents
+    autres_bailleurs = []
+    other_landlords = data.get("other_landlords", [])
+    for other_data in other_landlords:
+        personne_autre = Personne.objects.create(
+            nom=other_data.get("lastName", ""),
+            prenom=other_data.get("firstName", ""),
+            email=other_data.get("email", ""),
+            adresse=other_data.get("address", ""),
+        )
+
+        autre_bailleur = Bailleur.objects.create(
+            personne=personne_autre,
+            signataire=personne_autre,
+        )
+        autres_bailleurs.append(autre_bailleur)
+
+    return bailleur, autres_bailleurs
+
+
+def create_locataires(data):
+    """
+    Crée les locataires depuis les données du formulaire.
+    Retourne la liste des locataires créés.
+    """
+    locataires_data = data.get("locataires", [])
+    locataires = []
+
+    for loc_data in locataires_data:
+        locataire = Locataire.objects.create(
+            nom=loc_data.get("lastName", ""),
+            prenom=loc_data.get("firstName", ""),
+            email=loc_data.get("email", ""),
+            adresse=loc_data.get("address", ""),
+        )
+        locataires.append(locataire)
+        logger.info(f"Locataire créé: {locataire.id}")
+
+    return locataires
+
+
+def create_garants(data):
+    """
+    Crée les garants depuis les données du formulaire.
+    Retourne la liste des garants créés.
+    """
+    garants_data = data.get("garants", [])
+    garants = []
+
+    for garant_data in garants_data:
+        garant = Personne.objects.create(
+            nom=garant_data.get("lastName", ""),
+            prenom=garant_data.get("firstName", ""),
+            email=garant_data.get("email", ""),
+            adresse=garant_data.get("address", ""),
+        )
+        garants.append(garant)
+
+    return garants
+
+
+def create_or_update_rent_terms(location, data):
+    """
+    Crée ou met à jour les conditions financières d'une location.
+    """
+    modalites = data.get("modalites", {})
+
+    # Valider le type de charges
+    type_charges_value = modalites.get("typeCharges")
+    if type_charges_value and type_charges_value not in [
+        choice.value for choice in ChargeType
+    ]:
+        type_charges_value = ChargeType.FORFAITAIRES.value
+
+    # Préparer les données depuis le formulaire
+    form_data = {
+        "montant_loyer": modalites.get("prix"),
+        "montant_charges": modalites.get("charges"),
+        "type_charges": type_charges_value,
+        "depot_garantie": data.get("deposit"),
+        "jour_paiement": data.get("paymentDay"),
+        "zone_tendue": data.get("zoneTendue"),
+        "permis_de_louer": data.get("permisDeLouer"),
+        "rent_price_id": data.get("areaId"),
+        "justificatif_complement_loyer": modalites.get("justificationPrix"),
+    }
+
+    # Vérifier si RentTerms existe déjà
+    if hasattr(location, "rent_terms"):
+        # Mettre à jour l'existant
+        rent_terms = location.rent_terms
+        updated = False
+
+        # Parcourir les champs et mettre à jour ceux qui sont vides/falsy
+        for field, new_value in form_data.items():
+            current_value = getattr(rent_terms, field)
+
+            # Détecter si le champ est vide/falsy
+            is_empty = (
+                current_value is None
+                or current_value == ""
+                or current_value == 0
+                or (
+                    field in ["zone_tendue", "permis_de_louer"]
+                    and current_value is False
+                )
+            )
+
+            # Vérifier que la nouvelle valeur n'est pas vide
+            # Pour les booléens, on accepte False comme valeur valide
+            has_new_value = new_value is not None and (
+                field in ["zone_tendue", "permis_de_louer"]
+                or (new_value != "" and new_value != 0)
+            )
+
+            # Mettre à jour si nécessaire
+            if is_empty and has_new_value:
+                setattr(rent_terms, field, new_value)
+                updated = True
+                logger.debug(f"RentTerms - Champ {field} mis à jour: {new_value}")
+
+        if updated:
+            rent_terms.save()
+            logger.info(f"RentTerms mis à jour pour la location {location.id}")
+
+        return rent_terms
+    else:
+        # Créer un nouveau RentTerms si au moins une valeur est fournie
+        if any(v is not None and v != "" for v in form_data.values()):
+            # Définir les valeurs par défaut pour les champs booléens
+            form_data["zone_tendue"] = form_data.get("zone_tendue", False)
+            form_data["permis_de_louer"] = form_data.get("permis_de_louer", False)
+            form_data["justificatif_complement_loyer"] = form_data.get(
+                "justificatif_complement_loyer", ""
+            )
+
+            rent_terms = RentTerms.objects.create(
+                location=location,
+                **{k: v for k, v in form_data.items() if v is not None},
+            )
+            logger.info(f"RentTerms créé pour la location {location.id}")
+            return rent_terms
+
+        return None
+
+
+def create_new_location(data):
+    """
+    Crée une nouvelle location complète avec toutes les entités associées.
+    """
+    # 1. Créer le bien (peut être partiel selon la source)
+    bien = create_bien_from_form_data(data, save=True)
+    logger.info(f"Bien créé: {bien.id}")
+
+    # 2. Créer le bailleur principal et les autres bailleurs
+    bailleur, autres_bailleurs = create_or_get_bailleur(data)
+
+    # Associer les bailleurs au bien
+    bien.bailleurs.add(bailleur)
+    for autre_bailleur in autres_bailleurs:
+        bien.bailleurs.add(autre_bailleur)
+
+    # 3. Créer les locataires
+    locataires = create_locataires(data)
+
+    # 4. Créer la Location (entité pivot)
+    source = data.get("source", "manual")
+    location = Location.objects.create(
+        bien=bien,
+        created_from=source,
+        date_debut=data.get("startDate"),
+        solidaires=data.get("solidaires", False),
+    )
+
+    # Associer les locataires à la location
+    for locataire in locataires:
+        location.locataires.add(locataire)
+
+    # 5. Ajouter les garants si présents
+    garants = create_garants(data)
+    for garant in garants:
+        location.garants.add(garant)
+
+    # 6. Créer les conditions financières si fournies
+    create_or_update_rent_terms(location, data)
+
+    logger.info(f"Location créée avec succès: {location.id}")
+    return location, bien
+
+
+def update_existing_location(location, data):
+    """
+    Met à jour une location existante avec de nouvelles données.
+    Complète les données manquantes du bien et met à jour les conditions financières.
+    """
+    bien = location.bien
+
+    # Créer un objet Bien temporaire avec les données du formulaire
+    bien_from_form = create_bien_from_form_data(data, save=False)
+
+    # Liste des champs à mettre à jour automatiquement
+    fields_to_update = [
+        "superficie",
+        "periode_construction",
+        "type_bien",
+        "meuble",
+        "etage",
+        "porte",
+        "classe_dpe",
+        "depenses_energetiques",
+        "pieces_info",
+        "chauffage_type",
+        "chauffage_energie",
+        "eau_chaude_type",
+        "eau_chaude_energie",
+        "annexes_privatives",
+        "annexes_collectives",
+        "information",
+        "identifiant_fiscal",
+        "regime_juridique",
+    ]
+
+    updated = False
+
+    # Parcourir tous les champs et mettre à jour ceux qui sont vides/falsy
+    for field in fields_to_update:
+        current_value = getattr(bien, field)
+        new_value = getattr(bien_from_form, field)
+
+        # Détecter si le champ est vide/falsy
+        is_empty = (
+            current_value is None
+            or current_value == ""
+            or current_value == []
+            or current_value == {}
+            or (field == "superficie" and current_value == 0)
+            or (field == "classe_dpe" and current_value == "NA")
+        )
+
+        # Vérifier que la nouvelle valeur n'est pas vide
+        has_new_value = (
+            new_value is not None
+            and new_value != ""
+            and new_value != []
+            and new_value != {}
+            and not (field == "superficie" and new_value == 0)
+            and not (field == "classe_dpe" and new_value == "NA")
+        )
+
+        # Mettre à jour si nécessaire
+        if is_empty and has_new_value:
+            setattr(bien, field, new_value)
+            updated = True
+            logger.debug(f"Champ {field} mis à jour: {new_value}")
+
+    # Sauvegarder si des modifications ont été faites
+    if updated:
+        bien.save()
+        logger.info(f"Bien {bien.id} mis à jour avec les nouvelles données")
+
+    # Mettre à jour ou créer les conditions financières si elles sont fournies
+    create_or_update_rent_terms(location, data)
+
+    source = data.get("source", "manual")
+    logger.info(f"Location {location.id} utilisée pour {source}")
+
+    return location, bien
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_or_update_location(request):
@@ -28,163 +344,55 @@ def create_or_update_location(request):
 
     Cette fonction est le point d'entrée central pour créer une Location,
     qui est l'entité pivot du système.
-
-    Version avec serializer pour validation propre des données.
     """
-
     try:
-        # Garder l'ancienne logique mais avec les données validées
         data = request.data
 
-        bien = create_bien_from_form_data(data, save=True)
-        logger.info(f"Bien créé: {bien.id}")
+        # Vérifier si on met à jour une location existante
+        location_id = data.get("location_id")
+        location = None
 
-        # 2. Créer les personnes (bailleur)
-        landlord_data = data.get("landlord", {})
-        bailleur_type = data.get("bailleur_type", "physique")
+        if location_id:
+            try:
+                location = Location.objects.get(id=location_id)
+                logger.info(f"Mise à jour de la location existante: {location_id}")
+            except Location.DoesNotExist:
+                logger.warning(
+                    f"Location {location_id} non trouvée, création d'une nouvelle"
+                )
+                location = None
 
-        if bailleur_type == "morale":
-            # Créer la société
-            societe_data = data.get("societe", {})
-            societe = Societe.objects.create(
-                raison_sociale=societe_data.get("raisonSociale", ""),
-                forme_juridique=societe_data.get("formeJuridique", ""),
-                siret=data.get("siret", ""),
-                adresse=societe_data.get("adresse", ""),
-                email=landlord_data.get("email", ""),
-            )
-
-            # Créer le signataire
-            personne_signataire = Personne.objects.create(
-                nom=landlord_data.get("lastName", ""),
-                prenom=landlord_data.get("firstName", ""),
-                email=landlord_data.get("email", ""),
-                adresse=landlord_data.get("address", ""),
-            )
-
-            bailleur = Bailleur.objects.create(
-                societe=societe,
-                signataire=personne_signataire,
-            )
+        # Créer ou mettre à jour la location
+        if not location:
+            location, bien = create_new_location(data)
         else:
-            # Créer la personne physique
-            personne_bailleur = Personne.objects.create(
-                nom=landlord_data.get("lastName", ""),
-                prenom=landlord_data.get("firstName", ""),
-                email=landlord_data.get("email", ""),
-                adresse=landlord_data.get("address", ""),
-            )
+            location, bien = update_existing_location(location, data)
 
-            bailleur = Bailleur.objects.create(
-                personne=personne_bailleur,
-                signataire=personne_bailleur,  # Pour une personne physique, elle est son propre signataire
-            )
-
-        logger.info(f"Bailleur créé: {bailleur.id}")
-
-        # Associer le bailleur principal au bien
-        bien.bailleurs.add(bailleur)
-
-        # Ajouter les autres bailleurs si présents
-        other_landlords = data.get("other_landlords", [])
-        for other_data in other_landlords:
-            personne_autre = Personne.objects.create(
-                nom=other_data.get("lastName", ""),
-                prenom=other_data.get("firstName", ""),
-                email=other_data.get("email", ""),
-                adresse=other_data.get("address", ""),
-            )
-
-            autre_bailleur = Bailleur.objects.create(
-                personne=personne_autre,
-                signataire=personne_autre,
-            )
-            bien.bailleurs.add(autre_bailleur)
-
-        # 3. Créer les locataires
-        locataires_data = data.get("locataires", [])
-        locataires = []
-
-        for idx, loc_data in enumerate(locataires_data):
-            locataire = Locataire.objects.create(
-                nom=loc_data.get("lastName", ""),
-                prenom=loc_data.get("firstName", ""),
-                email=loc_data.get("email", ""),
-                adresse=loc_data.get("address", ""),
-            )
-            locataires.append(locataire)
-            logger.info(f"Locataire créé: {locataire.id}")
-
-        # 4. Créer la Location (entité pivot)
-        source = data.get("source", "manual")  # bail, quittance, etat_lieux, manual
-        location = Location.objects.create(
-            bien=bien,
-            created_from=source,  # bail, quittance, etat_lieux, manual
-            date_debut=data.get("startDate"),
-            solidaires=data.get(
-                "solidaires", False
-            ),  # Déjà un booléen grâce au serializer
-        )
-
-        # Associer les locataires à la location
-        for locataire in locataires:
-            location.locataires.add(locataire)
-
-        # Ajouter les garants si présents
-        garants_data = data.get("garants", [])
-        for garant_data in garants_data:
-            garant = Personne.objects.create(
-                nom=garant_data.get("lastName", ""),
-                prenom=garant_data.get("firstName", ""),
-                email=garant_data.get("email", ""),
-                adresse=garant_data.get("address", ""),
-            )
-            location.garants.add(garant)
-
-        # 5. Créer les conditions financières (RentTerms) si fournies
-        modalites = data.get("modalites", {})
-        if modalites:
-            # Valider le type de charges
-            type_charges_value = modalites.get("typeCharges")
-            if type_charges_value and type_charges_value not in [
-                choice.value for choice in ChargeType
-            ]:
-                type_charges_value = ChargeType.FORFAITAIRES.value  # Défaut si invalide
-
-            RentTerms.objects.create(
-                location=location,
-                montant_loyer=modalites.get("prix"),
-                montant_charges=modalites.get("charges"),
-                type_charges=type_charges_value,
-                depot_garantie=data.get("deposit"),
-                jour_paiement=data.get("paymentDay"),
-                zone_tendue=data.get("zoneTendue"),
-                permis_de_louer=data.get("permisDeLouer"),
-                rent_price_id=data.get("areaId"),
-                justificatif_complement_loyer=modalites.get("justificationPrix", ""),
-            )
-
-        logger.info(f"Location créée avec succès: {location.id}")
-
-        # Si la source est 'bail', créer automatiquement un bail
+        # Si la source est 'bail', créer un bail (seulement s'il n'existe pas déjà)
         bail_id = None
-        if source == "bail":
+        if data.get("source") == "bail":
             from bail.models import Bail
 
-            bail = Bail.objects.create(
-                location=location,
-                status="draft",
-                version=1,
-                is_active=True,
-            )
-            bail_id = bail.id
-            logger.info(f"Bail créé automatiquement: {bail.id}")
+            # Vérifier si un bail existe déjà pour cette location
+            existing_bail = Bail.objects.filter(location=location).first()
+            if existing_bail:
+                bail_id = existing_bail.id
+                logger.info(f"Bail existant trouvé: {bail_id}")
+            else:
+                bail = Bail.objects.create(
+                    location=location,
+                    status="draft",
+                    version=1,
+                    is_active=True,
+                )
+                bail_id = bail.id
+                logger.info(f"Bail créé automatiquement: {bail.id}")
 
         response_data = {
             "success": True,
             "location_id": str(location.id),
             "bien_id": bien.id,
-            "message": f"Location créée avec succès depuis {source}",
+            "message": f"Location {'créée' if not location_id else 'mise à jour'} avec succès depuis {data.get('source', 'manual')}",
         }
 
         if bail_id:

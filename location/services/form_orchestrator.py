@@ -23,7 +23,7 @@ class FormOrchestrator:
                 "bien.typeLogement",
                 "bien.regimeJuridique",
                 "bien.periodeConstruction",
-                "bien.surface",
+                "bien.superficie",
                 "bien.pieces",
                 "bien.annexesPrivatives",
                 "bien.annexesCollectives",
@@ -70,7 +70,7 @@ class FormOrchestrator:
         "etat_lieux": [
             "bien.adresse",
             "bien.typeLogement",
-            "bien.surface",
+            "bien.superficie",
             "bien.pieces",
             "bien.meuble",
             "bien.chauffage",
@@ -322,7 +322,7 @@ class FormOrchestrator:
             "bien.typeLogement": "typeLogement",
             "bien.regimeJuridique": "regimeJuridique",
             "bien.periodeConstruction": "periodeConstruction",
-            "bien.surface": "surface",
+            "bien.superficie": "superficie",
             "bien.annexesPrivatives": "annexesPrivatives",
             "bien.annexesCollectives": "annexesCollectives",
             "bien.meuble": "meuble",
@@ -369,7 +369,16 @@ class FormOrchestrator:
         # Vérifier que la valeur n'est pas vide
         if isinstance(current, str):
             return bool(current.strip())
-        elif isinstance(current, (list, dict)):
+        elif isinstance(current, list):
+            return bool(current)
+        elif isinstance(current, dict):
+            # Pour pieces_info, vérifier si au moins une pièce principale est définie
+            if actual_path == "pieces_info":
+                # Considérer comme complet s'il y a au moins une pièce principale
+                # (chambres, sallesDeBain, cuisines, sejours)
+                main_rooms = ["chambres", "sallesDeBain", "cuisines", "sejours"]
+                has_main_rooms = any(current.get(room, 0) > 0 for room in main_rooms)
+                return has_main_rooms
             return bool(current)
         else:
             return current is not None
@@ -388,7 +397,7 @@ class FormOrchestrator:
                     "typeLogement": bien.type_bien,
                     "regimeJuridique": bien.regime_juridique,
                     "periodeConstruction": bien.periode_construction,
-                    "surface": float(bien.superficie) if bien.superficie else None,
+                    "superficie": float(bien.superficie) if bien.superficie else None,
                     "pieces_info": bien.pieces_info
                     or {},  # Utiliser pieces_info au lieu de pieces
                     "annexesPrivatives": bien.annexes_privatives or [],
@@ -530,7 +539,7 @@ class FormOrchestrator:
         ).exists():
             readonly.extend(
                 [
-                    "bien.surface",
+                    "bien.superficie",
                     "bien.pieces",
                     "personnes.locataires",
                     "modalites.startDate",
@@ -558,7 +567,7 @@ class FormOrchestrator:
         "bien.typeLogement": "Quel est le type de logement ?",
         "bien.regimeJuridique": "Quel est le régime juridique du logement ?",
         "bien.periodeConstruction": "Quelle est l'année de construction du logement ?",
-        "bien.surface": "Quelle est la surface du logement ?",
+        "bien.superficie": "Quelle est la superficie du logement ?",
         "bien.pieces": "Quelles pièces y a-t-il dans le logement ?",
         "bien.annexesPrivatives": "Quelles sont les annexes privatives du logement ?",
         "bien.annexesCollectives": "Quelles sont les annexes partagées du logement ?",

@@ -9,6 +9,7 @@ from typing import Any, Dict
 from bail.models import Bail
 from etat_lieux.models import EtatLieux
 from quittance.models import Quittance
+from rent_control.choices import ChargeType
 
 from ..models import Location
 
@@ -195,9 +196,7 @@ class LocationAnalyzer:
         required_fields = {
             "montant_loyer": rent.montant_loyer,
             "type_charges": rent.type_charges,
-            "montant_charges": rent.montant_charges
-            if rent.type_charges != "SANS_CHARGES"
-            else True,
+            "montant_charges": rent.montant_charges if rent.type_charges else True,
             "jour_paiement": rent.jour_paiement,
             "depot_garantie": rent.depot_garantie,
         }

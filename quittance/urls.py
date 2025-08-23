@@ -6,7 +6,4 @@ app_name = "quittance"
 
 urlpatterns = [
     path("generate/", views.generate_quittance_pdf, name="generate"),
-    path(
-        "create-location/", views.create_location_for_quittance, name="create_location"
-    ),
 ]

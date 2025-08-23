@@ -1,6 +1,10 @@
 """
 Orchestrateur de formulaires adaptatifs.
 Détermine les étapes nécessaires selon le contexte et l'état de la Location.
+
+IMPORTANT: Affiche toujours TOUTES les étapes dont les données sont manquantes
+pour permettre à l'utilisateur de compléter les informations nécessaires
+à la génération du document souhaité.
 """
 
 from typing import Any, Dict, List, Optional
@@ -51,56 +55,39 @@ class FormOrchestrator:
                 "signature.signatureBail",
             ],
         },
-        "quittance": {
-            "full": [
-                "bien.adresse",
-                "personnes.bailleurType",
-                "personnes.landlord",
-                "personnes.siretSociete",
-                "personnes.otherLandlords",
-                "personnes.locataires",
-                "quittance.prix",
-                "quittance.charges",
-                "quittance.moisAnnee",
-                "quittance.result",
-            ],
-            "simplified": [
-                "quittance.moisAnnee",
-                "quittance.result",
-            ],
-        },
-        "etat_lieux": {
-            "full": [
-                "bien.adresse",
-                "bien.typeLogement",
-                "bien.surface",
-                "bien.pieces",
-                "bien.meuble",
-                "bien.chauffage",
-                "bien.eauChaude",
-                "personnes.bailleurType",
-                "personnes.landlord",
-                "personnes.siretSociete",
-                "personnes.otherLandlords",
-                "personnes.locataires",
-                "modalites.typeEtatLieux",
-                "modalites.dateEtatLieux",
-                "etat_lieux.descriptionPieces",
-                "etat_lieux.nombreCles",
-                "etat_lieux.equipementsChauffage",
-                "etat_lieux.releveCompteurs",
-                "signature.signatureEtatDesLieux",
-            ],
-            "simplified": [
-                "modalites.typeEtatLieux",
-                "modalites.dateEtatLieux",
-                "etat_lieux.descriptionPieces",
-                "etat_lieux.nombreCles",
-                "etat_lieux.equipementsChauffage",
-                "etat_lieux.releveCompteurs",
-                "signature.signatureEtatDesLieux",
-            ],
-        },
+        "quittance": [
+            "bien.adresse",
+            "personnes.bailleurType",
+            "personnes.landlord",
+            "personnes.siretSociete",
+            "personnes.otherLandlords",
+            "personnes.locataires",
+            "quittance.prix",
+            "quittance.charges",
+            "quittance.moisAnnee",
+            "quittance.result",
+        ],
+        "etat_lieux": [
+            "bien.adresse",
+            "bien.typeLogement",
+            "bien.surface",
+            "bien.pieces",
+            "bien.meuble",
+            "bien.chauffage",
+            "bien.eauChaude",
+            "personnes.bailleurType",
+            "personnes.landlord",
+            "personnes.siretSociete",
+            "personnes.otherLandlords",
+            "personnes.locataires",
+            "modalites.typeEtatLieux",
+            "modalites.dateEtatLieux",
+            "etat_lieux.descriptionPieces",
+            "etat_lieux.nombreCles",
+            "etat_lieux.equipementsChauffage",
+            "etat_lieux.releveCompteurs",
+            "signature.signatureEtatDesLieux",
+        ],
     }
 
     # Champs conditionnels et leurs dépendances
@@ -189,9 +176,9 @@ class FormOrchestrator:
                 + self.FORM_STEPS["bail"]["signature"]
             )
         elif form_type == "quittance":
-            steps = self.FORM_STEPS["quittance"]["full"]
+            steps = self.FORM_STEPS["quittance"]
         elif form_type == "etat_lieux":
-            steps = self.FORM_STEPS["etat_lieux"]["full"]
+            steps = self.FORM_STEPS["etat_lieux"]
         else:
             return {"error": f"Unknown form type: {form_type}"}
 
@@ -246,62 +233,129 @@ class FormOrchestrator:
     def _determine_required_steps(
         self, form_type: str, completeness: Dict, existing_data: Dict
     ) -> List[str]:
-        """Détermine les étapes requises selon le contexte."""
+        """Détermine les étapes requises selon le contexte.
+        Retourne toujours TOUTES les étapes dont les données manquent."""
 
         required_steps = []
 
         if form_type == "bail":
-            # Pour un bail, on vérifie section par section
-            if not completeness["bien"]["is_complete"]:
-                required_steps.extend(
-                    [
-                        step
-                        for step in self.FORM_STEPS["bail"]["bien"]
-                        if not self._is_field_complete(step, existing_data)
-                    ]
-                )
+            # Pour un bail, afficher toutes les étapes manquantes
+            # Vérifier chaque étape individuellement
+            for step in self.FORM_STEPS["bail"]["bien"]:
+                if not self._is_field_complete(step, existing_data):
+                    required_steps.append(step)
 
-            if not completeness["personnes"]["has_all_required"]:
-                required_steps.extend(
-                    [
-                        step
-                        for step in self.FORM_STEPS["bail"]["personnes"]
-                        if not self._is_field_complete(step, existing_data)
-                    ]
-                )
+            for step in self.FORM_STEPS["bail"]["personnes"]:
+                if not self._is_field_complete(step, existing_data):
+                    required_steps.append(step)
 
-            if not completeness["rent_terms"]["is_complete"]:
-                required_steps.extend(self.FORM_STEPS["bail"]["modalites"])
+            for step in self.FORM_STEPS["bail"]["modalites"]:
+                if not self._is_field_complete(step, existing_data):
+                    required_steps.append(step)
 
             # Toujours ajouter la signature pour un bail
             required_steps.extend(self.FORM_STEPS["bail"]["signature"])
 
         elif form_type == "quittance":
-            # Quittance simplifiée si on a déjà les infos de base
-            if (
-                completeness["rent_terms"]["is_complete"]
-                and completeness["personnes"]["has_all_required"]
-            ):
-                required_steps = self.FORM_STEPS["quittance"]["simplified"]
-            else:
-                required_steps = self.FORM_STEPS["quittance"]["full"]
+            # Toujours afficher toutes les étapes manquantes pour la quittance
+            required_steps = [
+                step
+                for step in self.FORM_STEPS["quittance"]
+                if not self._is_field_complete(step, existing_data)
+            ]
+            # Si toutes les infos sont présentes, afficher au minimum les étapes de quittance
+            if not required_steps:
+                required_steps = [
+                    "quittance.moisAnnee",
+                    "quittance.result",
+                ]
 
         elif form_type == "etat_lieux":
-            # État des lieux simplifié si on a déjà le bien et les personnes
-            if (
-                completeness["bien"]["is_complete"]
-                and completeness["personnes"]["has_all_required"]
-            ):
-                required_steps = self.FORM_STEPS["etat_lieux"]["simplified"]
-            else:
-                required_steps = self.FORM_STEPS["etat_lieux"]["full"]
+            # Toujours afficher toutes les étapes manquantes pour l'état des lieux
+            required_steps = [
+                step
+                for step in self.FORM_STEPS["etat_lieux"]
+                if not self._is_field_complete(step, existing_data)
+            ]
+            # Si toutes les infos sont présentes, afficher au minimum les étapes d'état des lieux
+            if not required_steps:
+                required_steps = [
+                    "modalites.typeEtatLieux",
+                    "modalites.dateEtatLieux",
+                    "etat_lieux.descriptionPieces",
+                    "etat_lieux.nombreCles",
+                    "etat_lieux.equipementsChauffage",
+                    "etat_lieux.releveCompteurs",
+                    "signature.signatureEtatDesLieux",
+                ]
 
         return required_steps
 
     def _is_field_complete(self, field_path: str, data: Dict) -> bool:
         """Vérifie si un champ est complet dans les données."""
 
-        parts = field_path.split(".")
+        # Cas spéciaux pour certains champs
+        if field_path == "personnes.otherLandlords":
+            # Ce champ est optionnel, considéré comme complet s'il existe (même vide)
+            return "otherLandlords" in data
+
+        if field_path == "quittance.prix":
+            # Pour la quittance, vérifier si modalites.prix existe
+            return (
+                "modalites" in data
+                and data["modalites"]
+                and data["modalites"].get("prix") is not None
+            )
+
+        if field_path == "quittance.charges":
+            # Pour la quittance, vérifier si modalites.charges existe
+            return (
+                "modalites" in data
+                and data["modalites"]
+                and data["modalites"].get("charges") is not None
+            )
+
+        # Mapping spécial pour certains champs
+        field_mappings = {
+            "bien.pieces": "pieces_info",
+            "bien.adresse": "adresse",
+            "bien.typeLogement": "typeLogement",
+            "bien.regimeJuridique": "regimeJuridique",
+            "bien.periodeConstruction": "periodeConstruction",
+            "bien.surface": "surface",
+            "bien.annexesPrivatives": "annexesPrivatives",
+            "bien.annexesCollectives": "annexesCollectives",
+            "bien.meuble": "meuble",
+            "bien.information": "information",
+            "bien.chauffage": "chauffage",
+            "bien.eauChaude": "eauChaude",
+            "bien.dpe": "dpeGrade",
+            "bien.depensesEnergie": "depensesDPE",
+            "bien.identificationFiscale": "identificationFiscale",
+            "personnes.bailleurType": "bailleurType",
+            "personnes.landlord": "landlord",
+            "personnes.siretSociete": "siret",
+            "personnes.otherLandlords": "otherLandlords",
+            "personnes.locataires": "locataires",
+            "personnes.solidaires": "solidaires",
+            "modalites.startDate": "startDate",
+            "modalites.endDate": "endDate",
+            "modalites.prix": "modalites.prix",
+            "modalites.charges": "modalites.charges",
+            "modalites.premiereMiseEnLocation": "modalites.premiereMiseEnLocation",
+            "modalites.locataireDerniers18Mois": "modalites.locataireDerniers18Mois",
+            "modalites.dernierMontantLoyer": "modalites.dernierMontantLoyer",
+        }
+
+        # Utiliser le mapping si disponible, sinon essayer le chemin direct
+        if field_path in field_mappings:
+            actual_path = field_mappings[field_path]
+        else:
+            # Pour les autres champs, enlever le préfixe de section si présent
+            actual_path = field_path
+
+        # Naviguer dans les données
+        parts = actual_path.split(".")
         current = data
 
         for part in parts:
@@ -335,7 +389,8 @@ class FormOrchestrator:
                     "regimeJuridique": bien.regime_juridique,
                     "periodeConstruction": bien.periode_construction,
                     "surface": float(bien.superficie) if bien.superficie else None,
-                    "pieces": bien.pieces_info or {},
+                    "pieces_info": bien.pieces_info
+                    or {},  # Utiliser pieces_info au lieu de pieces
                     "annexesPrivatives": bien.annexes_privatives or [],
                     "annexesCollectives": bien.annexes_collectives or [],
                     "meuble": bien.meuble,
@@ -405,6 +460,9 @@ class FormOrchestrator:
                         }
                         for b in bailleurs[1:]
                     ]
+                else:
+                    # Indiquer explicitement qu'il n'y a pas d'autres bailleurs
+                    data["otherLandlords"] = []
 
         # Données des locataires
         if location.locataires.exists():
@@ -426,8 +484,8 @@ class FormOrchestrator:
             rent = location.rent_terms
             data["modalites"] = {
                 "prix": float(rent.montant_loyer) if rent.montant_loyer else None,
-                "chargeType": rent.type_charges,
-                "chargeAmount": float(rent.montant_charges)
+                "typeCharges": rent.type_charges,
+                "charges": float(rent.montant_charges)
                 if rent.montant_charges
                 else None,
                 "zoneTendue": rent.zone_tendue,
@@ -467,7 +525,9 @@ class FormOrchestrator:
         # Si un bail existe, certains champs deviennent readonly
         from bail.models import Bail
 
-        if Bail.objects.filter(location=location, date_signature__isnull=False).exists():
+        if Bail.objects.filter(
+            location=location, date_signature__isnull=False
+        ).exists():
             readonly.extend(
                 [
                     "bien.surface",
@@ -482,7 +542,7 @@ class FormOrchestrator:
     # Steps qui gèrent leur propre navigation (auto-next après sélection)
     NAVIGATION_PROPS_STEPS = [
         "bien.typeLogement",
-        "bien.regimeJuridique", 
+        "bien.regimeJuridique",
         "bien.periodeConstruction",
         "bien.meuble",
         "personnes.bailleurType",
@@ -490,7 +550,7 @@ class FormOrchestrator:
         "modalites.locataireDerniers18Mois",
         "modalites.typeEtatLieux",
     ]
-    
+
     # Questions pour chaque step
     STEP_QUESTIONS = {
         # BIEN

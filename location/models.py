@@ -8,6 +8,7 @@ import uuid
 from django.db import models
 
 from rent_control.choices import (
+    ChargeType,
     ConstructionPeriod,
     PropertyType,
     RegimeJuridique,
@@ -262,6 +263,7 @@ class Bien(models.Model):
     )
     etage = models.CharField(max_length=10, blank=True)
     porte = models.CharField(max_length=10, blank=True)
+    # To do : le mettre a terme pour les assurances
     dernier_etage = models.BooleanField(default=False)
 
     periode_construction = models.CharField(
@@ -293,9 +295,9 @@ class Bien(models.Model):
     #     null=True, blank=True, verbose_name="Date de réalisation du DPE"
     # )
 
-    # Caractéristiques supplémentaires
-    annexes = models.TextField(blank=True)
-    additionnal_description = models.TextField(blank=True)
+    # # Caractéristiques supplémentaires
+    # annexes = models.TextField(blank=True)
+    # additionnal_description = models.TextField(blank=True)
 
     # Annexes séparées (stockage JSON pour compatibilité frontend)
     annexes_privatives = models.JSONField(default=list, blank=True)
@@ -433,13 +435,10 @@ class RentTerms(BaseModel):
     )
     type_charges = models.CharField(
         max_length=20,
-        choices=[
-            ("FORFAITAIRES", "Charges forfaitaires"),
-            ("REELLES", "Charges réelles"),
-            ("SANS_CHARGES", "Sans charges"),
-        ],
+        choices=ChargeType.choices,
         null=True,
         blank=True,
+        verbose_name="Type de charges",
     )
     montant_charges = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True

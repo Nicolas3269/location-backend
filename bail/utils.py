@@ -121,7 +121,7 @@ def create_bien_from_form_data(form_data, save=True):
         "annexes_privatives": form_data.get("annexes", []),
         "annexes_collectives": form_data.get("annexesCollectives", []),
         "information": form_data.get("information", []),
-        "pieces_info": form_data.get("pieces", {}),
+        "pieces_info": form_data.get("pieces_info", {}),
         "chauffage_type": form_data.get("chauffage", {}).get("type", ""),
         "chauffage_energie": chauffage_energie,
         "eau_chaude_type": form_data.get("eauChaude", {}).get("type", ""),

@@ -1,10 +1,10 @@
-import json
 import logging
 
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
+from bail.utils import create_bien_from_form_data
 from location.models import (
     Bailleur,
     Bien,
@@ -14,6 +14,7 @@ from location.models import (
     RentTerms,
     Societe,
 )
+from rent_control.choices import ChargeType
 
 logger = logging.getLogger(__name__)
 
@@ -27,35 +28,20 @@ def create_or_update_location(request):
 
     Cette fonction est le point d'entrée central pour créer une Location,
     qui est l'entité pivot du système.
+
+    Version avec serializer pour validation propre des données.
     """
+
     try:
-        data = json.loads(request.body)
-        source = data.get("source", "manual")  # bail, quittance, etat_lieux, manual
+        # Garder l'ancienne logique mais avec les données validées
+        data = request.data
 
-        # Si on a un location_id, on met à jour
-        location_id = data.get("location_id")
-        if location_id:
-            try:
-                location = Location.objects.get(id=location_id)
-                return _update_location(location, data)
-            except Location.DoesNotExist:
-                pass  # Continuer avec la création
-
-        # 1. Créer le bien (sera associé aux bailleurs plus tard)
-        bien = Bien.objects.create(
-            adresse=data.get("adresse", ""),
-            type_bien=data.get("typeBien", "appartement"),
-            superficie=data.get("superficie", 1),  # Valeur par défaut minimale
-            regime_juridique=data.get("regimeJuridique", "monopropriete"),
-            dernier_etage=data.get("dernierEtage", False),
-            meuble=data.get("meuble", False),
-            classe_dpe=data.get("classeDpe", "NA"),
-        )
+        bien = create_bien_from_form_data(data, save=True)
         logger.info(f"Bien créé: {bien.id}")
 
         # 2. Créer les personnes (bailleur)
         landlord_data = data.get("landlord", {})
-        bailleur_type = data.get("bailleurType", "physique")
+        bailleur_type = data.get("bailleur_type", "physique")
 
         if bailleur_type == "morale":
             # Créer la société
@@ -100,7 +86,7 @@ def create_or_update_location(request):
         bien.bailleurs.add(bailleur)
 
         # Ajouter les autres bailleurs si présents
-        other_landlords = data.get("otherLandlords", [])
+        other_landlords = data.get("other_landlords", [])
         for other_data in other_landlords:
             personne_autre = Personne.objects.create(
                 nom=other_data.get("lastName", ""),
@@ -130,12 +116,14 @@ def create_or_update_location(request):
             logger.info(f"Locataire créé: {locataire.id}")
 
         # 4. Créer la Location (entité pivot)
+        source = data.get("source", "manual")  # bail, quittance, etat_lieux, manual
         location = Location.objects.create(
             bien=bien,
             created_from=source,  # bail, quittance, etat_lieux, manual
-            date_debut=data.get("dateDebut"),
-            date_fin=data.get("dateFin"),
-            solidaires=data.get("solidaires", False),
+            date_debut=data.get("startDate"),
+            solidaires=data.get(
+                "solidaires", False
+            ),  # Déjà un booléen grâce au serializer
         )
 
         # Associer les locataires à la location
@@ -156,31 +144,53 @@ def create_or_update_location(request):
         # 5. Créer les conditions financières (RentTerms) si fournies
         modalites = data.get("modalites", {})
         if modalites:
-            rent_terms = RentTerms.objects.create(
+            # Valider le type de charges
+            type_charges_value = modalites.get("typeCharges")
+            if type_charges_value and type_charges_value not in [
+                choice.value for choice in ChargeType
+            ]:
+                type_charges_value = ChargeType.FORFAITAIRES.value  # Défaut si invalide
+
+            RentTerms.objects.create(
                 location=location,
-                montant_loyer=modalites.get("prix", 0),
-                montant_charges=modalites.get("charges", 0),
-                type_charges=modalites.get("typeCharges", "FORFAITAIRES"),
-                depot_garantie=modalites.get("depotGarantie", 0),
-                jour_paiement=modalites.get("jourPaiement", 5),
-                zone_tendue=modalites.get("zoneTendue", False),
-                permis_de_louer=modalites.get("permisDeLouer", False),
-                rent_price_id=modalites.get("rentPriceId"),
-                justificatif_complement_loyer=modalites.get(
-                    "justificatifComplementLoyer", ""
-                ),
+                montant_loyer=modalites.get("prix"),
+                montant_charges=modalites.get("charges"),
+                type_charges=type_charges_value,
+                depot_garantie=data.get("deposit"),
+                jour_paiement=data.get("paymentDay"),
+                zone_tendue=data.get("zoneTendue"),
+                permis_de_louer=data.get("permisDeLouer"),
+                rent_price_id=data.get("areaId"),
+                justificatif_complement_loyer=modalites.get("justificationPrix"),
             )
 
         logger.info(f"Location créée avec succès: {location.id}")
 
-        return JsonResponse(
-            {
-                "success": True,
-                "location_id": str(location.id),
-                "bien_id": bien.id,
-                "message": f"Location créée avec succès depuis {source}",
-            }
-        )
+        # Si la source est 'bail', créer automatiquement un bail
+        bail_id = None
+        if source == "bail":
+            from bail.models import Bail
+
+            bail = Bail.objects.create(
+                location=location,
+                status="draft",
+                version=1,
+                is_active=True,
+            )
+            bail_id = bail.id
+            logger.info(f"Bail créé automatiquement: {bail.id}")
+
+        response_data = {
+            "success": True,
+            "location_id": str(location.id),
+            "bien_id": bien.id,
+            "message": f"Location créée avec succès depuis {source}",
+        }
+
+        if bail_id:
+            response_data["bail_id"] = bail_id
+
+        return JsonResponse(response_data)
 
     except Exception as e:
         logger.error(f"Erreur lors de la création de la location: {str(e)}")
@@ -259,14 +269,18 @@ def get_bien_locations(request, bien_id):
                     else None
                 )
 
-            # Récupérer les montants depuis RentTerms
+            # Récupérer les montants et le type de charges depuis RentTerms
             montant_loyer = 0
             montant_charges = 0
             depot_garantie = 0
+            type_charges = ChargeType.FORFAITAIRES.value  # Valeur par défaut
             if hasattr(location, "rent_terms"):
                 montant_loyer = float(location.rent_terms.montant_loyer or 0)
                 montant_charges = float(location.rent_terms.montant_charges or 0)
                 depot_garantie = float(location.rent_terms.depot_garantie or 0)
+                type_charges = (
+                    location.rent_terms.type_charges or ChargeType.FORFAITAIRES.value
+                )
 
             location_data = {
                 "id": str(location.id),
@@ -278,6 +292,7 @@ def get_bien_locations(request, bien_id):
                 else None,
                 "montant_loyer": montant_loyer,
                 "montant_charges": montant_charges,
+                "type_charges": type_charges,
                 "depot_garantie": depot_garantie,
                 "status": status,
                 "locataires": locataires,
@@ -323,15 +338,16 @@ def get_bien_locations(request, bien_id):
 def _update_location(location, data):
     """
     Met à jour une location existante avec de nouvelles données
+    Les données sont déjà validées par le serializer et converties en snake_case
     """
     try:
         # Mettre à jour les dates si fournies
-        if "dateDebut" in data:
-            location.date_debut = data["dateDebut"]
-        if "dateFin" in data:
-            location.date_fin = data["dateFin"]
+        if "date_debut" in data:
+            location.date_debut = data["date_debut"]
+        if "date_fin" in data:
+            location.date_fin = data["date_fin"]
         if "solidaires" in data:
-            location.solidaires = data["solidaires"]
+            location.solidaires = data["solidaires"]  # Déjà un booléen validé
 
         location.save()
 
@@ -343,10 +359,14 @@ def _update_location(location, data):
                 rent_terms.montant_loyer = modalites["prix"]
             if "charges" in modalites:
                 rent_terms.montant_charges = modalites["charges"]
-            if "typeCharges" in modalites:
-                rent_terms.type_charges = modalites["typeCharges"]
-            if "depotGarantie" in modalites:
-                rent_terms.depot_garantie = modalites["depotGarantie"]
+            if "type_charges" in modalites:
+                rent_terms.type_charges = modalites["type_charges"]
+            if "depot_garantie" in modalites:
+                rent_terms.depot_garantie = modalites["depot_garantie"]
+            if "justificatif_complement_loyer" in modalites:
+                rent_terms.justificatif_complement_loyer = modalites[
+                    "justificatif_complement_loyer"
+                ]
             rent_terms.save()
 
         return JsonResponse(

@@ -52,7 +52,7 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
             else:
                 line_2 = "situé dans une copropriété dans un immeuble individuel"
 
-        line_3 = f"construit {bien.periode_construction.lower()}"
+        line_3 = f"construit {bien.periode_construction.lower()}" if bien.periode_construction else ""
 
         if bien.identifiant_fiscal:
             line_4 = (

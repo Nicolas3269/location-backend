@@ -84,6 +84,7 @@ class BailleurAdmin(admin.ModelAdmin):
 
 class LocationInline(admin.TabularInline):
     """Inline pour afficher les locations d'un bien"""
+
     model = Location
     extra = 0
     fields = ("get_locataires", "date_debut", "date_fin", "get_montant_loyer")
@@ -152,13 +153,6 @@ class BienAdmin(admin.ModelAdmin):
             "DPE",
             {
                 "fields": ("classe_dpe", "depenses_energetiques"),
-                "classes": ("collapse",),
-            },
-        ),
-        (
-            "Informations complémentaires",
-            {
-                "fields": ("annexes", "additionnal_description"),
                 "classes": ("collapse",),
             },
         ),
@@ -398,6 +392,7 @@ class MandataireAdmin(admin.ModelAdmin):
 
 class RentTermsInline(admin.StackedInline):
     """Inline pour les conditions financières"""
+
     model = RentTerms
     extra = 0
     fields = (

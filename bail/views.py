@@ -5,7 +5,6 @@ import uuid
 
 import requests
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -29,15 +28,8 @@ from bail.utils import (
 )
 from etat_lieux.utils import get_or_create_pieces_for_bien
 from location.models import (
-    Bailleur,
     Bien,
-    Locataire,
-    Location,
-    Personne,
-    RentTerms,
-    Societe,
 )
-from rent_control.models import RentPrice
 from rent_control.utils import get_rent_price_for_bien
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
@@ -311,265 +303,6 @@ def upload_document(request):
             {"success": False, "error": f"Erreur lors de l'upload: {str(e)}"},
             status=500,
         )
-
-
-@api_view(["POST"])
-@permission_classes([IsAuthenticated])
-def save_draft(request):
-    """Sauvegarde un brouillon de bail à partir des données du formulaire"""
-    import time
-    from datetime import datetime
-    from decimal import Decimal
-
-    from django.db import OperationalError, transaction
-
-    max_retries = 3
-    retry_delay = 0.1  # 100ms
-
-    def create_or_get_user(email, first_name, last_name):
-        """Crée ou récupère un utilisateur, non vérifié par défaut"""
-        User = get_user_model()
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                "username": email,
-                "first_name": first_name,
-                "last_name": last_name,
-                "is_active": True,
-                # L'utilisateur n'est pas vérifié initialement
-                # Il sera vérifié lors de l'authentification automatique
-            },
-        )
-        if created:
-            logger.info(f"Créé nouvel utilisateur non vérifié: {email}")
-        return user
-
-    for attempt in range(max_retries):
-        try:
-            with transaction.atomic():
-                form_data = json.loads(request.body)
-
-                # Validation des données requises
-                if not form_data.get("adresse"):
-                    return JsonResponse(
-                        {"success": False, "error": "L'adresse est requise"}, status=400
-                    )
-
-                if not form_data.get("landlord", {}).get("firstName"):
-                    return JsonResponse(
-                        {
-                            "success": False,
-                            "error": "Le prénom du propriétaire est requis",
-                        },
-                        status=400,
-                    )
-
-                # 1. Créer les bailleurs
-                # Bailleur principal
-                landlord_data = form_data.get("landlord", {})
-                bailleur_type = form_data.get("bailleurType", "physique")
-
-                if bailleur_type == "morale":
-                    # Créer la société
-                    societe_data = form_data.get("societe", {})
-                    societe = Societe.objects.create(
-                        siret=form_data.get("siret", ""),
-                        raison_sociale=societe_data.get("raisonSociale", ""),
-                        forme_juridique=societe_data.get("formeJuridique", ""),
-                        adresse=societe_data.get("adresse", ""),
-                        email=societe_data.get("email", ""),
-                    )
-
-                    # Créer le signataire (personne physique) et son User
-                    signataire_email = landlord_data.get("email", "")
-                    create_or_get_user(
-                        signataire_email,
-                        landlord_data.get("firstName", ""),
-                        landlord_data.get("lastName", ""),
-                    )
-
-                    signataire = Personne.objects.create(
-                        nom=landlord_data.get("lastName", ""),
-                        prenom=landlord_data.get("firstName", ""),
-                        email=signataire_email,
-                    )
-
-                    # Créer le bailleur société
-                    bailleur_principal = Bailleur.objects.create(
-                        societe=societe, signataire=signataire
-                    )
-                else:
-                    # Créer l'utilisateur pour la personne physique
-                    landlord_email = landlord_data.get("email", "")
-                    create_or_get_user(
-                        landlord_email,
-                        landlord_data.get("firstName", ""),
-                        landlord_data.get("lastName", ""),
-                    )
-
-                    # Créer la personne physique
-                    personne = Personne.objects.create(
-                        nom=landlord_data.get("lastName", ""),
-                        prenom=landlord_data.get("firstName", ""),
-                        adresse=landlord_data.get("address", ""),
-                        email=landlord_email,
-                    )
-
-                    # Créer le bailleur personne physique
-                    bailleur_principal = Bailleur.objects.create(
-                        personne=personne, signataire=personne
-                    )
-
-                # Bailleurs additionnels (pour l'instant, seulement personnes physiques)
-                bailleurs = [bailleur_principal]
-                other_landlords = form_data.get("otherLandlords", [])
-                for landlord in other_landlords:
-                    # Créer l'utilisateur pour le bailleur additionnel
-                    additional_email = landlord.get("email", "")
-                    create_or_get_user(
-                        additional_email,
-                        landlord.get("firstName", ""),
-                        landlord.get("lastName", ""),
-                    )
-
-                    personne = Personne.objects.create(
-                        nom=landlord.get("lastName", ""),
-                        prenom=landlord.get("firstName", ""),
-                        adresse=landlord.get("address", ""),
-                        email=additional_email,
-                    )
-                    bailleur = Bailleur.objects.create(
-                        personne=personne, signataire=personne
-                    )
-                    bailleurs.append(bailleur)
-
-                # 2. Créer le bien
-                bien = create_bien_from_form_data(form_data, save=True)
-
-                # Associer les bailleurs au bien
-                bien.bailleurs.set(bailleurs)
-
-                # 3. Créer les locataires
-                locataires_data = form_data.get("locataires", [])
-                locataires = []
-                for locataire_data in locataires_data:
-                    # Créer l'utilisateur pour le locataire
-                    locataire_email = locataire_data.get("email", "")
-                    create_or_get_user(
-                        locataire_email,
-                        locataire_data.get("firstName", ""),
-                        locataire_data.get("lastName", ""),
-                    )
-
-                    locataire = Locataire.objects.create(
-                        nom=locataire_data.get("lastName", ""),
-                        prenom=locataire_data.get("firstName", ""),
-                        email=locataire_email,
-                        caution_requise=locataire_data.get("cautionRequise", ""),
-                        # Les autres champs ne sont pas fournis dans le formulaire
-                    )
-                    locataires.append(locataire)
-
-                # 4. Créer la Location (entité pivot)
-                start_date_str = form_data.get("startDate", "")
-                start_date = (
-                    datetime.strptime(start_date_str, "%Y-%m-%d").date()
-                    if start_date_str
-                    else None
-                )
-                modalites = form_data.get("modalites", {})
-                solidaire_string = form_data.get("solidaires", "")
-                solidaires = solidaire_string.lower() == "true"
-
-                location = Location.objects.create(
-                    bien=bien,
-                    solidaires=solidaires,
-                    date_debut=start_date,
-                    created_from="bail",
-                )
-
-                # Associer les locataires à la location
-                location.locataires.set(locataires)
-
-                # 5. Créer les conditions financières (RentTerms)
-                montant_loyer = Decimal(str(modalites.get("prix", 0)))
-                is_meuble = bien.meuble
-                depot_garantie = 2 * montant_loyer if is_meuble else montant_loyer
-
-                # Calculer le rent_price_id si on est en zone tendue
-                area_id = form_data.get("areaId")
-                if area_id:
-                    try:
-                        rent_price: RentPrice = get_rent_price_for_bien(bien, area_id)
-                        rent_price_id = rent_price.pk
-                    except Exception as e:
-                        logger.warning(f"Impossible de récupérer le RentPrice: {e}")
-                        rent_price_id = None
-                else:
-                    rent_price_id = None
-
-                rent_terms = RentTerms.objects.create(
-                    location=location,
-                    montant_loyer=montant_loyer,
-                    type_charges=modalites.get("chargeType", "FORFAITAIRES"),
-                    montant_charges=Decimal(str(modalites.get("chargeAmount", 0))),
-                    depot_garantie=depot_garantie,
-                    zone_tendue=form_data.get("zoneTendue", False),
-                    permis_de_louer=form_data.get("permisDeLouer", False),
-                    rent_price_id=rent_price_id,
-                    justificatif_complement_loyer=modalites.get(
-                        "justificationPrix", ""
-                    ),
-                )
-
-                # 6. Créer le bail
-                bail = Bail.objects.create(
-                    location=location,
-                    status="draft",  # Brouillon
-                    version=1,
-                    is_active=True,
-                    # duree_mois=12,  # Durée par défaut
-                )
-
-                return JsonResponse(
-                    {
-                        "success": True,
-                        "bailId": bail.id,
-                        "locationId": str(location.id),
-                        "message": "Brouillon sauvegardé avec succès",
-                    }
-                )
-
-        except OperationalError as e:
-            if "database is locked" in str(e).lower() and attempt < max_retries - 1:
-                logger.warning(
-                    f"Database locked, retry attempt {attempt + 1}/{max_retries}"
-                )
-                time.sleep(retry_delay * (2**attempt))  # Exponential backoff
-                continue
-            else:
-                logger.exception(
-                    "Erreur de base de données lors de la sauvegarde du brouillon"
-                )
-                return JsonResponse(
-                    {"success": False, "error": f"Erreur de base de données: {str(e)}"},
-                    status=500,
-                )
-        except Exception as e:
-            logger.exception("Erreur lors de la sauvegarde du brouillon")
-            return JsonResponse(
-                {"success": False, "error": f"Erreur lors de la sauvegarde: {str(e)}"},
-                status=500,
-            )
-
-    # Si on arrive ici, toutes les tentatives ont échoué
-    return JsonResponse(
-        {
-            "success": False,
-            "error": "Erreur de base de données persistante après plusieurs tentatives",
-        },
-        status=500,
-    )
 
 
 @api_view(["DELETE"])
@@ -868,7 +601,9 @@ def get_bien_baux(request, bien_id):
             )
 
         # Récupérer tous les baux du bien via les locations
-        baux = Bail.objects.filter(location__bien=bien).order_by("-location__date_debut")
+        baux = Bail.objects.filter(location__bien=bien).order_by(
+            "-location__date_debut"
+        )
 
         baux_data = []
         for bail in baux:
@@ -900,10 +635,18 @@ def get_bien_baux(request, bien_id):
             bail_data = {
                 "id": bail.id,
                 "location_id": str(bail.location.id),
-                "date_debut": bail.location.date_debut.isoformat() if bail.location.date_debut else None,
-                "date_fin": bail.location.date_fin.isoformat() if bail.location.date_fin else None,
-                "montant_loyer": float(bail.location.rent_terms.montant_loyer) if hasattr(bail.location, "rent_terms") else 0,
-                "montant_charges": float(bail.location.rent_terms.montant_charges) if hasattr(bail.location, "rent_terms") else 0,
+                "date_debut": bail.location.date_debut.isoformat()
+                if bail.location.date_debut
+                else None,
+                "date_fin": bail.location.date_fin.isoformat()
+                if bail.location.date_fin
+                else None,
+                "montant_loyer": float(bail.location.rent_terms.montant_loyer)
+                if hasattr(bail.location, "rent_terms")
+                else 0,
+                "montant_charges": float(bail.location.rent_terms.montant_charges)
+                if hasattr(bail.location, "rent_terms")
+                else 0,
                 "status": bail.status,
                 "signatures_completes": signatures_completes,
                 "locataires": locataires,

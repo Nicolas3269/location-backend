@@ -161,7 +161,7 @@ def create_or_update_location(request):
                 zone_tendue=data.get("zoneTendue"),
                 permis_de_louer=data.get("permisDeLouer"),
                 rent_price_id=data.get("areaId"),
-                justificatif_complement_loyer=modalites.get("justificationPrix"),
+                justificatif_complement_loyer=modalites.get("justificationPrix", ""),
             )
 
         logger.info(f"Location créée avec succès: {location.id}")

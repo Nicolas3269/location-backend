@@ -305,7 +305,7 @@ class Command(BaseCommand):
             "        ges: data.ges,",
             "      },",
             "      equipements: {",
-            "        annexes: data.annexes,",
+            "        annexes_privatives: data.annexes_privatives,",
             "        annexes_collectives: data.annexes_collectives,",
             "        information: data.information,",
             "      },",

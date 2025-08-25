@@ -106,7 +106,7 @@ def create_bien_from_form_data(form_data, save=True):
                 "identifiant_fiscal": form_data.get("identificationFiscale", ""),
             },
             "equipements": {
-                "annexes": form_data.get("equipements", {}).get("annexes", form_data.get("annexesPrivatives", [])),
+                "annexes_privatives": form_data.get("equipements", {}).get("annexes_privatives", form_data.get("annexesPrivatives", [])),
                 "annexes_collectives": form_data.get("equipements", {}).get("annexes_collectives", form_data.get("annexesCollectives", [])),
                 "information": form_data.get("equipements", {}).get("information", form_data.get("information", [])),
             },
@@ -160,7 +160,7 @@ def create_bien_from_form_data(form_data, save=True):
             "periode_construction": validated["regime"].get("periode_construction"),
             "identifiant_fiscal": validated["regime"].get("identifiant_fiscal", ""),
             # Équipements et annexes
-            "annexes_privatives": validated["equipements"].get("annexes", []),
+            "annexes_privatives": validated["equipements"].get("annexes_privatives", []),
             "annexes_collectives": validated["equipements"].get(
                 "annexes_collectives", []
             ),

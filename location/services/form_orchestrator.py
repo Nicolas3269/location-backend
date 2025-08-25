@@ -25,10 +25,10 @@ class FormOrchestrator:
                 "bien.periodeConstruction",
                 "bien.superficie",
                 "bien.pieces",
-                "bien.annexesPrivatives",
-                "bien.annexesCollectives",
+                "bien.equipements.annexes_privatives",
+                "bien.equipements.annexes_collectives",
                 "bien.meuble",
-                "bien.information",
+                "bien.equipements.information",
                 "bien.chauffage",
                 "bien.eauChaude",
                 "bien.dpe",
@@ -323,10 +323,10 @@ class FormOrchestrator:
             "bien.regimeJuridique": "regimeJuridique",
             "bien.periodeConstruction": "periodeConstruction",
             "bien.superficie": "superficie",
-            "bien.annexesPrivatives": "annexesPrivatives",
-            "bien.annexesCollectives": "annexesCollectives",
+            "bien.equipements.annexes_privatives": "bien.equipements.annexes_privatives",
+            "bien.equipements.annexes_collectives": "bien.equipements.annexes_collectives",
             "bien.meuble": "meuble",
-            "bien.information": "information",
+            "bien.equipements.information": "bien.equipements.information",
             "bien.chauffage": "chauffage",
             "bien.eauChaude": "eauChaude",
             "bien.dpe": "dpeGrade",
@@ -388,9 +388,54 @@ class FormOrchestrator:
 
         data = {}
 
-        # Données du bien
+        # Données du bien - structure composée
         if location.bien:
             bien = location.bien
+            data["bien"] = {
+                "localisation": {
+                    "adresse": bien.adresse,
+                    "latitude": bien.latitude,
+                    "longitude": bien.longitude,
+                },
+                "caracteristiques": {
+                    "superficie": float(bien.superficie) if bien.superficie else None,
+                    "type_bien": bien.type_bien,
+                    "meuble": bien.meuble,
+                    "etage": bien.etage,
+                    "porte": bien.porte,
+                    "dernier_etage": bien.dernier_etage,
+                    "pieces_info": bien.pieces_info or {},
+                },
+                "performance_energetique": {
+                    "classe_dpe": bien.classe_dpe,
+                    "depenses_energetiques": bien.depenses_energetiques,
+                },
+                "equipements": {
+                    "annexes_privatives": bien.annexes_privatives or [],
+                    "annexes_collectives": bien.annexes_collectives or [],
+                    "information": bien.information or [],
+                },
+                "energie": {
+                    "chauffage": {
+                        "type": bien.chauffage_type,
+                        "energie": bien.chauffage_energie,
+                    },
+                    "eau_chaude": {
+                        "type": bien.eau_chaude_type,
+                        "energie": bien.eau_chaude_energie,
+                    },
+                },
+                "regime": {
+                    "regime_juridique": bien.regime_juridique,
+                    "periode_construction": bien.periode_construction,
+                    "identifiant_fiscal": bien.identifiant_fiscal,
+                },
+                "zone_reglementaire": {
+                    # À compléter si nécessaire
+                }
+            }
+            
+            # Pour compatibilité, on garde aussi l'ancien format plat
             data.update(
                 {
                     "adresse": bien.adresse,
@@ -398,12 +443,8 @@ class FormOrchestrator:
                     "regimeJuridique": bien.regime_juridique,
                     "periodeConstruction": bien.periode_construction,
                     "superficie": float(bien.superficie) if bien.superficie else None,
-                    "pieces_info": bien.pieces_info
-                    or {},  # Utiliser pieces_info au lieu de pieces
-                    "annexesPrivatives": bien.annexes_privatives or [],
-                    "annexesCollectives": bien.annexes_collectives or [],
+                    "pieces_info": bien.pieces_info or {},
                     "meuble": bien.meuble,
-                    "information": bien.information or [],
                     "chauffage": {
                         "type": bien.chauffage_type,
                         "energie": bien.chauffage_energie,
@@ -569,10 +610,10 @@ class FormOrchestrator:
         "bien.periodeConstruction": "Quelle est l'année de construction du logement ?",
         "bien.superficie": "Quelle est la superficie du logement ?",
         "bien.pieces": "Quelles pièces y a-t-il dans le logement ?",
-        "bien.annexesPrivatives": "Quelles sont les annexes privatives du logement ?",
-        "bien.annexesCollectives": "Quelles sont les annexes partagées du logement ?",
+        "bien.equipements.annexes_privatives": "Quelles sont les annexes privatives du logement ?",
+        "bien.equipements.annexes_collectives": "Quelles sont les annexes partagées du logement ?",
         "bien.meuble": "Le logement est-il meublé ?",
-        "bien.information": "Quels sont les équipements d'accès aux technologies de l'information ?",
+        "bien.equipements.information": "Quels sont les équipements d'accès aux technologies de l'information ?",
         "bien.chauffage": "Quel est le type de chauffage du logement ?",
         "bien.eauChaude": "Quel est le type de production d'eau chaude ?",
         "bien.dpe": "Quelle est la classe énergétique du logement (DPE) ?",

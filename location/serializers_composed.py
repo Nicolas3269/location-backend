@@ -58,7 +58,7 @@ class PerformanceEnergetiqueSerializer(serializers.Serializer):
 class EquipementsSerializer(serializers.Serializer):
     """Équipements et annexes du bien"""
 
-    annexes = serializers.ListField(
+    annexes_privatives = serializers.ListField(
         child=serializers.CharField(), required=False, default=list
     )
     annexes_collectives = serializers.ListField(

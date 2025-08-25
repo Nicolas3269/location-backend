@@ -106,9 +106,15 @@ def create_bien_from_form_data(form_data, save=True):
                 "identifiant_fiscal": form_data.get("identificationFiscale", ""),
             },
             "equipements": {
-                "annexes_privatives": form_data.get("equipements", {}).get("annexes_privatives", form_data.get("annexesPrivatives", [])),
-                "annexes_collectives": form_data.get("equipements", {}).get("annexes_collectives", form_data.get("annexesCollectives", [])),
-                "information": form_data.get("equipements", {}).get("information", form_data.get("information", [])),
+                "annexes_privatives": form_data.get("equipements", {}).get(
+                    "annexes_privatives", form_data.get("annexesPrivatives", [])
+                ),
+                "annexes_collectives": form_data.get("equipements", {}).get(
+                    "annexes_collectives", form_data.get("annexesCollectives", [])
+                ),
+                "information": form_data.get("equipements", {}).get(
+                    "information", form_data.get("information", [])
+                ),
             },
         }
 
@@ -116,61 +122,49 @@ def create_bien_from_form_data(form_data, save=True):
     serializer = BienCompletSerializer(data=bien_data)
 
     if not serializer.is_valid():
-        logger.warning(f"Validation échouée: {serializer.errors}")
-        # Créer un bien minimal avec les données disponibles
-        bien = Bien(
-            adresse=bien_data.get("localisation", {}).get("adresse", ""),
-            superficie=bien_data.get("caracteristiques", {}).get("superficie", 50),
-            type_bien=bien_data.get("caracteristiques", {}).get(
-                "type_bien", "appartement"
-            ),
-            meuble=bien_data.get("caracteristiques", {}).get("meuble", False),
-            pieces_info=bien_data.get("caracteristiques", {}).get("pieces_info", {}),
-        )
-    else:
-        # Créer le bien à partir des données validées
-        validated = serializer.validated_data
+        raise ValueError(f"Données du bien invalides: {serializer.errors}")
 
-        # Mapper les données validées vers les champs du modèle
-        bien_fields = {
-            # Localisation
-            "adresse": validated["localisation"]["adresse"],
-            "latitude": validated["localisation"].get("latitude"),
-            "longitude": validated["localisation"].get("longitude"),
-            # Caractéristiques
-            "superficie": validated["caracteristiques"]["superficie"],
-            "type_bien": validated["caracteristiques"]["type_bien"],
-            "meuble": validated["caracteristiques"]["meuble"],
-            "etage": validated["caracteristiques"].get("etage", ""),
-            "porte": validated["caracteristiques"].get("porte", ""),
-            "dernier_etage": validated["caracteristiques"]["dernier_etage"],
-            "pieces_info": validated["caracteristiques"].get("pieces_info", {}),
-            # Performance énergétique
-            "classe_dpe": validated["performance_energetique"]["classe_dpe"],
-            "depenses_energetiques": validated["performance_energetique"].get(
-                "depenses_energetiques", ""
-            ),
-            # Énergie
-            "chauffage_type": validated["energie"]["chauffage"]["type"],
-            "chauffage_energie": validated["energie"]["chauffage"]["energie"],
-            "eau_chaude_type": validated["energie"]["eau_chaude"]["type"],
-            "eau_chaude_energie": validated["energie"]["eau_chaude"]["energie"],
-            # Régime
-            "regime_juridique": validated["regime"]["regime_juridique"],
-            "periode_construction": validated["regime"].get("periode_construction"),
-            "identifiant_fiscal": validated["regime"].get("identifiant_fiscal", ""),
-            # Équipements et annexes
-            "annexes_privatives": validated["equipements"].get("annexes_privatives", []),
-            "annexes_collectives": validated["equipements"].get(
-                "annexes_collectives", []
-            ),
-            "information": validated["equipements"].get("information", []),
-        }
+    # Créer le bien à partir des données validées
+    validated = serializer.validated_data
 
-        # Enlever les valeurs None pour éviter les erreurs
-        bien_fields = {k: v for k, v in bien_fields.items() if v is not None}
+    # Mapper les données validées vers les champs du modèle
+    bien_fields = {
+        # Localisation
+        "adresse": validated["localisation"]["adresse"],
+        "latitude": validated["localisation"].get("latitude"),
+        "longitude": validated["localisation"].get("longitude"),
+        # Caractéristiques
+        "superficie": validated["caracteristiques"]["superficie"],
+        "type_bien": validated["caracteristiques"]["type_bien"],
+        "meuble": validated["caracteristiques"]["meuble"],
+        "etage": validated["caracteristiques"].get("etage", ""),
+        "porte": validated["caracteristiques"].get("porte", ""),
+        "dernier_etage": validated["caracteristiques"]["dernier_etage"],
+        "pieces_info": validated["caracteristiques"].get("pieces_info", {}),
+        # Performance énergétique
+        "classe_dpe": validated["performance_energetique"]["classe_dpe"],
+        "depenses_energetiques": validated["performance_energetique"].get(
+            "depenses_energetiques", ""
+        ),
+        # Énergie
+        "chauffage_type": validated["energie"]["chauffage"]["type"],
+        "chauffage_energie": validated["energie"]["chauffage"]["energie"],
+        "eau_chaude_type": validated["energie"]["eau_chaude"]["type"],
+        "eau_chaude_energie": validated["energie"]["eau_chaude"]["energie"],
+        # Régime
+        "regime_juridique": validated["regime"]["regime_juridique"],
+        "periode_construction": validated["regime"].get("periode_construction"),
+        "identifiant_fiscal": validated["regime"].get("identifiant_fiscal", ""),
+        # Équipements et annexes
+        "annexes_privatives": validated["equipements"].get("annexes_privatives", []),
+        "annexes_collectives": validated["equipements"].get("annexes_collectives", []),
+        "information": validated["equipements"].get("information", []),
+    }
 
-        bien = Bien(**bien_fields)
+    # Enlever les valeurs None pour éviter les erreurs
+    bien_fields = {k: v for k, v in bien_fields.items() if v is not None}
+
+    bien = Bien(**bien_fields)
 
     if save:
         bien.save()

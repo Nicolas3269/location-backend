@@ -31,8 +31,8 @@ class BailleurAdmin(admin.ModelAdmin):
         "count_biens",
     )
     search_fields = (
-        "personne__nom",
-        "personne__prenom",
+        "personne__lastName",
+        "personne__firstName",
         "personne__email",
         "societe__raison_sociale",
         "societe__email",
@@ -190,7 +190,9 @@ class BienAdmin(admin.ModelAdmin):
         bailleurs_names = []
         for bailleur in obj.bailleurs.all():
             if bailleur.personne:
-                nom_complet = f"{bailleur.personne.firstName} {bailleur.personne.lastName}"
+                nom_complet = (
+                    f"{bailleur.personne.firstName} {bailleur.personne.lastName}"
+                )
                 bailleurs_names.append(nom_complet)
             elif bailleur.societe:
                 bailleurs_names.append(bailleur.societe.raison_sociale)

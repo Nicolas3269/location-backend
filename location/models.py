@@ -376,7 +376,7 @@ class Locataire(Personne):
         verbose_name_plural = "Locataires"
 
     def __str__(self):
-        return f"{self.prenom} {self.nom} (Locataire)"
+        return f"{self.firstName} {self.lastName} (Locataire)"
 
 
 class Location(BaseModel):

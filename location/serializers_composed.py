@@ -14,12 +14,8 @@ class AdresseSerializer(serializers.Serializer):
     """Serializer pour une adresse avec géolocalisation"""
 
     adresse = serializers.CharField(required=True, max_length=255)
-    latitude = serializers.DecimalField(
-        max_digits=10, decimal_places=7, required=False, allow_null=True
-    )
-    longitude = serializers.DecimalField(
-        max_digits=10, decimal_places=7, required=False, allow_null=True
-    )
+    latitude = serializers.FloatField(required=False, allow_null=True)
+    longitude = serializers.FloatField(required=False, allow_null=True)
     area_id = serializers.IntegerField(required=False, allow_null=True)
 
 

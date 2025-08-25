@@ -15,43 +15,52 @@ from location.models import (
     Societe,
 )
 from location.serializers_composed import (
-    CreateLocationComposedSerializer,
     CreateBailSerializer,
-    CreateQuittanceSerializer,
     CreateEtatLieuxSerializer,
+    CreateLocationComposedSerializer,
+    CreateQuittanceSerializer,
 )
 from rent_control.choices import ChargeType
 
 logger = logging.getLogger(__name__)
 
 
-
-
 def create_or_get_bailleur(data):
     """
-    Crée ou récupère un bailleur depuis les données du formulaire.
+    Crée ou récupère un bailleur depuis les données du formulaire en utilisant les serializers.
     Retourne le bailleur créé et les autres bailleurs si présents.
     """
-    landlord_data = data.get("landlord", {})
-    bailleur_type = data.get("bailleur_type", "physique")
+    from location.serializers_composed import BailleurInfoSerializer
+
+    # Extraire les données du bailleur depuis le format composé
+    bailleur_data = data.get("bailleur", {})
+
+    # Valider avec le serializer
+    serializer = BailleurInfoSerializer(data=bailleur_data)
+    if not serializer.is_valid():
+        raise ValueError(f"Données bailleur invalides: {serializer.errors}")
+
+    validated = serializer.validated_data
+    bailleur_type = validated.get("bailleur_type", "physique")
 
     if bailleur_type == "morale":
-        # Créer la société
-        societe_data = data.get("societe", {})
+        # Créer la société depuis les données validées
+        societe_data = validated["societe"]
         societe = Societe.objects.create(
-            raison_sociale=societe_data.get("raisonSociale", ""),
-            forme_juridique=societe_data.get("formeJuridique", ""),
-            siret=data.get("siret", ""),
-            adresse=societe_data.get("adresse", ""),
-            email=landlord_data.get("email", ""),
+            raison_sociale=societe_data.get("nom", ""),
+            forme_juridique=societe_data.get("forme_juridique", "SARL"),
+            siret=societe_data["siret"],
+            adresse=societe_data["adresse"],
+            email=societe_data.get("email", ""),
         )
 
-        # Créer le signataire
+        # Créer le signataire depuis les données validées
+        signataire_data = validated.get("signataire", {})
         personne_signataire = Personne.objects.create(
-            lastName=landlord_data.get("lastName", ""),
-            firstName=landlord_data.get("firstName", ""),
-            email=landlord_data.get("email", ""),
-            adresse=landlord_data.get("address", ""),
+            lastName=signataire_data["lastName"],
+            firstName=signataire_data["firstName"],
+            email=signataire_data["email"],
+            adresse=signataire_data.get("adresse", ""),
         )
 
         bailleur = Bailleur.objects.create(
@@ -59,12 +68,14 @@ def create_or_get_bailleur(data):
             signataire=personne_signataire,
         )
     else:
-        # Créer la personne physique
+        # Créer la personne physique depuis les données validées
+        personne_data = validated["personne"]
         personne_bailleur = Personne.objects.create(
-            lastName=landlord_data.get("lastName", ""),
-            firstName=landlord_data.get("firstName", ""),
-            email=landlord_data.get("email", ""),
-            adresse=landlord_data.get("address", ""),
+            lastName=personne_data["lastName"],
+            firstName=personne_data["firstName"],
+            email=personne_data["email"],
+            adresse=personne_data["adresse"],
+            iban=personne_data.get("iban", ""),
         )
 
         bailleur = Bailleur.objects.create(
@@ -74,15 +85,15 @@ def create_or_get_bailleur(data):
 
     logger.info(f"Bailleur créé: {bailleur.id}")
 
-    # Créer les autres bailleurs si présents
+    # Créer les co-bailleurs si présents
     autres_bailleurs = []
-    other_landlords = data.get("other_landlords", [])
-    for other_data in other_landlords:
+    co_bailleurs_data = validated.get("co_bailleurs", [])
+    for co_bailleur_data in co_bailleurs_data:
         personne_autre = Personne.objects.create(
-            lastName=other_data.get("lastName", ""),
-            firstName=other_data.get("firstName", ""),
-            email=other_data.get("email", ""),
-            adresse=other_data.get("address", ""),
+            lastName=co_bailleur_data["lastName"],
+            firstName=co_bailleur_data["firstName"],
+            email=co_bailleur_data["email"],
+            adresse=co_bailleur_data.get("adresse", ""),
         )
 
         autre_bailleur = Bailleur.objects.create(
@@ -96,19 +107,31 @@ def create_or_get_bailleur(data):
 
 def create_locataires(data):
     """
-    Crée les locataires depuis les données du formulaire.
+    Crée les locataires depuis les données du formulaire en utilisant les serializers.
     Retourne la liste des locataires créés.
     """
+    from location.serializers_composed import LocataireInfoSerializer
+
     locataires_data = data.get("locataires", [])
     locataires = []
 
     for loc_data in locataires_data:
+        # Valider avec le serializer
+        serializer = LocataireInfoSerializer(data=loc_data)
+        if not serializer.is_valid():
+            raise ValueError(f"Données locataire invalides: {serializer.errors}")
+
+        validated = serializer.validated_data
         locataire = Locataire.objects.create(
-            lastName=loc_data.get("lastName", ""),
-            firstName=loc_data.get("firstName", ""),
-            email=loc_data.get("email", ""),
-            adresse=loc_data.get("address", ""),
+            lastName=validated["lastName"],
+            firstName=validated["firstName"],
+            email=validated["email"],
+            adresse=validated.get("adresse", ""),
+            date_naissance=validated.get("date_naissance"),
+            profession=validated.get("profession", ""),
+            revenu_mensuel=validated.get("revenus_mensuels"),
         )
+
         locataires.append(locataire)
         logger.info(f"Locataire créé: {locataire.id}")
 
@@ -120,15 +143,24 @@ def create_garants(data):
     Crée les garants depuis les données du formulaire.
     Retourne la liste des garants créés.
     """
+    from location.serializers_composed import PersonneBaseSerializer
+
     garants_data = data.get("garants", [])
     garants = []
 
     for garant_data in garants_data:
+        serializer = PersonneBaseSerializer(data=garant_data)
+        if not serializer.is_valid():
+            raise ValueError(f"Données garant invalides: {serializer.errors}")
+
+        validated = serializer.validated_data
         garant = Personne.objects.create(
-            lastName=garant_data.get("lastName", ""),
-            firstName=garant_data.get("firstName", ""),
-            email=garant_data.get("email", ""),
-            adresse=garant_data.get("address", ""),
+            lastName=validated["lastName"],
+            firstName=validated["firstName"],
+            email=validated["email"],
+            adresse=validated.get("adresse", ""),
+            date_naissance=validated.get("date_naissance"),
+            telephone=validated.get("telephone", ""),
         )
         garants.append(garant)
 
@@ -137,28 +169,52 @@ def create_garants(data):
 
 def create_or_update_rent_terms(location, data):
     """
-    Crée ou met à jour les conditions financières d'une location.
+    Crée ou met à jour les conditions financières d'une location en utilisant les serializers.
     """
-    modalites = data.get("modalites", {})
+    from location.serializers_composed import (
+        ModalitesFinancieresSerializer,
+        ModalitesZoneTendueSerializer,
+    )
 
-    # Valider le type de charges
-    type_charges_value = modalites.get("typeCharges")
-    if type_charges_value and type_charges_value not in [
-        choice.value for choice in ChargeType
-    ]:
-        type_charges_value = ChargeType.FORFAITAIRES.value
+    # Extraire les modalités financières (format composé uniquement)
+    modalites_financieres = data.get("modalites_financieres", {})
+    modalites_zone_tendue = data.get("modalites_zone_tendue", {})
 
-    # Préparer les données depuis le formulaire
+    # Valider les modalités financières
+    serializer_fin = ModalitesFinancieresSerializer(data=modalites_financieres)
+    if not serializer_fin.is_valid():
+        raise ValueError(
+            f"Données modalités financières invalides: {serializer_fin.errors}"
+        )
+
+    modalites_financieres = serializer_fin.validated_data
+
+    # Valider les modalités zone tendue si présentes
+    if modalites_zone_tendue:
+        serializer_zone = ModalitesZoneTendueSerializer(data=modalites_zone_tendue)
+        if not serializer_zone.is_valid():
+            raise ValueError(
+                f"Données modalités zone tendue invalides: {serializer_zone.errors}"
+            )
+        modalites_zone_tendue = serializer_zone.validated_data
+
+    # Préparer les données pour RentTerms
+    # Extraire zone_reglementaire du bien si présent
+    bien_data = data.get("bien", {})
+    zone_reglementaire = bien_data.get("zone_reglementaire", {})
+
     form_data = {
-        "montant_loyer": modalites.get("prix"),
-        "montant_charges": modalites.get("charges"),
-        "type_charges": type_charges_value,
-        "depot_garantie": data.get("deposit"),
-        "jour_paiement": data.get("paymentDay"),
-        "zone_tendue": data.get("zoneTendue"),
-        "permis_de_louer": data.get("permisDeLouer"),
-        "rent_price_id": data.get("areaId"),
-        "justificatif_complement_loyer": modalites.get("justificationPrix"),
+        "montant_loyer": modalites_financieres.get("loyer_hors_charges"),
+        "montant_charges": modalites_financieres.get("charges"),
+        "type_charges": modalites_financieres.get("type_charges"),
+        "depot_garantie": modalites_financieres.get("depot_garantie"),
+        "jour_paiement": modalites_financieres.get("jour_paiement"),
+        "zone_tendue": zone_reglementaire.get("zone_tendue", False),
+        "permis_de_louer": zone_reglementaire.get("permis_de_louer", False),
+        "rent_price_id": bien_data.get("localisation", {}).get("area_id"),
+        "justificatif_complement_loyer": modalites_zone_tendue.get(
+            "justification_prix", ""
+        ),
     }
 
     # Vérifier si RentTerms existe déjà
@@ -251,11 +307,6 @@ def create_new_location(data):
     # Associer les locataires à la location
     for locataire in locataires:
         location.locataires.add(locataire)
-
-    # 5. Ajouter les garants si présents
-    garants = create_garants(data)
-    for garant in garants:
-        location.garants.add(garant)
 
     # 6. Créer les conditions financières si fournies
     create_or_update_rent_terms(location, data)
@@ -355,15 +406,15 @@ def create_or_update_location(request):
     """
     try:
         # 1. Déterminer le type de document et choisir le serializer approprié
-        source = request.data.get('source', 'manual')
-        
+        source = request.data.get("source", "manual")
+
         serializer_map = {
-            'bail': CreateBailSerializer,
-            'quittance': CreateQuittanceSerializer,
-            'etat_lieux': CreateEtatLieuxSerializer,
-            'manual': CreateLocationComposedSerializer,
+            "bail": CreateBailSerializer,
+            "quittance": CreateQuittanceSerializer,
+            "etat_lieux": CreateEtatLieuxSerializer,
+            "manual": CreateLocationComposedSerializer,
         }
-        
+
         serializer_class = serializer_map.get(source, CreateLocationComposedSerializer)
         serializer = serializer_class(data=request.data)
 

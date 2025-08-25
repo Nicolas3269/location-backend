@@ -84,8 +84,8 @@ def get_signature_request_generic(request, token, model_class):
                 "success": True,
                 "person": {
                     "email": signer_email,
-                    "first_name": person.prenom if person else "",
-                    "last_name": person.nom if person else "",
+                    "first_name": person.firstName if person else "",
+                    "last_name": person.lastName if person else "",
                 },
                 "otp_sent": True,
             }

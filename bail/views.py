@@ -357,15 +357,19 @@ def get_rent_prices(request):
     """
     try:
         data = request.data
-        area_id = data.get("areaId")
+
+        # Extraire area_id depuis la structure composée ou plate
+        bien_data = data.get("bien", {})
+        localisation = bien_data.get("localisation", {})
+        area_id = localisation.get("area_id") or data.get("areaId")
 
         if not area_id:
             return JsonResponse({"error": "Area ID requis"}, status=400)
 
-        # Créer un objet Bien temporaire avec les données du formulaire
-        # en utilisant la même logique que save_draft
-
-        bien = create_bien_from_form_data(data, save=False)
+        # Si on a déjà une structure composée, l'utiliser directement
+        if bien_data:
+            # Valider avec le serializer
+            bien = create_bien_from_form_data(data, save=False)
 
         try:
             rent_price = get_rent_price_for_bien(bien, area_id)
@@ -610,8 +614,8 @@ def get_bien_baux(request, bien_id):
             # Récupérer les locataires depuis la location
             locataires = [
                 {
-                    "nom": locataire.nom,
-                    "prenom": locataire.prenom,
+                    "lastName": locataire.lastName,
+                    "firstName": locataire.firstName,
                     "email": locataire.email,
                 }
                 for locataire in bail.location.locataires.all()

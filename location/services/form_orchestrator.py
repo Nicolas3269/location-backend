@@ -93,11 +93,11 @@ class FormOrchestrator:
     # Champs conditionnels et leurs dépendances
     CONDITIONAL_FIELDS = {
         "bien.depensesEnergie": {
-            "condition": 'dpeGrade !== "NA"',
+            "condition": 'bien.performance_energetique.classe_dpe !== "NA"',
             "depends_on": "bien.dpe",
         },
         "personnes.siretSociete": {
-            "condition": 'bailleurType === "morale"',
+            "condition": 'bailleur.bailleur_type === "morale"',
             "depends_on": "personnes.bailleurType",
         },
         "personnes.solidaires": {
@@ -105,15 +105,15 @@ class FormOrchestrator:
             "depends_on": "personnes.locataires",
         },
         "modalites.premiereMiseEnLocation": {
-            "condition": "zoneTendue === true",
+            "condition": "bien.zone_reglementaire.zone_tendue === true",
             "depends_on": "modalites.zoneTendue",
         },
         "modalites.locataireDerniers18Mois": {
-            "condition": 'zoneTendue === true && modalites.premiereMiseEnLocation === "false"',
+            "condition": 'bien.zone_reglementaire.zone_tendue === true && modalites_zone_tendue.premiere_mise_en_location === "false"',
             "depends_on": ["modalites.zoneTendue", "modalites.premiereMiseEnLocation"],
         },
         "modalites.dernierMontantLoyer": {
-            "condition": 'zoneTendue === true && modalites.premiereMiseEnLocation === "false" && modalites.locataireDerniers18Mois === "true"',
+            "condition": 'bien.zone_reglementaire.zone_tendue === true && modalites_zone_tendue.premiere_mise_en_location === "false" && modalites_zone_tendue.locataire_derniers_18_mois === "true"',
             "depends_on": [
                 "modalites.zoneTendue",
                 "modalites.premiereMiseEnLocation",
@@ -431,8 +431,8 @@ class FormOrchestrator:
                 # Infos du bailleur
                 if bailleur_principal.personne:
                     data["landlord"] = {
-                        "firstName": bailleur_principal.personne.prenom,
-                        "lastName": bailleur_principal.personne.nom,
+                        "firstName": bailleur_principal.personne.firstName,
+                        "lastName": bailleur_principal.personne.lastName,
                         "email": bailleur_principal.personne.email,
                         "address": bailleur_principal.personne.adresse,
                         "dateNaissance": str(bailleur_principal.personne.date_naissance)
@@ -448,8 +448,8 @@ class FormOrchestrator:
                     }
                     if bailleur_principal.signataire:
                         data["landlord"] = {
-                            "firstName": bailleur_principal.signataire.prenom,
-                            "lastName": bailleur_principal.signataire.nom,
+                            "firstName": bailleur_principal.signataire.firstName,
+                            "lastName": bailleur_principal.signataire.lastName,
                             "email": bailleur_principal.signataire.email,
                         }
 
@@ -457,12 +457,12 @@ class FormOrchestrator:
                 if bailleurs.count() > 1:
                     data["otherLandlords"] = [
                         {
-                            "firstName": b.personne.prenom
+                            "firstName": b.personne.firstName
                             if b.personne
-                            else b.signataire.prenom,
-                            "lastName": b.personne.nom
+                            else b.signataire.firstName,
+                            "lastName": b.personne.lastName
                             if b.personne
-                            else b.signataire.nom,
+                            else b.signataire.lastName,
                             "email": b.personne.email
                             if b.personne
                             else b.societe.email,
@@ -477,8 +477,8 @@ class FormOrchestrator:
         if location.locataires.exists():
             data["locataires"] = [
                 {
-                    "firstName": loc.prenom,
-                    "lastName": loc.nom,
+                    "firstName": loc.firstName,
+                    "lastName": loc.lastName,
                     "email": loc.email,
                     "dateNaissance": str(loc.date_naissance)
                     if loc.date_naissance

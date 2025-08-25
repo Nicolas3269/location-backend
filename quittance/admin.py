@@ -29,10 +29,10 @@ class QuittanceAdmin(admin.ModelAdmin):
 
     search_fields = [
         "location__bien__adresse",
-        "location__locataires__nom",
-        "location__locataires__prenom",
-        "location__bien__bailleurs__personne__nom",
-        "location__bien__bailleurs__personne__prenom",
+        "location__locataires__lastName",
+        "location__locataires__firstName",
+        "location__bien__bailleurs__personne__lastName",
+        "location__bien__bailleurs__personne__firstName",
         "location__bien__bailleurs__societe__raison_sociale",
     ]
 
@@ -94,7 +94,7 @@ class QuittanceAdmin(admin.ModelAdmin):
     def location_info(self, obj):
         """Affiche les informations de la location avec lien"""
         location_url = reverse("admin:location_location_change", args=[obj.location.pk])
-        locataires = ", ".join([f"{loc.prenom} {loc.nom}" for loc in obj.location.locataires.all()])
+        locataires = ", ".join([f"{loc.firstName} {loc.lastName}" for loc in obj.location.locataires.all()])
         
         # Chercher s'il y a un bail actif pour cette location
         bail = obj.location.bails.filter(is_active=True).first()

@@ -45,8 +45,8 @@ class DPEClass(models.TextChoices):
 class Personne(models.Model):
     """Personne physique (propriétaire, signataire, etc.)"""
 
-    nom = models.CharField(max_length=100)
-    prenom = models.CharField(max_length=100)
+    lastName = models.CharField(max_length=100, db_column='nom')
+    firstName = models.CharField(max_length=100, db_column='prenom')
     date_naissance = models.DateField(
         null=True, blank=True
     )  # Optionnel pour certains cas
@@ -65,7 +65,7 @@ class Personne(models.Model):
 
     @property
     def full_name(self):
-        return f"{self.prenom} {self.nom}"
+        return f"{self.firstName} {self.lastName}"
 
 
 class Societe(models.Model):

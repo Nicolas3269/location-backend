@@ -49,8 +49,8 @@ class EtatLieuxAdmin(admin.ModelAdmin):
 
     search_fields = (
         "location__bien__adresse",
-        "location__locataires__nom",
-        "location__locataires__prenom",
+        "location__locataires__lastName",
+        "location__locataires__firstName",
     )
 
     readonly_fields = ("id", "created_at", "updated_at", "pdf_link", "latest_pdf_link")
@@ -85,7 +85,7 @@ class EtatLieuxAdmin(admin.ModelAdmin):
     def location_info(self, obj):
         """Affiche les informations de la location"""
         bien_adresse = obj.location.bien.adresse
-        locataires = ", ".join([f"{loc.prenom} {loc.nom}" for loc in obj.location.locataires.all()])
+        locataires = ", ".join([f"{loc.firstName} {loc.lastName}" for loc in obj.location.locataires.all()])
         return format_html(
             "{}<br><small>{}</small>",
             bien_adresse,
@@ -264,10 +264,10 @@ class EtatLieuxSignatureRequestAdmin(admin.ModelAdmin):
     def signataire_display(self, obj):
         """Affichage du signataire"""
         if obj.bailleur_signataire:
-            nom = f"{obj.bailleur_signataire.prenom} {obj.bailleur_signataire.nom}"
+            nom = f"{obj.bailleur_signataire.firstName} {obj.bailleur_signataire.lastName}"
             return f"Bailleur: {nom}"
         elif obj.locataire:
-            return f"Locataire: {obj.locataire.prenom} {obj.locataire.nom}"
+            return f"Locataire: {obj.locataire.firstName} {obj.locataire.lastName}"
         return "Aucun signataire"
 
     signataire_display.short_description = "Signataire"

@@ -101,14 +101,14 @@
         {% for bailleur in bail.location.bien.bailleurs.all %}
           {% if bailleur.personne %}
             <li>
-              {{ bailleur.personne.prenom }} {{ bailleur.personne.nom }} ({{ bailleur.personne.email }}), 
+              {{ bailleur.personne.firstName }} {{ bailleur.personne.lastName }} ({{ bailleur.personne.email }}), 
               <strong>personne physique</strong> domiciliée au {{ bailleur.personne.adresse }}{% if not forloop.last %} ;<br>{% endif %}
             </li>
           {% elif bailleur.societe %}
             <li>
               La <strong>personne morale</strong> {{ bailleur.societe.raison_sociale }} ({{ bailleur.societe.forme_juridique }}), dont le SIRET est {{ bailleur.societe.siret }},
               domiciliée au {{ bailleur.societe.adresse }}, représentée pour la signature par 
-              {{ bailleur.signataire.prenom }} {{ bailleur.signataire.nom }} ({{ bailleur.signataire.email }}){% if not forloop.last %} ;<br>{% endif %}
+              {{ bailleur.signataire.firstName }} {{ bailleur.signataire.lastName }} ({{ bailleur.signataire.email }}){% if not forloop.last %} ;<br>{% endif %}
             </li>
           {% endif %}
         {% endfor %}
@@ -121,7 +121,7 @@
     <p>
       <ul>
       {% for locataire in bail.location.locataires.all %}
-        <li>{{ locataire.prenom }} {{ locataire.nom }}{% if locataire.email %} ({{ locataire.email }}){% endif %}, personne physique{% if not forloop.last %};<br>{% endif %}</li>
+        <li>{{ locataire.firstName }} {{ locataire.lastName }}{% if locataire.email %} ({{ locataire.email }}){% endif %}, personne physique{% if not forloop.last %};<br>{% endif %}</li>
       {% endfor %}
       </ul>
     </p>

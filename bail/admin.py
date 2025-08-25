@@ -63,8 +63,8 @@ class BailAdmin(admin.ModelAdmin):
     list_filter = ("status", "is_active", "version")
     search_fields = (
         "location__bien__adresse",
-        "location__locataires__nom",
-        "location__locataires__prenom",
+        "location__locataires__lastName",
+        "location__locataires__firstName",
     )
     date_hierarchy = "date_signature"
     inlines = [DocumentInline, BailSignatureRequestInline]
@@ -139,7 +139,7 @@ class BailAdmin(admin.ModelAdmin):
     def display_locataires(self, obj):
         """Affiche les locataires"""
         locataires = [
-            f"{loc.prenom} {loc.nom}" for loc in obj.location.locataires.all()
+            f"{loc.firstName} {loc.lastName}" for loc in obj.location.locataires.all()
         ]
         return ", ".join(locataires)
 
@@ -328,10 +328,10 @@ class BailSignatureRequestAdmin(admin.ModelAdmin):
     def signataire_display(self, obj):
         """Affichage du signataire"""
         if obj.bailleur_signataire:
-            nom = f"{obj.bailleur_signataire.prenom} {obj.bailleur_signataire.nom}"
+            nom = f"{obj.bailleur_signataire.firstName} {obj.bailleur_signataire.lastName}"
             return f"Bailleur: {nom}"
         elif obj.locataire:
-            return f"Locataire: {obj.locataire.prenom} {obj.locataire.nom}"
+            return f"Locataire: {obj.locataire.firstName} {obj.locataire.lastName}"
         return "Aucun signataire"
 
     signataire_display.short_description = "Signataire"

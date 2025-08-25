@@ -92,7 +92,7 @@ class LocationInline(admin.TabularInline):
     readonly_fields = ("get_locataires", "get_montant_loyer")
 
     def get_locataires(self, obj):
-        locataires = [f"{loc.prenom} {loc.nom}" for loc in obj.locataires.all()]
+        locataires = [f"{loc.firstName} {loc.lastName}" for loc in obj.locataires.all()]
         return ", ".join(locataires)
 
     get_locataires.short_description = "Locataires"
@@ -126,8 +126,8 @@ class BienAdmin(admin.ModelAdmin):
     )
     search_fields = (
         "adresse",
-        "bailleurs__personne__nom",
-        "bailleurs__personne__prenom",
+        "bailleurs__personne__lastName",
+        "bailleurs__personne__firstName",
         "bailleurs__societe__raison_sociale",
     )
     inlines = [LocationInline]
@@ -190,7 +190,7 @@ class BienAdmin(admin.ModelAdmin):
         bailleurs_names = []
         for bailleur in obj.bailleurs.all():
             if bailleur.personne:
-                nom_complet = f"{bailleur.personne.prenom} {bailleur.personne.nom}"
+                nom_complet = f"{bailleur.personne.firstName} {bailleur.personne.lastName}"
                 bailleurs_names.append(nom_complet)
             elif bailleur.societe:
                 bailleurs_names.append(bailleur.societe.raison_sociale)
@@ -203,13 +203,13 @@ class BienAdmin(admin.ModelAdmin):
 class LocataireAdmin(admin.ModelAdmin):
     """Interface d'administration pour les locataires"""
 
-    list_display = ("get_nom", "get_prenom", "email", "count_locations")
-    search_fields = ("nom", "prenom", "email")
+    list_display = ("get_lastName", "get_firstName", "email", "count_locations")
+    search_fields = ("lastName", "firstName", "email")
 
     fieldsets = (
         (
             "Informations personnelles",
-            {"fields": ("nom", "prenom", "date_naissance", "email", "adresse")},
+            {"fields": ("lastName", "firstName", "date_naissance", "email", "adresse")},
         ),
         (
             "Informations spécifiques",
@@ -238,19 +238,19 @@ class LocataireAdmin(admin.ModelAdmin):
         ),
     )
 
-    def get_nom(self, obj):
+    def get_lastName(self, obj):
         """Affiche le nom"""
-        return obj.nom
+        return obj.lastName
 
-    get_nom.short_description = "Nom"
-    get_nom.admin_order_field = "nom"
+    get_lastName.short_description = "Nom"
+    get_lastName.admin_order_field = "lastName"
 
-    def get_prenom(self, obj):
+    def get_firstName(self, obj):
         """Affiche le prénom"""
-        return obj.prenom
+        return obj.firstName
 
-    get_prenom.short_description = "Prénom"
-    get_prenom.admin_order_field = "prenom"
+    get_firstName.short_description = "Prénom"
+    get_firstName.admin_order_field = "firstName"
 
     def count_locations(self, obj):
         """Affiche le nombre de locations du locataire"""
@@ -265,13 +265,13 @@ class PersonneAdmin(admin.ModelAdmin):
     """Interface d'administration pour les personnes physiques"""
 
     list_display = ("get_full_name", "email", "date_naissance", "count_bailleurs")
-    search_fields = ("nom", "prenom", "email")
+    search_fields = ("lastName", "firstName", "email")
     list_filter = ("date_naissance",)
 
     fieldsets = (
         (
             "Informations personnelles",
-            {"fields": ("nom", "prenom", "date_naissance", "email")},
+            {"fields": ("lastName", "firstName", "date_naissance", "email")},
         ),
         ("Adresse", {"fields": ("adresse",)}),
         (
@@ -288,7 +288,7 @@ class PersonneAdmin(admin.ModelAdmin):
         return obj.full_name
 
     get_full_name.short_description = "Nom complet"
-    get_full_name.admin_order_field = "nom"
+    get_full_name.admin_order_field = "lastName"
 
     def count_bailleurs(self, obj):
         """Affiche le nombre de bailleurs liés à cette personne"""
@@ -348,8 +348,8 @@ class MandataireAdmin(admin.ModelAdmin):
     )
     search_fields = (
         "societe__raison_sociale",
-        "signataire__nom",
-        "signataire__prenom",
+        "signataire__lastName",
+        "signataire__firstName",
         "numero_carte_professionnelle",
     )
     list_filter = ("date_debut_mandat", "date_fin_mandat")
@@ -387,7 +387,7 @@ class MandataireAdmin(admin.ModelAdmin):
         return obj.signataire.full_name
 
     get_signataire_name.short_description = "Signataire"
-    get_signataire_name.admin_order_field = "signataire__nom"
+    get_signataire_name.admin_order_field = "signataire__lastName"
 
 
 class RentTermsInline(admin.StackedInline):
@@ -424,8 +424,8 @@ class LocationAdmin(admin.ModelAdmin):
     list_filter = ("created_from", "date_debut", "solidaires")
     search_fields = (
         "bien__adresse",
-        "locataires__nom",
-        "locataires__prenom",
+        "locataires__lastName",
+        "locataires__firstName",
     )
     date_hierarchy = "date_debut"
     inlines = [RentTermsInline]
@@ -475,7 +475,7 @@ class LocationAdmin(admin.ModelAdmin):
 
     def display_locataires(self, obj):
         """Affiche les locataires"""
-        locataires = [f"{loc.prenom} {loc.nom}" for loc in obj.locataires.all()]
+        locataires = [f"{loc.firstName} {loc.lastName}" for loc in obj.locataires.all()]
         return ", ".join(locataires)
 
     display_locataires.short_description = "Locataires"

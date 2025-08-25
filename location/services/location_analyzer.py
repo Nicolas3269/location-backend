@@ -130,8 +130,8 @@ class LocationAnalyzer:
                 analysis["bailleur_type"] = "physique"
                 analysis["bailleur_complete"] = all(
                     [
-                        bailleur.personne.nom,
-                        bailleur.personne.prenom,
+                        bailleur.personne.lastName,
+                        bailleur.personne.firstName,
                         bailleur.personne.email,
                         bailleur.personne.adresse,
                     ]
@@ -160,7 +160,7 @@ class LocationAnalyzer:
 
             # Vérifier que tous les locataires ont les infos requises
             for loc in location.locataires.all():
-                if not all([loc.nom, loc.prenom, loc.email]):
+                if not all([loc.lastName, loc.firstName, loc.email]):
                     analysis["missing_fields"].append(f"locataire_{loc.id}_info")
         else:
             analysis["missing_fields"].append("locataires")

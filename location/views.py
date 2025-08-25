@@ -14,9 +14,17 @@ from location.models import (
     RentTerms,
     Societe,
 )
+from location.serializers_composed import (
+    CreateLocationComposedSerializer,
+    CreateBailSerializer,
+    CreateQuittanceSerializer,
+    CreateEtatLieuxSerializer,
+)
 from rent_control.choices import ChargeType
 
 logger = logging.getLogger(__name__)
+
+
 
 
 def create_or_get_bailleur(data):
@@ -40,8 +48,8 @@ def create_or_get_bailleur(data):
 
         # Créer le signataire
         personne_signataire = Personne.objects.create(
-            nom=landlord_data.get("lastName", ""),
-            prenom=landlord_data.get("firstName", ""),
+            lastName=landlord_data.get("lastName", ""),
+            firstName=landlord_data.get("firstName", ""),
             email=landlord_data.get("email", ""),
             adresse=landlord_data.get("address", ""),
         )
@@ -53,8 +61,8 @@ def create_or_get_bailleur(data):
     else:
         # Créer la personne physique
         personne_bailleur = Personne.objects.create(
-            nom=landlord_data.get("lastName", ""),
-            prenom=landlord_data.get("firstName", ""),
+            lastName=landlord_data.get("lastName", ""),
+            firstName=landlord_data.get("firstName", ""),
             email=landlord_data.get("email", ""),
             adresse=landlord_data.get("address", ""),
         )
@@ -71,8 +79,8 @@ def create_or_get_bailleur(data):
     other_landlords = data.get("other_landlords", [])
     for other_data in other_landlords:
         personne_autre = Personne.objects.create(
-            nom=other_data.get("lastName", ""),
-            prenom=other_data.get("firstName", ""),
+            lastName=other_data.get("lastName", ""),
+            firstName=other_data.get("firstName", ""),
             email=other_data.get("email", ""),
             adresse=other_data.get("address", ""),
         )
@@ -96,8 +104,8 @@ def create_locataires(data):
 
     for loc_data in locataires_data:
         locataire = Locataire.objects.create(
-            nom=loc_data.get("lastName", ""),
-            prenom=loc_data.get("firstName", ""),
+            lastName=loc_data.get("lastName", ""),
+            firstName=loc_data.get("firstName", ""),
             email=loc_data.get("email", ""),
             adresse=loc_data.get("address", ""),
         )
@@ -117,8 +125,8 @@ def create_garants(data):
 
     for garant_data in garants_data:
         garant = Personne.objects.create(
-            nom=garant_data.get("lastName", ""),
-            prenom=garant_data.get("firstName", ""),
+            lastName=garant_data.get("lastName", ""),
+            firstName=garant_data.get("firstName", ""),
             email=garant_data.get("email", ""),
             adresse=garant_data.get("address", ""),
         )
@@ -346,10 +354,36 @@ def create_or_update_location(request):
     qui est l'entité pivot du système.
     """
     try:
-        data = request.data
+        # 1. Déterminer le type de document et choisir le serializer approprié
+        source = request.data.get('source', 'manual')
+        
+        serializer_map = {
+            'bail': CreateBailSerializer,
+            'quittance': CreateQuittanceSerializer,
+            'etat_lieux': CreateEtatLieuxSerializer,
+            'manual': CreateLocationComposedSerializer,
+        }
+        
+        serializer_class = serializer_map.get(source, CreateLocationComposedSerializer)
+        serializer = serializer_class(data=request.data)
 
-        # Vérifier si on met à jour une location existante
-        location_id = data.get("location_id")
+        if not serializer.is_valid():
+            logger.warning(f"Erreurs de validation: {serializer.errors}")
+            return JsonResponse(
+                {
+                    "success": False,
+                    "errors": serializer.errors,
+                    "message": "Validation des données échouée",
+                },
+                status=400,
+            )
+
+        # 2. Utiliser les données validées
+        validated_data = serializer.validated_data
+        source = validated_data.get("source", "manual")
+
+        # 3. Vérifier si on met à jour une location existante
+        location_id = validated_data.get("location_id")
         location = None
 
         if location_id:
@@ -364,13 +398,13 @@ def create_or_update_location(request):
 
         # Créer ou mettre à jour la location
         if not location:
-            location, bien = create_new_location(data)
+            location, bien = create_new_location(validated_data)
         else:
-            location, bien = update_existing_location(location, data)
+            location, bien = update_existing_location(location, validated_data)
 
         # Si la source est 'bail', créer un bail (seulement s'il n'existe pas déjà)
         bail_id = None
-        if data.get("source") == "bail":
+        if source == "bail":
             from bail.models import Bail
 
             # Vérifier si un bail existe déjà pour cette location
@@ -392,7 +426,7 @@ def create_or_update_location(request):
             "success": True,
             "location_id": str(location.id),
             "bien_id": bien.id,
-            "message": f"Location {'créée' if not location_id else 'mise à jour'} avec succès depuis {data.get('source', 'manual')}",
+            "message": f"Location {'créée' if not location_id else 'mise à jour'} avec succès depuis {source}",
         }
 
         if bail_id:
@@ -438,8 +472,8 @@ def get_bien_locations(request, bien_id):
             # Récupérer les locataires
             locataires = [
                 {
-                    "nom": locataire.nom,
-                    "prenom": locataire.prenom,
+                    "lastName": locataire.lastName,
+                    "firstName": locataire.firstName,
                     "email": locataire.email,
                 }
                 for locataire in location.locataires.all()
@@ -644,7 +678,7 @@ def get_location_documents(request, location_id):
                     {
                         "id": f"bail-{bail.id}",
                         "type": "bail",
-                        "nom": f"Bail v{bail.version} - {', '.join([f'{l.prenom} {l.nom}' for l in location.locataires.all()])}",
+                        "nom": f"Bail v{bail.version} - {', '.join([f'{l.firstName} {l.lastName}' for l in location.locataires.all()])}",
                         "date": bail.date_signature.isoformat()
                         if bail.date_signature
                         else bail.created_at.isoformat(),
@@ -743,8 +777,8 @@ def get_location_documents(request, location_id):
             },
             "locataires": [
                 {
-                    "nom": locataire.nom,
-                    "prenom": locataire.prenom,
+                    "lastName": locataire.lastName,
+                    "firstName": locataire.firstName,
                     "email": locataire.email,
                 }
                 for locataire in location.locataires.all()

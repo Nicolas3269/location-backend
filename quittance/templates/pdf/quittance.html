@@ -204,14 +204,14 @@
     
     <p>
         {% if bailleur_type == "personne_physique" %}
-            Je soussigné(e) <strong>{{ premier_bailleur.personne.prenom }} {{ premier_bailleur.personne.nom }}</strong>, 
+            Je soussigné(e) <strong>{{ premier_bailleur.personne.firstName }} {{ premier_bailleur.personne.lastName }}</strong>, 
             propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
             reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
             locataire dudit logement, la somme de <strong>{{ montant_loyer }}€</strong> 
             ({{ montant_en_lettres }}) correspondant au loyer du mois de 
             <strong>{{ mois|lower }} {{ annee }}</strong>.
         {% elif bailleur_type == "societe" %}
-            Je soussigné(e) <strong>{{ premier_bailleur.signataire.prenom }} {{ premier_bailleur.signataire.nom }}</strong>, 
+            Je soussigné(e) <strong>{{ premier_bailleur.signataire.firstName }} {{ premier_bailleur.signataire.lastName }}</strong>, 
             représentant de la société <strong>{{ premier_bailleur.societe.raison_sociale }}</strong> 
             ({{ premier_bailleur.societe.forme_juridique }}), 
             propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 

@@ -43,7 +43,7 @@ def send_etat_lieux_signature_email(signature_request):
     )
 
     message = f"""
-    Bonjour {person.prenom} {person.nom},
+    Bonjour {person.firstName} {person.lastName},
 
     Vous êtes invité(e) à signer l'état des lieux {etat_lieux.get_type_etat_lieux_display()} 
     pour le bien situé à : {etat_lieux.location.bien.adresse}

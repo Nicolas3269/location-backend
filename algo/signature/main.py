@@ -122,7 +122,7 @@ def compose_signature_stamp(signature_bytes, user):
     # Préparer le texte
     font = ImageFont.truetype(get_default_font_path(), size=12 * scale_factor)
     text = (
-        f"{user.prenom} {user.nom}\n"
+        f"{user.firstName} {user.lastName}\n"
         f"{user.email}\n"
         f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
         f"Signature conforme eIDAS"
@@ -186,7 +186,7 @@ def sign_pdf(source_path, output_path, user, field_name, signature_bytes):
         reason="Accord sur les conditions du bail",
         contact_info=getattr(user, "email", ""),
         location="France",
-        name=f"{getattr(user, 'prenom', '')} {getattr(user, 'nom', '')}",
+        name=f"{getattr(user, 'firstName', '')} {getattr(user, 'lastName', '')}",
     )
 
     composed_image, composed_buffer = compose_signature_stamp(signature_bytes, user)

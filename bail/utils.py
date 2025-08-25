@@ -1,5 +1,4 @@
 import logging
-from decimal import Decimal
 
 from django.conf import settings
 from django.core.mail import send_mail as django_send_mail
@@ -18,7 +17,7 @@ def send_signature_email(signature_request: BailSignatureRequest):
     person = signature_request.bailleur_signataire or signature_request.locataire
     link = f"{settings.FRONTEND_URL}/bail/signing/{signature_request.link_token}/"
     message = f"""
-Bonjour {person.prenom},
+Bonjour {person.firstName},
 
 Veuillez signer le bail en suivant ce lien : {link}
 
@@ -46,89 +45,134 @@ def create_signature_requests(bail):
 
 def create_bien_from_form_data(form_data, save=True):
     """
-    Crée un objet Bien à partir des données du formulaire.
+    Crée un objet Bien à partir des données du formulaire en utilisant les serializers.
+
+    Cette fonction est maintenant un wrapper qui convertit l'ancien format
+    vers le nouveau format composé et utilise les serializers pour la validation.
 
     Args:
-        form_data: Les données du formulaire
+        form_data: Les données du formulaire (ancien ou nouveau format)
         save: Si True, sauvegarde l'objet en base.
               Si False, retourne un objet non sauvegardé.
 
     Returns:
         Instance de Bien
     """
+    from location.serializers_composed import BienCompletSerializer
 
-    # Mapper la période de construction (basé sur rent_control.choices)
-    periode_construction_map = {
-        "avant_1946": "avant 1946",
-        "1946_1970": "1946-1970",
-        "1971_1990": "1971-1990",
-        "1990_2005": "1990-2005",
-        "apres_1990": "apres 1990",  # Keep for backward compatibility
-        "apres_2005": "apres 2005",
-    }
-    periode_construction = periode_construction_map.get(
-        form_data.get("periodeConstruction", ""), "avant 1946"
-    )
+    # Si les données sont déjà au format composé, utiliser directement
+    if "bien" in form_data and isinstance(form_data["bien"], dict):
+        bien_data = form_data["bien"]
+    else:
+        # Sinon, transformer l'ancien format vers le nouveau format composé
+        bien_data = {
+            "localisation": {
+                "adresse": form_data.get("adresse", ""),
+                "latitude": form_data.get("latitude"),
+                "longitude": form_data.get("longitude"),
+            },
+            "caracteristiques": {
+                "superficie": form_data.get("superficie", 50),
+                "type_bien": form_data.get("typeLogement", "appartement"),
+                "meuble": form_data.get("meuble", False),
+                "etage": form_data.get("etage", ""),
+                "porte": form_data.get("porte", ""),
+                "dernier_etage": form_data.get("dernierEtage", False),
+                "pieces_info": form_data.get("pieces_info", {}),
+            },
+            "performance_energetique": {
+                "classe_dpe": form_data.get("dpeGrade", "NA"),
+                "depenses_energetiques": form_data.get("depensesDPE", ""),
+            },
+            "energie": {
+                "chauffage": {
+                    "type": form_data.get("chauffage", {}).get("type", "individuel"),
+                    "energie": form_data.get("chauffage", {}).get(
+                        "energie", "electricite"
+                    ),
+                },
+                "eau_chaude": {
+                    "type": form_data.get("eauChaude", {}).get("type", "individuel"),
+                    "energie": form_data.get("eauChaude", {}).get(
+                        "energie", "electricite"
+                    ),
+                },
+            },
+            "regime": {
+                "regime_juridique": form_data.get("regimeJuridique", "monopropriete"),
+                "periode_construction": form_data.get(
+                    "periodeConstruction", "avant 1946"
+                ),
+                "identifiant_fiscal": form_data.get("identificationFiscale", ""),
+            },
+            "equipements": {
+                "annexes": form_data.get("equipements", {}).get("annexes", form_data.get("annexesPrivatives", [])),
+                "annexes_collectives": form_data.get("equipements", {}).get("annexes_collectives", form_data.get("annexesCollectives", [])),
+                "information": form_data.get("equipements", {}).get("information", form_data.get("information", [])),
+            },
+        }
 
-    # Mapper le type de logement
-    type_logement_map = {
-        "appartement": "appartement",
-        "maison": "maison",
-    }
-    type_bien = type_logement_map.get(form_data.get("typeLogement", ""), "appartement")
+    # Valider avec le serializer
+    serializer = BienCompletSerializer(data=bien_data)
 
-    # Mapper le meublé
-    meuble_map = {
-        "meuble": True,
-        "vide": False,
-    }
-    meuble = meuble_map.get(form_data.get("meuble", "vide"), False)
+    if not serializer.is_valid():
+        logger.warning(f"Validation échouée: {serializer.errors}")
+        # Créer un bien minimal avec les données disponibles
+        bien = Bien(
+            adresse=bien_data.get("localisation", {}).get("adresse", ""),
+            superficie=bien_data.get("caracteristiques", {}).get("superficie", 50),
+            type_bien=bien_data.get("caracteristiques", {}).get(
+                "type_bien", "appartement"
+            ),
+            meuble=bien_data.get("caracteristiques", {}).get("meuble", False),
+            pieces_info=bien_data.get("caracteristiques", {}).get("pieces_info", {}),
+        )
+    else:
+        # Créer le bien à partir des données validées
+        validated = serializer.validated_data
 
-    # Extract DPE expenses if provided
-    dpe_grade = form_data.get("dpeGrade", "NA")
-    depenses_energetiques = form_data.get("depensesDPE", "").lower()
+        # Mapper les données validées vers les champs du modèle
+        bien_fields = {
+            # Localisation
+            "adresse": validated["localisation"]["adresse"],
+            "latitude": validated["localisation"].get("latitude"),
+            "longitude": validated["localisation"].get("longitude"),
+            # Caractéristiques
+            "superficie": validated["caracteristiques"]["superficie"],
+            "type_bien": validated["caracteristiques"]["type_bien"],
+            "meuble": validated["caracteristiques"]["meuble"],
+            "etage": validated["caracteristiques"].get("etage", ""),
+            "porte": validated["caracteristiques"].get("porte", ""),
+            "dernier_etage": validated["caracteristiques"]["dernier_etage"],
+            "pieces_info": validated["caracteristiques"].get("pieces_info", {}),
+            # Performance énergétique
+            "classe_dpe": validated["performance_energetique"]["classe_dpe"],
+            "depenses_energetiques": validated["performance_energetique"].get(
+                "depenses_energetiques", ""
+            ),
+            # Énergie
+            "chauffage_type": validated["energie"]["chauffage"]["type"],
+            "chauffage_energie": validated["energie"]["chauffage"]["energie"],
+            "eau_chaude_type": validated["energie"]["eau_chaude"]["type"],
+            "eau_chaude_energie": validated["energie"]["eau_chaude"]["energie"],
+            # Régime
+            "regime_juridique": validated["regime"]["regime_juridique"],
+            "periode_construction": validated["regime"].get("periode_construction"),
+            "identifiant_fiscal": validated["regime"].get("identifiant_fiscal", ""),
+            # Équipements et annexes
+            "annexes_privatives": validated["equipements"].get("annexes", []),
+            "annexes_collectives": validated["equipements"].get(
+                "annexes_collectives", []
+            ),
+            "information": validated["equipements"].get("information", []),
+        }
 
-    # Extract autre energies if needed
-    chauffage_energie = form_data.get("chauffage", {}).get("energie", "")
-    if chauffage_energie == "autre":
-        chauffage_energie = form_data.get("chauffage", {}).get("autreDetail", "")
-    eau_chaude_energie = form_data.get("eauChaude", {}).get("energie", "")
-    if eau_chaude_energie == "autre":
-        eau_chaude_energie = form_data.get("eauChaude", {}).get("autreDetail", "")
+        # Enlever les valeurs None pour éviter les erreurs
+        bien_fields = {k: v for k, v in bien_fields.items() if v is not None}
 
-    # Préparer les données pour créer le bien
-    fill_identification_fiscale = form_data.get("fillIdentificationFiscale") == "true"
-    identifiant_fiscal = (
-        form_data.get("identificationFiscale", "")
-        if fill_identification_fiscale
-        else ""
-    )
-
-    bien_data = {
-        "adresse": form_data.get("adresse", ""),
-        "latitude": form_data.get("latitude"),
-        "longitude": form_data.get("longitude"),
-        "identifiant_fiscal": identifiant_fiscal,
-        "regime_juridique": form_data.get("regimeJuridique", ""),
-        "type_bien": type_bien,
-        "etage": form_data.get("etage", ""),
-        "porte": form_data.get("porte", ""),
-        "periode_construction": periode_construction,
-        "superficie": Decimal(str(form_data.get("superficie", 0))),
-        "meuble": meuble,
-        "classe_dpe": dpe_grade,
-        "depenses_energetiques": depenses_energetiques,
-        "annexes_privatives": form_data.get("annexes", []),
-        "annexes_collectives": form_data.get("annexesCollectives", []),
-        "information": form_data.get("information", []),
-        "pieces_info": form_data.get("pieces_info", {}),
-        "chauffage_type": form_data.get("chauffage", {}).get("type", ""),
-        "chauffage_energie": chauffage_energie,
-        "eau_chaude_type": form_data.get("eauChaude", {}).get("type", ""),
-        "eau_chaude_energie": eau_chaude_energie,
-    }
+        bien = Bien(**bien_fields)
 
     if save:
-        return Bien.objects.create(**bien_data)
-    else:
-        return Bien(**bien_data)
+        bien.save()
+
+    return bien

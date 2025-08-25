@@ -37,6 +37,7 @@ psycopg2-binary = "^2.9.10"
 python-dotenv = "^1.1.1"
 num2words = "^0.5.14"
 pillow = "^11.3.0"
+drf-spectacular = "^0.28.0"
 
 
 [tool.poetry.group.dev.dependencies]

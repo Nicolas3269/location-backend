@@ -35,7 +35,7 @@ class CaracteristiquesBienSerializer(serializers.Serializer):
     pieces_info = serializers.JSONField(
         required=False,
         default=dict,
-        help_text="Détail des pièces: chambres, sallesDeBain, cuisines, etc."
+        help_text="Détail des pièces: chambres, sallesDeBain, cuisines, etc.",
     )
 
 
@@ -48,7 +48,6 @@ class PerformanceEnergetiqueSerializer(serializers.Serializer):
     depenses_energetiques = serializers.CharField(
         required=False, allow_blank=True, default=""
     )
-    ges = serializers.CharField(required=False, allow_blank=True)
 
 
 class EquipementsSerializer(serializers.Serializer):
@@ -70,7 +69,6 @@ class SystemeEnergieSerializer(serializers.Serializer):
 
     type = serializers.CharField(required=False, allow_blank=True)
     energie = serializers.CharField(required=False, allow_blank=True)
-    description = serializers.CharField(required=False, allow_blank=True)
 
 
 class EnergieSerializer(serializers.Serializer):
@@ -124,6 +122,7 @@ class SocieteBaseSerializer(serializers.Serializer):
 
     nom = serializers.CharField(max_length=200)
     siret = serializers.CharField(max_length=14, min_length=14)
+    forme_juridique = serializers.CharField(max_length=100)
     adresse = serializers.CharField()
     telephone = serializers.CharField(max_length=20, required=False)
     email = serializers.EmailField(required=False)

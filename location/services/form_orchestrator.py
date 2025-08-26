@@ -44,7 +44,7 @@ class FormOrchestrator:
                 "personnes.solidaires",
             ],
             "modalites": [
-                "modalites.startDate",
+                "modalites.date_debut",
                 "modalites.premiereMiseEnLocation",
                 "modalites.locataireDerniers18Mois",
                 "modalites.dernierMontantLoyer",
@@ -128,7 +128,7 @@ class FormOrchestrator:
         "bien.identificationFiscale",
         "personnes.landlord.dateNaissance",
         "personnes.siret",
-        "modalites.startDate",  # Date de début ne change pas après signature
+        "modalites.date_debut",  # Date de début ne change pas après signature
     ]
 
     def get_form_requirements(
@@ -338,8 +338,8 @@ class FormOrchestrator:
             "personnes.otherLandlords": "otherLandlords",
             "personnes.locataires": "locataires",
             "personnes.solidaires": "solidaires",
-            "modalites.startDate": "startDate",
-            "modalites.endDate": "endDate",
+            "modalites.date_debut": "date_debut",
+            "modalites.date_fin": "date_fin",
             "modalites.prix": "modalites.prix",
             "modalites.charges": "modalites.charges",
             "modalites.premiereMiseEnLocation": "modalites.premiereMiseEnLocation",
@@ -544,9 +544,9 @@ class FormOrchestrator:
 
         # Dates
         if location.date_debut:
-            data["startDate"] = location.date_debut.isoformat()
+            data["date_debut"] = location.date_debut.isoformat()
         if location.date_fin:
-            data["endDate"] = location.date_fin.isoformat()
+            data["date_fin"] = location.date_fin.isoformat()
 
         # Champs vides mais nécessaires pour le watch des conditions
         if "modalites" not in data:
@@ -583,7 +583,7 @@ class FormOrchestrator:
                     "bien.superficie",
                     "bien.pieces",
                     "personnes.locataires",
-                    "modalites.startDate",
+                    "modalites.date_debut",
                 ]
             )
 
@@ -627,8 +627,8 @@ class FormOrchestrator:
         "personnes.locataires": "Qui sont le ou les locataires ?",
         "personnes.solidaires": "Les locataires sont-ils solidaires du bail ?",
         # MODALITÉS
-        "modalites.startDate": "Quelle est la date d'entrée dans le logement ?",
-        "modalites.endDate": "Quelle est la date de fin du bail ?",
+        "modalites.date_debut": "Quelle est la date d'entrée dans le logement ?",
+        "modalites.date_fin": "Quelle est la date de fin du bail ?",
         "modalites.premiereMiseEnLocation": "Est-ce la première mise en location du logement ?",
         "modalites.locataireDerniers18Mois": "Y a-t-il eu un locataire dans le logement durant les 18 derniers mois ?",
         "modalites.dernierMontantLoyer": "Quel était le montant du dernier loyer (hors charges) ?",

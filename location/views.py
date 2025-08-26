@@ -299,15 +299,13 @@ def create_new_location(data):
 
     # 4. Créer la Location (entité pivot)
     source = data.get("source", "manual")
-    # Récupérer les dates depuis dates.date_debut/date_fin ou startDate/endDate pour compatibilité
+    # Récupérer les dates depuis dates.date_debut/date_fin
     dates_data = data.get("dates", {})
-    date_debut = dates_data.get("date_debut") or data.get("startDate")
-    date_fin = dates_data.get("date_fin") or data.get("endDate")
     location = Location.objects.create(
         bien=bien,
         created_from=source,
-        date_debut=date_debut,
-        date_fin=date_fin,
+        date_debut=dates_data.get("date_debut"),
+        date_fin=dates_data.get("date_fin"),
         solidaires=data.get("solidaires", False),
     )
 

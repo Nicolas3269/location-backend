@@ -120,7 +120,7 @@ class PersonneCompleteSerializer(PersonneBaseSerializer):
 class SocieteBaseSerializer(serializers.Serializer):
     """Serializer pour une société"""
 
-    nom = serializers.CharField(max_length=200)
+    raison_sociale = serializers.CharField(max_length=200)
     siret = serializers.CharField(max_length=14, min_length=14)
     forme_juridique = serializers.CharField(max_length=100)
     adresse = serializers.CharField()

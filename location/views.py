@@ -47,8 +47,8 @@ def create_or_get_bailleur(data):
         # Créer la société depuis les données validées
         societe_data = validated["societe"]
         societe = Societe.objects.create(
-            raison_sociale=societe_data.get("nom", ""),
-            forme_juridique=societe_data.get("forme_juridique", "SARL"),
+            raison_sociale=societe_data["raison_sociale"],
+            forme_juridique=societe_data["forme_juridique"],
             siret=societe_data["siret"],
             adresse=societe_data["adresse"],
             email=societe_data.get("email", ""),

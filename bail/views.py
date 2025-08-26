@@ -62,6 +62,9 @@ def generate_bail_pdf(request):
             caution_requise=True
         ).exists()
 
+        # Calculer une seule fois les données d'encadrement des loyers
+        encadrement_data = BailMapping.get_encadrement_loyers_data(bail)
+
         # Générer le PDF depuis le template HTML
         html = render_to_string(
             "pdf/bail.html",
@@ -86,9 +89,9 @@ def generate_bail_pdf(request):
                 "information_info": BailMapping.information_info(bail.location.bien),
                 "energy_info": BailMapping.energy_info(bail.location.bien),
                 "indice_irl": INDICE_IRL,
-                "prix_reference": BailMapping.prix_reference(bail),
-                "prix_majore": BailMapping.prix_majore(bail),
-                "complement_loyer": BailMapping.complement_loyer(bail),
+                "prix_reference": encadrement_data["prix_reference"],
+                "prix_majore": encadrement_data["prix_majore"],
+                "complement_loyer": encadrement_data["complement_loyer"],
                 "justificatif_complement_loyer": bail.location.rent_terms.justificatif_complement_loyer
                 if hasattr(bail.location, "rent_terms")
                 else None,
@@ -361,7 +364,7 @@ def get_rent_prices(request):
         # Extraire area_id depuis la structure composée ou plate
         bien_data = data.get("bien", {})
         localisation = bien_data.get("localisation", {})
-        area_id = localisation.get("area_id") or data.get("areaId")
+        area_id = localisation.get("area_id")
 
         if not area_id:
             return JsonResponse({"error": "Area ID requis"}, status=400)

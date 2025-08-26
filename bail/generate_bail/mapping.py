@@ -52,7 +52,11 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
             else:
                 line_2 = "situé dans une copropriété dans un immeuble individuel"
 
-        line_3 = f"construit {bien.periode_construction.lower()}" if bien.periode_construction else ""
+        line_3 = (
+            f"construit {bien.periode_construction.lower()}"
+            if bien.periode_construction
+            else ""
+        )
 
         if bien.identifiant_fiscal:
             line_4 = (
@@ -204,51 +208,68 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
         """
 
     @staticmethod
-    def prix_majore(bail: Bail):
-        """Génère le prix majoré basé sur l'encadrement des loyers"""
-        # Accéder aux données depuis location.rent_terms
-        if hasattr(bail.location, "rent_terms"):
-            rent_price = bail.location.rent_terms.get_rent_price()
-            if rent_price:
-                # Prix majoré = prix max de référence par m²
-                return Decimal(str(rent_price.max_price)).quantize(
+    def get_encadrement_loyers_data(bail: Bail):
+        """
+        Calcule toutes les données d'encadrement des loyers en une seule fois.
+        Retourne un dict avec prix_reference, prix_majore, complement_loyer.
+        """
+        result = {
+            "prix_reference": None,
+            "prix_majore": None, 
+            "complement_loyer": None
+        }
+        
+        if not hasattr(bail.location, "rent_terms"):
+            return result
+            
+        rent_price = bail.location.rent_terms.get_rent_price()
+        if not rent_price:
+            return result
+            
+        # Prix de référence et majoré par m²
+        result["prix_reference"] = Decimal(str(rent_price.reference_price)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        result["prix_majore"] = Decimal(str(rent_price.max_price)).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        
+        # Calcul du complément de loyer si applicable
+        if (
+            bail.location.bien.superficie
+            and bail.location.rent_terms.montant_loyer
+        ):
+            from rent_control.utils import calculate_total_prices
+            
+            prices = calculate_total_prices(rent_price, bail.location.bien.superficie)
+            loyer_max_autorise = Decimal(str(prices["total_max_price"]))
+            montant_loyer = Decimal(str(bail.location.rent_terms.montant_loyer))
+            
+            complement = montant_loyer - loyer_max_autorise
+            if complement > Decimal("0.01"):
+                result["complement_loyer"] = complement.quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP
                 )
-        return None
+                
+        return result
+
+    @staticmethod
+    def prix_majore(bail: Bail):
+        """Génère le prix majoré basé sur l'encadrement des loyers"""
+        data = BailMapping.get_encadrement_loyers_data(bail)
+        return data["prix_majore"]
 
     @staticmethod
     def complement_loyer(bail: Bail):
         """Calcule le complément de loyer selon l'encadrement des loyers"""
-        # Accéder aux données depuis location.rent_terms
-        if hasattr(bail.location, "rent_terms"):
-            rent_price = bail.location.rent_terms.get_rent_price()
-            bien = bail.location.bien
-            if rent_price and bien.superficie:
-                # Calcul : montant_loyer - superficie * prix_max_reference
-                loyer_max_autorise = Decimal(str(bien.superficie)) * Decimal(
-                    str(rent_price.max_price)
-                )
-                montant_loyer = Decimal(str(bail.location.rent_terms.montant_loyer))
-
-                complement = montant_loyer - loyer_max_autorise
-                if complement > 0:
-                    return complement.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-        # Pas de complément si pas d'encadrement ou si le loyer est dans les clous
-        return None
+        data = BailMapping.get_encadrement_loyers_data(bail)
+        return data["complement_loyer"]
 
     @staticmethod
     def prix_reference(bail: Bail):
         """Récupère le prix de référence basé sur l'encadrement des loyers"""
-        # Accéder aux données depuis location.rent_terms
-        if hasattr(bail.location, "rent_terms"):
-            rent_price = bail.location.rent_terms.get_rent_price()
-            if rent_price:
-                # Prix de référence par m²
-                return Decimal(str(rent_price.reference_price)).quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP
-                )
-        return None
+        data = BailMapping.get_encadrement_loyers_data(bail)
+        return data["prix_reference"]
 
     @staticmethod
     def is_copropriete(bail: Bail):

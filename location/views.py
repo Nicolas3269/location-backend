@@ -55,7 +55,8 @@ def create_or_get_bailleur(data):
         )
 
         # Créer le signataire depuis les données validées
-        signataire_data = validated.get("signataire", {})
+        # Pour une société, le signataire est dans "personne" (pas "signataire")
+        signataire_data = validated["personne"]
         personne_signataire = Personne.objects.create(
             lastName=signataire_data["lastName"],
             firstName=signataire_data["firstName"],
@@ -240,8 +241,9 @@ def create_or_update_rent_terms(location, data):
 
             # Vérifier que la nouvelle valeur n'est pas vide
             # Pour les booléens, on accepte False comme valeur valide
+            # Pour rent_price_id, on accepte toute valeur non vide
             has_new_value = new_value is not None and (
-                field in ["zone_tendue", "permis_de_louer"]
+                field in ["zone_tendue", "permis_de_louer", "rent_price_id"]
                 or (new_value != "" and new_value != 0)
             )
 
@@ -297,10 +299,15 @@ def create_new_location(data):
 
     # 4. Créer la Location (entité pivot)
     source = data.get("source", "manual")
+    # Récupérer les dates depuis dates.date_debut/date_fin ou startDate/endDate pour compatibilité
+    dates_data = data.get("dates", {})
+    date_debut = dates_data.get("date_debut") or data.get("startDate")
+    date_fin = dates_data.get("date_fin") or data.get("endDate")
     location = Location.objects.create(
         bien=bien,
         created_from=source,
-        date_debut=data.get("startDate"),
+        date_debut=date_debut,
+        date_fin=date_fin,
         solidaires=data.get("solidaires", False),
     )
 

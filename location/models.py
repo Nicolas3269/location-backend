@@ -45,8 +45,8 @@ class DPEClass(models.TextChoices):
 class Personne(models.Model):
     """Personne physique (propriétaire, signataire, etc.)"""
 
-    lastName = models.CharField(max_length=100, db_column='nom')
-    firstName = models.CharField(max_length=100, db_column='prenom')
+    lastName = models.CharField(max_length=100, db_column="nom")
+    firstName = models.CharField(max_length=100, db_column="prenom")
     date_naissance = models.DateField(
         null=True, blank=True
     )  # Optionnel pour certains cas
@@ -469,16 +469,16 @@ class RentTerms(BaseModel):
     )
 
     def get_rent_price(self):
-        """Récupère le RentPrice associé à cette location."""
+        """
+        Récupère le RentPrice correspondant aux caractéristiques du bien.
+        Utilise rent_price_id comme area_id si disponible.
+        """
         if not self.rent_price_id:
             return None
 
-        try:
-            from rent_control.models import RentPrice
-
-            return RentPrice.objects.get(id=self.rent_price_id)
-        except RentPrice.DoesNotExist:
-            return None
+        from rent_control.utils import get_rent_price_for_bien
+        # rent_price_id stocke en fait l'area_id
+        return get_rent_price_for_bien(self.location.bien, self.rent_price_id)
 
     def __str__(self):
         return f"RentTerms pour {self.location}"

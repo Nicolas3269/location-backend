@@ -55,14 +55,17 @@ def create_or_get_bailleur(data):
         )
 
         # Créer le signataire depuis les données validées
-        # Pour une société, le signataire est dans "personne" (pas "signataire")
-        signataire_data = validated["personne"]
-        personne_signataire = Personne.objects.create(
-            lastName=signataire_data["lastName"],
-            firstName=signataire_data["firstName"],
-            email=signataire_data["email"],
-            adresse=signataire_data.get("adresse", ""),
-        )
+        # Pour une société, le signataire est dans "signataire" (transformé par le serializer)
+        signataire_data = validated.get("signataire", {})
+        if signataire_data:
+            personne_signataire = Personne.objects.create(
+                lastName=signataire_data["lastName"],
+                firstName=signataire_data["firstName"],
+                email=signataire_data["email"],
+                adresse=signataire_data.get("adresse", ""),
+            )
+        else:
+            raise ValueError("Données du signataire manquantes pour le bailleur moral")
 
         bailleur = Bailleur.objects.create(
             societe=societe,
@@ -181,9 +184,24 @@ def create_or_update_rent_terms(location, data):
     modalites_financieres = data.get("modalites_financieres", {})
     modalites_zone_tendue = data.get("modalites_zone_tendue", {})
 
+    # Pour état des lieux et quittance, les modalités peuvent être incomplètes
+    source = data.get("source", "manual")
+
+    # Si pas de loyer défini et qu'on est pas dans un bail, ne pas créer de RentTerms
+    if source in ["etat_lieux", "quittance"] and not modalites_financieres.get(
+        "loyer_hors_charges"
+    ):
+        logger.info(
+            f"Modalités financières incomplètes pour {source}, skip création RentTerms"
+        )
+        return
+
     # Valider les modalités financières
     serializer_fin = ModalitesFinancieresSerializer(data=modalites_financieres)
     if not serializer_fin.is_valid():
+        # Pour état des lieux, ignorer si pas de données
+        if source == "etat_lieux" and not modalites_financieres:
+            return
         raise ValueError(
             f"Données modalités financières invalides: {serializer_fin.errors}"
         )
@@ -213,8 +231,16 @@ def create_or_update_rent_terms(location, data):
         "zone_tendue": zone_reglementaire.get("zone_tendue", False),
         "permis_de_louer": zone_reglementaire.get("permis_de_louer", False),
         "rent_price_id": bien_data.get("localisation", {}).get("area_id"),
+        # Nouveaux champs pour zone tendue
+        "premiere_mise_en_location": modalites_zone_tendue.get(
+            "premiere_mise_en_location"
+        ),
+        "locataire_derniers_18_mois": modalites_zone_tendue.get(
+            "locataire_derniers_18_mois"
+        ),
+        "dernier_montant_loyer": modalites_zone_tendue.get("dernier_montant_loyer"),
         "justificatif_complement_loyer": modalites_zone_tendue.get(
-            "justification_prix", ""
+            "justificatif_complement_loyer"
         ),
     }
 
@@ -283,7 +309,8 @@ def create_new_location(data):
     Crée une nouvelle location complète avec toutes les entités associées.
     """
     # 1. Créer le bien (peut être partiel selon la source)
-    bien = create_bien_from_form_data(data, save=True)
+    source = data.get("source", "manual")
+    bien = create_bien_from_form_data(data, save=True, source=source)
     logger.info(f"Bien créé: {bien.id}")
 
     # 2. Créer le bailleur principal et les autres bailleurs
@@ -328,7 +355,8 @@ def update_existing_location(location, data):
     bien = location.bien
 
     # Créer un objet Bien temporaire avec les données du formulaire
-    bien_from_form = create_bien_from_form_data(data, save=False)
+    source = data.get("source", "manual")
+    bien_from_form = create_bien_from_form_data(data, save=False, source=source)
 
     # Liste des champs à mettre à jour automatiquement
     fields_to_update = [

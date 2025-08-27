@@ -452,6 +452,21 @@ class RentTerms(BaseModel):
     zone_tendue = models.BooleanField(
         default=False, help_text="Situé en zone d'encadrement des loyers"
     )
+    premiere_mise_en_location = models.BooleanField(
+        null=True, blank=True, help_text="Première mise en location du bien"
+    )
+    locataire_derniers_18_mois = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="Le bien a-t-il eu un locataire dans les 18 derniers mois",
+    )
+    dernier_montant_loyer = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Montant du dernier loyer si locataire dans les 18 derniers mois",
+    )
     permis_de_louer = models.BooleanField(
         default=False,
         verbose_name="Permis de louer",
@@ -477,6 +492,7 @@ class RentTerms(BaseModel):
             return None
 
         from rent_control.utils import get_rent_price_for_bien
+
         # rent_price_id stocke en fait l'area_id
         return get_rent_price_for_bien(self.location.bien, self.rent_price_id)
 

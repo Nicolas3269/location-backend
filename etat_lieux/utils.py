@@ -137,6 +137,7 @@ def create_etat_lieux_from_form_data(form_data, location_id, user):
     from datetime import datetime
 
     from django.utils.dateparse import parse_datetime
+
     from location.models import Location
 
     # Récupérer la location et le bien
@@ -153,7 +154,7 @@ def create_etat_lieux_from_form_data(form_data, location_id, user):
     )
 
     # Stocker la date de l'état des lieux
-    date_etat_lieux = form_data.get("dateEtatLieux")
+    date_etat_lieux = form_data.get("date_etat_lieux")
     if date_etat_lieux:
         # Parser la date si c'est une chaîne
         if isinstance(date_etat_lieux, str):

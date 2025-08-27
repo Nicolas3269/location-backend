@@ -33,16 +33,30 @@ class Command(BaseCommand):
             ModalitesZoneTendueSerializer,
             DatesLocationSerializer,
             # Composés
-            BienCompletSerializer,
+            BienQuittanceSerializer,
+            CaracteristiquesEtatLieuxSerializer,
+            BienEtatLieuxSerializer,
+            BienBailSerializer,
             CreateLocationComposedSerializer,
             CreateBailSerializer,
             CreateQuittanceSerializer,
             CreateEtatLieuxSerializer,
         )
         
+        # Importer les serializers par pays
+        from location.serializers import (
+            FranceBailSerializer,
+            FranceQuittanceSerializer,
+            FranceEtatLieuxSerializer,
+            BelgiumBailSerializer,
+            BelgiumQuittanceSerializer,
+            BelgiumEtatLieuxSerializer,
+        )
+        
         serializers_atomiques = [
             AdresseSerializer,
             CaracteristiquesBienSerializer,
+            CaracteristiquesEtatLieuxSerializer,
             PerformanceEnergetiqueSerializer,
             EquipementsSerializer,
             SystemeEnergieSerializer,
@@ -60,17 +74,30 @@ class Command(BaseCommand):
         ]
         
         serializers_composes = [
-            BienCompletSerializer,
+            BienQuittanceSerializer,
+            BienEtatLieuxSerializer,
+            BienBailSerializer,
             CreateLocationComposedSerializer,
             CreateBailSerializer,
             CreateQuittanceSerializer,
             CreateEtatLieuxSerializer,
         ]
         
+        # Serializers par pays
+        serializers_pays = [
+            FranceBailSerializer,
+            FranceQuittanceSerializer,
+            FranceEtatLieuxSerializer,
+            BelgiumBailSerializer,
+            BelgiumQuittanceSerializer,
+            BelgiumEtatLieuxSerializer,
+        ]
+        
         # Générer les schemas Zod composables
         zod_content = self.generate_composed_zod_schemas(
             serializers_atomiques, 
-            serializers_composes
+            serializers_composes,
+            serializers_pays
         )
         
         output_path = "/home/havardn/location/frontend/src/types/generated/schemas-composed.zod.ts"
@@ -90,13 +117,14 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"✅ Exemples d'utilisation générés dans {example_path}")
         )
     
-    def generate_composed_zod_schemas(self, atomiques, composes):
+    def generate_composed_zod_schemas(self, atomiques, composes, pays=None):
         """Génère les schemas Zod en respectant la composition."""
         
         lines = [
             "// Auto-generated Composed Zod Schemas from DRF",
             f"// Generated at: {datetime.now().isoformat()}",
             "// Architecture : Composition de schemas atomiques réutilisables",
+            "/* eslint-disable @typescript-eslint/no-explicit-any */",
             "",
             "import { z } from 'zod';",
             "",
@@ -109,7 +137,11 @@ class Command(BaseCommand):
         # Générer les schemas atomiques
         for serializer_class in atomiques:
             schema_name = self.get_schema_name(serializer_class)
-            lines.append(f"// {serializer_class.__doc__ or 'Schema ' + schema_name}")
+            # Formatter le docstring pour JavaScript
+            doc = serializer_class.__doc__ or f'Schema {schema_name}'
+            # Nettoyer et formater le docstring
+            doc_clean = ' '.join(line.strip() for line in doc.split('\n') if line.strip())
+            lines.append(f"// {doc_clean}")
             lines.append(f"export const {schema_name} = z.object({{")
             
             instance = serializer_class()
@@ -139,7 +171,11 @@ class Command(BaseCommand):
         # Générer les schemas composés
         for serializer_class in composes:
             schema_name = self.get_schema_name(serializer_class)
-            lines.append(f"// {serializer_class.__doc__ or 'Schema ' + schema_name}")
+            # Formatter le docstring pour JavaScript
+            doc = serializer_class.__doc__ or f'Schema {schema_name}'
+            # Nettoyer et formater le docstring
+            doc_clean = ' '.join(line.strip() for line in doc.split('\n') if line.strip())
+            lines.append(f"// {doc_clean}")
             
             # Vérifier si c'est une vraie composition
             if hasattr(serializer_class, 'Meta') and hasattr(serializer_class.Meta, 'is_composite') and serializer_class.Meta.is_composite:
@@ -187,6 +223,47 @@ class Command(BaseCommand):
             
             lines.append("")
         
+        # Générer les schemas par pays si fournis
+        if pays:
+            lines.extend([
+                "",
+                "// ============================================",
+                "// SCHEMAS PAR PAYS (Règles métier spécifiques)",
+                "// ============================================",
+                "",
+            ])
+            
+            for serializer_class in pays:
+                schema_name = self.get_schema_name(serializer_class)
+                doc = serializer_class.__doc__ or f'Schema {schema_name}'
+                doc_clean = ' '.join(line.strip() for line in doc.split('\n') if line.strip())
+                lines.append(f"// {doc_clean}")
+                lines.append(f"export const {schema_name} = z.object({{")
+                
+                instance = serializer_class()
+                for field_name, field in instance.fields.items():
+                    # Si c'est un champ composé (comme BienBailSerializer)
+                    if isinstance(field, serializers.Serializer):
+                        nested_schema = self.get_schema_name(field.__class__)
+                        optional = not field.required
+                        if optional:
+                            lines.append(f"  {field_name}: {nested_schema}.optional(),")
+                        else:
+                            lines.append(f"  {field_name}: {nested_schema},")
+                    elif isinstance(field, serializers.ListField) and isinstance(field.child, serializers.Serializer):
+                        child_schema = self.get_schema_name(field.child.__class__)
+                        lines.append(f"  {field_name}: z.array({child_schema}),")
+                    else:
+                        zod_type = self.field_to_zod(field, field_name)
+                        optional = not field.required
+                        if optional:
+                            lines.append(f"  {field_name}: {zod_type}.optional(),")
+                        else:
+                            lines.append(f"  {field_name}: {zod_type},")
+                
+                lines.append("});")
+                lines.append("")
+        
         # Ajouter les types TypeScript
         lines.extend([
             "// ============================================",
@@ -195,7 +272,11 @@ class Command(BaseCommand):
             "",
         ])
         
-        for serializer_class in atomiques + composes:
+        all_serializers = atomiques + composes
+        if pays:
+            all_serializers += pays
+            
+        for serializer_class in all_serializers:
             schema_name = self.get_schema_name(serializer_class)
             type_name = schema_name.replace('Schema', '')
             lines.append(f"export type {type_name} = z.infer<typeof {schema_name}>;")
@@ -302,7 +383,6 @@ class Command(BaseCommand):
             "      performance_energetique: {",
             "        classe_dpe: data.classe_dpe,",
             "        depenses_energetiques: data.depenses_energetiques,",
-            "        ges: data.ges,",
             "      },",
             "      equipements: {",
             "        annexes_privatives: data.annexes_privatives,",
@@ -374,16 +454,16 @@ class Command(BaseCommand):
             validators = []
             if hasattr(field, 'max_digits') and hasattr(field, 'decimal_places'):
                 validators.append(f".positive()")
-                if field.max_value:
+                if hasattr(field, 'max_value') and field.max_value is not None:
                     validators.append(f".max({field.max_value})")
             return "z.number()" + ''.join(validators)
         
         # IntegerField
         if isinstance(field, serializers.IntegerField):
             validators = []
-            if hasattr(field, 'min_value'):
+            if hasattr(field, 'min_value') and field.min_value is not None:
                 validators.append(f".min({field.min_value})")
-            if hasattr(field, 'max_value'):
+            if hasattr(field, 'max_value') and field.max_value is not None:
                 validators.append(f".max({field.max_value})")
             return "z.number().int()" + ''.join(validators)
         
@@ -420,9 +500,9 @@ class Command(BaseCommand):
                     child_type = self.field_to_zod(field.child)
             
             validators = []
-            if hasattr(field, 'min_length'):
+            if hasattr(field, 'min_length') and field.min_length is not None:
                 validators.append(f".min({field.min_length})")
-            if hasattr(field, 'max_length'):
+            if hasattr(field, 'max_length') and field.max_length is not None:
                 validators.append(f".max({field.max_length})")
             
             return f"z.array({child_type})" + ''.join(validators)

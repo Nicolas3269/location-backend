@@ -31,10 +31,9 @@ class CaracteristiquesBienSerializer(serializers.Serializer):
     etage = serializers.CharField(required=False, allow_blank=True, default="")
     porte = serializers.CharField(required=False, allow_blank=True, default="")
     dernier_etage = serializers.BooleanField(default=False)
-    meuble = serializers.BooleanField(default=False)
+    meuble = serializers.BooleanField(required=True)
     pieces_info = serializers.JSONField(
-        required=False,
-        default=dict,
+        required=True,
         help_text="Détail des pièces: chambres, sallesDeBain, cuisines, etc.",
     )
 
@@ -82,10 +81,10 @@ class RegimeJuridiqueSerializer(serializers.Serializer):
     """Régime juridique et fiscal du bien"""
 
     regime_juridique = serializers.ChoiceField(
-        choices=["monopropriete", "copropriete"], default="monopropriete"
+        choices=["monopropriete", "copropriete"], required=True
     )
     identifiant_fiscal = serializers.CharField(required=False, allow_blank=True)
-    periode_construction = serializers.CharField(required=False, allow_blank=True)
+    periode_construction = serializers.CharField(required=True)
 
 
 class ZoneReglementaireSerializer(serializers.Serializer):
@@ -128,16 +127,24 @@ class SocieteBaseSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False)
 
 
+class SignataireSerializer(PersonneBaseSerializer):
+    """Serializer pour le signataire d'une société (sans adresse obligatoire)"""
+
+    adresse = serializers.CharField(required=False, allow_blank=True)
+    iban = serializers.CharField(max_length=34, required=False, allow_blank=True)
+
+
 class BailleurInfoSerializer(serializers.Serializer):
     """Informations du bailleur (physique ou morale)"""
 
     bailleur_type = serializers.ChoiceField(
         choices=["physique", "morale"], default="physique"
     )
-    # Si personne physique
+    # Si personne physique - utilise PersonneCompleteSerializer avec adresse obligatoire
     personne = PersonneCompleteSerializer(required=False)
     # Si personne morale
     societe = SocieteBaseSerializer(required=False)
+    # Signataire pour société - utilise SignataireSerializer sans adresse obligatoire
     signataire = PersonneBaseSerializer(required=False)
     # Autres co-bailleurs
     co_bailleurs = serializers.ListField(
@@ -146,14 +153,33 @@ class BailleurInfoSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Validation : soit personne, soit société requis"""
-        if data.get("bailleur_type") == "physique" and not data.get("personne"):
-            raise serializers.ValidationError(
-                "Les informations de la personne sont requises pour un bailleur physique"
-            )
-        if data.get("bailleur_type") == "morale" and not data.get("societe"):
-            raise serializers.ValidationError(
-                "Les informations de la société sont requises pour un bailleur moral"
-            )
+        bailleur_type = data.get("bailleur_type", "physique")
+
+        if bailleur_type == "physique":
+            if not data.get("personne"):
+                raise serializers.ValidationError(
+                    "Les informations de la personne sont requises pour un bailleur physique"
+                )
+            # Pour personne physique, on nettoie les champs société
+            data.pop("societe", None)
+            data.pop("signataire", None)
+
+        elif bailleur_type == "morale":
+            if not data.get("societe"):
+                raise serializers.ValidationError(
+                    "Les informations de la société sont requises pour un bailleur moral"
+                )
+            # Pour personne morale, on utilise personne comme signataire si présent
+            # mais sans exiger l'adresse (elle est dans société)
+            if data.get("personne"):
+                # Transformer personne en signataire sans l'adresse obligatoire
+                signataire_data = data.pop("personne")
+                # Garder seulement les infos de base du signataire
+                data["signataire"] = {
+                    "lastName": signataire_data.get("lastName"),
+                    "firstName": signataire_data.get("firstName"),
+                    "email": signataire_data.get("email"),
+                }
         return data
 
 
@@ -193,7 +219,9 @@ class ModalitesZoneTendueSerializer(serializers.Serializer):
     dernier_montant_loyer = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
-    justification_prix = serializers.CharField(required=False, allow_blank=True)
+    justificatif_complement_loyer = serializers.CharField(
+        required=False, allow_blank=True
+    )
 
 
 class DatesLocationSerializer(serializers.Serializer):
@@ -209,17 +237,78 @@ class DatesLocationSerializer(serializers.Serializer):
 # ============================================
 
 
-class BienCompletSerializer(serializers.Serializer):
-    """Serializer complet pour un bien (composition)"""
+class BienRentPriceSerializer(serializers.Serializer):
+    """Serializer minimal pour calculer les prix de référence des loyers"""
 
-    # Composition des serializers atomiques
+    localisation = AdresseSerializer()
+    # Utiliser des serializers imbriqués pour une validation correcte
+    caracteristiques = serializers.DictField(required=False)
+    regime = serializers.DictField(required=False)
+
+    def to_internal_value(self, data):
+        """Extraction des champs nécessaires pour le calcul du loyer de référence"""
+        # Ne pas utiliser super() pour éviter la validation stricte des DictField
+        localisation_serializer = AdresseSerializer(data=data.get("localisation", {}))
+        localisation_serializer.is_valid(raise_exception=True)
+        localisation_data = localisation_serializer.validated_data
+
+        # Extraire les champs minimaux nécessaires
+        caracteristiques = data.get("caracteristiques", {})
+        regime = data.get("regime", {})
+
+        return {
+            "area_id": localisation_data.get("area_id"),
+            "type_bien": caracteristiques.get("type_bien", "appartement"),
+            "pieces_info": caracteristiques.get("pieces_info", {}),
+            "periode_construction": regime.get("periode_construction", ""),
+        }
+
+
+class BienQuittanceSerializer(serializers.Serializer):
+    """Serializer pour un bien dans une quittance (seulement adresse)"""
+
+    localisation = AdresseSerializer()
+    caracteristiques = serializers.DictField(required=False)
+
+
+class CaracteristiquesEtatLieuxSerializer(serializers.Serializer):
+    """Caractéristiques d'un bien pour état des lieux"""
+
+    superficie = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False
+    )
+    type_bien = serializers.ChoiceField(
+        choices=[("appartement", "Appartement"), ("maison", "Maison")], required=False
+    )
+    etage = serializers.CharField(required=False, allow_blank=True, default="")
+    porte = serializers.CharField(required=False, allow_blank=True, default="")
+    dernier_etage = serializers.BooleanField(
+        default=False, help_text="Le bien est-il au dernier étage ?"
+    )
+    meuble = serializers.BooleanField(default=False)
+    pieces_info = serializers.JSONField(required=False)
+
+
+class BienEtatLieuxSerializer(serializers.Serializer):
+    """Serializer pour un bien dans un état des lieux"""
+
+    localisation = AdresseSerializer()
+    caracteristiques = CaracteristiquesEtatLieuxSerializer()
+    # equipements = EquipementsSerializer()
+    energie = EnergieSerializer()
+    zone_reglementaire = ZoneReglementaireSerializer(required=False)
+
+
+class BienBailSerializer(serializers.Serializer):
+    """Serializer complet pour un bien dans un bail"""
+
     localisation = AdresseSerializer()
     caracteristiques = CaracteristiquesBienSerializer()
     performance_energetique = PerformanceEnergetiqueSerializer()
     equipements = EquipementsSerializer()
     energie = EnergieSerializer()
     regime = RegimeJuridiqueSerializer()
-    zone_reglementaire = ZoneReglementaireSerializer()
+    zone_reglementaire = ZoneReglementaireSerializer(required=False)
 
     class Meta:
         # Pour la génération, on indique qu'il s'agit d'une composition
@@ -247,7 +336,7 @@ class CreateLocationComposedSerializer(serializers.Serializer):
     )
 
     # Composition des domaines métier
-    bien = BienCompletSerializer()
+    bien = BienBailSerializer()
     bailleur = BailleurInfoSerializer()
     locataires = serializers.ListField(child=LocataireInfoSerializer(), min_length=1)
     modalites_financieres = ModalitesFinancieresSerializer()
@@ -305,7 +394,9 @@ class CreateBailSerializer(CreateLocationComposedSerializer):
 
     source = serializers.HiddenField(default="bail")
 
-    # Champs requis pour un bail
+    # Modalités zone tendue - requis pour un bail complet
+    # Note: Quand un bail est créé depuis un état des lieux,
+    # le frontend doit s'assurer de collecter ces informations manquantes
     modalites_zone_tendue = ModalitesZoneTendueSerializer(required=True)
 
 
@@ -314,8 +405,8 @@ class CreateQuittanceSerializer(serializers.Serializer):
 
     source = serializers.HiddenField(default="quittance")
 
-    # Seulement les infos nécessaires
-    bien = AdresseSerializer()  # Juste l'adresse
+    # Seulement les infos nécessaires - on utilise BienQuittanceSerializer pour l'adresse
+    bien = BienQuittanceSerializer()  # Juste l'adresse
     bailleur = BailleurInfoSerializer()
     locataires = serializers.ListField(
         child=PersonneBaseSerializer()  # Version simplifiée
@@ -334,16 +425,34 @@ class CreateEtatLieuxSerializer(serializers.Serializer):
 
     source = serializers.HiddenField(default="etat_lieux")
 
-    # Infos de base
-    bien = BienCompletSerializer()
+    # Infos de base - on utilise BienEtatLieuxSerializer
+    bien = BienEtatLieuxSerializer()
     bailleur = BailleurInfoSerializer()
     locataires = serializers.ListField(child=PersonneBaseSerializer())
 
-    # Spécifique état des lieux
-    type_etat_lieux = serializers.ChoiceField(choices=["entree", "sortie"])
-    date_etat_lieux = serializers.DateField()
+    # Dates de location (optionnelles pour état des lieux)
+    dates = DatesLocationSerializer(required=False)
+    modalites_financieres = ModalitesFinancieresSerializer(required=False)
 
-    # Description des pièces
-    pieces = serializers.ListField(
-        child=serializers.DictField(), help_text="État détaillé de chaque pièce"
+    # Options
+    solidaires = serializers.BooleanField(default=False, required=False)
+
+    # Spécifique état des lieux - rendre optionnels car remplis progressivement
+    type_etat_lieux = serializers.ChoiceField(
+        choices=["entree", "sortie"], required=False
     )
+    date_etat_lieux = serializers.DateField(required=False)
+
+    # État détaillé des pièces (correspond aux "rooms" dans le frontend)
+    # Note: Ce champ contient l'état de chaque pièce (murs, sols, etc.),
+    # différent de pieces_info qui contient le nombre de pièces
+    pieces = serializers.ListField(
+        child=serializers.DictField(),
+        help_text="État détaillé de chaque pièce pour l'état des lieux (rooms dans le frontend)",
+        required=False,
+        default=list,
+    )
+
+    # IDs pour update
+    location_id = serializers.UUIDField(required=False, allow_null=True)
+    bien_id = serializers.UUIDField(required=False, allow_null=True)

@@ -43,7 +43,7 @@ def create_signature_requests(bail):
     create_signature_requests_generic(bail, BailSignatureRequest)
 
 
-def create_bien_from_form_data(form_data, save=True):
+def create_bien_from_form_data(form_data, save=True, source="bail"):
     """
     Crée un objet Bien à partir des données du formulaire en utilisant les serializers.
 
@@ -54,11 +54,25 @@ def create_bien_from_form_data(form_data, save=True):
         form_data: Les données du formulaire (ancien ou nouveau format)
         save: Si True, sauvegarde l'objet en base.
               Si False, retourne un objet non sauvegardé.
+        source: Type de formulaire ("bail", "quittance", "etat_lieux")
 
     Returns:
         Instance de Bien
     """
-    from location.serializers_composed import BienCompletSerializer
+    from location.serializers_composed import (
+        BienBailSerializer,
+        BienEtatLieuxSerializer,
+        BienQuittanceSerializer,
+    )
+
+    # Choisir le bon serializer selon la source
+    serializer_map = {
+        "bail": BienBailSerializer,
+        "quittance": BienQuittanceSerializer,
+        "etat_lieux": BienEtatLieuxSerializer,
+        "manual": BienBailSerializer,
+    }
+    serializer_class = serializer_map.get(source, BienBailSerializer)
 
     # Si les données sont déjà au format composé, utiliser directement
     if "bien" in form_data and isinstance(form_data["bien"], dict):
@@ -118,8 +132,8 @@ def create_bien_from_form_data(form_data, save=True):
             },
         }
 
-    # Valider avec le serializer
-    serializer = BienCompletSerializer(data=bien_data)
+    # Valider avec le serializer approprié
+    serializer = serializer_class(data=bien_data)
 
     if not serializer.is_valid():
         raise ValueError(f"Données du bien invalides: {serializer.errors}")
@@ -129,37 +143,73 @@ def create_bien_from_form_data(form_data, save=True):
 
     # Mapper les données validées vers les champs du modèle
     bien_fields = {
-        # Localisation
+        # Localisation (toujours présent)
         "adresse": validated["localisation"]["adresse"],
         "latitude": validated["localisation"].get("latitude"),
         "longitude": validated["localisation"].get("longitude"),
-        # Caractéristiques
-        "superficie": validated["caracteristiques"]["superficie"],
-        "type_bien": validated["caracteristiques"]["type_bien"],
-        "meuble": validated["caracteristiques"]["meuble"],
-        "etage": validated["caracteristiques"].get("etage", ""),
-        "porte": validated["caracteristiques"].get("porte", ""),
-        "dernier_etage": validated["caracteristiques"]["dernier_etage"],
-        "pieces_info": validated["caracteristiques"].get("pieces_info", {}),
-        # Performance énergétique
-        "classe_dpe": validated["performance_energetique"]["classe_dpe"],
-        "depenses_energetiques": validated["performance_energetique"].get(
-            "depenses_energetiques", ""
-        ),
-        # Énergie
-        "chauffage_type": validated["energie"]["chauffage"]["type"],
-        "chauffage_energie": validated["energie"]["chauffage"]["energie"],
-        "eau_chaude_type": validated["energie"]["eau_chaude"]["type"],
-        "eau_chaude_energie": validated["energie"]["eau_chaude"]["energie"],
-        # Régime
-        "regime_juridique": validated["regime"]["regime_juridique"],
-        "periode_construction": validated["regime"].get("periode_construction"),
-        "identifiant_fiscal": validated["regime"].get("identifiant_fiscal", ""),
-        # Équipements et annexes
-        "annexes_privatives": validated["equipements"].get("annexes_privatives", []),
-        "annexes_collectives": validated["equipements"].get("annexes_collectives", []),
-        "information": validated["equipements"].get("information", []),
     }
+
+    # Caractéristiques (optionnel pour quittance)
+    if "caracteristiques" in validated:
+        caracteristiques = validated["caracteristiques"]
+        bien_fields.update({
+            "superficie": caracteristiques.get("superficie"),
+            "type_bien": caracteristiques.get("type_bien", "appartement"),
+            "meuble": caracteristiques.get("meuble", False),
+            "etage": caracteristiques.get("etage", ""),
+            "porte": caracteristiques.get("porte", ""),
+            "dernier_etage": caracteristiques.get("dernier_etage", False),
+            "pieces_info": caracteristiques.get("pieces_info", {}),
+        })
+    else:
+        # Valeurs par défaut si pas de caractéristiques (cas quittance)
+        bien_fields.update({
+            "type_bien": "appartement",
+            "meuble": False,
+            "dernier_etage": False,
+            "pieces_info": {},
+        })
+
+    # Ajouter les champs optionnels s'ils existent
+    if "performance_energetique" in validated:
+        bien_fields["classe_dpe"] = validated["performance_energetique"]["classe_dpe"]
+        bien_fields["depenses_energetiques"] = validated["performance_energetique"].get(
+            "depenses_energetiques", ""
+        )
+
+    if "energie" in validated:
+        if "chauffage" in validated["energie"]:
+            bien_fields["chauffage_type"] = validated["energie"]["chauffage"].get(
+                "type", "individuel"
+            )
+            bien_fields["chauffage_energie"] = validated["energie"]["chauffage"].get(
+                "energie", "electricite"
+            )
+        if "eau_chaude" in validated["energie"]:
+            bien_fields["eau_chaude_type"] = validated["energie"]["eau_chaude"].get(
+                "type", "individuel"
+            )
+            bien_fields["eau_chaude_energie"] = validated["energie"]["eau_chaude"].get(
+                "energie", "electricite"
+            )
+
+    if "regime" in validated:
+        bien_fields["regime_juridique"] = validated["regime"]["regime_juridique"]
+        bien_fields["periode_construction"] = validated["regime"].get(
+            "periode_construction"
+        )
+        bien_fields["identifiant_fiscal"] = validated["regime"].get(
+            "identifiant_fiscal", ""
+        )
+
+    if "equipements" in validated:
+        bien_fields["annexes_privatives"] = validated["equipements"].get(
+            "annexes_privatives", []
+        )
+        bien_fields["annexes_collectives"] = validated["equipements"].get(
+            "annexes_collectives", []
+        )
+        bien_fields["information"] = validated["equipements"].get("information", [])
 
     # Enlever les valeurs None pour éviter les erreurs
     bien_fields = {k: v for k, v in bien_fields.items() if v is not None}

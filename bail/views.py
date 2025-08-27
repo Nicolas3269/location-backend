@@ -356,23 +356,32 @@ def delete_document(request, document_id):
 def get_rent_prices(request):
     """
     Récupère les prix de référence pour une zone donnée
-    selon les caractéristiques complètes du bien du formulaire
+    selon les caractéristiques minimales du bien
     """
     try:
+        from location.models import Bien
+        from location.serializers_composed import BienRentPriceSerializer
+        
         data = request.data
 
-        # Extraire area_id depuis la structure composée ou plate
+        # Utiliser le serializer minimal pour valider et extraire les données
         bien_data = data.get("bien", {})
-        localisation = bien_data.get("localisation", {})
-        area_id = localisation.get("area_id")
-
+        serializer = BienRentPriceSerializer(data=bien_data)
+        
+        if not serializer.is_valid():
+            return JsonResponse({"error": "Données invalides", "details": serializer.errors}, status=400)
+        
+        validated = serializer.validated_data
+        area_id = validated.get('area_id')
+        
         if not area_id:
             return JsonResponse({"error": "Area ID requis"}, status=400)
-
-        # Si on a déjà une structure composée, l'utiliser directement
-        if bien_data:
-            # Valider avec le serializer
-            bien = create_bien_from_form_data(data, save=False)
+        
+        # Créer un objet Bien minimal (non sauvegardé) avec seulement les champs requis
+        bien = Bien()
+        bien.type_bien = validated.get('type_bien', 'appartement')
+        bien.pieces_info = validated.get('pieces_info', {})
+        bien.periode_construction = validated.get('periode_construction', '')
 
         try:
             rent_price = get_rent_price_for_bien(bien, area_id)

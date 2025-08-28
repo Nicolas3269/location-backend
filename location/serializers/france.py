@@ -4,16 +4,17 @@ Définit les règles métier et validations pour les formulaires français.
 """
 
 from rest_framework import serializers
+
 from ..serializers_composed import (
-    BienBailSerializer,
     BailleurInfoSerializer,
+    BienBailSerializer,
+    BienEtatLieuxSerializer,
+    BienQuittanceSerializer,
+    DatesLocationSerializer,
     LocataireInfoSerializer,
-    PersonneBaseSerializer,
     ModalitesFinancieresSerializer,
     ModalitesZoneTendueSerializer,
-    DatesLocationSerializer,
-    BienQuittanceSerializer,
-    BienEtatLieuxSerializer,
+    PersonneBaseSerializer,
 )
 
 
@@ -40,15 +41,120 @@ class FranceBailSerializer(serializers.Serializer):
         default=False, help_text="Les locataires sont-ils solidaires ?"
     )
 
+    @classmethod
+    def get_step_config(cls):
+        """
+        Configuration des steps du formulaire bail France.
+        Définit l'ordre et les champs de chaque step.
+        Les IDs correspondent directement aux clés du FORM_COMPONENTS_CATALOG du frontend.
+        """
+        return {
+            # BIEN - Localisation
+            "bien.localisation.adresse": {
+                "order": 10,
+            },
+            # BIEN - Type et surface et etage
+            "bien.caracteristiques.type_bien": {
+                "order": 20,
+            },
+            "bien.regime.regime_juridique": {
+                "order": 30,
+            },
+            "bien.regime.periode_construction": {
+                "order": 40,
+            },
+            "bien.caracteristiques.superficie": {
+                "order": 50,
+            },
+            "bien.caracteristiques.pieces_info": {
+                "order": 60,
+            },
+            # BIEN - Détails
+            "bien.caracteristiques.meuble": {
+                "order": 70,
+            },
+            # BIEN - Équipements
+            "bien.equipements.annexes_privatives": {
+                "order": 80,
+            },
+            "bien.equipements.annexes_collectives": {
+                "order": 90,
+            },
+            "bien.equipements.information": {
+                "order": 100,
+            },
+            # BIEN - Énergie
+            "bien.energie.chauffage": {
+                "order": 110,
+            },
+            "bien.energie.eau_chaude": {
+                "order": 120,
+            },
+            # BIEN - Performance
+            "bien.performance_energetique.classe_dpe": {
+                "order": 130,
+            },
+            "bien.performance_energetique.depenses_energetiques": {
+                "order": 140,
+                "condition": "dpe_not_na",
+            },
+            "bien.regime.identifiant_fiscal": {
+                "order": 160,
+            },
+            # BAILLEUR
+            "bailleur.bailleur_type": {
+                "order": 170,
+            },
+            "bailleur.personne": {
+                "order": 180,
+                "condition": "bailleur_is_person",
+            },
+            "bailleur.societe": {
+                "order": 190,
+                "condition": "bailleur_is_company",
+            },
+            "bailleur.co_bailleurs": {
+                "order": 200,
+            },
+            # LOCATAIRES
+            "locataires": {"order": 210},
+            "solidaires": {
+                "order": 220,
+                "condition": "has_multiple_tenants",
+            },
+            # DATES
+            "dates.date_debut": {
+                "order": 230,
+            },
+            # ZONE TENDUE (conditionnel - déterminé automatiquement par l'adresse)
+            "modalites_zone_tendue.premiere_mise_en_location": {
+                "order": 240,
+                "condition": "zone_tendue",
+            },
+            "modalites_zone_tendue.locataire_derniers_18_mois": {
+                "order": 250,
+                "condition": "zone_tendue_not_first_rental",
+            },
+            "modalites_zone_tendue.dernier_montant_loyer": {
+                "order": 260,
+                "condition": "zone_tendue_has_previous_tenant",
+            },
+            # MODALITÉS FINANCIÈRES
+            "modalites_financieres.loyer_mensuel": {
+                "order": 270,
+            },
+            "modalites_financieres.charges_mensuelles": {
+                "order": 280,
+            },
+        }
+
     def validate(self, data):
         """
         Validation conditionnelle pour la France.
         """
         # Si zone tendue, les modalités zone tendue deviennent obligatoires
         zone_tendue = (
-            data.get("bien", {})
-            .get("zone_reglementaire", {})
-            .get("zone_tendue", False)
+            data.get("bien", {}).get("zone_reglementaire", {}).get("zone_tendue", False)
         )
 
         if zone_tendue:
@@ -96,58 +202,6 @@ class FranceBailSerializer(serializers.Serializer):
 
         return data
 
-    def get_conditional_fields(self):
-        """
-        Retourne la liste des champs conditionnels avec leurs conditions.
-        Les conditions sont des clés référençant des fonctions dans le frontend.
-        """
-        return [
-            # Bailleur - conditionnel selon le type
-            {
-                "field": "bailleur.personne",
-                "condition": "bailleur_is_person",
-                "depends_on": ["bailleur.bailleur_type"],
-            },
-            {
-                "field": "bailleur.societe",
-                "condition": "bailleur_is_company",
-                "depends_on": ["bailleur.bailleur_type"],
-            },
-            # Solidaires - conditionnel si plusieurs locataires
-            {
-                "field": "solidaires",
-                "condition": "has_multiple_tenants",
-                "depends_on": ["locataires"],
-            },
-            # Performance énergétique
-            {
-                "field": "bien.performance_energetique.depenses_energetiques",
-                "condition": "dpe_not_na",  # Clé de condition définie dans conditions.ts
-                "depends_on": ["bien.performance_energetique.classe_dpe"],
-            },
-            # Zone tendue
-            {
-                "field": "modalites_zone_tendue.premiere_mise_en_location",
-                "condition": "zone_tendue",
-                "depends_on": [],  # zone_tendue est calculé automatiquement depuis l'adresse
-            },
-            {
-                "field": "modalites_zone_tendue.locataire_derniers_18_mois",
-                "condition": "zone_tendue_not_first_rental",
-                "depends_on": [
-                    "modalites_zone_tendue.premiere_mise_en_location",
-                ],
-            },
-            {
-                "field": "modalites_zone_tendue.dernier_montant_loyer",
-                "condition": "zone_tendue_has_previous_tenant",
-                "depends_on": [
-                    "modalites_zone_tendue.premiere_mise_en_location",
-                    "modalites_zone_tendue.locataire_derniers_18_mois",
-                ],
-            },
-        ]
-
 
 class FranceQuittanceSerializer(serializers.Serializer):
     """
@@ -168,6 +222,71 @@ class FranceQuittanceSerializer(serializers.Serializer):
         required=True,
         help_text="Mois et année de la quittance",
     )
+
+    @classmethod
+    def get_step_config(cls):
+        """
+        Configuration des steps du formulaire quittance France.
+        Plus simple car la plupart des données viennent du bail existant.
+        """
+        return {
+            # BIEN - Localisation
+            "bien.localisation.adresse": {
+                "order": 10,
+            },
+            # BIEN - Type et surface et etage
+            "bien.caracteristiques.type_bien": {
+                "order": 20,
+            },
+            "bien.regime.regime_juridique": {
+                "order": 30,
+            },
+            "bien.regime.periode_construction": {
+                "order": 40,
+            },
+            "bien.caracteristiques.superficie": {
+                "order": 50,
+            },
+            "bien.caracteristiques.pieces_info": {
+                "order": 60,
+            },
+            # BIEN - Détails
+            "bien.caracteristiques.meuble": {
+                "order": 70,
+            },
+            # BAILLEUR
+            "bailleur.bailleur_type": {
+                "order": 170,
+            },
+            "bailleur.personne": {
+                "order": 180,
+                "condition": "bailleur_is_person",
+            },
+            "bailleur.societe": {
+                "order": 190,
+                "condition": "bailleur_is_company",
+            },
+            "bailleur.co_bailleurs": {
+                "order": 200,
+            },
+            # LOCATAIRES
+            "locataires": {"order": 210},
+            "solidaires": {
+                "order": 220,
+                "condition": "has_multiple_tenants",
+            },
+            # Modalités financières
+            "modalites_financieres.loyer_mensuel": {
+                "order": 300,
+            },
+            "modalites_financieres.charges_mensuelles": {
+                "order": 310,
+            },
+            # La période est toujours demandée
+            "periode_quittance": {
+                "order": 400,
+            },
+        }
 
 
 class FranceEtatLieuxSerializer(serializers.Serializer):
@@ -205,3 +324,93 @@ class FranceEtatLieuxSerializer(serializers.Serializer):
     equipements_chauffage = serializers.JSONField(
         required=False, default=dict, help_text="État des équipements de chauffage"
     )
+
+    @classmethod
+    def get_step_config(cls):
+        """
+        Configuration des steps du formulaire état des lieux France.
+        """
+        return {
+            # BIEN - Localisation
+            "bien.localisation.adresse": {
+                "order": 10,
+            },
+            # BIEN - Type et surface et etage
+            "bien.caracteristiques.type_bien": {
+                "order": 20,
+            },
+            "bien.regime.regime_juridique": {
+                "order": 30,
+            },
+            "bien.regime.periode_construction": {
+                "order": 40,
+            },
+            "bien.caracteristiques.superficie": {
+                "order": 50,
+            },
+            "bien.caracteristiques.pieces_info": {
+                "order": 60,
+            },
+            # BIEN - Détails
+            "bien.caracteristiques.meuble": {
+                "order": 70,
+            },
+            # BIEN - Équipements
+            "bien.equipements.annexes_privatives": {
+                "order": 80,
+            },
+            "bien.equipements.annexes_collectives": {
+                "order": 90,
+            },
+            "bien.equipements.information": {
+                "order": 100,
+            },
+            # BIEN - Énergie
+            "bien.energie.chauffage": {
+                "order": 110,
+            },
+            "bien.energie.eau_chaude": {
+                "order": 120,
+            },
+            # BAILLEUR
+            "bailleur.bailleur_type": {
+                "order": 170,
+            },
+            "bailleur.personne": {
+                "order": 180,
+                "condition": "bailleur_is_person",
+            },
+            "bailleur.societe": {
+                "order": 190,
+                "condition": "bailleur_is_company",
+            },
+            "bailleur.co_bailleurs": {
+                "order": 200,
+            },
+            # LOCATAIRES
+            "locataires": {"order": 210},
+            "solidaires": {
+                "order": 220,
+                "condition": "has_multiple_tenants",
+            },
+            # MODALITÉS ÉTAT DES LIEUX
+            "type_etat_lieux": {
+                "order": 330,
+            },
+            "date_etat_lieux": {
+                "order": 330,
+            },
+            # ÉTAT DES LIEUX
+            "description_pieces": {
+                "order": 400,
+            },
+            "nombre_cles": {
+                "order": 410,
+            },
+            "equipements_chauffage": {
+                "order": 420,
+            },
+            "releve_compteurs": {
+                "order": 430,
+            },
+        }

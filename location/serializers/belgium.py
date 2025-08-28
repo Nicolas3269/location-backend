@@ -4,15 +4,16 @@ Définit les règles métier et validations pour les formulaires belges.
 """
 
 from rest_framework import serializers
+
 from ..serializers_composed import (
-    BienBailSerializer,
     BailleurInfoSerializer,
-    LocataireInfoSerializer,
-    PersonneBaseSerializer,
-    ModalitesFinancieresSerializer,
-    DatesLocationSerializer,
-    BienQuittanceSerializer,
+    BienBailSerializer,
     BienEtatLieuxSerializer,
+    BienQuittanceSerializer,
+    DatesLocationSerializer,
+    LocataireInfoSerializer,
+    ModalitesFinancieresSerializer,
+    PersonneBaseSerializer,
 )
 
 
@@ -78,9 +79,7 @@ class BelgiumBailSerializer(serializers.Serializer):
         if region == "bruxelles":
             if not data.get("certificat_peb"):
                 raise serializers.ValidationError(
-                    {
-                        "certificat_peb": "Le certificat PEB est obligatoire à Bruxelles"
-                    }
+                    {"certificat_peb": "Le certificat PEB est obligatoire à Bruxelles"}
                 )
 
         # En Wallonie, règles spécifiques
@@ -114,18 +113,6 @@ class BelgiumBailSerializer(serializers.Serializer):
                 )
 
         return data
-
-    def get_conditional_fields(self):
-        """
-        Retourne la liste des champs conditionnels avec leurs conditions.
-        """
-        return [
-            {
-                "field": "certificat_peb",
-                "condition": 'region === "bruxelles"',
-                "depends_on": ["region"],
-            },
-        ]
 
 
 class BelgiumQuittanceSerializer(serializers.Serializer):

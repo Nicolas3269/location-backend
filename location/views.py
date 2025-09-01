@@ -14,11 +14,10 @@ from location.models import (
     RentTerms,
     Societe,
 )
-from location.serializers_composed import (
-    CreateBailSerializer,
-    CreateEtatLieuxSerializer,
-    CreateLocationComposedSerializer,
-    CreateQuittanceSerializer,
+from location.serializers import (
+    FranceBailSerializer as CreateBailSerializer,
+    FranceEtatLieuxSerializer as CreateEtatLieuxSerializer,
+    FranceQuittanceSerializer as CreateQuittanceSerializer,
 )
 from rent_control.choices import ChargeType
 
@@ -27,22 +26,15 @@ logger = logging.getLogger(__name__)
 
 def create_or_get_bailleur(data):
     """
-    Crée ou récupère un bailleur depuis les données du formulaire en utilisant les serializers.
+    Crée ou récupère un bailleur depuis les données du formulaire.
+    Les données sont déjà validées par FranceBailSerializer/FranceQuittanceSerializer/FranceEtatLieuxSerializer.
     Retourne le bailleur créé et les autres bailleurs si présents.
     """
-    from location.serializers_composed import BailleurInfoSerializer
-
-    # Extraire les données du bailleur depuis le format composé
+    # Les données sont déjà validées, on les utilise directement
     if "bailleur" not in data:
         raise ValueError("Données du bailleur requises")
-    bailleur_data = data["bailleur"]
-
-    # Valider avec le serializer
-    serializer = BailleurInfoSerializer(data=bailleur_data)
-    if not serializer.is_valid():
-        raise ValueError(f"Données bailleur invalides: {serializer.errors}")
-
-    validated = serializer.validated_data
+    
+    validated = data["bailleur"]
     bailleur_type = validated.get("bailleur_type")
     if not bailleur_type:
         raise ValueError("Type de bailleur requis")
@@ -117,19 +109,13 @@ def create_locataires(data):
     """
     Crée les locataires depuis les données du formulaire en utilisant les serializers.
     Retourne la liste des locataires créés.
+    Les données sont déjà validées par FranceBailSerializer/FranceQuittanceSerializer/FranceEtatLieuxSerializer.
     """
-    from location.serializers_composed import LocataireInfoSerializer
-
+    # Les données sont déjà validées, on les utilise directement
     locataires_data = data.get("locataires") or []
     locataires = []
 
-    for loc_data in locataires_data:
-        # Valider avec le serializer
-        serializer = LocataireInfoSerializer(data=loc_data)
-        if not serializer.is_valid():
-            raise ValueError(f"Données locataire invalides: {serializer.errors}")
-
-        validated = serializer.validated_data
+    for validated in locataires_data:
         locataire = Locataire.objects.create(
             lastName=validated["lastName"],
             firstName=validated["firstName"],
@@ -149,19 +135,14 @@ def create_locataires(data):
 def create_garants(data):
     """
     Crée les garants depuis les données du formulaire.
+    Les données sont déjà validées par FranceBailSerializer/FranceQuittanceSerializer/FranceEtatLieuxSerializer.
     Retourne la liste des garants créés.
     """
-    from location.serializers_composed import PersonneBaseSerializer
-
+    # Les données sont déjà validées, on les utilise directement
     garants_data = data.get("garants") or []
     garants = []
 
-    for garant_data in garants_data:
-        serializer = PersonneBaseSerializer(data=garant_data)
-        if not serializer.is_valid():
-            raise ValueError(f"Données garant invalides: {serializer.errors}")
-
-        validated = serializer.validated_data
+    for validated in garants_data:
         garant = Personne.objects.create(
             lastName=validated["lastName"],
             firstName=validated["firstName"],
@@ -177,14 +158,10 @@ def create_garants(data):
 
 def create_or_update_rent_terms(location, data):
     """
-    Crée ou met à jour les conditions financières d'une location en utilisant les serializers.
+    Crée ou met à jour les conditions financières d'une location.
+    Les données sont déjà validées par FranceBailSerializer/FranceQuittanceSerializer/FranceEtatLieuxSerializer.
     """
-    from location.serializers_composed import (
-        ModalitesFinancieresSerializer,
-        ModalitesZoneTendueSerializer,
-    )
-
-    # Extraire les modalités financières (format composé uniquement)
+    # Les données sont déjà validées, on les utilise directement
     modalites_financieres = data.get("modalites_financieres") or {}
     modalites_zone_tendue = data.get("modalites_zone_tendue") or {}
 
@@ -199,27 +176,6 @@ def create_or_update_rent_terms(location, data):
             f"Modalités financières incomplètes pour {source}, skip création RentTerms"
         )
         return
-
-    # Valider les modalités financières
-    serializer_fin = ModalitesFinancieresSerializer(data=modalites_financieres)
-    if not serializer_fin.is_valid():
-        # Pour état des lieux, ignorer si pas de données
-        if source == "etat_lieux" and not modalites_financieres:
-            return
-        raise ValueError(
-            f"Données modalités financières invalides: {serializer_fin.errors}"
-        )
-
-    modalites_financieres = serializer_fin.validated_data
-
-    # Valider les modalités zone tendue si présentes
-    if modalites_zone_tendue:
-        serializer_zone = ModalitesZoneTendueSerializer(data=modalites_zone_tendue)
-        if not serializer_zone.is_valid():
-            raise ValueError(
-                f"Données modalités zone tendue invalides: {serializer_zone.errors}"
-            )
-        modalites_zone_tendue = serializer_zone.validated_data
 
     # Préparer les données pour RentTerms
     # Extraire zone_reglementaire du bien si présent
@@ -451,11 +407,16 @@ def create_or_update_location(request):
             "bail": CreateBailSerializer,
             "quittance": CreateQuittanceSerializer,
             "etat_lieux": CreateEtatLieuxSerializer,
-            "manual": CreateLocationComposedSerializer,
         }
 
         if source not in serializer_map:
-            source = "manual"  # Fallback à manual si source non reconnue
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": f"Source invalide: {source}. Doit être 'bail', 'quittance', ou 'etat_lieux'",
+                },
+                status=400,
+            )
         serializer_class = serializer_map[source]
         serializer = serializer_class(data=request.data)
 

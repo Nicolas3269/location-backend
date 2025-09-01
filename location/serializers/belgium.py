@@ -13,7 +13,7 @@ from ..serializers_composed import (
     DatesLocationSerializer,
     LocataireInfoSerializer,
     ModalitesFinancieresSerializer,
-    PersonneBaseSerializer,
+    PersonneSerializer,
 )
 
 
@@ -22,6 +22,9 @@ class BelgiumBailSerializer(serializers.Serializer):
     Serializer pour un bail en Belgique.
     Définit les champs obligatoires et conditionnels selon la réglementation belge.
     """
+
+    # Champ pour tracer l'origine du document
+    source = serializers.CharField(default="bail")
 
     # Champs toujours obligatoires
     bien = BienBailSerializer(required=True)
@@ -72,45 +75,6 @@ class BelgiumBailSerializer(serializers.Serializer):
         """
         Validation conditionnelle pour la Belgique.
         """
-        # Validation selon la région
-        region = data.get("region")
-
-        # À Bruxelles, le certificat PEB est obligatoire
-        if region == "bruxelles":
-            if not data.get("certificat_peb"):
-                raise serializers.ValidationError(
-                    {"certificat_peb": "Le certificat PEB est obligatoire à Bruxelles"}
-                )
-
-        # En Wallonie, règles spécifiques
-        if region == "wallonie":
-            # Validation spécifique Wallonie si nécessaire
-            pass
-
-        # En Flandre, règles spécifiques
-        if region == "flandre":
-            # Le bail doit être en néerlandais ou bilingue
-            pass
-
-        # Validation de la garantie locative (max 2 mois en Belgique)
-        garantie = data.get("garantie_locative")
-        loyer = data.get("modalites_financieres", {}).get("loyer_hors_charges")
-
-        if garantie and loyer:
-            if garantie > (loyer * 2):
-                raise serializers.ValidationError(
-                    {
-                        "garantie_locative": "La garantie locative ne peut excéder 2 mois de loyer en Belgique"
-                    }
-                )
-
-        # Validation des dates (durée standard 3-6-9 ans en Belgique)
-        dates = data.get("dates", {})
-        if dates.get("date_fin") and dates.get("date_debut"):
-            if dates["date_fin"] <= dates["date_debut"]:
-                raise serializers.ValidationError(
-                    {"dates": "La date de fin doit être après la date de début"}
-                )
 
         return data
 
@@ -120,11 +84,14 @@ class BelgiumQuittanceSerializer(serializers.Serializer):
     Serializer pour une quittance en Belgique.
     """
 
+    # Champ pour tracer l'origine du document
+    source = serializers.CharField(default="quittance")
+
     # Champs obligatoires pour une quittance
     bien = BienQuittanceSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
     locataires = serializers.ListField(
-        child=PersonneBaseSerializer(), min_length=1, required=True
+        child=PersonneSerializer(), min_length=1, required=True
     )
     modalites_financieres = ModalitesFinancieresSerializer(required=True)
 
@@ -146,11 +113,14 @@ class BelgiumEtatLieuxSerializer(serializers.Serializer):
     Serializer pour un état des lieux en Belgique.
     """
 
+    # Champ pour tracer l'origine du document
+    source = serializers.CharField(default="etat_lieux")
+
     # Champs obligatoires
     bien = BienEtatLieuxSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
     locataires = serializers.ListField(
-        child=PersonneBaseSerializer(), min_length=1, required=True
+        child=PersonneSerializer(), min_length=1, required=True
     )
 
     # Dates et modalités

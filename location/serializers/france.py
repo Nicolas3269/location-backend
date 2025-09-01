@@ -14,7 +14,7 @@ from ..serializers_composed import (
     LocataireInfoSerializer,
     ModalitesFinancieresSerializer,
     ModalitesZoneTendueSerializer,
-    PersonneBaseSerializer,
+    PersonneSerializer,
 )
 
 
@@ -25,7 +25,7 @@ class FranceBailSerializer(serializers.Serializer):
     """
 
     # Champ pour tracer l'origine du document
-    source = serializers.CharField(default="bail", read_only=True)
+    source = serializers.CharField(default="bail")
 
     # Champs toujours obligatoires
     bien = BienBailSerializer(required=True)
@@ -48,108 +48,62 @@ class FranceBailSerializer(serializers.Serializer):
     def get_step_config(cls):
         """
         Configuration des steps du formulaire bail France.
-        Définit l'ordre et les champs de chaque step.
+        L'ordre est défini par la position dans la liste.
         Les IDs correspondent directement aux clés du FORM_COMPONENTS_CATALOG du frontend.
         """
-        return {
+        return [
             # BIEN - Localisation
-            "bien.localisation.adresse": {
-                "order": 10,
-            },
+            {"id": "bien.localisation.adresse"},
             # BIEN - Type et surface et etage
-            "bien.caracteristiques.type_bien": {
-                "order": 20,
-            },
-            "bien.regime.regime_juridique": {
-                "order": 30,
-            },
-            "bien.regime.periode_construction": {
-                "order": 40,
-            },
-            "bien.caracteristiques.superficie": {
-                "order": 50,
-            },
-            "bien.caracteristiques.pieces_info": {
-                "order": 60,
-            },
+            {"id": "bien.caracteristiques.type_bien"},
+            {"id": "bien.regime.regime_juridique"},
+            {"id": "bien.regime.periode_construction"},
+            {"id": "bien.caracteristiques.superficie"},
+            {"id": "bien.caracteristiques.pieces_info"},
             # BIEN - Détails
-            "bien.caracteristiques.meuble": {
-                "order": 70,
-            },
+            {"id": "bien.caracteristiques.meuble"},
             # BIEN - Équipements
-            "bien.equipements.annexes_privatives": {
-                "order": 80,
-            },
-            "bien.equipements.annexes_collectives": {
-                "order": 90,
-            },
-            "bien.equipements.information": {
-                "order": 100,
-            },
+            {"id": "bien.equipements.annexes_privatives"},
+            {"id": "bien.equipements.annexes_collectives"},
+            {"id": "bien.equipements.information"},
             # BIEN - Énergie
-            "bien.energie.chauffage": {
-                "order": 110,
-            },
-            "bien.energie.eau_chaude": {
-                "order": 120,
-            },
+            {"id": "bien.energie.chauffage"},
+            {"id": "bien.energie.eau_chaude"},
             # BIEN - Performance
-            "bien.performance_energetique.classe_dpe": {
-                "order": 130,
-            },
-            "bien.performance_energetique.depenses_energetiques": {
-                "order": 140,
+            {"id": "bien.performance_energetique.classe_dpe"},
+            {
+                "id": "bien.performance_energetique.depenses_energetiques",
                 "condition": "dpe_not_na",
             },
-            "bien.regime.identifiant_fiscal": {
-                "order": 160,
-            },
+            {"id": "bien.regime.identifiant_fiscal"},
             # BAILLEUR
-            "bailleur.bailleur_type": {
-                "order": 170,
-            },
-            "bailleur.personne": {
-                "order": 180,
-                "condition": "bailleur_is_person",
-            },
-            "bailleur.societe": {
-                "order": 190,
-                "condition": "bailleur_is_company",
-            },
-            "bailleur.co_bailleurs": {
-                "order": 200,
-            },
+            {"id": "bailleur.bailleur_type"},
+            {"id": "bailleur.personne", "condition": "bailleur_is_physique"},
+            {"id": "bailleur.signataire", "condition": "bailleur_is_morale"},
+            {"id": "bailleur.societe", "condition": "bailleur_is_morale"},
+            {"id": "bailleur.co_bailleurs"},
             # LOCATAIRES
-            "locataires": {"order": 210},
-            "solidaires": {
-                "order": 220,
-                "condition": "has_multiple_tenants",
-            },
+            {"id": "locataires"},
+            {"id": "solidaires", "condition": "has_multiple_tenants"},
             # DATES
-            "dates.date_debut": {
-                "order": 230,
-            },
+            {"id": "dates.date_debut"},
             # ZONE TENDUE (conditionnel - déterminé automatiquement par l'adresse)
-            "modalites_zone_tendue.premiere_mise_en_location": {
-                "order": 240,
+            {
+                "id": "modalites_zone_tendue.premiere_mise_en_location",
                 "condition": "zone_tendue",
             },
-            "modalites_zone_tendue.locataire_derniers_18_mois": {
-                "order": 250,
+            {
+                "id": "modalites_zone_tendue.locataire_derniers_18_mois",
                 "condition": "zone_tendue_not_first_rental",
             },
-            "modalites_zone_tendue.dernier_montant_loyer": {
-                "order": 260,
+            {
+                "id": "modalites_zone_tendue.dernier_montant_loyer",
                 "condition": "zone_tendue_has_previous_tenant",
             },
             # MODALITÉS FINANCIÈRES
-            "modalites_financieres.loyer_hors_charges": {
-                "order": 270,
-            },
-            "modalites_financieres.charges_mensuelles": {
-                "order": 280,
-            },
-        }
+            {"id": "modalites_financieres.loyer_hors_charges"},
+            {"id": "modalites_financieres.charges_mensuelles"},
+        ]
 
 
 class FranceQuittanceSerializer(serializers.Serializer):
@@ -158,15 +112,20 @@ class FranceQuittanceSerializer(serializers.Serializer):
     """
 
     # Champ pour tracer l'origine du document
-    source = serializers.CharField(default="quittance", read_only=True)
+    source = serializers.CharField(default="quittance")
 
     # Champs obligatoires pour une quittance
     bien = BienQuittanceSerializer(required=True)  # Juste l'adresse
     bailleur = BailleurInfoSerializer(required=True)
     locataires = serializers.ListField(
-        child=PersonneBaseSerializer(), min_length=1, required=True
+        child=PersonneSerializer(), min_length=1, required=True
     )
     modalites_financieres = ModalitesFinancieresSerializer(required=True)
+
+    # Options de location
+    solidaires = serializers.BooleanField(
+        default=False, help_text="Les locataires sont-ils solidaires ?"
+    )
 
     # Spécifique quittance
     periode_quittance = serializers.DictField(
@@ -180,65 +139,30 @@ class FranceQuittanceSerializer(serializers.Serializer):
         """
         Configuration des steps du formulaire quittance France.
         Plus simple car la plupart des données viennent du bail existant.
+        L'ordre est défini par la position dans la liste.
         """
-        return {
-            # BIEN - Localisation
-            "bien.localisation.adresse": {
-                "order": 10,
-            },
-            # BIEN - Type et surface et etage
-            "bien.caracteristiques.type_bien": {
-                "order": 20,
-            },
-            "bien.regime.regime_juridique": {
-                "order": 30,
-            },
-            "bien.regime.periode_construction": {
-                "order": 40,
-            },
-            "bien.caracteristiques.superficie": {
-                "order": 50,
-            },
-            "bien.caracteristiques.pieces_info": {
-                "order": 60,
-            },
-            # BIEN - Détails
-            "bien.caracteristiques.meuble": {
-                "order": 70,
-            },
+        return [
+            # BIEN - Juste l'essentiel pour une quittance
+            {"id": "bien.localisation.adresse"},
+            {"id": "bien.caracteristiques.type_bien"},
+            {"id": "bien.caracteristiques.superficie"},
+            {"id": "bien.caracteristiques.pieces_info"},
+            {"id": "bien.caracteristiques.meuble"},
             # BAILLEUR
-            "bailleur.bailleur_type": {
-                "order": 170,
-            },
-            "bailleur.personne": {
-                "order": 180,
-                "condition": "bailleur_is_person",
-            },
-            "bailleur.societe": {
-                "order": 190,
-                "condition": "bailleur_is_company",
-            },
-            "bailleur.co_bailleurs": {
-                "order": 200,
-            },
+            {"id": "bailleur.bailleur_type"},
+            {"id": "bailleur.personne", "condition": "bailleur_is_physique"},
+            {"id": "bailleur.signataire", "condition": "bailleur_is_morale"},
+            {"id": "bailleur.societe", "condition": "bailleur_is_morale"},
+            {"id": "bailleur.co_bailleurs"},
             # LOCATAIRES
-            "locataires": {"order": 210},
-            "solidaires": {
-                "order": 220,
-                "condition": "has_multiple_tenants",
-            },
+            {"id": "locataires"},
+            {"id": "solidaires", "condition": "has_multiple_tenants"},
             # Modalités financières
-            "modalites_financieres.loyer_hors_charges": {
-                "order": 300,
-            },
-            "modalites_financieres.charges_mensuelles": {
-                "order": 310,
-            },
+            {"id": "modalites_financieres.loyer_hors_charges"},
+            {"id": "modalites_financieres.charges_mensuelles"},
             # La période est toujours demandée
-            "periode_quittance": {
-                "order": 400,
-            },
-        }
+            {"id": "periode_quittance"},
+        ]
 
 
 class FranceEtatLieuxSerializer(serializers.Serializer):
@@ -247,18 +171,23 @@ class FranceEtatLieuxSerializer(serializers.Serializer):
     """
 
     # Champ pour tracer l'origine du document
-    source = serializers.CharField(default="etat_lieux", read_only=True)
+    source = serializers.CharField(default="etat_lieux")
 
     # Champs obligatoires
     bien = BienEtatLieuxSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
     locataires = serializers.ListField(
-        child=PersonneBaseSerializer(), min_length=1, required=True
+        child=PersonneSerializer(), min_length=1, required=True
     )
 
     # Dates et modalités optionnelles pour état des lieux
     dates = DatesLocationSerializer(required=False)
     modalites_financieres = ModalitesFinancieresSerializer(required=False)
+
+    # Options de location
+    solidaires = serializers.BooleanField(
+        default=False, help_text="Les locataires sont-ils solidaires ?"
+    )
 
     # Champs spécifiques état des lieux
     type_etat_lieux = serializers.ChoiceField(
@@ -284,88 +213,41 @@ class FranceEtatLieuxSerializer(serializers.Serializer):
     def get_step_config(cls):
         """
         Configuration des steps du formulaire état des lieux France.
+        L'ordre est défini par la position dans la liste.
         """
-        return {
+        return [
             # BIEN - Localisation
-            "bien.localisation.adresse": {
-                "order": 10,
-            },
+            {"id": "bien.localisation.adresse"},
             # BIEN - Type et surface et etage
-            "bien.caracteristiques.type_bien": {
-                "order": 20,
-            },
-            "bien.regime.regime_juridique": {
-                "order": 30,
-            },
-            "bien.regime.periode_construction": {
-                "order": 40,
-            },
-            "bien.caracteristiques.superficie": {
-                "order": 50,
-            },
-            "bien.caracteristiques.pieces_info": {
-                "order": 60,
-            },
+            {"id": "bien.caracteristiques.type_bien"},
+            {"id": "bien.regime.regime_juridique"},
+            {"id": "bien.regime.periode_construction"},
+            {"id": "bien.caracteristiques.superficie"},
+            {"id": "bien.caracteristiques.pieces_info"},
             # BIEN - Détails
-            "bien.caracteristiques.meuble": {
-                "order": 70,
-            },
+            {"id": "bien.caracteristiques.meuble"},
             # BIEN - Équipements
-            "bien.equipements.annexes_privatives": {
-                "order": 80,
-            },
-            "bien.equipements.annexes_collectives": {
-                "order": 90,
-            },
-            "bien.equipements.information": {
-                "order": 100,
-            },
+            {"id": "bien.equipements.annexes_privatives"},
+            {"id": "bien.equipements.annexes_collectives"},
+            {"id": "bien.equipements.information"},
             # BIEN - Énergie
-            "bien.energie.chauffage": {
-                "order": 110,
-            },
-            "bien.energie.eau_chaude": {
-                "order": 120,
-            },
+            {"id": "bien.energie.chauffage"},
+            {"id": "bien.energie.eau_chaude"},
             # BAILLEUR
-            "bailleur.bailleur_type": {
-                "order": 170,
-            },
-            "bailleur.personne": {
-                "order": 180,
-                "condition": "bailleur_is_person",
-            },
-            "bailleur.societe": {
-                "order": 190,
-                "condition": "bailleur_is_company",
-            },
-            "bailleur.co_bailleurs": {
-                "order": 200,
-            },
+            {"id": "bailleur.bailleur_type"},
+            {"id": "bailleur.personne", "condition": "bailleur_is_physique"},
+            {"id": "bailleur.signataire", "condition": "bailleur_is_morale"},
+            {"id": "bailleur.societe", "condition": "bailleur_is_morale"},
+            {"id": "bailleur.co_bailleurs"},
             # LOCATAIRES
-            "locataires": {"order": 210},
-            "solidaires": {
-                "order": 220,
-                "condition": "has_multiple_tenants",
-            },
+            {"id": "locataires"},
+            {"id": "solidaires", "condition": "has_multiple_tenants"},
             # MODALITÉS ÉTAT DES LIEUX
-            "type_etat_lieux": {
-                "order": 330,
-            },
-            "date_etat_lieux": {
-                "order": 330,
-            },
+            {"id": "type_etat_lieux"},
+            {"id": "date_etat_lieux"},
             # ÉTAT DES LIEUX
-            "description_pieces": {
-                "order": 400,
-            },
-            "nombre_cles": {
-                "order": 410,
-            },
-            "equipements_chauffage": {
-                "order": 420,
-            },
-            "releve_compteurs": {
-                "order": 430,
-            },
-        }
+            {"id": "description_pieces"},
+            {"id": "nombre_cles"},
+            {"id": "equipements_chauffage"},
+            {"id": "releve_compteurs"},
+        ]

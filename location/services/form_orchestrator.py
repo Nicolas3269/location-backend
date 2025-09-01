@@ -3,7 +3,7 @@ Service orchestrateur pour les formulaires adaptatifs.
 Architecture simplifiée - Le backend retourne uniquement les steps avec données manquantes.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from location.models import Location
 
@@ -53,25 +53,16 @@ class FormOrchestrator:
         step_config = self._get_step_config(serializer_class, form_type)
 
         # Filtrer les steps pour ne garder que celles avec données manquantes
+        # step_config est maintenant une liste, pas besoin de trier
         steps = []
-        for step_id, config in step_config.items():
+        for step in step_config:
+            step_id = step["id"]
             # Vérifier si cette step a des données complètes
-            if self._step_has_complete_data(step_id, config, existing_data):
+            if self._step_has_complete_data(step_id, step, existing_data):
                 continue
 
-            step_def = {
-                "id": step_id,
-                "order": config.get("order", 999),
-            }
-
-            # Ajouter la condition si elle existe
-            if "condition" in config:
-                step_def["condition"] = config["condition"]
-
-            steps.append(step_def)
-
-        # Trier les steps par ordre
-        steps = sorted(steps, key=lambda x: x["order"])
+            # Copier la step (elle contient déjà id et condition si nécessaire)
+            steps.append(step.copy())
 
         return {
             "country": country,
@@ -106,10 +97,10 @@ class FormOrchestrator:
 
         return serializers_map.get(country, {}).get(form_type)
 
-    def _get_step_config(self, serializer_class, form_type: str) -> Dict[str, Any]:
+    def _get_step_config(self, serializer_class, form_type: str) -> List[Dict[str, Any]]:
         """
         Obtient la configuration des steps depuis le serializer.
-        Raise une erreur si pas de config définie.
+        Retourne maintenant une liste ordonnée au lieu d'un dict.
         """
         if not hasattr(serializer_class, "get_step_config"):
             raise ValueError(

@@ -70,7 +70,6 @@ def create_bien_from_form_data(form_data, save=True, source="bail"):
         "bail": BienBailSerializer,
         "quittance": BienQuittanceSerializer,
         "etat_lieux": BienEtatLieuxSerializer,
-        "manual": BienBailSerializer,
     }
 
     if source not in serializer_map:

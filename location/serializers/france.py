@@ -18,13 +18,28 @@ from ..serializers_composed import (
 )
 
 
-class FranceBailSerializer(serializers.Serializer):
+class BaseLocationSerializer(serializers.Serializer):
+    """
+    Serializer de base pour tous les documents de location.
+    Contient les champs communs à tous les documents.
+    """
+
+    # Identifiant de la location existante (pour mise à jour)
+    location_id = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+
+    # Type de document source
+    source = serializers.CharField(required=True)
+
+
+class FranceBailSerializer(BaseLocationSerializer):
     """
     Serializer pour un bail en France.
     Définit les champs obligatoires et conditionnels selon la réglementation française.
     """
 
-    # Champ pour tracer l'origine du document
+    # Override source avec valeur par défaut
     source = serializers.CharField(default="bail")
 
     # Champs toujours obligatoires
@@ -63,9 +78,9 @@ class FranceBailSerializer(serializers.Serializer):
             # BIEN - Détails
             {"id": "bien.caracteristiques.meuble"},
             # BIEN - Équipements
-            {"id": "bien.equipements.annexes_privatives"},
-            {"id": "bien.equipements.annexes_collectives"},
-            {"id": "bien.equipements.information"},
+            {"id": "bien.equipements.annexes_privatives", "default": []},
+            {"id": "bien.equipements.annexes_collectives", "default": []},
+            {"id": "bien.equipements.information", "default": []},
             # BIEN - Énergie
             {"id": "bien.energie.chauffage"},
             {"id": "bien.energie.eau_chaude"},
@@ -106,12 +121,12 @@ class FranceBailSerializer(serializers.Serializer):
         ]
 
 
-class FranceQuittanceSerializer(serializers.Serializer):
+class FranceQuittanceSerializer(BaseLocationSerializer):
     """
     Serializer pour une quittance en France.
     """
 
-    # Champ pour tracer l'origine du document
+    # Override source avec valeur par défaut
     source = serializers.CharField(default="quittance")
 
     # Champs obligatoires pour une quittance
@@ -146,8 +161,6 @@ class FranceQuittanceSerializer(serializers.Serializer):
             {"id": "bien.localisation.adresse"},
             {"id": "bien.caracteristiques.type_bien"},
             {"id": "bien.caracteristiques.superficie"},
-            {"id": "bien.caracteristiques.pieces_info"},
-            {"id": "bien.caracteristiques.meuble"},
             # BAILLEUR
             {"id": "bailleur.bailleur_type"},
             {"id": "bailleur.personne", "condition": "bailleur_is_physique"},
@@ -165,12 +178,12 @@ class FranceQuittanceSerializer(serializers.Serializer):
         ]
 
 
-class FranceEtatLieuxSerializer(serializers.Serializer):
+class FranceEtatLieuxSerializer(BaseLocationSerializer):
     """
     Serializer pour un état des lieux en France.
     """
 
-    # Champ pour tracer l'origine du document
+    # Override source avec valeur par défaut
     source = serializers.CharField(default="etat_lieux")
 
     # Champs obligatoires
@@ -227,9 +240,9 @@ class FranceEtatLieuxSerializer(serializers.Serializer):
             # BIEN - Détails
             {"id": "bien.caracteristiques.meuble"},
             # BIEN - Équipements
-            {"id": "bien.equipements.annexes_privatives"},
-            {"id": "bien.equipements.annexes_collectives"},
-            {"id": "bien.equipements.information"},
+            {"id": "bien.equipements.annexes_privatives", "default": []},
+            {"id": "bien.equipements.annexes_collectives", "default": []},
+            {"id": "bien.equipements.information", "default": []},
             # BIEN - Énergie
             {"id": "bien.energie.chauffage"},
             {"id": "bien.energie.eau_chaude"},

@@ -23,7 +23,6 @@ from bail.models import (
     DocumentType,
 )
 from bail.utils import (
-    create_bien_from_form_data,
     create_signature_requests,
 )
 from etat_lieux.utils import get_or_create_pieces_for_bien
@@ -360,7 +359,7 @@ def get_rent_prices(request):
     """
     try:
         from location.serializers_composed import BienRentPriceSerializer
-        
+
         data = request.data
 
         # Utiliser le serializer minimal pour valider et extraire les données
@@ -368,16 +367,18 @@ def get_rent_prices(request):
             return JsonResponse({"error": "Données du bien requises"}, status=400)
         bien_data = data["bien"]
         serializer = BienRentPriceSerializer(data=bien_data)
-        
+
         if not serializer.is_valid():
-            return JsonResponse({"error": "Données invalides", "details": serializer.errors}, status=400)
-        
+            return JsonResponse(
+                {"error": "Données invalides", "details": serializer.errors}, status=400
+            )
+
         validated = serializer.validated_data
-        area_id = validated.get('area_id')
-        
+        area_id = validated.get("area_id")
+
         if not area_id:
             return JsonResponse({"error": "Area ID requis"}, status=400)
-        
+
         # Utiliser le serializer pour créer l'instance Bien
         bien = serializer.create_bien_instance(validated)
 
@@ -456,7 +457,7 @@ def get_company_data(request):
 
         # Construire la réponse avec les données formatées
         company_data = {}
-        
+
         # Raison sociale
         denomination = unite_legale.get("denominationUniteLegale")
         if denomination:
@@ -468,17 +469,19 @@ def get_company_data(request):
                 company_data["raison_sociale"] = f"{prenom} {nom}"
             elif nom:
                 company_data["raison_sociale"] = nom
-        
+
         # Forme juridique
         categorie = unite_legale.get("categorieJuridiqueUniteLegale")
         if categorie:
-            company_data["forme_juridique"] = FORMES_JURIDIQUES.get(categorie, categorie)
-        
+            company_data["forme_juridique"] = FORMES_JURIDIQUES.get(
+                categorie, categorie
+            )
+
         # Adresse
         adresse = {}
         if "numeroVoieEtablissement" in adresse_etablissement:
             adresse["numero"] = adresse_etablissement["numeroVoieEtablissement"]
-        
+
         voie_parts = []
         if "typeVoieEtablissement" in adresse_etablissement:
             voie_parts.append(adresse_etablissement["typeVoieEtablissement"])
@@ -486,12 +489,12 @@ def get_company_data(request):
             voie_parts.append(adresse_etablissement["libelleVoieEtablissement"])
         if voie_parts:
             adresse["voie"] = " ".join(voie_parts)
-            
+
         if "codePostalEtablissement" in adresse_etablissement:
             adresse["code_postal"] = adresse_etablissement["codePostalEtablissement"]
         if "libelleCommuneEtablissement" in adresse_etablissement:
             adresse["ville"] = adresse_etablissement["libelleCommuneEtablissement"]
-            
+
         if adresse:
             company_data["adresse"] = adresse
 

@@ -16,7 +16,11 @@ from location.models import (
 )
 from location.serializers import (
     FranceBailSerializer as CreateBailSerializer,
+)
+from location.serializers import (
     FranceEtatLieuxSerializer as CreateEtatLieuxSerializer,
+)
+from location.serializers import (
     FranceQuittanceSerializer as CreateQuittanceSerializer,
 )
 from rent_control.choices import ChargeType
@@ -33,7 +37,7 @@ def create_or_get_bailleur(data):
     # Les données sont déjà validées, on les utilise directement
     if "bailleur" not in data:
         raise ValueError("Données du bailleur requises")
-    
+
     validated = data["bailleur"]
     bailleur_type = validated.get("bailleur_type")
     if not bailleur_type:
@@ -156,42 +160,44 @@ def create_garants(data):
     return garants
 
 
+def get_location_fields_from_data(data):
+    """
+    Extrait les champs de Location depuis les données du formulaire.
+    """
+    dates = data.get("dates") or {}
+    source = data.get("source")
+
+    # Mapper les données vers les champs Location
+    fields = {
+        "created_from": source,
+        "date_debut": dates.get("date_debut"),
+        "date_fin": dates.get("date_fin"),
+        "solidaires": data.get("solidaires", False),
+    }
+
+    # Filtrer les None pour ne garder que les valeurs définies
+    return {k: v for k, v in fields.items() if v is not None}
+
+
 def create_or_update_rent_terms(location, data):
     """
     Crée ou met à jour les conditions financières d'une location.
-    Les données sont déjà validées par FranceBailSerializer/FranceQuittanceSerializer/FranceEtatLieuxSerializer.
+    Met à jour uniquement les champs None avec les nouvelles valeurs.
     """
-    # Les données sont déjà validées, on les utilise directement
     modalites_financieres = data.get("modalites_financieres") or {}
     modalites_zone_tendue = data.get("modalites_zone_tendue") or {}
-
-    # Pour état des lieux et quittance, les modalités peuvent être incomplètes
-    source = data.get("source") or "manual"
-
-    # Si pas de loyer défini et qu'on est pas dans un bail, ne pas créer de RentTerms
-    if source in ["etat_lieux", "quittance"] and not modalites_financieres.get(
-        "loyer_hors_charges"
-    ):
-        logger.info(
-            f"Modalités financières incomplètes pour {source}, skip création RentTerms"
-        )
-        return
-
-    # Préparer les données pour RentTerms
-    # Extraire zone_reglementaire du bien si présent
     bien_data = data.get("bien") or {}
     zone_reglementaire = bien_data.get("zone_reglementaire") or {}
 
-    form_data = {
+    # Mapper les données vers les champs RentTerms
+    fields_to_update = {
         "montant_loyer": modalites_financieres.get("loyer_hors_charges"),
         "montant_charges": modalites_financieres.get("charges"),
         "type_charges": modalites_financieres.get("type_charges"),
-        "depot_garantie": modalites_financieres.get("depot_garantie"),
         "jour_paiement": modalites_financieres.get("jour_paiement"),
-        "zone_tendue": zone_reglementaire.get("zone_tendue") if "zone_tendue" in zone_reglementaire else False,
-        "permis_de_louer": zone_reglementaire.get("permis_de_louer") if "permis_de_louer" in zone_reglementaire else False,
-        "rent_price_id": bien_data.get("localisation", {}).get("area_id") if "localisation" in bien_data else None,
-        # Nouveaux champs pour zone tendue
+        "zone_tendue": zone_reglementaire.get("zone_tendue"),
+        "permis_de_louer": zone_reglementaire.get("permis_de_louer"),
+        "rent_price_id": bien_data.get("localisation", {}).get("area_id"),
         "premiere_mise_en_location": modalites_zone_tendue.get(
             "premiere_mise_en_location"
         ),
@@ -204,66 +210,118 @@ def create_or_update_rent_terms(location, data):
         ),
     }
 
-    # Vérifier si RentTerms existe déjà
-    if hasattr(location, "rent_terms"):
-        # Mettre à jour l'existant
-        rent_terms = location.rent_terms
-        updated = False
+    # Filtrer les None pour ne garder que les valeurs définies
+    fields_to_update = {k: v for k, v in fields_to_update.items() if v is not None}
 
-        # Parcourir les champs et mettre à jour ceux qui sont vides/falsy
-        for field, new_value in form_data.items():
-            current_value = getattr(rent_terms, field)
-
-            # Détecter si le champ est vide/falsy
-            is_empty = (
-                current_value is None
-                or current_value == ""
-                or current_value == 0
-                or (
-                    field in ["zone_tendue", "permis_de_louer"]
-                    and current_value is False
-                )
-            )
-
-            # Vérifier que la nouvelle valeur n'est pas vide
-            # Pour les booléens, on accepte False comme valeur valide
-            # Pour rent_price_id, on accepte toute valeur non vide
-            has_new_value = new_value is not None and (
-                field in ["zone_tendue", "permis_de_louer", "rent_price_id"]
-                or (new_value != "" and new_value != 0)
-            )
-
-            # Mettre à jour si nécessaire
-            if is_empty and has_new_value:
-                setattr(rent_terms, field, new_value)
-                updated = True
-                logger.debug(f"RentTerms - Champ {field} mis à jour: {new_value}")
-
-        if updated:
-            rent_terms.save()
-            logger.info(f"RentTerms mis à jour pour la location {location.id}")
-
-        return rent_terms
-    else:
-        # Créer un nouveau RentTerms si au moins une valeur est fournie
-        if any(v is not None and v != "" for v in form_data.values()):
-            # Définir les valeurs par défaut pour les champs booléens
-            if "zone_tendue" not in form_data:
-                form_data["zone_tendue"] = False
-            if "permis_de_louer" not in form_data:
-                form_data["permis_de_louer"] = False
-            form_data["justificatif_complement_loyer"] = form_data.get(
-                "justificatif_complement_loyer", ""
-            )
-
-            rent_terms = RentTerms.objects.create(
-                location=location,
-                **{k: v for k, v in form_data.items() if v is not None},
-            )
-            logger.info(f"RentTerms créé pour la location {location.id}")
-            return rent_terms
-
+    if not fields_to_update:
         return None
+
+    # Récupérer ou créer RentTerms
+    if hasattr(location, "rent_terms"):
+        rent_terms = location.rent_terms
+        # Mettre à jour seulement les champs qui sont None
+        for field, value in fields_to_update.items():
+            if getattr(rent_terms, field) is None:
+                setattr(rent_terms, field, value)
+        rent_terms.save()
+    else:
+        rent_terms = RentTerms.objects.create(location=location, **fields_to_update)
+
+    return rent_terms
+
+
+def update_bien_fields(bien, data):
+    """
+    Met à jour les champs manquants du Bien avec les nouvelles données.
+    Met à jour uniquement les champs None/vides.
+    """
+    source = data.get("source", "bail")
+    bien_from_form = create_bien_from_form_data(data, save=False, source=source)
+
+    updated = False
+    for field in bien._meta.get_fields():
+        # Ignorer les relations many-to-many et les relations inverses
+        if field.many_to_many or field.one_to_many or field.one_to_one:
+            continue
+            
+        field_name = field.name
+        if field_name in ["id", "created_at", "updated_at"]:
+            continue
+
+        current_value = getattr(bien, field_name, None)
+        new_value = getattr(bien_from_form, field_name, None)
+
+        # Mettre à jour si le champ actuel est None et qu'on a une nouvelle valeur
+        # Important: pour les listes, [] est une valeur valide, pas "vide"
+        if current_value is None and new_value is not None:
+            setattr(bien, field_name, new_value)
+            updated = True
+            logger.debug(f"Bien.{field_name} mis à jour: {new_value}")
+
+    if updated:
+        bien.save()
+        logger.info(f"Bien {bien.id} mis à jour avec les nouvelles données")
+
+    return bien
+
+
+def get_or_create_bail_for_location(location):
+    """
+    Récupère ou crée un bail pour une location.
+    
+    Returns:
+        bail_id: L'ID du bail existant ou nouvellement créé
+    """
+    from bail.models import Bail
+    
+    # Vérifier si un bail existe déjà pour cette location
+    existing_bail = Bail.objects.filter(location=location).first()
+    if existing_bail:
+        logger.info(f"Bail existant trouvé: {existing_bail.id}")
+        return existing_bail.id
+    
+    # Créer un nouveau bail
+    bail = Bail.objects.create(
+        location=location,
+        status="draft",
+        version=1,
+        is_active=True,
+    )
+    logger.info(f"Bail créé automatiquement: {bail.id}")
+    return bail.id
+
+
+def update_location_fields(location, data):
+    """
+    Met à jour les champs de la Location avec les nouvelles données.
+    Met à jour uniquement les champs None avec les nouvelles valeurs.
+    """
+    fields_to_update = get_location_fields_from_data(data)
+
+    # Enlever created_from car on ne veut pas le mettre à jour
+    fields_to_update.pop("created_from", None)
+
+    if not fields_to_update:
+        return location
+
+    updated = False
+    for field, value in fields_to_update.items():
+        current_value = getattr(location, field, None)
+        # Pour solidaires, on met à jour si différent
+        if field == "solidaires":
+            if current_value != value:
+                setattr(location, field, value)
+                updated = True
+        # Pour les autres champs, on met à jour seulement si None
+        elif current_value is None and value is not None:
+            setattr(location, field, value)
+            updated = True
+
+    if updated:
+        location.save()
+        logger.info(f"Location {location.id} mise à jour avec les nouvelles données")
+
+    return location
 
 
 def create_new_location(data):
@@ -271,9 +329,8 @@ def create_new_location(data):
     Crée une nouvelle location complète avec toutes les entités associées.
     """
     # 1. Créer le bien (peut être partiel selon la source)
-    source = data.get("source") or "manual"
+    source = data.get("source")
     bien = create_bien_from_form_data(data, save=True, source=source)
-    logger.info(f"Bien créé: {bien.id}")
 
     # 2. Créer le bailleur principal et les autres bailleurs
     bailleur, autres_bailleurs = create_or_get_bailleur(data)
@@ -283,20 +340,12 @@ def create_new_location(data):
     for autre_bailleur in autres_bailleurs:
         bien.bailleurs.add(autre_bailleur)
 
-    # 3. Créer les locataires
-    locataires = create_locataires(data)
+    # 3. Créer la Location (entité pivot)
+    location_fields = get_location_fields_from_data(data)
+    location = Location.objects.create(bien=bien, **location_fields)
 
-    # 4. Créer la Location (entité pivot)
-    source = data.get("source") or "manual"
-    # Récupérer les dates depuis dates.date_debut/date_fin
-    dates_data = data.get("dates") or {}
-    location = Location.objects.create(
-        bien=bien,
-        created_from=source,
-        date_debut=dates_data.get("date_debut"),
-        date_fin=dates_data.get("date_fin"),
-        solidaires=data.get("solidaires") if "solidaires" in data else False,
-    )
+    # 4. Créer les locataires
+    locataires = create_locataires(data)
 
     # Associer les locataires à la location
     for locataire in locataires:
@@ -312,81 +361,21 @@ def create_new_location(data):
 def update_existing_location(location, data):
     """
     Met à jour une location existante avec de nouvelles données.
-    Complète les données manquantes du bien et met à jour les conditions financières.
+    Complète les données manquantes du bien, de la location et met à jour les conditions financières.
     """
-    bien = location.bien
+    source = data.get("source", "bail")
 
-    # Créer un objet Bien temporaire avec les données du formulaire
-    source = data.get("source") or "manual"
-    bien_from_form = create_bien_from_form_data(data, save=False, source=source)
+    # 1. Mettre à jour le Bien avec les champs manquants
+    update_bien_fields(location.bien, data)
 
-    # Liste des champs à mettre à jour automatiquement
-    fields_to_update = [
-        "superficie",
-        "periode_construction",
-        "type_bien",
-        "meuble",
-        "etage",
-        "porte",
-        "classe_dpe",
-        "depenses_energetiques",
-        "pieces_info",
-        "chauffage_type",
-        "chauffage_energie",
-        "eau_chaude_type",
-        "eau_chaude_energie",
-        "annexes_privatives",
-        "annexes_collectives",
-        "information",
-        "identifiant_fiscal",
-        "regime_juridique",
-    ]
+    # 2. Mettre à jour la Location (dates, solidaires)
+    update_location_fields(location, data)
 
-    updated = False
-
-    # Parcourir tous les champs et mettre à jour ceux qui sont vides/falsy
-    for field in fields_to_update:
-        current_value = getattr(bien, field)
-        new_value = getattr(bien_from_form, field)
-
-        # Détecter si le champ est vide/falsy
-        is_empty = (
-            current_value is None
-            or current_value == ""
-            or current_value == []
-            or current_value == {}
-            or (field == "superficie" and current_value == 0)
-            or (field == "classe_dpe" and current_value == "NA")
-        )
-
-        # Vérifier que la nouvelle valeur n'est pas vide
-        has_new_value = (
-            new_value is not None
-            and new_value != ""
-            and new_value != []
-            and new_value != {}
-            and not (field == "superficie" and new_value == 0)
-            and not (field == "classe_dpe" and new_value == "NA")
-        )
-
-        # Mettre à jour si nécessaire
-        if is_empty and has_new_value:
-            setattr(bien, field, new_value)
-            updated = True
-            logger.debug(f"Champ {field} mis à jour: {new_value}")
-
-    # Sauvegarder si des modifications ont été faites
-    if updated:
-        bien.save()
-        logger.info(f"Bien {bien.id} mis à jour avec les nouvelles données")
-
-    # Mettre à jour ou créer les conditions financières si elles sont fournies
+    # 3. Mettre à jour ou créer les conditions financières (incluant dépôt de garantie)
     create_or_update_rent_terms(location, data)
 
-    source = data.get("source") or "manual"
     logger.info(f"Location {location.id} utilisée pour {source}")
-
-    return location, bien
+    return location, location.bien
 
 
 @api_view(["POST"])
@@ -401,7 +390,7 @@ def create_or_update_location(request):
     """
     try:
         # 1. Déterminer le type de document et choisir le serializer approprié
-        source = request.data.get("source") or "manual"
+        source = request.data.get("source")
 
         serializer_map = {
             "bail": CreateBailSerializer,
@@ -410,13 +399,16 @@ def create_or_update_location(request):
         }
 
         if source not in serializer_map:
+            # Si source manquant ou invalide, retourner une erreur claire
+            valid_sources = list(serializer_map.keys())
             return JsonResponse(
                 {
                     "success": False,
-                    "error": f"Source invalide: {source}. Doit être 'bail', 'quittance', ou 'etat_lieux'",
+                    "error": f"Le champ 'source' doit être l'un de: {', '.join(valid_sources)}",
                 },
                 status=400,
             )
+
         serializer_class = serializer_map[source]
         serializer = serializer_class(data=request.data)
 
@@ -433,9 +425,9 @@ def create_or_update_location(request):
 
         # 2. Utiliser les données validées
         validated_data = serializer.validated_data
-        source = validated_data.get("source") or "manual"
-
-        # 3. Vérifier si on met à jour une location existante
+        source = validated_data[
+            "source"
+        ]  # Garanti par le serializer (required=True ou default)
         location_id = validated_data.get("location_id")
         location = None
 
@@ -456,24 +448,7 @@ def create_or_update_location(request):
             location, bien = update_existing_location(location, validated_data)
 
         # Si la source est 'bail', créer un bail (seulement s'il n'existe pas déjà)
-        bail_id = None
-        if source == "bail":
-            from bail.models import Bail
-
-            # Vérifier si un bail existe déjà pour cette location
-            existing_bail = Bail.objects.filter(location=location).first()
-            if existing_bail:
-                bail_id = existing_bail.id
-                logger.info(f"Bail existant trouvé: {bail_id}")
-            else:
-                bail = Bail.objects.create(
-                    location=location,
-                    status="draft",
-                    version=1,
-                    is_active=True,
-                )
-                bail_id = bail.id
-                logger.info(f"Bail créé automatiquement: {bail.id}")
+        bail_id = get_or_create_bail_for_location(location) if source == "bail" else None
 
         response_data = {
             "success": True,

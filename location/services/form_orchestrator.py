@@ -61,8 +61,15 @@ class FormOrchestrator:
             if self._step_has_complete_data(step_id, step, existing_data):
                 continue
 
-            # Copier la step (elle contient déjà id et condition si nécessaire)
-            steps.append(step.copy())
+            # Copier la step (elle contient déjà id, condition et default si nécessaire)
+            step_copy = step.copy()
+            
+            # Si une valeur par défaut est définie et qu'il n'y a pas de données existantes
+            # on ajoute la valeur par défaut dans les données de pré-remplissage
+            if "default" in step and not self._field_has_value(step_id, existing_data):
+                self._set_field_value(step_id, step["default"], existing_data)
+            
+            steps.append(step_copy)
 
         return {
             "country": country,
@@ -144,6 +151,27 @@ class FormOrchestrator:
                 return False
 
         return True
+
+    def _set_field_value(self, field_path: str, value: Any, data: Dict) -> None:
+        """
+        Définit une valeur dans les données en créant la structure nécessaire.
+        
+        Args:
+            field_path: Chemin du champ (ex: "bien.equipements.annexes_privatives")
+            value: Valeur à définir
+            data: Dictionnaire de données à modifier
+        """
+        parts = field_path.split(".")
+        current = data
+        
+        # Naviguer jusqu'au parent du champ final
+        for part in parts[:-1]:
+            if part not in current:
+                current[part] = {}
+            current = current[part]
+        
+        # Définir la valeur finale
+        current[parts[-1]] = value
 
     def _extract_location_data(self, location: Location) -> Dict[str, Any]:
         """

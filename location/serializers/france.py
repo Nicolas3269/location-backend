@@ -208,15 +208,11 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
     )
     date_etat_lieux = serializers.DateField(required=True)
 
-    # Description détaillée
-    description_pieces = serializers.JSONField(
-        required=True, help_text="Description détaillée de l'état de chaque pièce"
-    )
     releve_compteurs = serializers.JSONField(
         required=False, help_text="Relevés des compteurs (eau, gaz, électricité)"
     )
-    nombre_cles = serializers.IntegerField(
-        required=False, default=1, help_text="Nombre de clés remises"
+    nombre_cles = serializers.JSONField(
+        required=False, default=dict, help_text="Nombre de clés remises"
     )
     equipements_chauffage = serializers.JSONField(
         required=False, default=dict, help_text="État des équipements de chauffage"

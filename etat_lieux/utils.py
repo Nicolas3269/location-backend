@@ -148,9 +148,9 @@ def create_etat_lieux_from_form_data(form_data, location_id, user):
     etat_lieux = EtatLieux.objects.create(
         location=location,
         type_etat_lieux=form_data.get("type", "entree"),
-        nombre_cles=form_data.get("nombreCles", {}),
-        equipements_chauffage=form_data.get("equipementsChauffage", {}),
-        compteurs=form_data.get("compteurs", {}),
+        nombre_cles=form_data.get("nombre_cles", {}),
+        equipements_chauffage=form_data.get("equipements_chauffage", {}),
+        compteurs=form_data.get("releve_compteurs", {}),
     )
 
     # Stocker la date de l'état des lieux

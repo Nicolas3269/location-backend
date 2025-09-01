@@ -14,6 +14,7 @@ from rent_control.choices import (
     RegimeJuridique,
     SystemType,
 )
+from rent_control.views import get_rent_control_info
 
 
 class BaseModel(models.Model):
@@ -254,13 +255,17 @@ class Bien(models.Model):
     regime_juridique = models.CharField(
         max_length=20,
         choices=RegimeJuridique.choices,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         verbose_name="Régime juridique",
     )
 
     type_bien = models.CharField(
-        max_length=20, choices=PropertyType.choices, verbose_name="Type de bien",
-        null=True, blank=True
+        max_length=20,
+        choices=PropertyType.choices,
+        verbose_name="Type de bien",
+        null=True,
+        blank=True,
     )
     etage = models.CharField(max_length=10, blank=True)
     porte = models.CharField(max_length=10, blank=True)
@@ -275,8 +280,9 @@ class Bien(models.Model):
         verbose_name="Période de construction",
     )
 
-    superficie = models.DecimalField(max_digits=8, decimal_places=2, help_text="En m²",
-                                     null=True, blank=True)
+    superficie = models.DecimalField(
+        max_digits=8, decimal_places=2, help_text="En m²", null=True, blank=True
+    )
 
     meuble = models.BooleanField(null=True, blank=True, verbose_name="Meublé")
 
@@ -284,7 +290,8 @@ class Bien(models.Model):
     classe_dpe = models.CharField(
         max_length=2,
         choices=DPEClass.choices,
-        null=True, blank=True,
+        null=True,
+        blank=True,
         verbose_name="Classe énergétique DPE",
     )
     depenses_energetiques = models.CharField(
@@ -452,7 +459,7 @@ class RentTerms(BaseModel):
 
     # Informations d'encadrement des loyers
     zone_tendue = models.BooleanField(
-        default=False, help_text="Situé en zone d'encadrement des loyers"
+        null=True, blank=True, help_text="Situé en zone d'encadrement des loyers"
     )
     premiere_mise_en_location = models.BooleanField(
         null=True, blank=True, help_text="Première mise en location du bien"
@@ -470,7 +477,8 @@ class RentTerms(BaseModel):
         help_text="Montant du dernier loyer si locataire dans les 18 derniers mois",
     )
     permis_de_louer = models.BooleanField(
-        default=False,
+        null=True,
+        blank=True,
         verbose_name="Permis de louer",
         help_text="Indique si un permis de louer est requis pour ce bien",
     )
@@ -490,10 +498,15 @@ class RentTerms(BaseModel):
         Récupère le RentPrice correspondant aux caractéristiques du bien.
         Utilise rent_price_id comme area_id si disponible.
         """
-        if not self.rent_price_id:
-            return None
-
         from rent_control.utils import get_rent_price_for_bien
+
+        if not self.rent_price_id:
+            bien: Bien = self.location.bien
+            _, area = get_rent_control_info(bien.latitude, bien.longitude)
+            if not area:
+                return None
+            self.rent_price_id = area.id
+            self.save(update_fields=["rent_price_id"])
 
         # rent_price_id stocke en fait l'area_id
         return get_rent_price_for_bien(self.location.bien, self.rent_price_id)

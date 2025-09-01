@@ -1,7 +1,7 @@
 from decimal import ROUND_HALF_UP, Decimal
 
 from bail.models import Bail
-from location.models import Bien
+from location.models import Bien, RentTerms
 from rent_control.choices import PropertyType, RegimeJuridique, SystemType
 
 
@@ -213,19 +213,17 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
         Calcule toutes les données d'encadrement des loyers en une seule fois.
         Retourne un dict avec prix_reference, prix_majore, complement_loyer.
         """
-        result = {
-            "prix_reference": None,
-            "prix_majore": None, 
-            "complement_loyer": None
-        }
-        
+        result = {"prix_reference": None, "prix_majore": None, "complement_loyer": None}
+
         if not hasattr(bail.location, "rent_terms"):
             return result
-            
-        rent_price = bail.location.rent_terms.get_rent_price()
+
+        rent_terms: RentTerms = bail.location.rent_terms
+
+        rent_price = rent_terms.get_rent_price()
         if not rent_price:
             return result
-            
+
         # Prix de référence et majoré par m²
         result["prix_reference"] = Decimal(str(rent_price.reference_price)).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
@@ -233,24 +231,21 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
         result["prix_majore"] = Decimal(str(rent_price.max_price)).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
-        
+
         # Calcul du complément de loyer si applicable
-        if (
-            bail.location.bien.superficie
-            and bail.location.rent_terms.montant_loyer
-        ):
+        if bail.location.bien.superficie and bail.location.rent_terms.montant_loyer:
             from rent_control.utils import calculate_total_prices
-            
+
             prices = calculate_total_prices(rent_price, bail.location.bien.superficie)
             loyer_max_autorise = Decimal(str(prices["total_max_price"]))
             montant_loyer = Decimal(str(bail.location.rent_terms.montant_loyer))
-            
+
             complement = montant_loyer - loyer_max_autorise
             if complement > Decimal("0.01"):
                 result["complement_loyer"] = complement.quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP
                 )
-                
+
         return result
 
     @staticmethod

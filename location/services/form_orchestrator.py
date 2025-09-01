@@ -5,7 +5,8 @@ Architecture simplifiée - Le backend retourne uniquement les steps avec donnée
 
 from typing import Any, Dict, List, Optional
 
-from location.models import Location
+from location.models import Bien, Location, RentTerms
+from rent_control.views import get_rent_control_info
 
 
 class FormOrchestrator:
@@ -63,12 +64,12 @@ class FormOrchestrator:
 
             # Copier la step (elle contient déjà id, condition et default si nécessaire)
             step_copy = step.copy()
-            
+
             # Si une valeur par défaut est définie et qu'il n'y a pas de données existantes
             # on ajoute la valeur par défaut dans les données de pré-remplissage
             if "default" in step and not self._field_has_value(step_id, existing_data):
                 self._set_field_value(step_id, step["default"], existing_data)
-            
+
             steps.append(step_copy)
 
         return {
@@ -104,7 +105,9 @@ class FormOrchestrator:
 
         return serializers_map.get(country, {}).get(form_type)
 
-    def _get_step_config(self, serializer_class, form_type: str) -> List[Dict[str, Any]]:
+    def _get_step_config(
+        self, serializer_class, form_type: str
+    ) -> List[Dict[str, Any]]:
         """
         Obtient la configuration des steps depuis le serializer.
         Retourne maintenant une liste ordonnée au lieu d'un dict.
@@ -155,7 +158,7 @@ class FormOrchestrator:
     def _set_field_value(self, field_path: str, value: Any, data: Dict) -> None:
         """
         Définit une valeur dans les données en créant la structure nécessaire.
-        
+
         Args:
             field_path: Chemin du champ (ex: "bien.equipements.annexes_privatives")
             value: Valeur à définir
@@ -163,13 +166,13 @@ class FormOrchestrator:
         """
         parts = field_path.split(".")
         current = data
-        
+
         # Naviguer jusqu'au parent du champ final
         for part in parts[:-1]:
             if part not in current:
                 current[part] = {}
             current = current[part]
-        
+
         # Définir la valeur finale
         current[parts[-1]] = value
 
@@ -200,11 +203,11 @@ class FormOrchestrator:
         # RentTerms pour les données financières
         rent_terms = None
         if hasattr(location, "rent_terms"):
-            rent_terms = location.rent_terms
+            rent_terms: RentTerms = location.rent_terms
 
         # Données du bien
         if location.bien:
-            bien = location.bien
+            bien: Bien = location.bien
 
             # Localisation
             if bien.adresse:
@@ -213,6 +216,11 @@ class FormOrchestrator:
                     data["bien"]["localisation"]["latitude"] = bien.latitude
                 if bien.longitude:
                     data["bien"]["localisation"]["longitude"] = bien.longitude
+                # Ajouter area_id
+                if bien.latitude and bien.longitude:
+                    _, area = get_rent_control_info(bien.latitude, bien.longitude)
+                    if area:
+                        data["bien"]["localisation"]["area_id"] = area.id
 
             # Caractéristiques
             if bien.superficie or bien.type_bien:
@@ -231,14 +239,18 @@ class FormOrchestrator:
             if bien.classe_dpe:
                 data["bien"]["performance_energetique"] = {
                     "classe_dpe": bien.classe_dpe,
-                    "depenses_energetiques": bien.depenses_energetiques if bien.depenses_energetiques else None,
+                    "depenses_energetiques": bien.depenses_energetiques
+                    if bien.depenses_energetiques
+                    else None,
                 }
 
             # Régime juridique
             if hasattr(bien, "regime_juridique"):
                 data["bien"]["regime"] = {
                     "regime_juridique": bien.regime_juridique or "monopropriete",
-                    "periode_construction": bien.periode_construction if bien.periode_construction else None,
+                    "periode_construction": bien.periode_construction
+                    if bien.periode_construction
+                    else None,
                     "identifiant_fiscal": getattr(bien, "identifiant_fiscal", ""),
                 }
 

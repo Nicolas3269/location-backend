@@ -183,20 +183,34 @@ def create_or_update_rent_terms(location, data):
     """
     Crée ou met à jour les conditions financières d'une location.
     Met à jour uniquement les champs None avec les nouvelles valeurs.
+    Calcule automatiquement zone_tendue et permis_de_louer si non fournis.
     """
     modalites_financieres = data.get("modalites_financieres") or {}
     modalites_zone_tendue = data.get("modalites_zone_tendue") or {}
     bien_data = data.get("bien") or {}
     zone_reglementaire = bien_data.get("zone_reglementaire") or {}
 
+    # Récupérer zone_tendue et permis_de_louer depuis les données
+    zone_tendue = zone_reglementaire.get("zone_tendue")
+    permis_de_louer = zone_reglementaire.get("permis_de_louer")
+    
+    # Si zone_tendue ou permis_de_louer ne sont pas définis, les calculer depuis les coordonnées
+    if (zone_tendue is None or permis_de_louer is None) and location.bien.latitude and location.bien.longitude:
+        from rent_control.views import check_zone_status_via_ban
+        ban_result = check_zone_status_via_ban(location.bien.latitude, location.bien.longitude)
+        if zone_tendue is None:
+            zone_tendue = ban_result.get("is_zone_tendue")
+        if permis_de_louer is None:
+            permis_de_louer = ban_result.get("is_permis_de_louer")
+    
     # Mapper les données vers les champs RentTerms
     fields_to_update = {
         "montant_loyer": modalites_financieres.get("loyer_hors_charges"),
         "montant_charges": modalites_financieres.get("charges"),
         "type_charges": modalites_financieres.get("type_charges"),
         "jour_paiement": modalites_financieres.get("jour_paiement"),
-        "zone_tendue": zone_reglementaire.get("zone_tendue"),
-        "permis_de_louer": zone_reglementaire.get("permis_de_louer"),
+        "zone_tendue": zone_tendue,
+        "permis_de_louer": permis_de_louer,
         "rent_price_id": bien_data.get("localisation", {}).get("area_id"),
         "premiere_mise_en_location": modalites_zone_tendue.get(
             "premiere_mise_en_location"

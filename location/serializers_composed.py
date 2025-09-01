@@ -88,8 +88,8 @@ class RegimeJuridiqueSerializer(serializers.Serializer):
 class ZoneReglementaireSerializer(serializers.Serializer):
     """Zone réglementaire et autorisations"""
 
-    zone_tendue = serializers.BooleanField(default=False)
-    permis_de_louer = serializers.BooleanField(default=False)
+    zone_tendue = serializers.BooleanField(required=False, allow_null=True)
+    permis_de_louer = serializers.BooleanField(required=False, allow_null=True)
 
 
 # ============================================
@@ -219,8 +219,8 @@ class ModalitesFinancieresSerializer(serializers.Serializer):
 class ModalitesZoneTendueSerializer(serializers.Serializer):
     """Modalités spécifiques zone tendue"""
 
-    premiere_mise_en_location = serializers.BooleanField(default=False)
-    locataire_derniers_18_mois = serializers.BooleanField(default=False)
+    premiere_mise_en_location = serializers.BooleanField(required=False, allow_null=True)
+    locataire_derniers_18_mois = serializers.BooleanField(required=False, allow_null=True)
     dernier_montant_loyer = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )

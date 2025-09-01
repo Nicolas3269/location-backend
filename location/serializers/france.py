@@ -143,7 +143,7 @@ class FranceBailSerializer(serializers.Serializer):
                 "condition": "zone_tendue_has_previous_tenant",
             },
             # MODALITÉS FINANCIÈRES
-            "modalites_financieres.loyer_mensuel": {
+            "modalites_financieres.loyer_hors_charges": {
                 "order": 270,
             },
             "modalites_financieres.charges_mensuelles": {
@@ -228,7 +228,7 @@ class FranceQuittanceSerializer(serializers.Serializer):
                 "condition": "has_multiple_tenants",
             },
             # Modalités financières
-            "modalites_financieres.loyer_mensuel": {
+            "modalites_financieres.loyer_hors_charges": {
                 "order": 300,
             },
             "modalites_financieres.charges_mensuelles": {

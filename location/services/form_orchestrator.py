@@ -133,8 +133,8 @@ class FormOrchestrator:
     def _field_has_value(self, field_path: str, data: Dict) -> bool:
         """
         Vérifie si un champ a une valeur dans les données.
-        
-        IMPORTANT: 
+
+        IMPORTANT:
         - None ou champ manquant = pas de valeur (step à afficher)
         - [], {}, "" = valeur explicitement vide (step à NE PAS afficher)
         """
@@ -200,8 +200,8 @@ class FormOrchestrator:
                 data["bien"]["caracteristiques"] = {
                     "superficie": bien.superficie,
                     "type_bien": bien.type_bien,
-                    "etage": bien.etage or "",
-                    "porte": bien.porte or "",
+                    "etage": bien.etage if bien.etage else None,
+                    "porte": bien.porte if bien.porte else None,
                     "dernier_etage": bien.dernier_etage,
                     "meuble": bien.meuble,
                 }
@@ -212,14 +212,14 @@ class FormOrchestrator:
             if bien.classe_dpe:
                 data["bien"]["performance_energetique"] = {
                     "classe_dpe": bien.classe_dpe,
-                    "depenses_energetiques": bien.depenses_energetiques or "",
+                    "depenses_energetiques": bien.depenses_energetiques if bien.depenses_energetiques else None,
                 }
 
             # Régime juridique
             if hasattr(bien, "regime_juridique"):
                 data["bien"]["regime"] = {
                     "regime_juridique": bien.regime_juridique or "monopropriete",
-                    "periode_construction": bien.periode_construction or "",
+                    "periode_construction": bien.periode_construction if bien.periode_construction else None,
                     "identifiant_fiscal": getattr(bien, "identifiant_fiscal", ""),
                 }
 
@@ -233,39 +233,56 @@ class FormOrchestrator:
             # Important: ne mettre les listes que si elles ont été définies (même vides)
             # Une liste vide [] signifie "pas d'équipements" (défini)
             # None signifie "non renseigné" (non défini)
-            if hasattr(bien, "annexes_privatives") and bien.annexes_privatives is not None:
+            if (
+                hasattr(bien, "annexes_privatives")
+                and bien.annexes_privatives is not None
+            ):
                 if "equipements" not in data["bien"]:
                     data["bien"]["equipements"] = {}
-                data["bien"]["equipements"]["annexes_privatives"] = bien.annexes_privatives
-            
-            if hasattr(bien, "annexes_collectives") and bien.annexes_collectives is not None:
+                data["bien"]["equipements"]["annexes_privatives"] = (
+                    bien.annexes_privatives
+                )
+
+            if (
+                hasattr(bien, "annexes_collectives")
+                and bien.annexes_collectives is not None
+            ):
                 if "equipements" not in data["bien"]:
                     data["bien"]["equipements"] = {}
-                data["bien"]["equipements"]["annexes_collectives"] = bien.annexes_collectives
-            
+                data["bien"]["equipements"]["annexes_collectives"] = (
+                    bien.annexes_collectives
+                )
+
             if hasattr(bien, "information") and bien.information is not None:
                 if "equipements" not in data["bien"]:
                     data["bien"]["equipements"] = {}
                 data["bien"]["equipements"]["information"] = bien.information
 
-            # Énergie
-            if hasattr(bien, "chauffage_type"):
-                data["bien"]["energie"]["chauffage"] = {
-                    "type": bien.chauffage_type or "",
-                    "energie": bien.chauffage_energie or "",
-                }
-            if hasattr(bien, "eau_chaude_type"):
-                data["bien"]["energie"]["eau_chaude"] = {
-                    "type": bien.eau_chaude_type or "",
-                    "energie": bien.eau_chaude_energie or "",
-                }
+            # Énergie - ne créer l'objet que si on a des valeurs
+            if hasattr(bien, "chauffage_type") and bien.chauffage_type:
+                chauffage_data = {"type": bien.chauffage_type}
+                if bien.chauffage_energie:
+                    chauffage_data["energie"] = bien.chauffage_energie
+                data["bien"]["energie"]["chauffage"] = chauffage_data
+
+            if hasattr(bien, "eau_chaude_type") and bien.eau_chaude_type:
+                eau_chaude_data = {"type": bien.eau_chaude_type}
+                if bien.eau_chaude_energie:
+                    eau_chaude_data["energie"] = bien.eau_chaude_energie
+                data["bien"]["energie"]["eau_chaude"] = eau_chaude_data
 
         # Données du bailleur
         if location.bien and location.bien.bailleurs.exists():
             bailleur = location.bien.bailleurs.first()
             if bailleur:
                 # Mapper "personne" vers "physique" pour cohérence avec le frontend
-                bailleur_type = "physique" if bailleur.personne else "morale" if bailleur.societe else None
+                bailleur_type = (
+                    "physique"
+                    if bailleur.personne
+                    else "morale"
+                    if bailleur.societe
+                    else None
+                )
                 data["bailleur"]["bailleur_type"] = bailleur_type
 
                 if bailleur_type == "physique" and bailleur.personne:
@@ -291,7 +308,7 @@ class FormOrchestrator:
                             "firstName": bailleur.signataire.firstName,
                             "email": bailleur.signataire.email or "",
                         }
-                
+
                 # Extraire les co-bailleurs (tous sauf le premier)
                 all_bailleurs = list(location.bien.bailleurs.all())
                 if len(all_bailleurs) > 1:
@@ -299,12 +316,14 @@ class FormOrchestrator:
                     co_bailleurs_list = []
                     for co_bailleur in all_bailleurs[1:]:
                         if co_bailleur.personne:
-                            co_bailleurs_list.append({
-                                "lastName": co_bailleur.personne.lastName,
-                                "firstName": co_bailleur.personne.firstName,
-                                "email": co_bailleur.personne.email or "",
-                                "adresse": co_bailleur.personne.adresse or "",
-                            })
+                            co_bailleurs_list.append(
+                                {
+                                    "lastName": co_bailleur.personne.lastName,
+                                    "firstName": co_bailleur.personne.firstName,
+                                    "email": co_bailleur.personne.email or "",
+                                    "adresse": co_bailleur.personne.adresse or "",
+                                }
+                            )
                     if co_bailleurs_list:
                         data["bailleur"]["co_bailleurs"] = co_bailleurs_list
                 else:
@@ -327,9 +346,13 @@ class FormOrchestrator:
         if rent_terms and (rent_terms.montant_loyer or rent_terms.montant_charges):
             data["modalites_financieres"] = {}
             if rent_terms.montant_loyer:
-                data["modalites_financieres"]["loyer_mensuel"] = float(rent_terms.montant_loyer)
+                data["modalites_financieres"]["loyer_hors_charges"] = float(
+                    rent_terms.montant_loyer
+                )
             if rent_terms.montant_charges:
-                data["modalites_financieres"]["charges_mensuelles"] = float(rent_terms.montant_charges)
+                data["modalites_financieres"]["charges_mensuelles"] = float(
+                    rent_terms.montant_charges
+                )
 
             # Zone tendue - modalités spécifiques
             if rent_terms.zone_tendue:

@@ -94,7 +94,7 @@ class BelgiumBailSerializer(serializers.Serializer):
 
         # Validation de la garantie locative (max 2 mois en Belgique)
         garantie = data.get("garantie_locative")
-        loyer = data.get("modalites_financieres", {}).get("loyer_mensuel")
+        loyer = data.get("modalites_financieres", {}).get("loyer_hors_charges")
 
         if garantie and loyer:
             if garantie > (loyer * 2):

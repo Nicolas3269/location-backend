@@ -139,13 +139,36 @@ class BailleurInfoSerializer(serializers.Serializer):
         choices=["physique", "morale"], default="physique"
     )
     # Si personne physique - utilise PersonneCompleteSerializer avec adresse obligatoire
-    personne = PersonneCompleteSerializer(required=False)
+    personne = PersonneCompleteSerializer(required=False, allow_null=True)
     # Si personne morale
-    societe = SocieteBaseSerializer(required=False)
+    societe = SocieteBaseSerializer(required=False, allow_null=True)
     # Signataire pour société - utilise SignataireSerializer sans adresse obligatoire
-    signataire = PersonneBaseSerializer(required=False)
+    signataire = PersonneBaseSerializer(required=False, allow_null=True)
     # Autres co-bailleurs
     co_bailleurs = serializers.ListField(child=PersonneBaseSerializer(), required=False)
+
+    def to_internal_value(self, data):
+        """Nettoyer les données avant la validation"""
+        # Récupérer le type de bailleur
+        bailleur_type = data.get("bailleur_type", "physique")
+        
+        # Créer une copie des données pour ne pas modifier l'original
+        cleaned_data = dict(data)
+        
+        # Nettoyer les champs non pertinents selon le type
+        if bailleur_type == "physique":
+            # Pour personne physique, supprimer les champs société
+            cleaned_data.pop("societe", None)
+            cleaned_data.pop("signataire", None)
+        elif bailleur_type == "morale":
+            # Pour personne morale, supprimer le champ personne s'il n'est pas utilisé comme signataire
+            if "personne" in cleaned_data and "signataire" not in cleaned_data:
+                # Conserver personne pour transformation en signataire
+                pass
+            elif "personne" in cleaned_data:
+                cleaned_data.pop("personne", None)
+        
+        return super().to_internal_value(cleaned_data)
 
     def validate(self, data):
         """Validation : soit personne, soit société requis"""
@@ -288,10 +311,11 @@ class BienRentPriceSerializer(serializers.Serializer):
 
 
 class BienQuittanceSerializer(serializers.Serializer):
-    """Serializer pour un bien dans une quittance (seulement adresse)"""
+    """Serializer pour un bien dans une quittance (avec les infos minimales)"""
 
     localisation = AdresseSerializer()
     caracteristiques = serializers.DictField(required=False)
+    regime = serializers.DictField(required=False)  # Pour garder regime_juridique et periode_construction
 
 
 class CaracteristiquesEtatLieuxSerializer(serializers.Serializer):

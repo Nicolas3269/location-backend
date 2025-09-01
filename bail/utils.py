@@ -72,65 +72,126 @@ def create_bien_from_form_data(form_data, save=True, source="bail"):
         "etat_lieux": BienEtatLieuxSerializer,
         "manual": BienBailSerializer,
     }
-    serializer_class = serializer_map.get(source, BienBailSerializer)
+
+    if source not in serializer_map:
+        raise ValueError(
+            f"Source '{source}' non reconnue. Sources valides: {list(serializer_map.keys())}"
+        )
+
+    serializer_class = serializer_map[source]
 
     # Si les données sont déjà au format composé, utiliser directement
     if "bien" in form_data and isinstance(form_data["bien"], dict):
         bien_data = form_data["bien"]
     else:
         # Sinon, transformer l'ancien format vers le nouveau format composé
-        bien_data = {
-            "localisation": {
-                "adresse": form_data.get("adresse", ""),
-                "latitude": form_data.get("latitude"),
-                "longitude": form_data.get("longitude"),
-            },
-            "caracteristiques": {
-                "superficie": form_data.get("superficie", 50),
-                "type_bien": form_data.get("typeLogement", "appartement"),
-                "meuble": form_data.get("meuble", False),
-                "etage": form_data.get("etage", ""),
-                "porte": form_data.get("porte", ""),
-                "dernier_etage": form_data.get("dernierEtage", False),
-                "pieces_info": form_data.get("pieces_info", {}),
-            },
-            "performance_energetique": {
-                "classe_dpe": form_data.get("dpeGrade", "NA"),
-                "depenses_energetiques": form_data.get("depensesDPE", ""),
-            },
-            "energie": {
-                "chauffage": {
-                    "type": form_data.get("chauffage", {}).get("type", "individuel"),
-                    "energie": form_data.get("chauffage", {}).get(
-                        "energie", "electricite"
-                    ),
-                },
-                "eau_chaude": {
-                    "type": form_data.get("eauChaude", {}).get("type", "individuel"),
-                    "energie": form_data.get("eauChaude", {}).get(
-                        "energie", "electricite"
-                    ),
-                },
-            },
-            "regime": {
-                "regime_juridique": form_data.get("regimeJuridique", "monopropriete"),
-                "periode_construction": form_data.get(
-                    "periodeConstruction", "avant 1946"
-                ),
-                "identifiant_fiscal": form_data.get("identificationFiscale", ""),
-            },
-            "equipements": {
-                "annexes_privatives": form_data.get("equipements", {}).get(
-                    "annexes_privatives", form_data.get("annexesPrivatives", [])
-                ),
-                "annexes_collectives": form_data.get("equipements", {}).get(
-                    "annexes_collectives", form_data.get("annexesCollectives", [])
-                ),
-                "information": form_data.get("equipements", {}).get(
-                    "information", form_data.get("information", [])
-                ),
-            },
-        }
+        bien_data = {}
+
+        # Localisation
+        localisation = {}
+        if "adresse" in form_data:
+            localisation["adresse"] = form_data["adresse"]
+        if "latitude" in form_data:
+            localisation["latitude"] = form_data["latitude"]
+        if "longitude" in form_data:
+            localisation["longitude"] = form_data["longitude"]
+        if localisation:
+            bien_data["localisation"] = localisation
+
+        # Caractéristiques
+        caracteristiques = {}
+        if "superficie" in form_data:
+            caracteristiques["superficie"] = form_data["superficie"]
+        if "typeLogement" in form_data:
+            caracteristiques["type_bien"] = form_data["typeLogement"]
+        if "meuble" in form_data:
+            caracteristiques["meuble"] = form_data["meuble"]
+        if "etage" in form_data:
+            caracteristiques["etage"] = form_data["etage"]
+        if "porte" in form_data:
+            caracteristiques["porte"] = form_data["porte"]
+        if "dernierEtage" in form_data:
+            caracteristiques["dernier_etage"] = form_data["dernierEtage"]
+        if "pieces_info" in form_data:
+            caracteristiques["pieces_info"] = form_data["pieces_info"]
+        if caracteristiques:
+            bien_data["caracteristiques"] = caracteristiques
+
+        # Performance énergétique
+        performance_energetique = {}
+        if "dpeGrade" in form_data:
+            performance_energetique["classe_dpe"] = form_data["dpeGrade"]
+        if "depensesDPE" in form_data:
+            performance_energetique["depenses_energetiques"] = form_data["depensesDPE"]
+        if performance_energetique:
+            bien_data["performance_energetique"] = performance_energetique
+
+        # Energie
+        energie = {}
+        if "chauffage" in form_data and form_data["chauffage"]:
+            chauffage = {}
+            if "type" in form_data["chauffage"]:
+                chauffage["type"] = form_data["chauffage"]["type"]
+            if "energie" in form_data["chauffage"]:
+                chauffage["energie"] = form_data["chauffage"]["energie"]
+            if chauffage:
+                energie["chauffage"] = chauffage
+
+        if "eauChaude" in form_data and form_data["eauChaude"]:
+            eau_chaude = {}
+            if "type" in form_data["eauChaude"]:
+                eau_chaude["type"] = form_data["eauChaude"]["type"]
+            if "energie" in form_data["eauChaude"]:
+                eau_chaude["energie"] = form_data["eauChaude"]["energie"]
+            if eau_chaude:
+                energie["eau_chaude"] = eau_chaude
+        if energie:
+            bien_data["energie"] = energie
+
+        # Régime
+        regime = {}
+        if "regimeJuridique" in form_data:
+            regime["regime_juridique"] = form_data["regimeJuridique"]
+        if "periodeConstruction" in form_data:
+            regime["periode_construction"] = form_data["periodeConstruction"]
+        if "identificationFiscale" in form_data:
+            regime["identifiant_fiscal"] = form_data["identificationFiscale"]
+        if regime:
+            bien_data["regime"] = regime
+
+        # Equipements
+        equipements = {}
+
+        # Gérer les annexes privatives
+        if (
+            "equipements" in form_data
+            and "annexes_privatives" in form_data["equipements"]
+        ):
+            equipements["annexes_privatives"] = form_data["equipements"][
+                "annexes_privatives"
+            ]
+        elif "annexesPrivatives" in form_data:
+            equipements["annexes_privatives"] = form_data["annexesPrivatives"]
+
+        # Gérer les annexes collectives
+        if (
+            "equipements" in form_data
+            and "annexes_collectives" in form_data["equipements"]
+        ):
+            equipements["annexes_collectives"] = form_data["equipements"][
+                "annexes_collectives"
+            ]
+        elif "annexesCollectives" in form_data:
+            equipements["annexes_collectives"] = form_data["annexesCollectives"]
+
+        # Gérer les informations
+        if "equipements" in form_data and "information" in form_data["equipements"]:
+            equipements["information"] = form_data["equipements"]["information"]
+        elif "information" in form_data:
+            equipements["information"] = form_data["information"]
+
+        if equipements:
+            bien_data["equipements"] = equipements
 
     # Valider avec le serializer approprié
     serializer = serializer_class(data=bien_data)
@@ -152,45 +213,40 @@ def create_bien_from_form_data(form_data, save=True, source="bail"):
     # Caractéristiques (optionnel pour quittance)
     if "caracteristiques" in validated:
         caracteristiques = validated["caracteristiques"]
-        bien_fields.update({
-            "superficie": caracteristiques.get("superficie"),
-            "type_bien": caracteristiques.get("type_bien", "appartement"),
-            "meuble": caracteristiques.get("meuble", False),
-            "etage": caracteristiques.get("etage", ""),
-            "porte": caracteristiques.get("porte", ""),
-            "dernier_etage": caracteristiques.get("dernier_etage", False),
-            "pieces_info": caracteristiques.get("pieces_info", {}),
-        })
-    else:
-        # Valeurs par défaut si pas de caractéristiques (cas quittance)
-        bien_fields.update({
-            "type_bien": "appartement",
-            "meuble": False,
-            "dernier_etage": False,
-            "pieces_info": {},
-        })
+        bien_fields.update(
+            {
+                "superficie": caracteristiques.get("superficie"),
+                "type_bien": caracteristiques.get("type_bien"),
+                "meuble": caracteristiques.get("meuble"),
+                "etage": caracteristiques.get("etage"),
+                "porte": caracteristiques.get("porte"),
+                "dernier_etage": caracteristiques.get("dernier_etage"),
+                "pieces_info": caracteristiques.get("pieces_info"),
+            }
+        )
+    # Pas de else - ne pas ajouter de valeurs par défaut
 
     # Ajouter les champs optionnels s'ils existent
     if "performance_energetique" in validated:
         bien_fields["classe_dpe"] = validated["performance_energetique"]["classe_dpe"]
         bien_fields["depenses_energetiques"] = validated["performance_energetique"].get(
-            "depenses_energetiques", ""
+            "depenses_energetiques"
         )
 
     if "energie" in validated:
         if "chauffage" in validated["energie"]:
             bien_fields["chauffage_type"] = validated["energie"]["chauffage"].get(
-                "type", "individuel"
+                "type"
             )
             bien_fields["chauffage_energie"] = validated["energie"]["chauffage"].get(
-                "energie", "electricite"
+                "energie"
             )
         if "eau_chaude" in validated["energie"]:
             bien_fields["eau_chaude_type"] = validated["energie"]["eau_chaude"].get(
-                "type", "individuel"
+                "type"
             )
             bien_fields["eau_chaude_energie"] = validated["energie"]["eau_chaude"].get(
-                "energie", "electricite"
+                "energie"
             )
 
     if "regime" in validated:
@@ -199,17 +255,21 @@ def create_bien_from_form_data(form_data, save=True, source="bail"):
             "periode_construction"
         )
         bien_fields["identifiant_fiscal"] = validated["regime"].get(
-            "identifiant_fiscal", ""
+            "identifiant_fiscal"
         )
 
     if "equipements" in validated:
-        bien_fields["annexes_privatives"] = validated["equipements"].get(
-            "annexes_privatives", []
-        )
-        bien_fields["annexes_collectives"] = validated["equipements"].get(
-            "annexes_collectives", []
-        )
-        bien_fields["information"] = validated["equipements"].get("information", [])
+        # Ne pas defaulter à [], garder None si non défini
+        if "annexes_privatives" in validated["equipements"]:
+            bien_fields["annexes_privatives"] = validated["equipements"][
+                "annexes_privatives"
+            ]
+        if "annexes_collectives" in validated["equipements"]:
+            bien_fields["annexes_collectives"] = validated["equipements"][
+                "annexes_collectives"
+            ]
+        if "information" in validated["equipements"]:
+            bien_fields["information"] = validated["equipements"]["information"]
 
     # Enlever les valeurs None pour éviter les erreurs
     bien_fields = {k: v for k, v in bien_fields.items() if v is not None}

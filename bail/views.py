@@ -359,13 +359,14 @@ def get_rent_prices(request):
     selon les caractéristiques minimales du bien
     """
     try:
-        from location.models import Bien
         from location.serializers_composed import BienRentPriceSerializer
         
         data = request.data
 
         # Utiliser le serializer minimal pour valider et extraire les données
-        bien_data = data.get("bien", {})
+        if "bien" not in data:
+            return JsonResponse({"error": "Données du bien requises"}, status=400)
+        bien_data = data["bien"]
         serializer = BienRentPriceSerializer(data=bien_data)
         
         if not serializer.is_valid():
@@ -377,11 +378,8 @@ def get_rent_prices(request):
         if not area_id:
             return JsonResponse({"error": "Area ID requis"}, status=400)
         
-        # Créer un objet Bien minimal (non sauvegardé) avec seulement les champs requis
-        bien = Bien()
-        bien.type_bien = validated.get('type_bien', 'appartement')
-        bien.pieces_info = validated.get('pieces_info', {})
-        bien.periode_construction = validated.get('periode_construction', '')
+        # Utiliser le serializer pour créer l'instance Bien
+        bien = serializer.create_bien_instance(validated)
 
         try:
             rent_price = get_rent_price_for_bien(bien, area_id)
@@ -453,33 +451,49 @@ def get_company_data(request):
             )
 
         etablissement = data["etablissement"]
-        unite_legale = etablissement.get("uniteLegale", {})
-        adresse_etablissement = etablissement.get("adresseEtablissement", {})
+        unite_legale = etablissement.get("uniteLegale") or {}
+        adresse_etablissement = etablissement.get("adresseEtablissement") or {}
 
         # Construire la réponse avec les données formatées
-        company_data = {
-            "raison_sociale": (
-                unite_legale.get("denominationUniteLegale")
-                or (
-                    f"{unite_legale.get('prenom1UniteLegale', '')} "
-                    f"{unite_legale.get('nomUniteLegale', '')}"
-                ).strip()
-                or None
-            ),
-            "forme_juridique": FORMES_JURIDIQUES.get(
-                unite_legale.get("categorieJuridiqueUniteLegale"),
-                unite_legale.get("categorieJuridiqueUniteLegale"),
-            ),
-            "adresse": {
-                "numero": adresse_etablissement.get("numeroVoieEtablissement", ""),
-                "voie": (
-                    f"{adresse_etablissement.get('typeVoieEtablissement', '')} "
-                    f"{adresse_etablissement.get('libelleVoieEtablissement', '')}"
-                ).strip(),
-                "code_postal": adresse_etablissement.get("codePostalEtablissement", ""),
-                "ville": adresse_etablissement.get("libelleCommuneEtablissement", ""),
-            },
-        }
+        company_data = {}
+        
+        # Raison sociale
+        denomination = unite_legale.get("denominationUniteLegale")
+        if denomination:
+            company_data["raison_sociale"] = denomination
+        else:
+            prenom = unite_legale.get("prenom1UniteLegale")
+            nom = unite_legale.get("nomUniteLegale")
+            if prenom and nom:
+                company_data["raison_sociale"] = f"{prenom} {nom}"
+            elif nom:
+                company_data["raison_sociale"] = nom
+        
+        # Forme juridique
+        categorie = unite_legale.get("categorieJuridiqueUniteLegale")
+        if categorie:
+            company_data["forme_juridique"] = FORMES_JURIDIQUES.get(categorie, categorie)
+        
+        # Adresse
+        adresse = {}
+        if "numeroVoieEtablissement" in adresse_etablissement:
+            adresse["numero"] = adresse_etablissement["numeroVoieEtablissement"]
+        
+        voie_parts = []
+        if "typeVoieEtablissement" in adresse_etablissement:
+            voie_parts.append(adresse_etablissement["typeVoieEtablissement"])
+        if "libelleVoieEtablissement" in adresse_etablissement:
+            voie_parts.append(adresse_etablissement["libelleVoieEtablissement"])
+        if voie_parts:
+            adresse["voie"] = " ".join(voie_parts)
+            
+        if "codePostalEtablissement" in adresse_etablissement:
+            adresse["code_postal"] = adresse_etablissement["codePostalEtablissement"]
+        if "libelleCommuneEtablissement" in adresse_etablissement:
+            adresse["ville"] = adresse_etablissement["libelleCommuneEtablissement"]
+            
+        if adresse:
+            company_data["adresse"] = adresse
 
         return JsonResponse(company_data)
 

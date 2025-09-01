@@ -131,17 +131,25 @@ class FormOrchestrator:
         return self._field_has_value(step_id, existing_data)
 
     def _field_has_value(self, field_path: str, data: Dict) -> bool:
-        """Vérifie si un champ a une valeur non vide dans les données."""
+        """
+        Vérifie si un champ a une valeur dans les données.
+        
+        IMPORTANT: 
+        - None ou champ manquant = pas de valeur (step à afficher)
+        - [], {}, "" = valeur explicitement vide (step à NE PAS afficher)
+        """
         parts = field_path.split(".")
         current = data
 
         for part in parts:
             if isinstance(current, dict) and part in current:
                 current = current[part]
-                # Considérer None, "", [], {} comme vides
-                if current is None or current == "" or current == [] or current == {}:
+                # Seul None est considéré comme "pas de valeur"
+                # [], {}, "" sont des valeurs explicites (vides mais définies)
+                if current is None:
                     return False
             else:
+                # Champ manquant = pas de valeur
                 return False
 
         return True
@@ -163,9 +171,11 @@ class FormOrchestrator:
             },
             "bailleur": {},
             "locataires": [],
-            "modalites_financieres": {},
-            "dates": {},
-            "modalites_zone_tendue": {},
+            # Ne pas initialiser ces champs avec {}, les laisser non définis
+            # jusqu'à ce qu'on ait vraiment des données
+            # "modalites_financieres": {},
+            # "dates": {},
+            # "modalites_zone_tendue": {},
         }
 
         # RentTerms pour les données financières
@@ -219,7 +229,26 @@ class FormOrchestrator:
                     rent_terms.zone_tendue
                 )
 
-            # Équipements et énergie
+            # Équipements
+            # Important: ne mettre les listes que si elles ont été définies (même vides)
+            # Une liste vide [] signifie "pas d'équipements" (défini)
+            # None signifie "non renseigné" (non défini)
+            if hasattr(bien, "annexes_privatives") and bien.annexes_privatives is not None:
+                if "equipements" not in data["bien"]:
+                    data["bien"]["equipements"] = {}
+                data["bien"]["equipements"]["annexes_privatives"] = bien.annexes_privatives
+            
+            if hasattr(bien, "annexes_collectives") and bien.annexes_collectives is not None:
+                if "equipements" not in data["bien"]:
+                    data["bien"]["equipements"] = {}
+                data["bien"]["equipements"]["annexes_collectives"] = bien.annexes_collectives
+            
+            if hasattr(bien, "information") and bien.information is not None:
+                if "equipements" not in data["bien"]:
+                    data["bien"]["equipements"] = {}
+                data["bien"]["equipements"]["information"] = bien.information
+
+            # Énergie
             if hasattr(bien, "chauffage_type"):
                 data["bien"]["energie"]["chauffage"] = {
                     "type": bien.chauffage_type or "",
@@ -235,9 +264,11 @@ class FormOrchestrator:
         if location.bien and location.bien.bailleurs.exists():
             bailleur = location.bien.bailleurs.first()
             if bailleur:
-                data["bailleur"]["bailleur_type"] = bailleur.bailleur_type
+                # Mapper "personne" vers "physique" pour cohérence avec le frontend
+                bailleur_type = "physique" if bailleur.personne else "morale" if bailleur.societe else None
+                data["bailleur"]["bailleur_type"] = bailleur_type
 
-                if bailleur.bailleur_type == "physique" and bailleur.personne:
+                if bailleur_type == "physique" and bailleur.personne:
                     personne = bailleur.personne
                     data["bailleur"]["personne"] = {
                         "lastName": personne.lastName,
@@ -245,7 +276,7 @@ class FormOrchestrator:
                         "email": personne.email or "",
                         "adresse": personne.adresse or "",
                     }
-                elif bailleur.bailleur_type == "morale" and bailleur.societe:
+                elif bailleur_type == "morale" and bailleur.societe:
                     societe = bailleur.societe
                     data["bailleur"]["societe"] = {
                         "raison_sociale": societe.raison_sociale,
@@ -260,6 +291,25 @@ class FormOrchestrator:
                             "firstName": bailleur.signataire.firstName,
                             "email": bailleur.signataire.email or "",
                         }
+                
+                # Extraire les co-bailleurs (tous sauf le premier)
+                all_bailleurs = list(location.bien.bailleurs.all())
+                if len(all_bailleurs) > 1:
+                    # Il y a des co-bailleurs
+                    co_bailleurs_list = []
+                    for co_bailleur in all_bailleurs[1:]:
+                        if co_bailleur.personne:
+                            co_bailleurs_list.append({
+                                "lastName": co_bailleur.personne.lastName,
+                                "firstName": co_bailleur.personne.firstName,
+                                "email": co_bailleur.personne.email or "",
+                                "adresse": co_bailleur.personne.adresse or "",
+                            })
+                    if co_bailleurs_list:
+                        data["bailleur"]["co_bailleurs"] = co_bailleurs_list
+                else:
+                    # Explicitement mettre une liste vide si pas de co-bailleurs
+                    data["bailleur"]["co_bailleurs"] = []
 
         # Locataires
         if location.locataires.exists():
@@ -273,16 +323,13 @@ class FormOrchestrator:
             ]
             data["solidaires"] = location.solidaires
 
-        # Modalités financières
-        if rent_terms:
-            data["modalites_financieres"] = {
-                "loyer_mensuel": float(rent_terms.montant_loyer)
-                if rent_terms.montant_loyer
-                else None,
-                "charges_mensuelles": float(rent_terms.montant_charges)
-                if rent_terms.montant_charges
-                else None,
-            }
+        # Modalités financières - seulement si on a des valeurs
+        if rent_terms and (rent_terms.montant_loyer or rent_terms.montant_charges):
+            data["modalites_financieres"] = {}
+            if rent_terms.montant_loyer:
+                data["modalites_financieres"]["loyer_mensuel"] = float(rent_terms.montant_loyer)
+            if rent_terms.montant_charges:
+                data["modalites_financieres"]["charges_mensuelles"] = float(rent_terms.montant_charges)
 
             # Zone tendue - modalités spécifiques
             if rent_terms.zone_tendue:
@@ -302,10 +349,12 @@ class FormOrchestrator:
                         else None
                     )
 
-        # Dates
-        if location.date_debut:
-            data["dates"]["date_debut"] = location.date_debut.isoformat()
-        if location.date_fin:
-            data["dates"]["date_fin"] = location.date_fin.isoformat()
+        # Dates - créer le dict seulement si on a des dates
+        if location.date_debut or location.date_fin:
+            data["dates"] = {}
+            if location.date_debut:
+                data["dates"]["date_debut"] = location.date_debut.isoformat()
+            if location.date_fin:
+                data["dates"]["date_fin"] = location.date_fin.isoformat()
 
         return data

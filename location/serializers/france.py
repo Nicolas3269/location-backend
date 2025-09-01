@@ -24,6 +24,9 @@ class FranceBailSerializer(serializers.Serializer):
     Définit les champs obligatoires et conditionnels selon la réglementation française.
     """
 
+    # Champ pour tracer l'origine du document
+    source = serializers.CharField(default="bail", read_only=True)
+
     # Champs toujours obligatoires
     bien = BienBailSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
@@ -148,65 +151,14 @@ class FranceBailSerializer(serializers.Serializer):
             },
         }
 
-    def validate(self, data):
-        """
-        Validation conditionnelle pour la France.
-        """
-        # Si zone tendue, les modalités zone tendue deviennent obligatoires
-        zone_tendue = (
-            data.get("bien", {}).get("zone_reglementaire", {}).get("zone_tendue", False)
-        )
-
-        if zone_tendue:
-            if not data.get("modalites_zone_tendue"):
-                raise serializers.ValidationError(
-                    {
-                        "modalites_zone_tendue": "Les informations de zone tendue sont obligatoires en zone réglementée"
-                    }
-                )
-
-            # Valider les champs conditionnels dans modalites_zone_tendue
-            modalites_zt = data.get("modalites_zone_tendue", {})
-
-            # Si ce n'est pas la première mise en location
-            if modalites_zt.get("premiere_mise_en_location") is False:
-                # Vérifier si un locataire dans les 18 derniers mois
-                if modalites_zt.get("locataire_derniers_18_mois") is None:
-                    raise serializers.ValidationError(
-                        {
-                            "modalites_zone_tendue.locataire_derniers_18_mois": "Cette information est requise si ce n'est pas la première mise en location"
-                        }
-                    )
-
-                # Si oui, le dernier montant du loyer est requis
-                if modalites_zt.get("locataire_derniers_18_mois") is True:
-                    if not modalites_zt.get("dernier_montant_loyer"):
-                        raise serializers.ValidationError(
-                            {
-                                "modalites_zone_tendue.dernier_montant_loyer": "Le dernier montant du loyer est requis s'il y a eu un locataire dans les 18 derniers mois"
-                            }
-                        )
-
-        # Validation des dates
-        dates = data.get("dates", {})
-        if dates.get("date_fin") and dates.get("date_debut"):
-            if dates["date_fin"] <= dates["date_debut"]:
-                raise serializers.ValidationError(
-                    {"dates": "La date de fin doit être après la date de début"}
-                )
-
-        # Validation de solidarité si plusieurs locataires
-        if len(data.get("locataires", [])) > 1 and "solidaires" not in data:
-            # En France, par défaut les colocataires sont solidaires
-            data["solidaires"] = True
-
-        return data
-
 
 class FranceQuittanceSerializer(serializers.Serializer):
     """
     Serializer pour une quittance en France.
     """
+
+    # Champ pour tracer l'origine du document
+    source = serializers.CharField(default="quittance", read_only=True)
 
     # Champs obligatoires pour une quittance
     bien = BienQuittanceSerializer(required=True)  # Juste l'adresse
@@ -293,6 +245,9 @@ class FranceEtatLieuxSerializer(serializers.Serializer):
     """
     Serializer pour un état des lieux en France.
     """
+
+    # Champ pour tracer l'origine du document
+    source = serializers.CharField(default="etat_lieux", read_only=True)
 
     # Champs obligatoires
     bien = BienEtatLieuxSerializer(required=True)

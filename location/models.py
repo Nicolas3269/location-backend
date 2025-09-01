@@ -254,17 +254,18 @@ class Bien(models.Model):
     regime_juridique = models.CharField(
         max_length=20,
         choices=RegimeJuridique.choices,
-        default=RegimeJuridique.MONOPROPRIETE,
+        null=True, blank=True,
         verbose_name="Régime juridique",
     )
 
     type_bien = models.CharField(
-        max_length=20, choices=PropertyType.choices, verbose_name="Type de bien"
+        max_length=20, choices=PropertyType.choices, verbose_name="Type de bien",
+        null=True, blank=True
     )
     etage = models.CharField(max_length=10, blank=True)
     porte = models.CharField(max_length=10, blank=True)
     # To do : le mettre a terme pour les assurances
-    dernier_etage = models.BooleanField(default=False)
+    dernier_etage = models.BooleanField(null=True, blank=True)
 
     periode_construction = models.CharField(
         max_length=20,
@@ -274,21 +275,22 @@ class Bien(models.Model):
         verbose_name="Période de construction",
     )
 
-    superficie = models.DecimalField(max_digits=8, decimal_places=2, help_text="En m²")
+    superficie = models.DecimalField(max_digits=8, decimal_places=2, help_text="En m²",
+                                     null=True, blank=True)
 
-    meuble = models.BooleanField(default=False, verbose_name="Meublé")
+    meuble = models.BooleanField(null=True, blank=True, verbose_name="Meublé")
 
     # Informations DPE (Diagnostic de Performance Énergétique)
     classe_dpe = models.CharField(
         max_length=2,
         choices=DPEClass.choices,
-        default=DPEClass.NA,
+        null=True, blank=True,
         verbose_name="Classe énergétique DPE",
     )
     depenses_energetiques = models.CharField(
         max_length=400,
         blank=True,
-        default="non renseigné",
+        null=True,
         verbose_name="Dépenses énergétiques théoriques (€/an)",
     )
     # date_dpe = models.DateField(
@@ -300,13 +302,13 @@ class Bien(models.Model):
     # additionnal_description = models.TextField(blank=True)
 
     # Annexes séparées (stockage JSON pour compatibilité frontend)
-    annexes_privatives = models.JSONField(default=list, blank=True)
-    annexes_collectives = models.JSONField(default=list, blank=True)
-    information = models.JSONField(default=list, blank=True)
+    annexes_privatives = models.JSONField(null=True, blank=True)
+    annexes_collectives = models.JSONField(null=True, blank=True)
+    information = models.JSONField(null=True, blank=True)
 
     # Détail des pièces (stockage JSON pour compatibilité frontend)
     pieces_info = models.JSONField(
-        default=dict,
+        null=True,
         blank=True,
         help_text="Détail des pièces: chambres, sallesDeBain, cuisines, etc.",
     )

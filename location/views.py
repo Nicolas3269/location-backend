@@ -33,7 +33,9 @@ def create_or_get_bailleur(data):
     from location.serializers_composed import BailleurInfoSerializer
 
     # Extraire les données du bailleur depuis le format composé
-    bailleur_data = data.get("bailleur", {})
+    if "bailleur" not in data:
+        raise ValueError("Données du bailleur requises")
+    bailleur_data = data["bailleur"]
 
     # Valider avec le serializer
     serializer = BailleurInfoSerializer(data=bailleur_data)
@@ -41,7 +43,9 @@ def create_or_get_bailleur(data):
         raise ValueError(f"Données bailleur invalides: {serializer.errors}")
 
     validated = serializer.validated_data
-    bailleur_type = validated.get("bailleur_type", "physique")
+    bailleur_type = validated.get("bailleur_type")
+    if not bailleur_type:
+        raise ValueError("Type de bailleur requis")
 
     if bailleur_type == "morale":
         # Créer la société depuis les données validées
@@ -51,18 +55,18 @@ def create_or_get_bailleur(data):
             forme_juridique=societe_data["forme_juridique"],
             siret=societe_data["siret"],
             adresse=societe_data["adresse"],
-            email=societe_data.get("email", ""),
+            email=societe_data.get("email") or "",
         )
 
         # Créer le signataire depuis les données validées
         # Pour une société, le signataire est dans "signataire" (transformé par le serializer)
-        signataire_data = validated.get("signataire", {})
+        signataire_data = validated.get("signataire")
         if signataire_data:
             personne_signataire = Personne.objects.create(
                 lastName=signataire_data["lastName"],
                 firstName=signataire_data["firstName"],
                 email=signataire_data["email"],
-                adresse=signataire_data.get("adresse", ""),
+                adresse=signataire_data.get("adresse") or "",
             )
         else:
             raise ValueError("Données du signataire manquantes pour le bailleur moral")
@@ -79,7 +83,7 @@ def create_or_get_bailleur(data):
             firstName=personne_data["firstName"],
             email=personne_data["email"],
             adresse=personne_data["adresse"],
-            iban=personne_data.get("iban", ""),
+            iban=personne_data.get("iban") or "",
         )
 
         bailleur = Bailleur.objects.create(
@@ -91,13 +95,13 @@ def create_or_get_bailleur(data):
 
     # Créer les co-bailleurs si présents
     autres_bailleurs = []
-    co_bailleurs_data = validated.get("co_bailleurs", [])
+    co_bailleurs_data = validated.get("co_bailleurs") or []
     for co_bailleur_data in co_bailleurs_data:
         personne_autre = Personne.objects.create(
             lastName=co_bailleur_data["lastName"],
             firstName=co_bailleur_data["firstName"],
             email=co_bailleur_data["email"],
-            adresse=co_bailleur_data.get("adresse", ""),
+            adresse=co_bailleur_data.get("adresse") or "",
         )
 
         autre_bailleur = Bailleur.objects.create(
@@ -116,7 +120,7 @@ def create_locataires(data):
     """
     from location.serializers_composed import LocataireInfoSerializer
 
-    locataires_data = data.get("locataires", [])
+    locataires_data = data.get("locataires") or []
     locataires = []
 
     for loc_data in locataires_data:
@@ -130,9 +134,9 @@ def create_locataires(data):
             lastName=validated["lastName"],
             firstName=validated["firstName"],
             email=validated["email"],
-            adresse=validated.get("adresse", ""),
+            adresse=validated.get("adresse") or "",
             date_naissance=validated.get("date_naissance"),
-            profession=validated.get("profession", ""),
+            profession=validated.get("profession") or "",
             revenu_mensuel=validated.get("revenus_mensuels"),
         )
 
@@ -149,7 +153,7 @@ def create_garants(data):
     """
     from location.serializers_composed import PersonneBaseSerializer
 
-    garants_data = data.get("garants", [])
+    garants_data = data.get("garants") or []
     garants = []
 
     for garant_data in garants_data:
@@ -162,9 +166,9 @@ def create_garants(data):
             lastName=validated["lastName"],
             firstName=validated["firstName"],
             email=validated["email"],
-            adresse=validated.get("adresse", ""),
+            adresse=validated.get("adresse") or "",
             date_naissance=validated.get("date_naissance"),
-            telephone=validated.get("telephone", ""),
+            telephone=validated.get("telephone") or "",
         )
         garants.append(garant)
 
@@ -181,11 +185,11 @@ def create_or_update_rent_terms(location, data):
     )
 
     # Extraire les modalités financières (format composé uniquement)
-    modalites_financieres = data.get("modalites_financieres", {})
-    modalites_zone_tendue = data.get("modalites_zone_tendue", {})
+    modalites_financieres = data.get("modalites_financieres") or {}
+    modalites_zone_tendue = data.get("modalites_zone_tendue") or {}
 
     # Pour état des lieux et quittance, les modalités peuvent être incomplètes
-    source = data.get("source", "manual")
+    source = data.get("source") or "manual"
 
     # Si pas de loyer défini et qu'on est pas dans un bail, ne pas créer de RentTerms
     if source in ["etat_lieux", "quittance"] and not modalites_financieres.get(
@@ -219,8 +223,8 @@ def create_or_update_rent_terms(location, data):
 
     # Préparer les données pour RentTerms
     # Extraire zone_reglementaire du bien si présent
-    bien_data = data.get("bien", {})
-    zone_reglementaire = bien_data.get("zone_reglementaire", {})
+    bien_data = data.get("bien") or {}
+    zone_reglementaire = bien_data.get("zone_reglementaire") or {}
 
     form_data = {
         "montant_loyer": modalites_financieres.get("loyer_hors_charges"),
@@ -228,9 +232,9 @@ def create_or_update_rent_terms(location, data):
         "type_charges": modalites_financieres.get("type_charges"),
         "depot_garantie": modalites_financieres.get("depot_garantie"),
         "jour_paiement": modalites_financieres.get("jour_paiement"),
-        "zone_tendue": zone_reglementaire.get("zone_tendue", False),
-        "permis_de_louer": zone_reglementaire.get("permis_de_louer", False),
-        "rent_price_id": bien_data.get("localisation", {}).get("area_id"),
+        "zone_tendue": zone_reglementaire.get("zone_tendue") if "zone_tendue" in zone_reglementaire else False,
+        "permis_de_louer": zone_reglementaire.get("permis_de_louer") if "permis_de_louer" in zone_reglementaire else False,
+        "rent_price_id": bien_data.get("localisation", {}).get("area_id") if "localisation" in bien_data else None,
         # Nouveaux champs pour zone tendue
         "premiere_mise_en_location": modalites_zone_tendue.get(
             "premiere_mise_en_location"
@@ -288,8 +292,10 @@ def create_or_update_rent_terms(location, data):
         # Créer un nouveau RentTerms si au moins une valeur est fournie
         if any(v is not None and v != "" for v in form_data.values()):
             # Définir les valeurs par défaut pour les champs booléens
-            form_data["zone_tendue"] = form_data.get("zone_tendue", False)
-            form_data["permis_de_louer"] = form_data.get("permis_de_louer", False)
+            if "zone_tendue" not in form_data:
+                form_data["zone_tendue"] = False
+            if "permis_de_louer" not in form_data:
+                form_data["permis_de_louer"] = False
             form_data["justificatif_complement_loyer"] = form_data.get(
                 "justificatif_complement_loyer", ""
             )
@@ -309,7 +315,7 @@ def create_new_location(data):
     Crée une nouvelle location complète avec toutes les entités associées.
     """
     # 1. Créer le bien (peut être partiel selon la source)
-    source = data.get("source", "manual")
+    source = data.get("source") or "manual"
     bien = create_bien_from_form_data(data, save=True, source=source)
     logger.info(f"Bien créé: {bien.id}")
 
@@ -325,15 +331,15 @@ def create_new_location(data):
     locataires = create_locataires(data)
 
     # 4. Créer la Location (entité pivot)
-    source = data.get("source", "manual")
+    source = data.get("source") or "manual"
     # Récupérer les dates depuis dates.date_debut/date_fin
-    dates_data = data.get("dates", {})
+    dates_data = data.get("dates") or {}
     location = Location.objects.create(
         bien=bien,
         created_from=source,
         date_debut=dates_data.get("date_debut"),
         date_fin=dates_data.get("date_fin"),
-        solidaires=data.get("solidaires", False),
+        solidaires=data.get("solidaires") if "solidaires" in data else False,
     )
 
     # Associer les locataires à la location
@@ -355,7 +361,7 @@ def update_existing_location(location, data):
     bien = location.bien
 
     # Créer un objet Bien temporaire avec les données du formulaire
-    source = data.get("source", "manual")
+    source = data.get("source") or "manual"
     bien_from_form = create_bien_from_form_data(data, save=False, source=source)
 
     # Liste des champs à mettre à jour automatiquement
@@ -421,7 +427,7 @@ def update_existing_location(location, data):
     # Mettre à jour ou créer les conditions financières si elles sont fournies
     create_or_update_rent_terms(location, data)
 
-    source = data.get("source", "manual")
+    source = data.get("source") or "manual"
     logger.info(f"Location {location.id} utilisée pour {source}")
 
     return location, bien
@@ -439,7 +445,7 @@ def create_or_update_location(request):
     """
     try:
         # 1. Déterminer le type de document et choisir le serializer approprié
-        source = request.data.get("source", "manual")
+        source = request.data.get("source") or "manual"
 
         serializer_map = {
             "bail": CreateBailSerializer,
@@ -448,7 +454,9 @@ def create_or_update_location(request):
             "manual": CreateLocationComposedSerializer,
         }
 
-        serializer_class = serializer_map.get(source, CreateLocationComposedSerializer)
+        if source not in serializer_map:
+            source = "manual"  # Fallback à manual si source non reconnue
+        serializer_class = serializer_map[source]
         serializer = serializer_class(data=request.data)
 
         if not serializer.is_valid():
@@ -464,7 +472,7 @@ def create_or_update_location(request):
 
         # 2. Utiliser les données validées
         validated_data = serializer.validated_data
-        source = validated_data.get("source", "manual")
+        source = validated_data.get("source") or "manual"
 
         # 3. Vérifier si on met à jour une location existante
         location_id = validated_data.get("location_id")
@@ -678,7 +686,7 @@ def _update_location(location, data):
         location.save()
 
         # Mettre à jour les conditions financières si elles existent
-        modalites = data.get("modalites", {})
+        modalites = data.get("modalites") or {}
         if modalites and hasattr(location, "rent_terms"):
             rent_terms = location.rent_terms
             if "prix" in modalites:

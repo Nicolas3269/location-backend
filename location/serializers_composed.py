@@ -53,14 +53,12 @@ class EquipementsSerializer(serializers.Serializer):
     """Équipements et annexes du bien"""
 
     annexes_privatives = serializers.ListField(
-        child=serializers.CharField(), required=False, default=list
+        child=serializers.CharField(), required=False
     )
     annexes_collectives = serializers.ListField(
-        child=serializers.CharField(), required=False, default=list
+        child=serializers.CharField(), required=False
     )
-    information = serializers.ListField(
-        child=serializers.CharField(), required=False, default=list
-    )
+    information = serializers.ListField(child=serializers.CharField(), required=False)
 
 
 class SystemeEnergieSerializer(serializers.Serializer):
@@ -84,7 +82,7 @@ class RegimeJuridiqueSerializer(serializers.Serializer):
         choices=["monopropriete", "copropriete"], required=True
     )
     identifiant_fiscal = serializers.CharField(required=False, allow_blank=True)
-    periode_construction = serializers.CharField(required=True)
+    periode_construction = serializers.CharField(required=False, allow_blank=True)
 
 
 class ZoneReglementaireSerializer(serializers.Serializer):
@@ -147,9 +145,7 @@ class BailleurInfoSerializer(serializers.Serializer):
     # Signataire pour société - utilise SignataireSerializer sans adresse obligatoire
     signataire = PersonneBaseSerializer(required=False)
     # Autres co-bailleurs
-    co_bailleurs = serializers.ListField(
-        child=PersonneBaseSerializer(), required=False, default=list
-    )
+    co_bailleurs = serializers.ListField(child=PersonneBaseSerializer(), required=False)
 
     def validate(self, data):
         """Validation : soit personne, soit société requis"""
@@ -256,12 +252,39 @@ class BienRentPriceSerializer(serializers.Serializer):
         caracteristiques = data.get("caracteristiques", {})
         regime = data.get("regime", {})
 
-        return {
-            "area_id": localisation_data.get("area_id"),
-            "type_bien": caracteristiques.get("type_bien", "appartement"),
-            "pieces_info": caracteristiques.get("pieces_info", {}),
-            "periode_construction": regime.get("periode_construction", ""),
-        }
+        result = {}
+
+        # Ajouter seulement les champs présents
+        if "area_id" in localisation_data:
+            result["area_id"] = localisation_data["area_id"]
+        if "type_bien" in caracteristiques:
+            result["type_bien"] = caracteristiques["type_bien"]
+        if "pieces_info" in caracteristiques:
+            result["pieces_info"] = caracteristiques["pieces_info"]
+        if "periode_construction" in regime:
+            result["periode_construction"] = regime["periode_construction"]
+        if "meuble" in caracteristiques:
+            result["meuble"] = caracteristiques["meuble"]
+
+        return result
+
+    def create_bien_instance(self, validated_data):
+        """Créer une instance Bien à partir des données validées"""
+        from location.models import Bien
+
+        bien = Bien()
+
+        # Assigner seulement les champs présents dans validated_data
+        if "type_bien" in validated_data:
+            bien.type_bien = validated_data["type_bien"]
+        if "pieces_info" in validated_data:
+            bien.pieces_info = validated_data["pieces_info"]
+        if "periode_construction" in validated_data:
+            bien.periode_construction = validated_data["periode_construction"]
+        if "meuble" in validated_data:
+            bien.meuble = validated_data["meuble"]
+
+        return bien
 
 
 class BienQuittanceSerializer(serializers.Serializer):
@@ -394,10 +417,8 @@ class CreateBailSerializer(CreateLocationComposedSerializer):
 
     source = serializers.HiddenField(default="bail")
 
-    # Modalités zone tendue - requis pour un bail complet
-    # Note: Quand un bail est créé depuis un état des lieux,
-    # le frontend doit s'assurer de collecter ces informations manquantes
-    modalites_zone_tendue = ModalitesZoneTendueSerializer(required=True)
+    # Modalités zone tendue - optionnel (requis seulement si zone tendue)
+    modalites_zone_tendue = ModalitesZoneTendueSerializer(required=False)
 
 
 class CreateQuittanceSerializer(serializers.Serializer):

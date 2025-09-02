@@ -17,8 +17,10 @@ Django Serializers → Auto-génération → Zod Schemas → Frontend Validation
 ### Backend (Django)
 - **Serializers par pays** (`france.py`, `belgium.py`) : Définissent validation et configuration des étapes
 - **Serializers composés** : Blocs atomiques réutilisables (adresse, personne, bien, etc.)
-- **FormOrchestrator** : Filtre uniquement les étapes avec données manquantes
+- **FormOrchestrator** : Filtre uniquement les étapes avec données manquantes et injecte les valeurs par défaut
 - **Génération automatique** : Commande qui génère les schemas Zod depuis Django
+- **Calculs automatiques** : Zone tendue et permis de louer déterminés depuis GPS si manquants
+- **Modèle Location** : Entité pivot centrale du système
 
 ### Frontend (React)
 - **Schemas Zod auto-générés** : Validation TypeScript générée automatiquement

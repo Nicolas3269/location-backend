@@ -341,7 +341,20 @@ class BienBailSerializer(serializers.Serializer):
         ]
 
 
-# NOTE: CreateLocationComposedSerializer supprimé - on utilise directement les serializers de france.py
-# (FranceBailSerializer, FranceQuittanceSerializer, FranceEtatLieuxSerializer)
+# ============================================
+# SERIALIZERS POUR CRÉATION VIA /location/create-or-update/
+# ============================================
+
+# Import des serializers spécifiques par pays
+from location.serializers.france import (
+    FranceBailSerializer,
+    FranceQuittanceSerializer,
+    FranceEtatLieuxSerializer,
+)
+
+# Alias pour utilisation dans views.py
+CreateBailSerializer = FranceBailSerializer
+CreateQuittanceSerializer = FranceQuittanceSerializer
+CreateEtatLieuxSerializer = FranceEtatLieuxSerializer
 
 

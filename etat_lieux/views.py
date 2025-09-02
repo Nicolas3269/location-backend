@@ -24,7 +24,7 @@ from etat_lieux.utils import (
     create_etat_lieux_signature_requests,
     save_etat_lieux_photos,
 )
-from location.models import Bien
+from location.models import Bien, Location
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
     confirm_signature_generic,
@@ -141,266 +141,327 @@ def generate_grille_vetuste_pdf(request):
         )
 
 
+def resolve_location_id(location_id, bien_id):
+    """
+    Résout le location_id à partir du location_id ou bien_id fourni.
+
+    Args:
+        location_id: ID de location (peut être None)
+        bien_id: ID de bien (peut être None)
+
+    Returns:
+        location_id ou None si introuvable
+
+    Raises:
+        ValueError: Si aucun ID n'est fourni
+        Location.DoesNotExist: Si aucune location n'est trouvée pour le bien
+    """
+    if not location_id and not bien_id:
+        raise ValueError("location_id ou bien_id est requis")
+
+    # Si on a déjà un location_id, le retourner
+    if location_id:
+        return location_id
+
+    # Sinon, récupérer la location active pour ce bien
+    location = Location.objects.filter(bien_id=bien_id).order_by("-created_at").first()
+
+    if not location:
+        raise Location.DoesNotExist(f"Aucune location trouvée pour le bien {bien_id}")
+
+    return location.id
+
+
+def extract_photos_with_references(request, photo_references):
+    """
+    Extrait les photos depuis une requête multipart en utilisant les références fournies.
+    
+    Args:
+        request: La requête HTTP
+        photo_references: Liste des références de photos depuis validated_data
+    
+    Returns:
+        dict: Dictionnaire des photos uploadées avec leurs clés
+    """
+    uploaded_photos = {}
+    
+    if photo_references and request.FILES:
+        # Extraire les photos selon les références
+        for photo_ref in photo_references:
+            field_name = photo_ref.get("file_field_name")
+            if field_name and field_name in request.FILES:
+                uploaded_file = request.FILES[field_name]
+                
+                # Créer une clé unique pour cette photo
+                photo_key = (
+                    f"{photo_ref['room_id']}_{photo_ref['element_key']}_"
+                    f"{photo_ref['photo_index']}"
+                )
+                uploaded_photos[photo_key] = uploaded_file
+        
+        if uploaded_photos:
+            logger.info(f"Reçu {len(uploaded_photos)} photos uploadées")
+    
+    return uploaded_photos
+
+
+def extract_form_data_and_photos(request):
+    """
+    Extrait les données du formulaire et les photos depuis la requête.
+    
+    Returns:
+        tuple: (form_data, uploaded_photos)
+    """
+    if request.content_type and "multipart/form-data" in request.content_type:
+        json_data_str = request.POST.get("json_data")
+        if not json_data_str:
+            raise ValueError("json_data est requis pour les requêtes multipart")
+        
+        form_data = json.loads(json_data_str)
+        # Extraire les photos avec leurs références
+        photo_references = form_data.get("photo_references", [])
+        uploaded_photos = extract_photos_with_references(request, photo_references)
+    else:
+        # Traitement des données JSON simple (sans photos)
+        form_data = json.loads(request.body)
+        uploaded_photos = {}
+    
+    return form_data, uploaded_photos
+
+
+def update_or_create_etat_lieux(location_id, form_data, uploaded_photos, user):
+    etat_lieux_type = form_data.get("type_etat_lieux", "entree")
+    anciens_etats_lieux = EtatLieux.objects.filter(
+        location_id=location_id, type_etat_lieux=etat_lieux_type
+    )
+
+    if anciens_etats_lieux.exists():
+        count = anciens_etats_lieux.count()
+        logger.info(
+            f"Suppression de {count} ancien(s) état(s) des lieux "
+            f"de type '{etat_lieux_type}' pour la location {location_id}"
+        )
+
+        for ancien_etat_lieux in anciens_etats_lieux:
+            # Supprimer d'abord les détails des pièces associés
+            # (même si on_delete=CASCADE devrait le faire automatiquement)
+            EtatLieuxPieceDetail.objects.filter(etat_lieux=ancien_etat_lieux).delete()
+
+            # Supprimer les demandes de signature associées
+            # (au cas où on_delete=CASCADE ne fonctionnerait pas correctement)
+            ancien_etat_lieux.signature_requests.all().delete()
+
+            # Supprimer le fichier PDF associé
+            if ancien_etat_lieux.pdf:
+                try:
+                    ancien_etat_lieux.pdf.delete(save=False)
+                except Exception as e:
+                    logger.warning(
+                        f"Impossible de supprimer le PDF de l'état des lieux "
+                        f"{ancien_etat_lieux.id}: {e}"
+                    )
+
+            # Maintenant supprimer l'état des lieux lui-même
+            ancien_etat_lieux.delete()
+
+    etat_lieux: EtatLieux = create_etat_lieux_from_form_data(
+        form_data, location_id, user
+    )
+
+    # Sauvegarder les photos si présentes
+    if uploaded_photos:
+        # Ne PAS supprimer toutes les photos du bien !
+        # Les photos sont liées aux pièces, pas aux états des lieux
+        # Chaque état des lieux peut avoir ses propres photos
+        logger.info(f"Traitement de {len(uploaded_photos)} photos uploadées")
+
+        save_etat_lieux_photos(
+            etat_lieux, uploaded_photos, form_data.get("photo_references", [])
+        )
+
+    return etat_lieux
+
+
+def add_signature_fields_to_pdf(pdf_bytes, etat_lieux):
+    """
+    Ajoute les champs de signature à un PDF d'état des lieux.
+
+    Args:
+        pdf_bytes: Le contenu du PDF en bytes
+        etat_lieux: L'instance EtatLieux
+
+    Returns:
+        None (sauvegarde directement dans etat_lieux.pdf)
+    """
+    # Noms de fichiers
+    base_filename = f"etat_lieux_{etat_lieux.id}_{uuid.uuid4().hex}"
+    pdf_filename = f"{base_filename}.pdf"
+    tmp_pdf_path = f"/tmp/{pdf_filename}"
+
+    try:
+        # 1. Sauver temporairement
+        with open(tmp_pdf_path, "wb") as f:
+            f.write(pdf_bytes)
+
+        # 2. Ajouter champs de signature
+        prepare_pdf_with_signature_fields_generic(tmp_pdf_path, etat_lieux)
+
+        # 3. Recharger dans etat_lieux.pdf
+        with open(tmp_pdf_path, "rb") as f:
+            etat_lieux.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
+
+    finally:
+        # 4. Supprimer le fichier temporaire
+        try:
+            os.remove(tmp_pdf_path)
+        except Exception as e:
+            logger.warning(
+                f"Impossible de supprimer le fichier temporaire {tmp_pdf_path}: {e}"
+            )
+
+
+def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
+    """
+    Prépare et enrichit les données de l'état des lieux pour la génération PDF.
+    Convertit les photos en Base64 et structure les données.
+
+    Returns:
+        dict: Données enrichies pour le template PDF
+    """
+    logger.info(
+        f"Préparation des données pour le PDF de l'état des lieux {etat_lieux.id}"
+    )
+    pieces_enrichies = []
+    for piece_detail in etat_lieux.pieces_details.all():
+        piece = piece_detail.piece
+
+        # Récupérer les photos de ce piece_detail (spécifiques à cet état des lieux)
+        piece_photos = piece_detail.photos.all()
+        logger.info(
+            f"Pièce {piece.nom} - État des lieux {etat_lieux.id}: "
+            f"{piece_photos.count()} photos"
+        )
+
+        # Grouper les photos par élément et convertir en Base64
+        photos_by_element = {}
+        for photo in piece_photos:
+            element_key = photo.element_key
+            logger.info(f"Photo: {photo.nom_original}, élément: {element_key}")
+            if element_key not in photos_by_element:
+                photos_by_element[element_key] = []
+
+            # Convertir l'image en Base64 pour WeasyPrint
+            photo_data_url = image_to_base64_data_url(photo.image)
+            if photo_data_url:
+                # Créer un objet photo enrichi avec la data URL
+                photo_enrichi = {
+                    "id": photo.id,
+                    "nom_original": photo.nom_original,
+                    "data_url": photo_data_url,  # Base64 data URL
+                    "url": photo.image.url,  # URL originale (pour debug)
+                }
+                photos_by_element[element_key].append(photo_enrichi)
+            else:
+                logger.warning(f"Impossible de convertir la photo {photo.nom_original}")
+
+        # Enrichir chaque élément avec ses données et ses photos
+        elements_enrichis = []
+        if piece_detail.elements:
+            for element_key, element_data in piece_detail.elements.items():
+                element_enrichi = {
+                    "key": element_key,
+                    "name": element_key.replace("_", " ").title(),
+                    "state": element_data.get("state", ""),
+                    "state_display": {
+                        "TB": "Très bon",
+                        "B": "Bon",
+                        "P": "Passable",
+                        "M": "Mauvais",
+                    }.get(element_data.get("state", ""), "Non renseigné"),
+                    "state_css_class": {
+                        "TB": "state-excellent",
+                        "B": "state-good",
+                        "P": "state-fair",
+                        "M": "state-poor",
+                    }.get(element_data.get("state", ""), "state-empty"),
+                    "comment": element_data.get("comment", ""),
+                    "photos": photos_by_element.get(element_key, []),
+                }
+                elements_enrichis.append(element_enrichi)
+
+        piece_enrichie = {"piece": piece, "elements": elements_enrichis}
+        pieces_enrichies.append(piece_enrichie)
+
+        logger.info(
+            f"Pièce {piece.nom} enrichie avec {len(elements_enrichis)} éléments"
+        )
+    return {
+        "etat_lieux": etat_lieux,
+        "now": timezone.now(),
+        "location": etat_lieux.location,
+        "pieces_enrichies": pieces_enrichies,
+    }
+
+
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_etat_lieux_pdf(request):
     """
-    Génère un PDF d'état des lieux à partir des données du formulaire
+    Génère uniquement le PDF pour un état des lieux existant.
+    L'état des lieux doit avoir été créé au préalable via /location/create-or-update/
+    
+    Attend:
+    - etat_lieux_id: ID de l'état des lieux (obligatoire)
     """
     try:
-        # Vérifier si c'est du FormData (avec photos) ou du JSON simple
-        if request.content_type and "multipart/form-data" in request.content_type:
-            # Traitement des données avec photos
-            json_data_str = request.POST.get("json_data")
-            if not json_data_str:
-                return JsonResponse(
-                    {"success": False, "error": "json_data est requis"}, status=400
-                )
-
-            form_data = json.loads(json_data_str)
-
-            # Traiter les photos uploadées
-            uploaded_photos = {}
-            photo_references = form_data.get("photo_references", [])
-
-            for photo_ref in photo_references:
-                field_name = photo_ref["file_field_name"]
-                if field_name in request.FILES:
-                    uploaded_file = request.FILES[field_name]
-
-                    # Créer une clé unique pour cette photo
-                    photo_key = (
-                        f"{photo_ref['room_id']}_{photo_ref['element_key']}_"
-                        f"{photo_ref['photo_index']}"
-                    )
-                    uploaded_photos[photo_key] = uploaded_file
-
-            logger.info(f"Reçu {len(uploaded_photos)} photos uploadées")
-        else:
-            # Traitement des données JSON simple (sans photos)
-            form_data = json.loads(request.body)
-            uploaded_photos = {}
-
-        location_id = form_data.get("location_id")
-        bien_id = form_data.get("bien_id")
-
-        if not location_id and not bien_id:
+        etat_lieux_id = request.data.get("etat_lieux_id")
+        if not etat_lieux_id:
             return JsonResponse(
-                {"success": False, "error": "location_id ou bien_id est requis"}, status=400
+                {"success": False, "error": "etat_lieux_id est requis"},
+                status=400
+            )
+        
+        # Récupérer l'état des lieux
+        from etat_lieux.models import EtatLieux
+        try:
+            etat_lieux = EtatLieux.objects.get(id=etat_lieux_id)
+        except EtatLieux.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": f"État des lieux {etat_lieux_id} non trouvé"},
+                status=404
             )
 
-        # Si on a un bien_id, récupérer la location active pour ce bien
-        if bien_id and not location_id:
-            try:
-                from location.models import Location
-                # Récupérer la location la plus récente pour ce bien
-                location = (
-                    Location.objects.filter(bien_id=bien_id).order_by("-created_at").first()
-                )
-                if not location:
-                    return JsonResponse(
-                        {
-                            "success": False,
-                            "error": f"Aucune location trouvée pour le bien {bien_id}",
-                        },
-                        status=404,
-                    )
-                location_id = location.id
-            except Exception as e:
-                return JsonResponse(
-                    {
-                        "success": False,
-                        "error": f"Erreur lors de la récupération de la location: {str(e)}",
-                    },
-                    status=400,
-                )
+        # Générer le PDF
+        context = prepare_etat_lieux_data_for_pdf(etat_lieux)
 
-        # Créer l'état des lieux à partir des données du formulaire
-
-        # Supprimer les anciens états des lieux du même type pour cette location
-        # On ne peut avoir qu'un seul état des lieux d'entrée et un seul de sortie
-        etat_lieux_type = form_data.get("type", "entree")
-        anciens_etats_lieux = EtatLieux.objects.filter(
-            location_id=location_id, type_etat_lieux=etat_lieux_type
-        )
-
-        if anciens_etats_lieux.exists():
-            count = anciens_etats_lieux.count()
-            logger.info(
-                f"Suppression de {count} ancien(s) état(s) des lieux "
-                f"de type '{etat_lieux_type}' pour la location {location_id}"
-            )
-
-            for ancien_etat_lieux in anciens_etats_lieux:
-                # Supprimer d'abord les détails des pièces associés
-                # (même si on_delete=CASCADE devrait le faire automatiquement)
-                EtatLieuxPieceDetail.objects.filter(
-                    etat_lieux=ancien_etat_lieux
-                ).delete()
-
-                # Supprimer les demandes de signature associées
-                # (au cas où on_delete=CASCADE ne fonctionnerait pas correctement)
-                ancien_etat_lieux.signature_requests.all().delete()
-
-                # Supprimer le fichier PDF associé
-                if ancien_etat_lieux.pdf:
-                    try:
-                        ancien_etat_lieux.pdf.delete(save=False)
-                    except Exception as e:
-                        logger.warning(
-                            f"Impossible de supprimer le PDF de l'état des lieux "
-                            f"{ancien_etat_lieux.id}: {e}"
-                        )
-
-                # Maintenant supprimer l'état des lieux lui-même
-                ancien_etat_lieux.delete()
-
-        etat_lieux: EtatLieux = create_etat_lieux_from_form_data(
-            form_data, location_id, request.user
-        )
-
-        # Sauvegarder les photos si présentes
-        if uploaded_photos:
-            # Ne PAS supprimer toutes les photos du bien !
-            # Les photos sont liées aux pièces, pas aux états des lieux
-            # Chaque état des lieux peut avoir ses propres photos
-            logger.info(f"Traitement de {len(uploaded_photos)} photos uploadées")
-
-            save_etat_lieux_photos(
-                etat_lieux, uploaded_photos, form_data.get("photo_references", [])
-            )
-
-        # Préparer les données complètes pour le template
-
-        # Les photos sont maintenant liées aux piece_details spécifiques à cet état des lieux
-        # Pas besoin de requête supplémentaire, on va les récupérer via les piece_details
-
-        logger.info(
-            f"Préparation des données pour le PDF de l'état des lieux {etat_lieux.id}"
-        )
-
-        # Créer la structure complète des pièces avec éléments enrichis
-        pieces_enrichies = []
-
-        for piece_detail in etat_lieux.pieces_details.all():
-            piece = piece_detail.piece
-
-            # Récupérer les photos de ce piece_detail (spécifiques à cet état des lieux)
-            piece_photos = piece_detail.photos.all()
-            logger.info(
-                f"Pièce {piece.nom} - État des lieux {etat_lieux.id}: {piece_photos.count()} photos"
-            )
-
-            # Grouper les photos par élément et convertir en Base64
-            photos_by_element = {}
-            for photo in piece_photos:
-                element_key = photo.element_key
-                logger.info(f"Photo: {photo.nom_original}, élément: {element_key}")
-                if element_key not in photos_by_element:
-                    photos_by_element[element_key] = []
-
-                # Convertir l'image en Base64 pour WeasyPrint
-                photo_data_url = image_to_base64_data_url(photo.image)
-                if photo_data_url:
-                    # Créer un objet photo enrichi avec la data URL
-                    photo_enrichi = {
-                        "id": photo.id,
-                        "nom_original": photo.nom_original,
-                        "data_url": photo_data_url,  # Base64 data URL
-                        "url": photo.image.url,  # URL originale (pour debug)
-                    }
-                    photos_by_element[element_key].append(photo_enrichi)
-                else:
-                    logger.warning(
-                        f"Impossible de convertir la photo {photo.nom_original}"
-                    )
-
-            # Enrichir chaque élément avec ses données et ses photos
-            elements_enrichis = []
-            if piece_detail.elements:
-                for element_key, element_data in piece_detail.elements.items():
-                    element_enrichi = {
-                        "key": element_key,
-                        "name": element_key.replace("_", " ").title(),
-                        "state": element_data.get("state", ""),
-                        "state_display": {
-                            "TB": "Très bon",
-                            "B": "Bon",
-                            "P": "Passable",
-                            "M": "Mauvais",
-                        }.get(element_data.get("state", ""), "Non renseigné"),
-                        "state_css_class": {
-                            "TB": "state-excellent",
-                            "B": "state-good",
-                            "P": "state-fair",
-                            "M": "state-poor",
-                        }.get(element_data.get("state", ""), "state-empty"),
-                        "comment": element_data.get("comment", ""),
-                        "photos": photos_by_element.get(element_key, []),
-                    }
-                    elements_enrichis.append(element_enrichi)
-
-            piece_enrichie = {"piece": piece, "elements": elements_enrichis}
-            pieces_enrichies.append(piece_enrichie)
-
-            logger.info(
-                f"Pièce {piece.nom} enrichie avec {len(elements_enrichis)} éléments"
-            )
-
-        # Générer le PDF depuis le template HTML
-        html = render_to_string(
-            "pdf/etat_lieux.html",
-            {
-                "etat_lieux": etat_lieux,
-                "now": timezone.now(),
-                "location": etat_lieux.location,
-                "pieces_enrichies": pieces_enrichies,
-            },
-        )
+        # Générer le HTML et le convertir en PDF
+        html = render_to_string("pdf/etat_lieux.html", context)
         pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
 
-        # Noms de fichiers
-        base_filename = f"etat_lieux_{etat_lieux.id}_{uuid.uuid4().hex}"
-        pdf_filename = f"{base_filename}.pdf"
-        tmp_pdf_path = f"/tmp/{pdf_filename}"
-
-        try:
-            # 1. Sauver temporairement
-            with open(tmp_pdf_path, "wb") as f:
-                f.write(pdf_bytes)
-
-            # 2. Ajouter champs de signature
-            prepare_pdf_with_signature_fields_generic(tmp_pdf_path, etat_lieux)
-
-            # 3. Recharger dans etat_lieux.pdf
-            with open(tmp_pdf_path, "rb") as f:
-                etat_lieux.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
-
-        finally:
-            # 4. Supprimer le fichier temporaire
-            try:
-                os.remove(tmp_pdf_path)
-            except Exception as e:
-                logger.warning(
-                    f"Impossible de supprimer le fichier temporaire {tmp_pdf_path}: {e}"
-                )
+        # Ajouter les champs de signature et sauvegarder le PDF
+        add_signature_fields_to_pdf(pdf_bytes, etat_lieux)
 
         # Créer les demandes de signature
         create_etat_lieux_signature_requests(etat_lieux)
 
+        # Récupérer le token du premier signataire
         first_sign_req = etat_lieux.signature_requests.order_by("order").first()
 
-        return JsonResponse(
-            {
-                "success": True,
-                "etatLieuxId": str(etat_lieux.id),
-                "pdfUrl": request.build_absolute_uri(etat_lieux.pdf.url),
-                "linkTokenFirstSigner": str(first_sign_req.link_token)
-                if first_sign_req
-                else None,
-                "type": etat_lieux.type_etat_lieux,
-            }
-        )
+        # Retourner la réponse
+        return JsonResponse({
+            "success": True,
+            "etatLieuxId": str(etat_lieux.id),
+            "pdfUrl": request.build_absolute_uri(etat_lieux.pdf.url),
+            "linkTokenFirstSigner": (
+                str(first_sign_req.link_token) if first_sign_req else None
+            ),
+            "grilleVetustUrl": get_static_pdf_iframe_url(
+                request, "bails/grille_vetuste.pdf"
+            ),
+            "type": etat_lieux.type_etat_lieux,
+        })
 
     except Exception as e:
         logger.exception("Erreur lors de la génération de l'état des lieux PDF")

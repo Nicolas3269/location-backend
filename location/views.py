@@ -1,3 +1,4 @@
+import json
 import logging
 
 from django.http import JsonResponse
@@ -14,14 +15,10 @@ from location.models import (
     RentTerms,
     Societe,
 )
-from location.serializers import (
-    FranceBailSerializer as CreateBailSerializer,
-)
-from location.serializers import (
-    FranceEtatLieuxSerializer as CreateEtatLieuxSerializer,
-)
-from location.serializers import (
-    FranceQuittanceSerializer as CreateQuittanceSerializer,
+from location.serializers_composed import (
+    CreateBailSerializer,
+    CreateEtatLieuxSerializer,
+    CreateQuittanceSerializer,
 )
 from rent_control.choices import ChargeType
 
@@ -279,6 +276,32 @@ def update_bien_fields(bien, data):
     return bien
 
 
+def get_or_create_etat_lieux_for_location(location, validated_data, request):
+    """
+    Récupère ou crée un état des lieux pour une location.
+    Gère également les photos si présentes dans la requête.
+    
+    Returns:
+        etat_lieux_id: L'ID de l'état des lieux existant ou nouvellement créé
+    """
+    from etat_lieux.views import extract_photos_with_references, update_or_create_etat_lieux
+    
+    # Extraire les photos en utilisant les références depuis validated_data
+    photo_references = validated_data.get("photo_references", [])
+    uploaded_photos = extract_photos_with_references(request, photo_references)
+    
+    # Créer/mettre à jour l'état des lieux avec les photos
+    etat_lieux = update_or_create_etat_lieux(
+        location.id, 
+        validated_data,  # Utiliser directement validated_data
+        uploaded_photos,  # Photos extraites de la requête
+        request.user
+    )
+    
+    logger.info(f"État des lieux créé/mis à jour: {etat_lieux.id}")
+    return str(etat_lieux.id)
+
+
 def get_or_create_bail_for_location(location):
     """
     Récupère ou crée un bail pour une location.
@@ -403,8 +426,22 @@ def create_or_update_location(request):
     qui est l'entité pivot du système.
     """
     try:
-        # 1. Déterminer le type de document et choisir le serializer approprié
-        source = request.data.get("source")
+        # 1. Extraire les données selon le type de requête
+        if request.content_type and "multipart/form-data" in request.content_type:
+            # Pour multipart, les données sont dans POST['json_data']
+            json_data_str = request.POST.get("json_data")
+            if not json_data_str:
+                return JsonResponse(
+                    {"success": False, "error": "json_data requis pour multipart"},
+                    status=400
+                )
+            data = json.loads(json_data_str)
+        else:
+            # Pour JSON simple, utiliser request.data
+            data = request.data
+        
+        # 2. Déterminer le type de document et choisir le serializer approprié
+        source = data.get("source")
 
         serializer_map = {
             "bail": CreateBailSerializer,
@@ -424,7 +461,7 @@ def create_or_update_location(request):
             )
 
         serializer_class = serializer_map[source]
-        serializer = serializer_class(data=request.data)
+        serializer = serializer_class(data=data)
 
         if not serializer.is_valid():
             logger.warning(f"Erreurs de validation: {serializer.errors}")
@@ -463,6 +500,13 @@ def create_or_update_location(request):
 
         # Si la source est 'bail', créer un bail (seulement s'il n'existe pas déjà)
         bail_id = get_or_create_bail_for_location(location) if source == "bail" else None
+        
+        # Si la source est 'etat_lieux', créer un état des lieux (avec photos si présentes)
+        etat_lieux_id = None
+        if source == "etat_lieux":
+            etat_lieux_id = get_or_create_etat_lieux_for_location(
+                location, validated_data, request
+            )
 
         response_data = {
             "success": True,
@@ -473,6 +517,9 @@ def create_or_update_location(request):
 
         if bail_id:
             response_data["bail_id"] = bail_id
+            
+        if etat_lieux_id:
+            response_data["etat_lieux_id"] = etat_lieux_id
 
         return JsonResponse(response_data)
 

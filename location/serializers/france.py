@@ -217,6 +217,16 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
     equipements_chauffage = serializers.JSONField(
         required=False, default=dict, help_text="État des équipements de chauffage"
     )
+    
+    # Rooms avec leur état (pour l'état des lieux)
+    rooms = serializers.JSONField(
+        required=False, default=list, help_text="Détails des pièces avec leur état"
+    )
+    
+    # Références des photos pour le multipart
+    photo_references = serializers.JSONField(
+        required=False, default=list, help_text="Références des photos uploadées"
+    )
 
     @classmethod
     def get_step_config(cls):

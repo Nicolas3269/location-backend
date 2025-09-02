@@ -147,7 +147,7 @@ def create_etat_lieux_from_form_data(form_data, location_id, user):
     # Créer l'état des lieux principal avec les informations complémentaires
     etat_lieux = EtatLieux.objects.create(
         location=location,
-        type_etat_lieux=form_data.get("type", "entree"),
+        type_etat_lieux=form_data.get("type_etat_lieux", "entree"),
         nombre_cles=form_data.get("nombre_cles", {}),
         equipements_chauffage=form_data.get("equipements_chauffage", {}),
         compteurs=form_data.get("releve_compteurs", {}),

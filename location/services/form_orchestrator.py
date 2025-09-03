@@ -248,10 +248,8 @@ class FormOrchestrator:
             if hasattr(bien, "regime_juridique"):
                 data["bien"]["regime"] = {
                     "regime_juridique": bien.regime_juridique or "monopropriete",
-                    "periode_construction": bien.periode_construction
-                    if bien.periode_construction
-                    else None,
-                    "identifiant_fiscal": getattr(bien, "identifiant_fiscal", ""),
+                    "periode_construction": bien.periode_construction,
+                    "identifiant_fiscal": bien.identifiant_fiscal,
                 }
 
             # Zone réglementaire
@@ -289,16 +287,16 @@ class FormOrchestrator:
                     data["bien"]["equipements"] = {}
                 data["bien"]["equipements"]["information"] = bien.information
 
-            # Énergie - ne créer l'objet que si on a des valeurs
-            if hasattr(bien, "chauffage_type") and bien.chauffage_type:
+            # Énergie - ne créer l'objet que si on a des valeurs non-None
+            if hasattr(bien, "chauffage_type") and bien.chauffage_type is not None:
                 chauffage_data = {"type": bien.chauffage_type}
-                if bien.chauffage_energie:
+                if bien.chauffage_energie is not None:
                     chauffage_data["energie"] = bien.chauffage_energie
                 data["bien"]["energie"]["chauffage"] = chauffage_data
 
-            if hasattr(bien, "eau_chaude_type") and bien.eau_chaude_type:
+            if hasattr(bien, "eau_chaude_type") and bien.eau_chaude_type is not None:
                 eau_chaude_data = {"type": bien.eau_chaude_type}
-                if bien.eau_chaude_energie:
+                if bien.eau_chaude_energie is not None:
                     eau_chaude_data["energie"] = bien.eau_chaude_energie
                 data["bien"]["energie"]["eau_chaude"] = eau_chaude_data
 
@@ -321,23 +319,23 @@ class FormOrchestrator:
                     data["bailleur"]["personne"] = {
                         "lastName": personne.lastName,
                         "firstName": personne.firstName,
-                        "email": personne.email or "",
-                        "adresse": personne.adresse or "",
+                        "email": personne.email,
+                        "adresse": personne.adresse,
                     }
                 elif bailleur_type == "morale" and bailleur.societe:
                     societe = bailleur.societe
                     data["bailleur"]["societe"] = {
                         "raison_sociale": societe.raison_sociale,
-                        "siret": societe.siret or "",
-                        "forme_juridique": societe.forme_juridique or "",
-                        "adresse": societe.adresse or "",
-                        "email": societe.email or "",
+                        "siret": societe.siret,
+                        "forme_juridique": societe.forme_juridique,
+                        "adresse": societe.adresse,
+                        "email": societe.email,
                     }
                     if bailleur.signataire:
                         data["bailleur"]["signataire"] = {
                             "lastName": bailleur.signataire.lastName,
                             "firstName": bailleur.signataire.firstName,
-                            "email": bailleur.signataire.email or "",
+                            "email": bailleur.signataire.email,
                         }
 
                 # Extraire les co-bailleurs (tous sauf le premier)
@@ -351,8 +349,8 @@ class FormOrchestrator:
                                 {
                                     "lastName": co_bailleur.personne.lastName,
                                     "firstName": co_bailleur.personne.firstName,
-                                    "email": co_bailleur.personne.email or "",
-                                    "adresse": co_bailleur.personne.adresse or "",
+                                    "email": co_bailleur.personne.email,
+                                    "adresse": co_bailleur.personne.adresse,
                                 }
                             )
                     if co_bailleurs_list:
@@ -367,7 +365,7 @@ class FormOrchestrator:
                 {
                     "firstName": loc.firstName,
                     "lastName": loc.lastName,
-                    "email": loc.email or "",
+                    "email": loc.email,
                 }
                 for loc in location.locataires.all()
             ]

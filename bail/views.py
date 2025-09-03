@@ -63,7 +63,7 @@ def generate_bail_pdf(request):
 
         # Calculer une seule fois les données d'encadrement des loyers
         encadrement_data = BailMapping.get_encadrement_loyers_data(bail)
-
+        zone_tendue_avec_loyer_encadre = bool(encadrement_data["prix_reference"])
         # Générer le PDF depuis le template HTML
         html = render_to_string(
             "pdf/bail.html",
@@ -88,6 +88,7 @@ def generate_bail_pdf(request):
                 "information_info": BailMapping.information_info(bail.location.bien),
                 "energy_info": BailMapping.energy_info(bail.location.bien),
                 "indice_irl": INDICE_IRL,
+                "zone_tendue_avec_loyer_encadre": zone_tendue_avec_loyer_encadre,
                 "prix_reference": encadrement_data["prix_reference"],
                 "prix_majore": encadrement_data["prix_majore"],
                 "complement_loyer": encadrement_data["complement_loyer"],

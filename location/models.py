@@ -49,13 +49,13 @@ class Personne(models.Model):
     lastName = models.CharField(max_length=100, db_column="nom")
     firstName = models.CharField(max_length=100, db_column="prenom")
     date_naissance = models.DateField(
-        null=True, blank=True
+        null=True, blank=True, default=None
     )  # Optionnel pour certains cas
     email = models.EmailField()
     adresse = models.TextField()
 
     # Informations bancaires (pour les propriétaires)
-    iban = models.CharField(max_length=34, blank=True, null=True)
+    iban = models.CharField(max_length=34, blank=True, null=True, default=None)
 
     class Meta:
         verbose_name = "Personne"
@@ -79,7 +79,7 @@ class Societe(models.Model):
     email = models.EmailField()
 
     # Informations bancaires (pour les sociétés propriétaires)
-    iban = models.CharField(max_length=34, blank=True, null=True)
+    iban = models.CharField(max_length=34, blank=True, null=True, default=None)
 
     class Meta:
         verbose_name = "Société"
@@ -112,7 +112,7 @@ class Mandataire(models.Model):
     # Infos du mandat
     numero_carte_professionnelle = models.CharField(max_length=50, blank=True)
     date_debut_mandat = models.DateField()
-    date_fin_mandat = models.DateField(null=True, blank=True)
+    date_fin_mandat = models.DateField(null=True, blank=True, default=None)
 
     class Meta:
         verbose_name = "Mandataire"
@@ -131,6 +131,7 @@ class Bailleur(models.Model):
         on_delete=models.CASCADE,
         null=True,
         blank=True,
+        default=None,
         related_name="bailleurs",
         help_text="Personne physique bailleur",
     )
@@ -139,6 +140,7 @@ class Bailleur(models.Model):
         on_delete=models.CASCADE,
         null=True,
         blank=True,
+        default=None,
         related_name="bailleurs",
         help_text="Société bailleur",
     )
@@ -148,6 +150,7 @@ class Bailleur(models.Model):
         on_delete=models.CASCADE,
         null=True,
         blank=True,
+        default=None,
         related_name="bailleurs_signes",
         help_text="Personne physique qui signe pour le bailleur",
     )
@@ -247,8 +250,8 @@ class Bien(models.Model):
     )
 
     adresse = models.CharField(max_length=255)
-    latitude = models.FloatField(null=True, blank=True)
-    longitude = models.FloatField(null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True, default=None)
+    longitude = models.FloatField(null=True, blank=True, default=None)
     identifiant_fiscal = models.CharField(
         max_length=50, blank=True, verbose_name="Identifiant fiscal"
     )
@@ -257,6 +260,7 @@ class Bien(models.Model):
         choices=RegimeJuridique.choices,
         null=True,
         blank=True,
+        default=None,
         verbose_name="Régime juridique",
     )
 
@@ -266,25 +270,27 @@ class Bien(models.Model):
         verbose_name="Type de bien",
         null=True,
         blank=True,
+        default=None,
     )
     etage = models.CharField(max_length=10, blank=True)
     porte = models.CharField(max_length=10, blank=True)
     # To do : le mettre a terme pour les assurances
-    dernier_etage = models.BooleanField(null=True, blank=True)
+    dernier_etage = models.BooleanField(null=True, blank=True, default=None)
 
     periode_construction = models.CharField(
         max_length=20,
         choices=ConstructionPeriod.choices,
         blank=True,
         null=True,
+        default=None,
         verbose_name="Période de construction",
     )
 
     superficie = models.DecimalField(
-        max_digits=8, decimal_places=2, help_text="En m²", null=True, blank=True
+        max_digits=8, decimal_places=2, help_text="En m²", null=True, blank=True, default=None
     )
 
-    meuble = models.BooleanField(null=True, blank=True, verbose_name="Meublé")
+    meuble = models.BooleanField(null=True, blank=True, default=None, verbose_name="Meublé")
 
     # Informations DPE (Diagnostic de Performance Énergétique)
     classe_dpe = models.CharField(
@@ -292,12 +298,14 @@ class Bien(models.Model):
         choices=DPEClass.choices,
         null=True,
         blank=True,
+        default=None,
         verbose_name="Classe énergétique DPE",
     )
     depenses_energetiques = models.CharField(
         max_length=400,
         blank=True,
         null=True,
+        default=None,
         verbose_name="Dépenses énergétiques théoriques (€/an)",
     )
     # date_dpe = models.DateField(
@@ -309,14 +317,15 @@ class Bien(models.Model):
     # additionnal_description = models.TextField(blank=True)
 
     # Annexes séparées (stockage JSON pour compatibilité frontend)
-    annexes_privatives = models.JSONField(null=True, blank=True)
-    annexes_collectives = models.JSONField(null=True, blank=True)
-    information = models.JSONField(null=True, blank=True)
+    annexes_privatives = models.JSONField(null=True, blank=True, default=None)
+    annexes_collectives = models.JSONField(null=True, blank=True, default=None)
+    information = models.JSONField(null=True, blank=True, default=None)
 
     # Détail des pièces (stockage JSON pour compatibilité frontend)
     pieces_info = models.JSONField(
         null=True,
         blank=True,
+        default=None,
         help_text="Détail des pièces: chambres, sallesDeBain, cuisines, etc.",
     )
 
@@ -326,15 +335,21 @@ class Bien(models.Model):
         choices=SystemType.choices,
         blank=True,
         null=True,
+        default=None,
     )
-    chauffage_energie = models.CharField(max_length=50, blank=True)
+    chauffage_energie = models.CharField(
+        max_length=50, blank=True, null=True, default=None
+    )
     eau_chaude_type = models.CharField(
         max_length=20,
         choices=SystemType.choices,
         blank=True,
         null=True,
+        default=None,
     )
-    eau_chaude_energie = models.CharField(max_length=50, blank=True)
+    eau_chaude_energie = models.CharField(
+        max_length=50, blank=True, null=True, default=None
+    )
 
     @property
     def nombre_pieces_principales(self):
@@ -371,10 +386,10 @@ class Locataire(Personne):
     profession = models.CharField(max_length=100, blank=True)
     employeur = models.CharField(max_length=100, blank=True)
     revenu_mensuel = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
+        max_digits=10, decimal_places=2, null=True, blank=True, default=None
     )
     num_carte_identite = models.CharField(max_length=30, blank=True)
-    date_emission_ci = models.DateField(null=True, blank=True)
+    date_emission_ci = models.DateField(null=True, blank=True, default=None)
     caution_requise = models.BooleanField(
         default=False,
         help_text="Indique si une caution est requise pour ce locataire",
@@ -396,7 +411,7 @@ class Location(BaseModel):
     # Relations essentielles
     bien = models.ForeignKey(Bien, on_delete=models.PROTECT, related_name="locations")
     mandataire = models.ForeignKey(
-        Mandataire, null=True, blank=True, on_delete=models.SET_NULL
+        Mandataire, null=True, blank=True, on_delete=models.SET_NULL, default=None
     )
     locataires = models.ManyToManyField(Locataire, related_name="locations")
     solidaires = models.BooleanField(default=False)
@@ -406,8 +421,8 @@ class Location(BaseModel):
     )
 
     # Dates
-    date_debut = models.DateField(null=True, blank=True)
-    date_fin = models.DateField(null=True, blank=True)
+    date_debut = models.DateField(null=True, blank=True, default=None)
+    date_fin = models.DateField(null=True, blank=True, default=None)
 
     # Source de création
     created_from = models.CharField(
@@ -440,33 +455,35 @@ class RentTerms(BaseModel):
 
     # Montants
     montant_loyer = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
+        max_digits=10, decimal_places=2, null=True, blank=True, default=None
     )
     type_charges = models.CharField(
         max_length=20,
         choices=ChargeType.choices,
         null=True,
         blank=True,
+        default=None,
         verbose_name="Type de charges",
     )
     montant_charges = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
+        max_digits=10, decimal_places=2, null=True, blank=True, default=None
     )
     jour_paiement = models.PositiveSmallIntegerField(null=True, blank=True, default=5)
     depot_garantie = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True
+        max_digits=10, decimal_places=2, null=True, blank=True, default=None
     )
 
     # Informations d'encadrement des loyers
     zone_tendue = models.BooleanField(
-        null=True, blank=True, help_text="Situé en zone d'encadrement des loyers"
+        null=True, blank=True, default=None, help_text="Situé en zone d'encadrement des loyers"
     )
     premiere_mise_en_location = models.BooleanField(
-        null=True, blank=True, help_text="Première mise en location du bien"
+        null=True, blank=True, default=None, help_text="Première mise en location du bien"
     )
     locataire_derniers_18_mois = models.BooleanField(
         null=True,
         blank=True,
+        default=None,
         help_text="Le bien a-t-il eu un locataire dans les 18 derniers mois",
     )
     dernier_montant_loyer = models.DecimalField(
@@ -474,17 +491,20 @@ class RentTerms(BaseModel):
         decimal_places=2,
         null=True,
         blank=True,
+        default=None,
         help_text="Montant du dernier loyer si locataire dans les 18 derniers mois",
     )
     permis_de_louer = models.BooleanField(
         null=True,
         blank=True,
+        default=None,
         verbose_name="Permis de louer",
         help_text="Indique si un permis de louer est requis pour ce bien",
     )
     rent_price_id = models.IntegerField(
         null=True,
         blank=True,
+        default=None,
         help_text="ID du RentPrice de référence (base rent_control)",
     )
     justificatif_complement_loyer = models.TextField(

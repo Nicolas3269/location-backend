@@ -81,8 +81,8 @@ class RegimeJuridiqueSerializer(serializers.Serializer):
     regime_juridique = serializers.ChoiceField(
         choices=["monopropriete", "copropriete"], required=True
     )
-    identifiant_fiscal = serializers.CharField(required=False, allow_blank=True)
-    periode_construction = serializers.CharField(required=False, allow_blank=True)
+    identifiant_fiscal = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    periode_construction = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
 class ZoneReglementaireSerializer(serializers.Serializer):

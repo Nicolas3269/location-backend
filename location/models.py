@@ -253,7 +253,11 @@ class Bien(models.Model):
     latitude = models.FloatField(null=True, blank=True, default=None)
     longitude = models.FloatField(null=True, blank=True, default=None)
     identifiant_fiscal = models.CharField(
-        max_length=50, blank=True, verbose_name="Identifiant fiscal"
+        max_length=50,
+        blank=True,
+        null=True,
+        default=None,
+        verbose_name="Identifiant fiscal"
     )
     regime_juridique = models.CharField(
         max_length=20,

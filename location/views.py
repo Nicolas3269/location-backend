@@ -254,7 +254,7 @@ def update_bien_fields(bien, data):
     Met à jour les champs manquants du Bien avec les nouvelles données.
     Met à jour uniquement les champs None/vides.
     """
-    source = data.get("source", "bail")
+    source = data.get("source")
     bien_from_form = create_bien_from_form_data(data, save=False, source=source)
 
     updated = False
@@ -411,7 +411,7 @@ def update_existing_location(location, data):
     Met à jour une location existante avec de nouvelles données.
     Complète les données manquantes du bien, de la location et met à jour les conditions financières.
     """
-    source = data.get("source", "bail")
+    source = data.get("source")
 
     # 1. Mettre à jour le Bien avec les champs manquants
     update_bien_fields(location.bien, data)
@@ -520,7 +520,7 @@ def create_or_update_location(request):
             etat_lieux_id = get_or_create_etat_lieux_for_location(
                 location, validated_data, request
             )
-        
+
         # Si la source est 'quittance', créer une quittance
         quittance_id = None
         if source == "quittance":
@@ -540,7 +540,7 @@ def create_or_update_location(request):
 
         if etat_lieux_id:
             response_data["etat_lieux_id"] = etat_lieux_id
-        
+
         if quittance_id:
             response_data["quittance_id"] = quittance_id
 

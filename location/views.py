@@ -20,6 +20,7 @@ from location.serializers_composed import (
     CreateEtatLieuxSerializer,
     CreateQuittanceSerializer,
 )
+from quittance.views import get_or_create_quittance_for_location
 from rent_control.choices import ChargeType
 
 logger = logging.getLogger(__name__)
@@ -190,16 +191,23 @@ def create_or_update_rent_terms(location, data):
     # Récupérer zone_tendue et permis_de_louer depuis les données
     zone_tendue = zone_reglementaire.get("zone_tendue")
     permis_de_louer = zone_reglementaire.get("permis_de_louer")
-    
+
     # Si zone_tendue ou permis_de_louer ne sont pas définis, les calculer depuis les coordonnées
-    if (zone_tendue is None or permis_de_louer is None) and location.bien.latitude and location.bien.longitude:
+    if (
+        (zone_tendue is None or permis_de_louer is None)
+        and location.bien.latitude
+        and location.bien.longitude
+    ):
         from rent_control.views import check_zone_status_via_ban
-        ban_result = check_zone_status_via_ban(location.bien.latitude, location.bien.longitude)
+
+        ban_result = check_zone_status_via_ban(
+            location.bien.latitude, location.bien.longitude
+        )
         if zone_tendue is None:
             zone_tendue = ban_result.get("is_zone_tendue")
         if permis_de_louer is None:
             permis_de_louer = ban_result.get("is_permis_de_louer")
-    
+
     # Mapper les données vers les champs RentTerms
     fields_to_update = {
         "montant_loyer": modalites_financieres.get("loyer_hors_charges"),
@@ -254,7 +262,7 @@ def update_bien_fields(bien, data):
         # Ignorer les relations many-to-many et les relations inverses
         if field.many_to_many or field.one_to_many or field.one_to_one:
             continue
-            
+
         field_name = field.name
         if field_name in ["id", "created_at", "updated_at"]:
             continue
@@ -280,24 +288,27 @@ def get_or_create_etat_lieux_for_location(location, validated_data, request):
     """
     Récupère ou crée un état des lieux pour une location.
     Gère également les photos si présentes dans la requête.
-    
+
     Returns:
         etat_lieux_id: L'ID de l'état des lieux existant ou nouvellement créé
     """
-    from etat_lieux.views import extract_photos_with_references, update_or_create_etat_lieux
-    
+    from etat_lieux.views import (
+        extract_photos_with_references,
+        update_or_create_etat_lieux,
+    )
+
     # Extraire les photos en utilisant les références depuis validated_data
     photo_references = validated_data.get("photo_references", [])
     uploaded_photos = extract_photos_with_references(request, photo_references)
-    
+
     # Créer/mettre à jour l'état des lieux avec les photos
     etat_lieux = update_or_create_etat_lieux(
-        location.id, 
+        location.id,
         validated_data,  # Utiliser directement validated_data
         uploaded_photos,  # Photos extraites de la requête
-        request.user
+        request.user,
     )
-    
+
     logger.info(f"État des lieux créé/mis à jour: {etat_lieux.id}")
     return str(etat_lieux.id)
 
@@ -305,18 +316,18 @@ def get_or_create_etat_lieux_for_location(location, validated_data, request):
 def get_or_create_bail_for_location(location):
     """
     Récupère ou crée un bail pour une location.
-    
+
     Returns:
         bail_id: L'ID du bail existant ou nouvellement créé
     """
     from bail.models import Bail
-    
+
     # Vérifier si un bail existe déjà pour cette location
     existing_bail = Bail.objects.filter(location=location).first()
     if existing_bail:
         logger.info(f"Bail existant trouvé: {existing_bail.id}")
         return existing_bail.id
-    
+
     # Créer un nouveau bail
     bail = Bail.objects.create(
         location=location,
@@ -433,13 +444,13 @@ def create_or_update_location(request):
             if not json_data_str:
                 return JsonResponse(
                     {"success": False, "error": "json_data requis pour multipart"},
-                    status=400
+                    status=400,
                 )
             data = json.loads(json_data_str)
         else:
             # Pour JSON simple, utiliser request.data
             data = request.data
-        
+
         # 2. Déterminer le type de document et choisir le serializer approprié
         source = data.get("source")
 
@@ -499,13 +510,22 @@ def create_or_update_location(request):
             location, bien = update_existing_location(location, validated_data)
 
         # Si la source est 'bail', créer un bail (seulement s'il n'existe pas déjà)
-        bail_id = get_or_create_bail_for_location(location) if source == "bail" else None
-        
+        bail_id = (
+            get_or_create_bail_for_location(location) if source == "bail" else None
+        )
+
         # Si la source est 'etat_lieux', créer un état des lieux (avec photos si présentes)
         etat_lieux_id = None
         if source == "etat_lieux":
             etat_lieux_id = get_or_create_etat_lieux_for_location(
                 location, validated_data, request
+            )
+        
+        # Si la source est 'quittance', créer une quittance
+        quittance_id = None
+        if source == "quittance":
+            quittance_id = get_or_create_quittance_for_location(
+                location, validated_data
             )
 
         response_data = {
@@ -517,9 +537,12 @@ def create_or_update_location(request):
 
         if bail_id:
             response_data["bail_id"] = bail_id
-            
+
         if etat_lieux_id:
             response_data["etat_lieux_id"] = etat_lieux_id
+        
+        if quittance_id:
+            response_data["quittance_id"] = quittance_id
 
         return JsonResponse(response_data)
 

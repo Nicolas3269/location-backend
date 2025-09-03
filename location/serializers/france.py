@@ -148,6 +148,10 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
         required=True,
         help_text="Mois et année de la quittance",
     )
+    date_paiement = serializers.DateField(
+        required=True,
+        help_text="Date du paiement du loyer",
+    )
 
     @classmethod
     def get_step_config(cls):

@@ -48,64 +48,85 @@ def amount_to_words_french(amount):
         return euros_text
 
 
+def get_or_create_quittance_for_location(location, validated_data):
+    """
+    Récupère ou crée une quittance pour une location.
+    Returns:
+        quittance_id: L'ID de la quittance existante ou nouvellement créée
+    """
+    periode_quittance = validated_data.get("periode_quittance", {})
+    mois = periode_quittance.get("mois")
+    annee = periode_quittance.get("annee")
+    date_paiement = validated_data.get("date_paiement")
+    
+    if not mois or not annee or not date_paiement:
+        raise ValueError("mois, annee et date_paiement sont requis pour générer une quittance")
+    
+    # Convertir la date de paiement
+    if isinstance(date_paiement, str):
+        date_paiement_obj = datetime.strptime(date_paiement, "%Y-%m-%d").date()
+    else:
+        date_paiement_obj = date_paiement
+    
+    # Vérifier si une quittance existe déjà pour cette période
+    existing_quittance = Quittance.objects.filter(
+        location=location, mois=mois, annee=annee
+    ).first()
+    
+    if existing_quittance:
+        logger.info(f"Quittance existante trouvée: {existing_quittance.id}")
+        # Mettre à jour la date de paiement si différente
+        if existing_quittance.date_paiement != date_paiement_obj:
+            existing_quittance.date_paiement = date_paiement_obj
+            existing_quittance.save()
+        return str(existing_quittance.id)
+    
+    # Créer une nouvelle quittance
+    quittance = Quittance.objects.create(
+        location=location,
+        mois=mois,
+        annee=annee,
+        date_paiement=date_paiement_obj,
+    )
+    
+    logger.info(f"Quittance créée: {quittance.id}")
+    return str(quittance.id)
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def generate_quittance_pdf(request):
     """
-    Génère une quittance de loyer en PDF à partir des données de la location
+    Génère une quittance de loyer en PDF à partir d'un quittance_id
     """
     try:
         # Récupérer les données JSON
         data = json.loads(request.body)
+        quittance_id = data.get("quittance_id")
 
-        location_id = data.get("location_id")
-
-        mois = data.get("mois")  # Format: "janvier", "février", etc.
-        annee = data.get("annee")  # Format: 2025
-        date_paiement = data.get("date_paiement")  # Format: "2025-01-15"
-
-        # Validation des données requises
-        if not location_id:
+        if not quittance_id:
             return JsonResponse(
-                {"success": False, "error": "location_id est requis"},
+                {"success": False, "error": "quittance_id est requis"},
                 status=400,
             )
 
-        if not mois or not annee:
-            return JsonResponse(
-                {"success": False, "error": "mois et annee sont requis"}, status=400
-            )
-
-        if not date_paiement:
-            return JsonResponse(
-                {"success": False, "error": "date_paiement est requise"}, status=400
-            )
-
-        # Récupérer la location
-        from location.models import Location
-
+        # Récupérer la quittance avec toutes les relations nécessaires
         try:
-            location = (
-                Location.objects.select_related("bien", "mandataire")
-                .prefetch_related("locataires", "bien__bailleurs")
-                .get(id=location_id)
-            )
-        except Location.DoesNotExist:
+            quittance = Quittance.objects.select_related(
+                "location__bien", "location__mandataire"
+            ).prefetch_related(
+                "location__locataires", "location__bien__bailleurs"
+            ).get(id=quittance_id)
+        except Quittance.DoesNotExist:
             return JsonResponse(
-                {"success": False, "error": "Location introuvable"}, status=404
+                {"success": False, "error": "Quittance introuvable"}, status=404
             )
 
-        # Convertir la date de paiement
-        try:
-            date_paiement_obj = datetime.strptime(date_paiement, "%Y-%m-%d").date()
-        except ValueError:
-            return JsonResponse(
-                {
-                    "success": False,
-                    "error": "Format de date_paiement invalide (attendu: YYYY-MM-DD)",
-                },
-                status=400,
-            )
+        # Toutes les informations sont déduites de la quittance
+        location = quittance.location
+        mois = quittance.mois
+        annee = quittance.annee
+        date_paiement_obj = quittance.date_paiement
 
         # Préparer les données pour le template
         # Récupérer le montant du loyer depuis RentTerms
@@ -160,32 +181,7 @@ def generate_quittance_pdf(request):
                 status=400,
             )
 
-        # Supprimer les anciennes quittances pour la même période
-        anciennes_quittances = Quittance.objects.filter(
-            location=location, mois=mois, annee=annee
-        )
-
-        if anciennes_quittances.exists():
-            # Supprimer les fichiers PDF associés
-            for ancienne_quittance in anciennes_quittances:
-                if ancienne_quittance.pdf:
-                    try:
-                        ancienne_quittance.pdf.delete(save=False)
-                    except Exception as e:
-                        logger.warning(
-                            f"Impossible de supprimer le PDF de la quittance "
-                            f"{ancienne_quittance.id}: {e}"
-                        )
-            # Supprimer les objets
-            anciennes_quittances.delete()
-
-        # Créer l'objet Quittance
-        quittance = Quittance.objects.create(
-            location=location,
-            mois=mois,
-            annee=annee,
-            date_paiement=date_paiement_obj,
-        )
+        # Pas besoin de créer la quittance, elle existe déjà
 
         # Générer la signature automatique (signataire qui signe)
         signature_data_url = generate_text_signature(signataire_full_name)

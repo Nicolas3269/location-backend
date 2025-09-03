@@ -489,6 +489,8 @@ class RentTerms(BaseModel):
     )
     justificatif_complement_loyer = models.TextField(
         blank=True,
+        null=True,
+        default=None,
         verbose_name="Justification du complément de loyer",
         help_text="Justification du complément de loyer en cas de dépassement du plafond d'encadrement",
     )

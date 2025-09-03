@@ -51,6 +51,16 @@ EQUIPEMENTS_AND_ENERGY_STEPS = [
     {"id": "bien.energie.chauffage"},
     {"id": "bien.energie.eau_chaude"},
 ]
+
+EQUIPEMENTS_ETAT_LIEUX_STEPS = [
+    # BIEN - Équipements
+    {"id": "bien.equipements.annexes_privatives", "default": []},
+]
+ETAT_LIEUX_ENERGY_STEPS = [
+    # BIEN - Énergie
+    {"id": "bien.energie.chauffage"},
+    {"id": "bien.energie.eau_chaude"},
+]
 DPE_STEPS = [
     # BIEN - DPE
     {"id": "bien.performance_energetique.classe_dpe"},
@@ -60,6 +70,8 @@ DPE_STEPS = [
     },
     {"id": "bien.regime.identifiant_fiscal"},
 ]
+
+BAIL_DATE = [{"id": "dates.date_debut"}]
 
 MODALITES_FINANCIERES_STEPS = [
     # Modalités financières
@@ -85,15 +97,20 @@ ZONE_TENDUE_STEPS = [
 PERIODE_QUITTANCE_STEPS = [
     {"id": "periode_quittance"},
 ]
-DETAIL_ETAT_LIEUX_STEPS = [
-    # MODALITÉS ÉTAT DES LIEUX
-    {"id": "type_etat_lieux"},
-    {"id": "date_etat_lieux"},
-    # ÉTAT DES LIEUX
-    {"id": "description_pieces"},
-    {"id": "nombre_cles"},
+DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS = [
     {"id": "equipements_chauffage"},
     {"id": "releve_compteurs"},
+]
+ETAT_LIEUX_CLES_STEPS = [
+    {"id": "nombre_cles"},
+]
+ETAT_LIEUX_DEFINITION_STEPS = [
+    {"id": "type_etat_lieux"},
+    {"id": "date_etat_lieux"},
+]
+DETAIL_ETAT_LIEUX_STEPS = [
+    # ÉTAT DES LIEUX
+    {"id": "description_pieces"},
 ]
 
 
@@ -158,6 +175,7 @@ class FranceBailSerializer(BaseLocationSerializer):
         BAIL_STEPS.extend(DPE_STEPS)
         BAIL_STEPS.extend(PERSON_STEPS)
         BAIL_STEPS.extend(ZONE_TENDUE_STEPS)
+        BAIL_STEPS.extend(BAIL_DATE)
 
         BAIL_STEPS.extend(MODALITES_FINANCIERES_STEPS)
 
@@ -270,14 +288,15 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         L'ordre est défini par la position dans la liste.
         """
         ETAT_LIEUX_STEPS = []
+        ETAT_LIEUX_STEPS.extend(ETAT_LIEUX_DEFINITION_STEPS)
+        ETAT_LIEUX_STEPS.extend(MEUBLE_STEPS)
+        ETAT_LIEUX_STEPS.extend(PERSON_STEPS)
         ETAT_LIEUX_STEPS.extend(ADRESSE_STEPS)
         ETAT_LIEUX_STEPS.extend(TYPE_BIEN_STEPS)
-        ETAT_LIEUX_STEPS.extend(REGIME_JURIDIQUE_STEPS)
-        ETAT_LIEUX_STEPS.extend(PERIODE_CONSTRUCTION_STEPS)
-        ETAT_LIEUX_STEPS.extend(SUPERFICIE_STEPS)
+        ETAT_LIEUX_STEPS.extend(EQUIPEMENTS_ETAT_LIEUX_STEPS)
+        ETAT_LIEUX_STEPS.extend(ETAT_LIEUX_CLES_STEPS)
+        ETAT_LIEUX_STEPS.extend(ETAT_LIEUX_ENERGY_STEPS)
+        ETAT_LIEUX_STEPS.extend(DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS)
         ETAT_LIEUX_STEPS.extend(PIECES_INFO_STEPS)
-        ETAT_LIEUX_STEPS.extend(MEUBLE_STEPS)
-        ETAT_LIEUX_STEPS.extend(EQUIPEMENTS_AND_ENERGY_STEPS)
-        ETAT_LIEUX_STEPS.extend(PERSON_STEPS)
         ETAT_LIEUX_STEPS.extend(DETAIL_ETAT_LIEUX_STEPS)
         return ETAT_LIEUX_STEPS

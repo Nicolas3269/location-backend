@@ -344,15 +344,19 @@ def get_user_profile_detailed(request):
                         # Compter les locations et bails actifs pour ce bien
                         nombre_locations = Location.objects.filter(bien=bien).count()
                         # Compter les bails actifs via les locations
+                        from signature.document_status import DocumentStatus
+
                         baux_actifs = Bail.objects.filter(
-                            location__bien=bien, status="signed"
+                            location__bien=bien, status=DocumentStatus.SIGNED
                         ).count()
 
                         bien_data = {
                             "id": bien.id,
                             "adresse": bien.adresse,
                             "type_bien": bien.get_type_bien_display(),
-                            "superficie": float(bien.superficie),
+                            "superficie": float(bien.superficie)
+                            if bien.superficie
+                            else None,
                             "meuble": bien.meuble,
                             "nombre_locations": nombre_locations,
                             "nombre_baux": nombre_locations,  # Pour compatibilité

@@ -73,10 +73,10 @@ class Bail(SignableDocumentMixin, BaseModel):
         """Met à jour automatiquement le statut selon les signatures"""
         current_status = self.status
 
-        if self.status == DocumentStatus.DRAFT:
-            if self.signature_requests.exists():
-                self.status = DocumentStatus.SIGNING
-
+        # Ne pas passer automatiquement de DRAFT à SIGNING
+        # Cela sera fait par send_signature_email quand on envoie vraiment l'email
+        
+        # Passer de SIGNING à SIGNED si toutes les signatures sont complètes
         if self.status == DocumentStatus.SIGNING:
             if (
                 self.signature_requests.exists()
@@ -216,10 +216,17 @@ class BailSignatureRequest(AbstractSignatureRequest):
             .first()
         )
 
+    def mark_as_signed(self):
+        """Marque la demande comme signée et met à jour le statut du document"""
+        super().mark_as_signed()
+        # Vérifier et mettre à jour le statut du bail
+        if self.bail:
+            self.bail.check_and_update_status()
+    
     def save(self, *args, **kwargs):
         """Override save pour mettre à jour automatiquement le statut du bail"""
         super().save(*args, **kwargs)
 
-        # Mettre à jour le statut du bail associé
+        # Mettre à jour le statut du bail associé (pour compatibilité)
         if self.bail:
             self.bail.check_and_update_status()

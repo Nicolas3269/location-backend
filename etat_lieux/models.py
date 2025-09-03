@@ -86,6 +86,25 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     def get_file_prefix(self):
         """Retourne le préfixe pour les noms de fichiers"""
         return "etat_lieux"
+    
+    def check_and_update_status(self):
+        """Met à jour automatiquement le statut selon les signatures"""
+        from signature.document_status import DocumentStatus
+        current_status = self.status
+
+        # Ne pas passer automatiquement de DRAFT à SIGNING
+        # Cela sera fait par send_signature_email quand on envoie vraiment l'email
+        
+        # Passer de SIGNING à SIGNED si toutes les signatures sont complètes
+        if self.status == DocumentStatus.SIGNING:
+            if (
+                self.signature_requests.exists()
+                and not self.signature_requests.filter(signed=False).exists()
+            ):
+                self.status = DocumentStatus.SIGNED
+
+        if current_status != self.status:
+            self.save(update_fields=["status"])
 
 
 class EtatLieuxPiece(models.Model):
@@ -241,3 +260,9 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
             .order_by("order")
             .first()
         )
+    
+    def mark_as_signed(self):
+        """Marque la demande comme signée et met à jour le statut du document"""
+        super().mark_as_signed()
+        # Vérifier et mettre à jour le statut du document
+        self.etat_lieux.check_and_update_status()

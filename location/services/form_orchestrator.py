@@ -53,13 +53,26 @@ class FormOrchestrator:
         # Obtenir la configuration des steps depuis le serializer
         step_config = self._get_step_config(serializer_class, form_type)
 
-        # Filtrer les steps pour ne garder que celles avec données manquantes
-        # step_config est maintenant une liste, pas besoin de trier
+        # Obtenir d'abord les steps verrouillées si c'est une mise à jour
+        locked_steps = set()
+        if location_id:
+            from .field_locking import FieldLockingService
+            import logging
+            logger = logging.getLogger(__name__)
+            
+            locked_steps = FieldLockingService.get_locked_steps(location_id, country)
+            if locked_steps:
+                logger.info(f"Found {len(locked_steps)} locked steps for location {location_id}")
+
+        # Filtrer les steps : garder seulement celles qui sont non verrouillées
+        # Les steps avec données existantes sont gardées (pour permettre modification)
         steps = []
         for step in step_config:
             step_id = step["id"]
-            # Vérifier si cette step a des données complètes
-            if self._step_has_complete_data(step_id, step, existing_data):
+            
+            # Si la step est verrouillée, on la skip
+            if step_id in locked_steps:
+                logger.debug(f"Skipping locked step: {step_id}")
                 continue
 
             # Copier la step (elle contient déjà id, condition et default si nécessaire)
@@ -77,6 +90,7 @@ class FormOrchestrator:
             "form_type": form_type,
             "steps": steps,
             "prefill_data": existing_data,
+            "locked_steps_count": len(locked_steps) if location_id else 0
         }
 
     def _get_serializer_class(self, form_type: str, country: str):

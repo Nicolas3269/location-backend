@@ -22,6 +22,7 @@ from location.serializers_composed import (
 )
 from quittance.views import get_or_create_quittance_for_location
 from rent_control.choices import ChargeType
+from signature.document_status import DocumentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -177,16 +178,37 @@ def get_location_fields_from_data(data):
     return {k: v for k, v in fields.items() if v is not None}
 
 
-def create_or_update_rent_terms(location, data):
+def create_or_update_rent_terms(location, data, location_id=None):
     """
     Crée ou met à jour les conditions financières d'une location.
-    Met à jour uniquement les champs None avec les nouvelles valeurs.
+    Met à jour uniquement les champs None avec les nouvelles valeurs ET non verrouillés.
     Calcule automatiquement zone_tendue et permis_de_louer si non fournis.
     """
     modalites_financieres = data.get("modalites_financieres") or {}
     modalites_zone_tendue = data.get("modalites_zone_tendue") or {}
     bien_data = data.get("bien") or {}
     zone_reglementaire = bien_data.get("zone_reglementaire") or {}
+    country = data.get("country", "FR")
+    
+    # Obtenir les steps verrouillées si location_id est fourni
+    locked_steps = set()
+    if location_id:
+        from location.services.field_locking import FieldLockingService
+        locked_steps = FieldLockingService.get_locked_steps(location_id, country)
+    
+    # Mapping des champs RentTerms vers les step IDs
+    field_to_step_mapping = {
+        'montant_loyer': 'modalites_financieres.loyer_hors_charges',
+        'montant_charges': 'modalites_financieres.charges_mensuelles',
+        'type_charges': 'modalites_financieres.type_charges',
+        'jour_paiement': 'modalites_financieres.jour_paiement',
+        'zone_tendue': 'bien.zone_reglementaire.zone_tendue',
+        'permis_de_louer': 'bien.zone_reglementaire.permis_de_louer',
+        'premiere_mise_en_location': 'modalites_zone_tendue.premiere_mise_en_location',
+        'locataire_derniers_18_mois': 'modalites_zone_tendue.locataire_derniers_18_mois',
+        'dernier_montant_loyer': 'modalites_zone_tendue.dernier_montant_loyer',
+        'justificatif_complement_loyer': 'modalites_zone_tendue.justificatif_complement_loyer',
+    }
 
     # Récupérer zone_tendue et permis_de_louer depuis les données
     zone_tendue = zone_reglementaire.get("zone_tendue")
@@ -229,8 +251,18 @@ def create_or_update_rent_terms(location, data):
         ),
     }
 
-    # Filtrer les None pour ne garder que les valeurs définies
-    fields_to_update = {k: v for k, v in fields_to_update.items() if v is not None}
+    # Filtrer les champs verrouillés AVANT de filtrer les None
+    filtered_fields = {}
+    for field, value in fields_to_update.items():
+        step_id = field_to_step_mapping.get(field)
+        if step_id and step_id in locked_steps:
+            logger.debug(f"Skipping locked field: {field} (step: {step_id})")
+            continue
+        # Garder la valeur même si elle n'est pas None pour permettre l'édition
+        filtered_fields[field] = value
+    
+    # Maintenant filtrer les None pour ne garder que les valeurs définies
+    fields_to_update = {k: v for k, v in filtered_fields.items() if v is not None}
 
     if not fields_to_update:
         return None
@@ -238,24 +270,63 @@ def create_or_update_rent_terms(location, data):
     # Récupérer ou créer RentTerms
     if hasattr(location, "rent_terms"):
         rent_terms = location.rent_terms
-        # Mettre à jour seulement les champs qui sont None
+        # Mettre à jour les champs avec les nouvelles valeurs (déjà filtrées pour les verrouillages)
         for field, value in fields_to_update.items():
-            if getattr(rent_terms, field) is None:
-                setattr(rent_terms, field, value)
+            # Mettre à jour même si le champ a déjà une valeur (pour permettre l'édition)
+            setattr(rent_terms, field, value)
         rent_terms.save()
     else:
-        rent_terms = RentTerms.objects.create(location=location, **fields_to_update)
+        # Pour une nouvelle création, utiliser les champs déjà filtrés
+        if fields_to_update:
+            rent_terms = RentTerms.objects.create(location=location, **fields_to_update)
+        else:
+            rent_terms = None
 
     return rent_terms
 
 
-def update_bien_fields(bien, data):
+def update_bien_fields(bien, data, location_id=None):
     """
     Met à jour les champs manquants du Bien avec les nouvelles données.
-    Met à jour uniquement les champs None/vides.
+    Met à jour uniquement les champs None/vides ET non verrouillés.
     """
     source = data.get("source")
+    country = data.get("country", "FR")
     bien_from_form = create_bien_from_form_data(data, save=False, source=source)
+    
+    # Obtenir les steps verrouillées si location_id est fourni
+    locked_steps = set()
+    if location_id:
+        from location.services.field_locking import FieldLockingService
+        locked_steps = FieldLockingService.get_locked_steps(location_id, country)
+        if locked_steps:
+            logger.info(f"Found {len(locked_steps)} locked steps for location {location_id}")
+    
+    # Mapping des champs Bien vers les step IDs
+    field_to_step_mapping = {
+        'adresse': 'bien.localisation.adresse',
+        'latitude': 'bien.localisation.latitude',
+        'longitude': 'bien.localisation.longitude',
+        'superficie': 'bien.caracteristiques.superficie',
+        'type_bien': 'bien.caracteristiques.type_bien',
+        'meuble': 'bien.caracteristiques.meuble',
+        'etage': 'bien.caracteristiques.etage',
+        'porte': 'bien.caracteristiques.porte',
+        'dernier_etage': 'bien.caracteristiques.dernier_etage',
+        'pieces_info': 'bien.caracteristiques.pieces_info',
+        'classe_dpe': 'bien.performance_energetique.classe_dpe',
+        'depenses_energetiques': 'bien.performance_energetique.depenses_energetiques',
+        'regime_juridique': 'bien.regime.regime_juridique',
+        'periode_construction': 'bien.regime.periode_construction',
+        'identifiant_fiscal': 'bien.regime.identifiant_fiscal',
+        'annexes_privatives': 'bien.equipements.annexes_privatives',
+        'annexes_collectives': 'bien.equipements.annexes_collectives',
+        'information': 'bien.equipements.information',
+        'chauffage_type': 'bien.energie.chauffage',
+        'chauffage_energie': 'bien.energie.chauffage',
+        'eau_chaude_type': 'bien.energie.eau_chaude',
+        'eau_chaude_energie': 'bien.energie.eau_chaude',
+    }
 
     updated = False
     for field in bien._meta.get_fields():
@@ -266,16 +337,24 @@ def update_bien_fields(bien, data):
         field_name = field.name
         if field_name in ["id", "created_at", "updated_at"]:
             continue
+        
+        # Vérifier si le champ est verrouillé
+        step_id = field_to_step_mapping.get(field_name)
+        if step_id and step_id in locked_steps:
+            logger.debug(f"Skipping locked field: {field_name} (step: {step_id})")
+            continue
 
         current_value = getattr(bien, field_name, None)
         new_value = getattr(bien_from_form, field_name, None)
 
-        # Mettre à jour si le champ actuel est None et qu'on a une nouvelle valeur
-        # Important: pour les listes, [] est une valeur valide, pas "vide"
-        if current_value is None and new_value is not None:
-            setattr(bien, field_name, new_value)
-            updated = True
-            logger.debug(f"Bien.{field_name} mis à jour: {new_value}")
+        # Mettre à jour si on a une nouvelle valeur (permettre l'édition des champs non verrouillés)
+        # Important: pour les listes, [] est une valeur valide
+        if new_value is not None:
+            # Comparer pour voir si la valeur a changé
+            if current_value != new_value:
+                setattr(bien, field_name, new_value)
+                updated = True
+                logger.debug(f"Bien.{field_name} mis à jour: {current_value} -> {new_value}")
 
     if updated:
         bien.save()
@@ -323,14 +402,14 @@ def get_or_create_bail_for_location(location):
     from bail.models import Bail
 
     # Vérifier si un bail existe déjà pour cette location
-    if hasattr(location, 'bail'):
+    if hasattr(location, "bail"):
         logger.info(f"Bail existant trouvé: {location.bail.id}")
         return location.bail.id
 
     # Créer un nouveau bail
     bail = Bail.objects.create(
         location=location,
-        status="draft",
+        status=DocumentStatus.DRAFT,
         version=1,
         is_active=True,
     )
@@ -338,31 +417,47 @@ def get_or_create_bail_for_location(location):
     return bail.id
 
 
-def update_location_fields(location, data):
+def update_location_fields(location, data, location_id=None):
     """
     Met à jour les champs de la Location avec les nouvelles données.
-    Met à jour uniquement les champs None avec les nouvelles valeurs.
+    Met à jour les champs non verrouillés avec les nouvelles valeurs.
     """
     fields_to_update = get_location_fields_from_data(data)
+    country = data.get("country", "FR")
 
     # Enlever created_from car on ne veut pas le mettre à jour
     fields_to_update.pop("created_from", None)
+    
+    # Obtenir les steps verrouillées si location_id est fourni
+    locked_steps = set()
+    if location_id:
+        from location.services.field_locking import FieldLockingService
+        locked_steps = FieldLockingService.get_locked_steps(location_id, country)
+    
+    # Mapping des champs Location vers les step IDs
+    field_to_step_mapping = {
+        'date_debut': 'dates.date_debut',
+        'date_fin': 'dates.date_fin',
+        'solidaires': 'solidaires',
+    }
 
     if not fields_to_update:
         return location
 
     updated = False
     for field, value in fields_to_update.items():
+        # Vérifier si le champ est verrouillé
+        step_id = field_to_step_mapping.get(field)
+        if step_id and step_id in locked_steps:
+            logger.debug(f"Skipping locked field: {field} (step: {step_id})")
+            continue
+            
         current_value = getattr(location, field, None)
-        # Pour solidaires, on met à jour si différent
-        if field == "solidaires":
-            if current_value != value:
-                setattr(location, field, value)
-                updated = True
-        # Pour les autres champs, on met à jour seulement si None
-        elif current_value is None and value is not None:
+        # Mettre à jour si la valeur est différente (permettre l'édition)
+        if value is not None and current_value != value:
             setattr(location, field, value)
             updated = True
+            logger.debug(f"Location.{field} mis à jour: {current_value} -> {value}")
 
     if updated:
         location.save()
@@ -412,14 +507,14 @@ def update_existing_location(location, data):
     """
     source = data.get("source")
 
-    # 1. Mettre à jour le Bien avec les champs manquants
-    update_bien_fields(location.bien, data)
+    # 1. Mettre à jour le Bien avec les champs manquants (en respectant les verrouillages)
+    update_bien_fields(location.bien, data, location_id=str(location.id))
 
-    # 2. Mettre à jour la Location (dates, solidaires)
-    update_location_fields(location, data)
+    # 2. Mettre à jour la Location (dates, solidaires) en respectant les verrouillages
+    update_location_fields(location, data, location_id=str(location.id))
 
     # 3. Mettre à jour ou créer les conditions financières (incluant dépôt de garantie)
-    create_or_update_rent_terms(location, data)
+    create_or_update_rent_terms(location, data, location_id=str(location.id))
 
     logger.info(f"Location {location.id} utilisée pour {source}")
     return location, location.bien
@@ -599,7 +694,7 @@ def get_bien_locations(request, bien_id):
             bail_actif = baux.filter(is_active=True).first()
 
             # Déterminer le statut global
-            status = bail_actif.status if bail_actif else "draft"
+            status = bail_actif.status if bail_actif else DocumentStatus.DRAFT
             signatures_completes = True
             pdf_url = None
             latest_pdf_url = None
@@ -669,7 +764,7 @@ def get_bien_locations(request, bien_id):
                     "id": bien.id,
                     "adresse": bien.adresse,
                     "type": bien.get_type_bien_display(),
-                    "superficie": float(bien.superficie),
+                    "superficie": float(bien.superficie) if bien.superficie else None,
                     "meuble": bien.meuble,
                 },
                 "locations": locations_data,
@@ -781,8 +876,8 @@ def get_location_documents(request, location_id):
                 from backend.pdf_utils import get_pdf_iframe_url
 
                 # Déterminer le statut du bail
-                status = "Signé" if bail.status == "signed" else "En cours"
-                if bail.status == "draft":
+                status = "Signé" if bail.status == DocumentStatus.SIGNED else "En cours"
+                if bail.status == DocumentStatus.DRAFT:
                     status = "Brouillon"
 
                 documents.append(

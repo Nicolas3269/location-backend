@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 def send_signature_email(signature_request, document_type="document"):
     """
     Envoie un email avec le lien de signature (sans OTP - généré à l'accès)
+    Met à jour le statut du document vers SIGNING si c'est le premier signataire.
 
     Args:
         signature_request: Instance de AbstractSignatureRequest
@@ -26,6 +27,16 @@ def send_signature_email(signature_request, document_type="document"):
     if not email:
         logger.error(f"Pas d'email pour {signature_request}")
         return False
+    
+    # Récupérer le document et mettre à jour son statut si c'est le premier signataire
+    document = signature_request.get_document()
+    if hasattr(document, 'status'):
+        from signature.document_status import DocumentStatus
+        # Si c'est le premier signataire (order = 1), passer en SIGNING
+        if signature_request.order == 1 and document.status == DocumentStatus.DRAFT:
+            document.status = DocumentStatus.SIGNING
+            document.save()
+            logger.info(f"Document {type(document).__name__} {document.id} passé en status SIGNING")
 
     # Convertir le document_type technique vers un nom lisible
     document_display_name = {

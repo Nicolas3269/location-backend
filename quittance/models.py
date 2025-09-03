@@ -75,28 +75,9 @@ class Quittance(BaseModel):
     
     def check_and_update_status(self):
         """Met à jour automatiquement le statut selon les signatures"""
-        # Pour les quittances, on pourrait avoir une logique différente
-        # car elles ne nécessitent pas forcément de signature
-        # Mais si on veut implémenter la signature :
-        from signature.document_status import DocumentStatus
-        current_status = self.status
-        
-        # Si des signatures sont requises (optionnel pour quittances)
-        if hasattr(self, 'signature_requests'):
-            if self.status == DocumentStatus.DRAFT:
-                if self.signature_requests.exists():
-                    self.status = DocumentStatus.SIGNING
-
-            if self.status == DocumentStatus.SIGNING:
-                if (
-                    self.signature_requests.exists()
-                    and not self.signature_requests.filter(signed=False).exists()
-                ):
-                    self.status = DocumentStatus.SIGNED
-        else:
-            # Si pas de signature requise, passer directement en SIGNED après génération
-            if self.status == DocumentStatus.DRAFT and self.pdf:
-                self.status = DocumentStatus.SIGNED
-
-        if current_status != self.status:
-            self.save(update_fields=["status"])
+        # Pour les quittances, le statut est géré différemment :
+        # - DRAFT lors de la création
+        # - SIGNED dès que le PDF est généré (fait dans generate_quittance_pdf)
+        # Cette méthode est là pour compatibilité mais ne fait rien pour les quittances
+        # car elles n'ont pas de processus de signature
+        pass

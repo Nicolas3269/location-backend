@@ -95,7 +95,7 @@ ZONE_TENDUE_STEPS = [
     },
 ]
 PERIODE_QUITTANCE_STEPS = [
-    {"id": "periode_quittance"},
+    {"id": "periode_quittance", "always_unlocked": True},  # Toujours éditable pour créer de nouvelles quittances
 ]
 DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS = [
     {"id": "equipements_chauffage"},

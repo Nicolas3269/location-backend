@@ -93,23 +93,19 @@ class FieldLockingService:
             return set()
 
         locked_steps = set()
+        steps_to_check = []  # Collecter toutes les steps à vérifier
 
         # Vérifier le bail
         if hasattr(location, "bail") and location.bail:
             bail: Bail = location.bail
             if bail.status in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
-                # Récupérer toutes les steps du bail depuis le serializer selon le pays
                 bail_serializer = cls._get_serializer_class("bail", country)
                 if bail_serializer:
                     bail_steps = bail_serializer.get_step_config()
-
-                    # Ajouter tous les IDs de steps du bail
-                    for step in bail_steps:
-                        locked_steps.add(step["id"])
-
-                logger.info(
-                    f"Bail {bail.id} is {bail.status}, locking {len(bail_steps)} steps"
-                )
+                    steps_to_check.extend(bail_steps)
+                    logger.info(
+                        f"Bail {bail.id} is {bail.status}, adding {len(bail_steps)} steps to check"
+                    )
 
         # Vérifier l'état des lieux d'entrée
         etat_entree = location.etats_lieux.filter(type_etat_lieux="entree").first()
@@ -117,18 +113,13 @@ class FieldLockingService:
             DocumentStatus.SIGNING,
             DocumentStatus.SIGNED,
         ]:
-            # Récupérer toutes les steps de l'état des lieux depuis le serializer
             etat_serializer = cls._get_serializer_class("etat_lieux", country)
             if etat_serializer:
                 etat_steps = etat_serializer.get_step_config()
-
-                # Ajouter tous les IDs de steps de l'état des lieux
-                for step in etat_steps:
-                    locked_steps.add(step["id"])
-
+                steps_to_check.extend(etat_steps)
                 logger.info(
                     f"État des lieux entrée {etat_entree.id} is {etat_entree.status}, "
-                    f"locking {len(etat_steps)} steps"
+                    f"adding {len(etat_steps)} steps to check"
                 )
 
         # Vérifier l'état des lieux de sortie
@@ -137,35 +128,34 @@ class FieldLockingService:
             DocumentStatus.SIGNING,
             DocumentStatus.SIGNED,
         ]:
-            # Pour l'état des lieux de sortie, on verrouille les mêmes steps
-            from location.serializers.france import FranceEtatLieuxSerializer
+            etat_serializer = cls._get_serializer_class("etat_lieux", country)
+            if etat_serializer:
+                etat_steps = etat_serializer.get_step_config()
+                steps_to_check.extend(etat_steps)
+                logger.info(
+                    f"État des lieux sortie {etat_sortie.id} is {etat_sortie.status}, "
+                    f"adding {len(etat_steps)} steps to check"
+                )
 
-            etat_steps = FranceEtatLieuxSerializer.get_step_config()
-
-            for step in etat_steps:
-                locked_steps.add(step["id"])
-
-            logger.info(
-                f"État des lieux sortie {etat_sortie.id} is {etat_sortie.status}, locking {len(etat_steps)} steps"
-            )
-
-        # Pour les quittances : on pourrait décider de ne pas verrouiller
-        # car les quittances sont mensuelles et ne modifient pas les données de base
-        # Mais si on veut verrouiller pendant la génération :
+        # Vérifier les quittances
         quittance_signing = location.quittances.filter(
             status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED]
         ).first()
         if quittance_signing:
-            from location.serializers.france import FranceQuittanceSerializer
+            serializer_class = cls._get_serializer_class("quittance", country)
+            if serializer_class:
+                quittance_steps = serializer_class.get_step_config()
+                steps_to_check.extend(quittance_steps)
+                logger.info(
+                    f"Quittance is {quittance_signing.status}, "
+                    f"adding {len(quittance_steps)} steps to check"
+                )
 
-            quittance_steps = FranceQuittanceSerializer.get_step_config()
-
-            for step in quittance_steps:
+        # Appliquer la logique always_unlocked une seule fois sur toutes les steps
+        for step in steps_to_check:
+            # Ne verrouiller que les steps qui ne sont pas marquées always_unlocked
+            if not step.get("always_unlocked", False):
                 locked_steps.add(step["id"])
-
-            logger.info(
-                f"Quittance is {quittance_signing.status}, locking {len(quittance_steps)} steps"
-            )
 
         if locked_steps:
             logger.info(

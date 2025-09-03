@@ -81,12 +81,14 @@ def get_or_create_quittance_for_location(location, validated_data):
             existing_quittance.save()
         return str(existing_quittance.id)
     
-    # Créer une nouvelle quittance
+    # Créer une nouvelle quittance avec le statut DRAFT par défaut
+    from signature.document_status import DocumentStatus
     quittance = Quittance.objects.create(
         location=location,
         mois=mois,
         annee=annee,
         date_paiement=date_paiement_obj,
+        status=DocumentStatus.DRAFT,
     )
     
     logger.info(f"Quittance créée: {quittance.id}")
@@ -232,6 +234,12 @@ def generate_quittance_pdf(request):
             # 2. Recharger dans quittance.pdf
             with open(tmp_pdf_path, "rb") as f:
                 quittance.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
+            
+            # 3. Mettre à jour le statut vers SIGNED car la quittance n'a pas besoin de signature
+            from signature.document_status import DocumentStatus
+            quittance.status = DocumentStatus.SIGNED
+            quittance.save(update_fields=["status"])
+            logger.info(f"Quittance {quittance.id} passée en status SIGNED après génération du PDF")
 
         finally:
             # 3. Supprimer le fichier temporaire

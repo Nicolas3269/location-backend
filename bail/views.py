@@ -528,7 +528,7 @@ def get_bail_bien_id(request, bail_id):
             {
                 "success": True,
                 "bail_id": bail_id,
-                "bien_id": bail.bien.id if bail.bien else None,
+                "bien_id": bail.location.bien.id if bail.location and bail.location.bien else None,
             }
         )
     except Exception as e:
@@ -552,7 +552,7 @@ def get_bien_detail(request, bien_id):
         # Vérifier que l'utilisateur a accès à ce bien
         # L'utilisateur doit être le signataire d'un des bailleurs du bien
         # ou être un locataire d'un bail sur ce bien
-        user_bails = Bail.objects.filter(bien=bien)
+        user_bails = Bail.objects.filter(location__bien=bien)
         has_access = False
 
         # Récupérer l'email de l'utilisateur connecté
@@ -567,7 +567,7 @@ def get_bien_detail(request, bien_id):
         # Si pas encore d'accès, vérifier si l'utilisateur est locataire
         if not has_access:
             for bail in user_bails:
-                if bail.locataires.filter(email=user_email).exists():
+                if bail.location.locataires.filter(email=user_email).exists():
                     has_access = True
                     break
 

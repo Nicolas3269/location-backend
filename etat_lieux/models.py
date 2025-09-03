@@ -11,6 +11,7 @@ from django.utils import timezone
 from location.models import BaseModel, Bien, Locataire, Location, Personne
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
+from signature.document_status import DocumentStatus
 
 
 class EtatLieuxType(models.TextChoices):
@@ -40,6 +41,11 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     )
 
     type_etat_lieux = models.CharField(max_length=10, choices=EtatLieuxType.choices)
+    
+    # Statut du document
+    status = models.CharField(
+        max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.DRAFT
+    )
 
     # Date de l'état des lieux
     date_etat_lieux = models.DateField(default=timezone.now)
@@ -65,6 +71,8 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         verbose_name_plural = "États des lieux"
         ordering = ["-created_at"]
         db_table = "etat_lieux_etatlieux"
+        # Unicité : un seul état des lieux par type (entrée/sortie) et par location
+        unique_together = [['location', 'type_etat_lieux']]
 
     def __str__(self):
         type_display = self.get_type_etat_lieux_display()

@@ -12,14 +12,7 @@ from django.utils import timezone
 from location.models import BaseModel, Bien, Locataire, Location, Personne
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
-
-
-class BailStatus(models.TextChoices):
-    """Statuts possibles pour un bail"""
-
-    DRAFT = "draft", "Brouillon"
-    SIGNING_IN_PROGRESS = "signing_in_progress", "En cours de signature"
-    SIGNED = "signed", "Signé et finalisé"
+from signature.document_status import DocumentStatus
 
 
 # Les modèles Personne, Societe, Mandataire, Bailleur, Bien, Locataire restent inchangés
@@ -29,15 +22,15 @@ class BailStatus(models.TextChoices):
 class Bail(SignableDocumentMixin, BaseModel):
     """Contrat de bail (ex-Bail)"""
 
-    location = models.ForeignKey(
-        Location, on_delete=models.CASCADE, related_name="bails"
+    location = models.OneToOneField(
+        Location, on_delete=models.CASCADE, related_name="bail"
     )
 
     # Version et statut
     version = models.PositiveIntegerField(default=1)
     is_active = models.BooleanField(default=True)
     status = models.CharField(
-        max_length=20, choices=BailStatus.choices, default=BailStatus.DRAFT
+        max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.DRAFT
     )
 
     # Durée
@@ -80,16 +73,16 @@ class Bail(SignableDocumentMixin, BaseModel):
         """Met à jour automatiquement le statut selon les signatures"""
         current_status = self.status
 
-        if self.status == BailStatus.DRAFT:
+        if self.status == DocumentStatus.DRAFT:
             if self.signature_requests.exists():
-                self.status = BailStatus.SIGNING_IN_PROGRESS
+                self.status = DocumentStatus.SIGNING
 
-        if self.status == BailStatus.SIGNING_IN_PROGRESS:
+        if self.status == DocumentStatus.SIGNING:
             if (
                 self.signature_requests.exists()
                 and not self.signature_requests.filter(signed=False).exists()
             ):
-                self.status = BailStatus.SIGNED
+                self.status = DocumentStatus.SIGNED
 
         if current_status != self.status:
             self.save(update_fields=["status"])

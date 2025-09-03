@@ -94,19 +94,19 @@ class QuittanceAdmin(admin.ModelAdmin):
     def location_info(self, obj):
         """Affiche les informations de la location avec lien"""
         location_url = reverse("admin:location_location_change", args=[obj.location.pk])
-        locataires = ", ".join([f"{loc.firstName} {loc.lastName}" for loc in obj.location.locataires.all()])
-        
-        # Chercher s'il y a un bail actif pour cette location
-        bail = obj.location.bails.filter(is_active=True).first()
+        locataires = ", ".join(
+            [f"{loc.firstName} {loc.lastName}" for loc in obj.location.locataires.all()]
+        )
+
+        # Chercher s'il y a un bail pour cette location
+        bail = obj.location.bail if hasattr(obj.location, "bail") else None
         bail_link = ""
         if bail:
             bail_url = reverse("admin:bail_bail_change", args=[bail.pk])
             bail_link = f'<br><small><a href="{bail_url}" title="Voir le bail">📋 Bail actif</a></small>'
-        
+
         return format_html(
-            '<a href="{}" title="Voir la location">{}</a><br>'
-            "<small>{}</small>"
-            "{}",
+            '<a href="{}" title="Voir la location">{}</a><br><small>{}</small>{}',
             location_url,
             obj.location.bien.adresse,
             locataires,

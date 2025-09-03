@@ -323,10 +323,9 @@ def get_or_create_bail_for_location(location):
     from bail.models import Bail
 
     # Vérifier si un bail existe déjà pour cette location
-    existing_bail = Bail.objects.filter(location=location).first()
-    if existing_bail:
-        logger.info(f"Bail existant trouvé: {existing_bail.id}")
-        return existing_bail.id
+    if hasattr(location, 'bail'):
+        logger.info(f"Bail existant trouvé: {location.bail.id}")
+        return location.bail.id
 
     # Créer un nouveau bail
     bail = Bail.objects.create(

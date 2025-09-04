@@ -6,378 +6,618 @@
     <title>État des lieux {{ etat_lieux.get_type_etat_lieux_display }}</title>
     <style>
         @page {
-            margin: 2cm;
+            margin: 1.5cm;
             size: A4;
         }
         
         body {
             font-family: Ubuntu, DejaVu Sans, Arial, Helvetica, sans-serif;
-            font-size: 12pt;
+            font-size: 10pt;
             color: #3e3c41;
             background-color: #ffffff;
-            line-height: 1.6em;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
         }
         
         h1, h2, h3 {
             color: #2680eb;
-            margin-top: 2em;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
         }
         
-        .document-title {
+        .document-header {
+            background-color: #2680eb;
+            color: white;
+            padding: 25px;
+            margin: -1.5cm -1.5cm 15px -1.5cm;
             text-align: center;
-            font-size: 20pt;
-            font-weight: bold;
-            margin-top: 0;
-            margin-bottom: 0.2cm;
-            color: #2680eb;
+            position: relative;
         }
         
-        .document-subtitle {
-            text-align: center;
+        .document-header h1 {
+            font-size: 22pt;
+            margin: 0;
+            color: white;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        
+        .document-header .date-type {
             font-size: 12pt;
-            font-style: italic;
-            margin-bottom: 2cm;
-            color: #3e3c41;
+            margin-top: 10px;
+            font-weight: 500;
+            opacity: 1;
         }
         
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #2680eb;
-            padding-bottom: 20px;
+        .document-header .checkbox {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid white;
+            background-color: transparent;
+            margin-right: 6px;
+            vertical-align: middle;
+            position: relative;
         }
         
-        .header h1 {
-            font-size: 20pt;
-            margin-bottom: 10px;
+        .document-header .checkbox.checked {
+            background-color: white;
+        }
+        
+        .document-header .checkbox.checked:after {
+            content: '✓';
             color: #2680eb;
+            position: absolute;
+            left: 2px;
+            top: -2px;
+            font-size: 14px;
             font-weight: bold;
         }
         
-        .bien-info {
+        .info-section {
             background-color: #f5f7f9;
-            padding: 15px;
-            margin-bottom: 20px;
-            border: 1px solid #3e3c41;
-            border-left: 4px solid #3e3c41;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #e3e5e8;
         }
         
-        .bien-info h2 {
-            margin-top: 0;
-            font-size: 16pt;
-            color: #3e3c41;
-            font-weight: bold;
+        .info-section h2 {
+            margin: 0 0 10px 0;
+            font-size: 12pt;
+            color: #2680eb;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 8px;
+            margin-top: 8px;
         }
         
         .info-item {
-            margin-bottom: 0.5em;
-            line-height: 1.6em;
+            margin-bottom: 4px;
+            font-size: 9pt;
+            display: flex;
+            align-items: flex-start;
         }
         
         .info-label {
-            font-weight: bold;
+            font-weight: 600;
+            color: #6c6b70;
             display: inline-block;
-            width: 120px;
+            min-width: 100px;
+            margin-right: 8px;
+        }
+        
+        .info-value {
+            color: #3e3c41;
+            font-weight: 400;
+        }
+        
+        .compact-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+        }
+        
+        .compact-table th,
+        .compact-table td {
+            padding: 6px 8px;
+            border: 1px solid #e3e5e8;
+            text-align: left;
+        }
+        
+        .compact-table th {
+            background-color: #2680eb;
+            color: white;
+            font-weight: 600;
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .compact-table td {
+            background-color: white;
+        }
+        
+        .compact-table tr:nth-child(even) td {
+            background-color: #f9fafb;
         }
         
         .piece {
-            margin-bottom: 30px;
-            border: 1px solid #3e3c41;
+            margin-bottom: 15px;
+            border: 1px solid #e3e5e8;
+            border-radius: 6px;
             page-break-inside: avoid;
+            overflow: hidden;
         }
         
         .piece-header {
-            background-color: #3e3c41;
+            background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
             color: white;
-            padding: 10px;
-            font-weight: bold;
-            font-size: 14pt;
+            padding: 8px 12px;
+            font-weight: 600;
+            font-size: 11pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .piece-content {
-            padding: 15px;
+            padding: 10px;
+            background-color: white;
         }
         
         .elements-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+            font-size: 9pt;
         }
         
         .elements-table th,
         .elements-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            border: 1px solid #e3e5e8;
+            padding: 5px 8px;
             text-align: left;
-            line-height: 1.6em;
+            line-height: 1.3;
         }
         
         .elements-table th {
             background-color: #f5f7f9;
-            font-weight: bold;
+            font-weight: 600;
             color: #2680eb;
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         
-        .state-excellent { background-color: #d4edda; }
-        .state-good { background-color: #d1ecf1; }
-        .state-fair { background-color: #ffeaa7; }
-        .state-poor { background-color: #f8d7da; }
-        .state-empty { background-color: #f8f9fa; }
+        .state-excellent { 
+            color: #155724;
+            font-weight: 600;
+        }
+        .state-good { 
+            color: #004085;
+            font-weight: 600;
+        }
+        .state-fair { 
+            color: #856404;
+            font-weight: 600;
+        }
+        .state-poor { 
+            color: #721c24;
+            font-weight: 600;
+        }
+        .state-empty { 
+            color: #6c6b70;
+        }
         
         .equipment-section {
-            margin-top: 20px;
+            margin-top: 10px;
+            background-color: #f9fafb;
+            border-radius: 4px;
+            padding: 8px;
         }
         
         .equipment-section h4 {
             color: #2680eb;
-            font-weight: bold;
-            margin-bottom: 10px;
+            font-weight: 600;
+            margin: 0 0 6px 0;
+            font-size: 10pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         
         .equipment-list {
             list-style: none;
             padding: 0;
-            margin: 10px 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 4px;
         }
         
         .equipment-item {
-            background-color: #f5f7f9;
-            padding: 8px;
-            margin-bottom: 5px;
-            border-left: 3px solid #2680eb;
-            line-height: 1.6em;
+            background-color: white;
+            padding: 4px 8px;
+            border-left: 2px solid #2680eb;
+            font-size: 9pt;
+            line-height: 1.3;
         }
         
         .signature-section {
-            margin-top: 40px;
+            margin-top: 30px;
             page-break-before: always;
-            margin-bottom: 0;
+            background-color: #f5f7f9;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e3e5e8;
         }
         
         .signature-section h2 {
             color: #2680eb;
-            font-weight: bold;
-            margin-bottom: 20px;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            font-size: 12pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .signature {
             margin-top: 0;
         }
         
-        .signature-list {
-            display: block;
+        .signature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .signature-group h4 {
+            color: #3e3c41;
+            font-weight: 600;
+            margin: 0 0 10px 0;
+            font-size: 10pt;
         }
         
         .signature-block {
-            width: 45%;
-            text-align: left;
-            margin-bottom: 40px;
-            min-height: 182px;
-            border-bottom: 1px dotted #999;
+            background-color: white;
+            border: 1px solid #e3e5e8;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 100px;
+            margin-bottom: 10px;
+            position: relative;
         }
         
-        .signature h4 {
-            color: #3e3c41;
-            font-weight: bold;
-            margin-bottom: 15px;
+        .signature-block p {
+            color: white;
+            margin: 0;
+            font-size: 1pt;
         }
         
         .date-field {
-            margin-top: 20px;
-            font-size: 11pt;
-            color: #3e3c41;
+            margin-top: 15px;
+            font-size: 9pt;
+            color: #6c6b70;
         }
         
         .comments-section {
-            margin-top: 20px;
-            min-height: 80px;
-            border: 2px solid #3e3c41;
-            padding: 15px;
-            background-color: #f5f7f9;
+            margin-top: 15px;
+            min-height: 60px;
+            border: 1px solid #e3e5e8;
+            border-radius: 6px;
+            padding: 10px;
+            background-color: #f9fafb;
         }
         
         .comments-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #3e3c41;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2680eb;
+            font-size: 10pt;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
         
         .photos-section {
-            margin-top: 15px;
-        }
-        
-        .photos-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
             margin-top: 10px;
         }
         
+        .photos-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+            justify-content: flex-start;
+        }
+        
         .photo-item {
-            border: 1px solid #2680eb;
+            border: 1px solid #e3e5e8;
             padding: 8px;
             text-align: center;
-            background-color: #f5f7f9;
+            background-color: white;
+            border-radius: 4px;
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         .photo-image {
-            max-width: 100%;
-            max-height: 120px;
+            max-width: 200px;
+            max-height: 150px;
+            min-width: 100px;
+            min-height: 80px;
             width: auto;
             height: auto;
+            object-fit: contain;
         }
         
         .photo-caption {
-            font-size: 10pt;
-            color: #2680eb;
-            margin-top: 5px;
+            font-size: 8pt;
+            color: #6c6b70;
+            margin-top: 2px;
             font-style: italic;
         }
         
         .element-photos {
-            margin-top: 10px;
+            margin-top: 8px;
             padding: 10px;
-            background-color: #f5f7f9;
-            border-left: 3px solid #2680eb;
+            background-color: #f9fafb;
+            border-left: 2px solid #2680eb;
+            border-radius: 4px;
         }
         
         .element-photos h5 {
             color: #2680eb;
-            margin-bottom: 10px;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+            font-size: 9pt;
+        }
+        
+        .element-photos .photos-grid {
+            max-width: 100%;
+            overflow-wrap: break-word;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 8pt;
+            font-weight: 500;
+            background-color: #2680eb;
+            color: white;
+            margin-left: 8px;
+        }
+        
+        .checkbox-group {
+            display: inline-flex;
+            gap: 15px;
+            margin-left: 10px;
+        }
+        
+        .checkbox-item {
+            font-size: 9pt;
+        }
+        
+        .checkbox {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #6c6b70;
+            border-radius: 3px;
+            margin-right: 6px;
+            vertical-align: middle;
+            background-color: white;
+            position: relative;
+        }
+        
+        .checkbox.checked {
+            background-color: #2680eb;
+            border-color: #2680eb;
+        }
+        
+        .checkbox.checked:after {
+            content: '✓';
+            color: white;
+            position: absolute;
+            left: 1px;
+            top: -3px;
+            font-size: 12px;
             font-weight: bold;
         }
     </style>
 </head>
 <body>
     <!-- En-tête du document -->
-    <div class="header">
-        <h1>{{ etat_lieux.get_type_etat_lieux_display }}</h1>
-        <p style="text-align: center; margin-top: 10px; font-size: 14pt; color: #4a6b85;">
+    <div class="document-header">
+        <h1>État des lieux</h1>
+        <div class="date-type">
             {% if etat_lieux.type_etat_lieux == "entree" %}
-                Date d'entrée : {{ etat_lieux.date_etat_lieux|date:"d F Y"|default:"Non renseignée" }}
+                <div style="margin-bottom: 8px;">
+                    <span class="checkbox checked"></span><strong style="margin-right: 30px;">ENTRÉE</strong>
+                    <span class="checkbox"></span><strong>SORTIE</strong>
+                </div>
+                <div style="font-size: 11pt;">
+                    Date d'entrée : <strong>{{ etat_lieux.date_etat_lieux|date:"d/m/Y"|default:"../../...." }}</strong>
+                </div>
             {% else %}
-                Date de sortie : {{ etat_lieux.date_etat_lieux|date:"d F Y"|default:"Non renseignée" }}
+                <div style="margin-bottom: 8px;">
+                    <span class="checkbox"></span><strong style="margin-right: 30px;">ENTRÉE</strong>
+                    <span class="checkbox checked"></span><strong>SORTIE</strong>
+                </div>
+                <div style="font-size: 11pt;">
+                    Date de sortie : <strong>{{ etat_lieux.date_etat_lieux|date:"d/m/Y"|default:"../../...." }}</strong>
+                </div>
             {% endif %}
-        </p>
-    </div>
-
-    <!-- Informations du bien -->
-    <div class="bien-info">
-        <h2>Informations du bien</h2>
-        <div class="info-grid">
-            <div class="info-item">
-                <span class="info-label">Adresse :</span>
-                {{ etat_lieux.location.bien.adresse }}
-            </div>
-            <div class="info-item">
-                <span class="info-label">Type :</span>
-                {{ etat_lieux.location.bien.get_type_bien_display }}
-            </div>
-            <div class="info-item">
-                <span class="info-label">Superficie :</span>
-                {{ etat_lieux.location.bien.superficie }} m²
-            </div>
-            <div class="info-item">
-                <span class="info-label">Meublé :</span>
-                {% if etat_lieux.location.bien.meuble %}Oui{% else %}Non{% endif %}
-            </div>
         </div>
     </div>
 
-    <!-- Informations complémentaires -->
+    <!-- Adresse du logement -->
+    <div class="info-section" style="padding: 20px;">
+        <h2>Adresse du logement</h2>
+        <div style="font-size: 13pt; color: #3e3c41; font-weight: 600; margin-bottom: 15px;">
+            {{ etat_lieux.location.bien.adresse }}
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 10pt;">
+            <div>
+                <span class="info-label">Type de bien :</span>
+                <span class="info-value" style="font-size: 10pt;">{{ etat_lieux.location.bien.get_type_bien_display }}</span>
+            </div>
+            <div>
+                <span class="info-label">Meublé :</span>
+                <span class="info-value" style="font-size: 10pt;">{% if etat_lieux.location.bien.meuble %}Oui{% else %}Non{% endif %}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Parties -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <!-- Bailleur -->
+        <div class="info-section">
+            <h2>Le bailleur (ou son mandataire)</h2>
+            {% for bailleur in etat_lieux.location.bien.bailleurs.all|slice:":1" %}
+            <div style="font-size: 9pt;">
+                <div style="margin-bottom: 4px;">
+                    <span class="info-label">Nom :</span>
+                    <span class="info-value">{{ bailleur.signataire.prenom }} {{ bailleur.signataire.nom }}</span>
+                </div>
+                <div>
+                    <span class="info-label">Domicile :</span>
+                    <span class="info-value">{{ bailleur.signataire.adresse|default:"" }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Locataire -->
+        <div class="info-section">
+            <h2>Le locataire</h2>
+            {% for locataire in etat_lieux.location.locataires.all|slice:":1" %}
+            <div style="font-size: 9pt;">
+                <div style="margin-bottom: 4px;">
+                    <span class="info-label">Nom :</span>
+                    <span class="info-value">{{ locataire.prenom }} {{ locataire.nom }}</span>
+                </div>
+                {% if etat_lieux.type_etat_lieux == "sortie" %}
+                <div>
+                    <span class="info-label">Nouvelle adresse :</span>
+                    <span class="info-value">{{ locataire.adresse|default:"" }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Clés remises -->
     {% if etat_lieux.nombre_cles %}
-    <div class="bien-info">
+    <div class="info-section" style="padding: 20px;">
         <h2>Clés remises</h2>
-        <div class="info-grid">
-            <table style="width: 100%; border-collapse: collapse;">
-                <tbody>
-                    {% if etat_lieux.nombre_cles.immeuble and etat_lieux.nombre_cles.immeuble.count > 0 %}
-                    <tr>
-                        <td style="padding: 5px 8px; width: 200px;">Immeuble :</td>
-                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.immeuble.count }} clé{% if etat_lieux.nombre_cles.immeuble.count > 1 %}s{% endif %}</td>
-                    </tr>
-                    {% endif %}
-                    
-                    {% if etat_lieux.nombre_cles.entree and etat_lieux.nombre_cles.entree.count > 0 %}
-                    <tr>
-                        <td style="padding: 5px 8px; width: 200px;">Entrée :</td>
-                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.entree.count }} clé{% if etat_lieux.nombre_cles.entree.count > 1 %}s{% endif %}</td>
-                    </tr>
-                    {% endif %}
-                    
-                    {% if etat_lieux.nombre_cles.boiteAuxLettres and etat_lieux.nombre_cles.boiteAuxLettres.count > 0 %}
-                    <tr>
-                        <td style="padding: 5px 8px; width: 200px;">Boîte aux lettres :</td>
-                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.boiteAuxLettres.count }} clé{% if etat_lieux.nombre_cles.boiteAuxLettres.count > 1 %}s{% endif %}</td>
-                    </tr>
-                    {% endif %}
-                    
-                    {% if etat_lieux.nombre_cles.cave and etat_lieux.nombre_cles.cave.count > 0 %}
-                    <tr>
-                        <td style="padding: 5px 8px; width: 200px;">Cave :</td>
-                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.cave.count }} clé{% if etat_lieux.nombre_cles.cave.count > 1 %}s{% endif %}</td>
-                    </tr>
-                    {% endif %}
-                    
-                    {% if etat_lieux.nombre_cles.portail and etat_lieux.nombre_cles.portail.count > 0 %}
-                    <tr>
-                        <td style="padding: 5px 8px; width: 200px;">Portail :</td>
-                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.portail.count }} clé{% if etat_lieux.nombre_cles.portail.count > 1 %}s{% endif %}</td>
-                    </tr>
-                    {% endif %}
-                    
-                    {% if etat_lieux.nombre_cles.parking and etat_lieux.nombre_cles.parking.count > 0 %}
-                    <tr>
-                        <td style="padding: 5px 8px; width: 200px;">Parking :</td>
-                        <td style="padding: 5px 8px;">{{ etat_lieux.nombre_cles.parking.count }} clé{% if etat_lieux.nombre_cles.parking.count > 1 %}s{% endif %}</td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; row-gap: 12px; font-size: 10pt;">
+            {% if etat_lieux.nombre_cles.immeuble and etat_lieux.nombre_cles.immeuble.count > 0 %}
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="info-label" style="min-width: 150px;">Clés immeuble</span>
+                <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.immeuble.count }}</span>
+            </div>
+            {% endif %}
+            
+            {% if etat_lieux.nombre_cles.entree and etat_lieux.nombre_cles.entree.count > 0 %}
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="info-label" style="min-width: 150px;">Clés porte d'entrée</span>
+                <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.entree.count }}</span>
+            </div>
+            {% endif %}
+            
+            {% if etat_lieux.nombre_cles.boiteAuxLettres and etat_lieux.nombre_cles.boiteAuxLettres.count > 0 %}
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="info-label" style="min-width: 150px;">Boîte aux lettres</span>
+                <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.boiteAuxLettres.count }}</span>
+            </div>
+            {% endif %}
+            
+            {% if etat_lieux.nombre_cles.cave and etat_lieux.nombre_cles.cave.count > 0 %}
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="info-label" style="min-width: 150px;">Clés cave</span>
+                <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.cave.count }}</span>
+            </div>
+            {% endif %}
+            
+            {% if etat_lieux.nombre_cles.portail and etat_lieux.nombre_cles.portail.count > 0 %}
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="info-label" style="min-width: 150px;">Badge/clé portail</span>
+                <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.portail.count }}</span>
+            </div>
+            {% endif %}
+            
+            {% if etat_lieux.nombre_cles.parking and etat_lieux.nombre_cles.parking.count > 0 %}
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="info-label" style="min-width: 150px;">Parking</span>
+                <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.parking.count }}</span>
+            </div>
+            {% endif %}
         </div>
     </div>
     {% endif %}
 
     {% if etat_lieux.location.bien.chauffage_energie or etat_lieux.location.bien.eau_chaude_energie or etat_lieux.equipements_chauffage %}
-    <div class="bien-info">
-        <h2>Chauffage et eau chaude</h2>
-        <div class="info-grid">
+    <div class="info-section" style="padding: 20px;">
+        <h2>Chauffage et eau chaude sanitaire</h2>
+        <div style="font-size: 10pt;">
             {% if etat_lieux.location.bien.chauffage_energie %}
-            <div class="info-row" style="margin-bottom: 20px;">
-                <div style="margin-bottom: 8px;">
-                    <span class="info-label" style="font-weight: bold; display: inline-block; min-width: 150px;">Chauffage :</span>
-                    <span style="text-transform: capitalize;">{{ etat_lieux.location.bien.chauffage_energie|default:"Non renseigné" }}</span>
-                </div>
-                <div style="margin-left: 20px;">
-                    <span style="margin-right: 40px;">
-                        {% if etat_lieux.location.bien.chauffage_type == "collectif" %}☑{% else %}☐{% endif %} Collectif
-                    </span>
-                    <span>
-                        {% if etat_lieux.location.bien.chauffage_type == "individuel" %}☑{% else %}☐{% endif %} Individuel
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center;">
+                    <span class="info-label" style="font-size: 11pt; font-weight: 600; display: inline-block; min-width: 120px;">Chauffage :</span>
+                    <span style="font-size: 11pt; margin-left: 20px;">
+                        {% if etat_lieux.location.bien.chauffage_type == 'collectif' %}
+                            <span class="checkbox checked"></span> Collectif
+                        {% elif etat_lieux.location.bien.chauffage_type == 'individuel' %}
+                            <span class="checkbox checked"></span> Individuel
+                        {% endif %}
+                        <span style="margin-left: 30px;">
+                            {% if etat_lieux.location.bien.chauffage_energie == 'electricite' %}
+                                <span class="checkbox checked"></span> Électrique
+                            {% elif etat_lieux.location.bien.chauffage_energie == 'gaz' %}
+                                <span class="checkbox checked"></span> Gaz
+                            {% elif etat_lieux.location.bien.chauffage_energie == 'fioul' %}
+                                <span class="checkbox checked"></span> Fioul
+                            {% elif etat_lieux.location.bien.chauffage_energie %}
+                                <span class="checkbox checked"></span> Autre : {{ etat_lieux.location.bien.chauffage_energie|capfirst }}
+                            {% endif %}
+                        </span>
                     </span>
                 </div>
             </div>
             {% endif %}
             
             {% if etat_lieux.location.bien.eau_chaude_energie %}
-            <div class="info-row" style="margin-bottom: 20px;">
-                <div style="margin-bottom: 8px;">
-                    <span class="info-label" style="font-weight: bold; display: inline-block; min-width: 150px;">Eau chaude :</span>
-                    <span style="text-transform: capitalize;">{{ etat_lieux.location.bien.eau_chaude_energie|default:"Non renseigné" }}</span>
-                </div>
-                <div style="margin-left: 20px;">
-                    <span style="margin-right: 40px;">
-                        {% if etat_lieux.location.bien.eau_chaude_type == "collectif" %}☑{% else %}☐{% endif %} Collectif
-                    </span>
-                    <span>
-                        {% if etat_lieux.location.bien.eau_chaude_type == "individuel" %}☑{% else %}☐{% endif %} Individuel
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; align-items: center;">
+                    <span class="info-label" style="font-size: 11pt; font-weight: 600; display: inline-block; min-width: 120px;">Eau chaude :</span>
+                    <span style="font-size: 11pt; margin-left: 20px;">
+                        {% if etat_lieux.location.bien.eau_chaude_type == 'collectif' %}
+                            <span class="checkbox checked"></span> Collectif
+                        {% elif etat_lieux.location.bien.eau_chaude_type == 'individuel' %}
+                            <span class="checkbox checked"></span> Individuel
+                        {% endif %}
+                        <span style="margin-left: 30px;">
+                            {% if etat_lieux.location.bien.eau_chaude_energie == 'electricite' %}
+                                <span class="checkbox checked"></span> Électrique
+                            {% elif etat_lieux.location.bien.eau_chaude_energie == 'gaz' %}
+                                <span class="checkbox checked"></span> Gaz
+                            {% elif etat_lieux.location.bien.eau_chaude_energie == 'fioul' %}
+                                <span class="checkbox checked"></span> Fioul
+                            {% elif etat_lieux.location.bien.eau_chaude_energie %}
+                                <span class="checkbox checked"></span> Autre : {{ etat_lieux.location.bien.eau_chaude_energie|capfirst }}
+                            {% endif %}
+                        </span>
                     </span>
                 </div>
             </div>
@@ -385,30 +625,25 @@
 
             {% if etat_lieux.equipements_chauffage %}
                 {% if etat_lieux.equipements_chauffage.radiateurs or etat_lieux.equipements_chauffage.chaudiere or etat_lieux.equipements_chauffage.chauffeEau %}
-                <div class="info-row" style="margin-top: 15px;">
-                    <div style="font-weight: bold; margin-bottom: 8px;">Équipements installés :</div>
-                    <ul style="margin: 0 0 5px 20px; padding-left: 10px; list-style-type: none;">
+                <div style="display: flex; justify-content: space-between; gap: 30px; margin-top: 20px; padding-top: 15px; border-top: 1px solid #e3e5e8;">
                     {% if etat_lieux.equipements_chauffage.radiateurs %}
-                        <li style="margin-bottom: 3px;">• Radiateurs : {{ etat_lieux.equipements_chauffage.radiateurs }}</li>
+                        <div style="flex: 1;">
+                            <span class="info-label" style="display: block; margin-bottom: 4px;">Nombre de radiateurs :</span>
+                            <span class="info-value" style="font-size: 11pt; font-weight: 600;">{{ etat_lieux.equipements_chauffage.radiateurs }}</span>
+                        </div>
                     {% endif %}
                     {% if etat_lieux.equipements_chauffage.chaudiere %}
-                        <li style="margin-bottom: 3px;">• Chaudière : {{ etat_lieux.equipements_chauffage.chaudiere }}</li>
+                        <div style="flex: 1;">
+                            <span class="info-label" style="display: block; margin-bottom: 4px;">Chaudière :</span>
+                            <span class="info-value" style="font-size: 11pt; font-weight: 600;">{{ etat_lieux.equipements_chauffage.chaudiere }}</span>
+                        </div>
                     {% endif %}
                     {% if etat_lieux.equipements_chauffage.chauffeEau %}
-                        <li style="margin-bottom: 3px;">• Chauffe-eau : {{ etat_lieux.equipements_chauffage.chauffeEau }}</li>
+                        <div style="flex: 1;">
+                            <span class="info-label" style="display: block; margin-bottom: 4px;">Chauffe-eau :</span>
+                            <span class="info-value" style="font-size: 11pt; font-weight: 600;">{{ etat_lieux.equipements_chauffage.chauffeEau }}</span>
+                        </div>
                     {% endif %}
-                    </ul>
-                </div>
-                {% endif %}
-                
-                {% if etat_lieux.equipements_chauffage.equipements %}
-                <div class="info-row" style="margin-top: 15px;">
-                    <div style="font-weight: bold; margin-bottom: 8px;">Autres équipements :</div>
-                    <ul style="margin: 0 0 5px 20px; padding-left: 10px; list-style-type: none;">
-                    {% for equipement in etat_lieux.equipements_chauffage.equipements %}
-                        <li style="margin-bottom: 3px;">• {{ equipement }}</li>
-                    {% endfor %}
-                    </ul>
                 </div>
                 {% endif %}
             {% endif %}
@@ -416,105 +651,76 @@
     </div>
     {% endif %}
 
+    <!-- Identification compteurs et relevés -->
     {% if etat_lieux.compteurs %}
-    <div class="bien-info">
-        <h2>Relevés des compteurs</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+    <div class="info-section">
+        <h2>Identification compteurs et relevés</h2>
+        <table class="compact-table">
             <thead>
-                <tr style="border-bottom: 2px solid #4a6b85;">
-                    <th style="text-align: left; padding: 10px 8px; font-weight: bold; width: 25%;">Type</th>
-                    <th style="text-align: left; padding: 10px 8px; font-weight: bold; width: 35%;">N° Compteur</th>
-                    <th style="text-align: left; padding: 10px 8px; font-weight: bold; width: 40%;">Relevé</th>
+                <tr>
+                    <th style="width: 20%;">Type</th>
+                    <th style="width: 35%;">N° Compteur</th>
+                    <th style="width: 45%;">Relevé</th>
                 </tr>
             </thead>
-                <tbody>
-                    {% if etat_lieux.compteurs.electricite %}
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 8px; vertical-align: top;">Électricité</td>
-                        <td style="padding: 8px; vertical-align: top;">{{ etat_lieux.compteurs.electricite.numero|default:"-" }}</td>
-                        <td style="padding: 8px;">
-                            {% if etat_lieux.compteurs.electricite.hp or etat_lieux.compteurs.electricite.hc %}
-                                {% if etat_lieux.compteurs.electricite.hp %}
-                                    <div>Heures pleines : {{ etat_lieux.compteurs.electricite.hp }} kWh</div>
-                                {% endif %}
-                                {% if etat_lieux.compteurs.electricite.hc %}
-                                    <div>Heures creuses : {{ etat_lieux.compteurs.electricite.hc }} kWh</div>
-                                {% endif %}
-                            {% elif etat_lieux.compteurs.electricite.releve %}
-                                {{ etat_lieux.compteurs.electricite.releve }} kWh
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endif %}
+            <tbody>
+                {% if etat_lieux.compteurs.electricite %}
+                <tr>
+                    <td>Électricité</td>
+                    <td>{{ etat_lieux.compteurs.electricite.numero|default:"-" }}</td>
+                    <td>
+                        {% if etat_lieux.compteurs.electricite.hp or etat_lieux.compteurs.electricite.hc %}
+                            HP: {{ etat_lieux.compteurs.electricite.hp|default:"-" }} / HC: {{ etat_lieux.compteurs.electricite.hc|default:"-" }}
+                        {% elif etat_lieux.compteurs.electricite.releve %}
+                            {{ etat_lieux.compteurs.electricite.releve }} kWh
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
                     
-                    {% if etat_lieux.compteurs.gaz %}
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 8px; vertical-align: top;">Gaz</td>
-                        <td style="padding: 8px; vertical-align: top;">{{ etat_lieux.compteurs.gaz.numero|default:"-" }}</td>
-                        <td style="padding: 8px;">
-                            {% if etat_lieux.compteurs.gaz.index %}
-                                Index : {{ etat_lieux.compteurs.gaz.index }} m³
-                            {% elif etat_lieux.compteurs.gaz.releve %}
-                                {{ etat_lieux.compteurs.gaz.releve }} m³
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endif %}
+                {% if etat_lieux.compteurs.gaz %}
+                <tr>
+                    <td>Gaz</td>
+                    <td>{{ etat_lieux.compteurs.gaz.numero|default:"-" }}</td>
+                    <td>
+                        {% if etat_lieux.compteurs.gaz.index %}
+                            {{ etat_lieux.compteurs.gaz.index }} m³
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
                     
-                    {% if etat_lieux.compteurs.eau %}
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 8px; vertical-align: top;">Eau</td>
-                        <td style="padding: 8px; vertical-align: top;">{{ etat_lieux.compteurs.eau.numero|default:"-" }}</td>
-                        <td style="padding: 8px;">
-                            {% if etat_lieux.compteurs.eau.froide or etat_lieux.compteurs.eau.chaude %}
-                                {% if etat_lieux.compteurs.eau.froide %}
-                                    <div>Eau froide : {{ etat_lieux.compteurs.eau.froide }} m³</div>
-                                {% endif %}
-                                {% if etat_lieux.compteurs.eau.chaude %}
-                                    <div>Eau chaude : {{ etat_lieux.compteurs.eau.chaude }} m³</div>
-                                {% endif %}
-                            {% elif etat_lieux.compteurs.eau.releve %}
-                                {{ etat_lieux.compteurs.eau.releve }} m³
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endif %}
-                    
-                    {% if etat_lieux.compteurs.fioul %}
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 8px;">Fioul</td>
-                        <td style="padding: 8px;">-</td>
-                        <td style="padding: 8px;">{{ etat_lieux.compteurs.fioul.releve|default:"-" }}</td>
-                    </tr>
-                    {% endif %}
-                    
-                    {% if etat_lieux.compteurs.bois %}
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 8px;">Bois</td>
-                        <td style="padding: 8px;">-</td>
-                        <td style="padding: 8px;">{{ etat_lieux.compteurs.bois.releve|default:"-" }}</td>
-                    </tr>
-                    {% endif %}
-                    
-                    {% if etat_lieux.compteurs.autre %}
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 8px;">Autre</td>
-                        <td style="padding: 8px;">-</td>
-                        <td style="padding: 8px;">{{ etat_lieux.compteurs.autre.releve|default:"-" }}</td>
-                    </tr>
-                    {% endif %}
-                </tbody>
+                {% if etat_lieux.compteurs.eau %}
+                <tr>
+                    <td>Eau</td>
+                    <td>{{ etat_lieux.compteurs.eau.numero|default:"-" }}</td>
+                    <td>
+                        {% if etat_lieux.compteurs.eau.froide or etat_lieux.compteurs.eau.chaude %}
+                            Froide: {{ etat_lieux.compteurs.eau.froide|default:"-" }} / Chaude: {{ etat_lieux.compteurs.eau.chaude|default:"-" }}
+                        {% elif etat_lieux.compteurs.eau.releve %}
+                            {{ etat_lieux.compteurs.eau.releve }} m³
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
         </table>
     </div>
     {% endif %}
 
-    <!-- Détail des pièces -->
+    <!-- État des pièces -->
+    <div style="page-break-before: always; margin-top: 0; padding-top: 20px;">
+        <h2 style="color: #2680eb; font-size: 16pt; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; text-align: center; margin: 0 0 20px 0; padding-bottom: 5px;">
+            ÉTAT DES PIÈCES
+        </h2>
+    </div>
+    
     {% for piece_data in pieces_enrichies %}
     <div class="piece">
         <div class="piece-header">
@@ -525,9 +731,9 @@
             <table class="elements-table">
                 <thead>
                     <tr>
-                        <th>Élément</th>
-                        <th>État</th>
-                        <th>Observations</th>
+                        <th style="width: 35%;">Élément</th>
+                        <th style="width: 15%;">État</th>
+                        <th style="width: 50%;">Description / détails</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -593,6 +799,7 @@
     </div>
     {% endfor %}
 
+    <!-- Section observations -->
     <!-- Section commentaires généraux -->
     <div class="comments-section">
         <div class="comments-title">Observations générales :</div>
@@ -635,6 +842,6 @@
         {% endfor %}
       </div>
     </div>
-  </div>
+    </div>
 </body>
 </html>

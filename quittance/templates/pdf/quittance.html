@@ -6,138 +6,184 @@
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1.5cm;
         }
         
         body {
-            font-family: 'Times New Roman', 'Arial', serif;
-            font-size: 12pt;
+            font-family: Ubuntu, DejaVu Sans, Arial, Helvetica, sans-serif;
+            font-size: 10pt;
             color: #3e3c41;
             background-color: #ffffff;
-            line-height: 1.6em;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
         }
         
         h1, h2, h3 {
-            color: #4a6b85;
-            margin-top: 2em;
+            color: #2680eb;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
         }
         
-        .document-title {
+        .document-header {
+            background-color: #2680eb;
+            color: white;
+            padding: 25px;
+            margin: -1.5cm -1.5cm 20px -1.5cm;
             text-align: center;
-            font-size: 20pt;
-            font-weight: bold;
-            margin-top: 0;
-            margin-bottom: 0.2cm;
-            color: #4a6b85;
+            position: relative;
         }
         
-        .document-subtitle {
-            text-align: center;
-            font-size: 12pt;
-            font-style: italic;
-            margin-bottom: 2cm;
+        .document-header h1 {
+            font-size: 22pt;
+            margin: 0;
+            color: white;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+        
+        .document-header .period {
+            font-size: 14pt;
+            margin-top: 10px;
+            font-weight: 400;
+            opacity: 0.95;
         }
         
         p {
-            line-height: 1.6em;
+            line-height: 1.5;
             text-align: justify;
             margin-bottom: 1em;
+            font-size: 10pt;
         }
         
         .info-section {
-            margin-bottom: 2em;
+            background-color: #f5f7f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #e3e5e8;
         }
         
         .info-section h3 {
-            color: #4a6b85;
-            margin-bottom: 0.5em;
-            margin-top: 1.5em;
+            margin: 0 0 10px 0;
+            font-size: 12pt;
+            color: #2680eb;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .info-row {
-            margin-bottom: 0.5em;
-            line-height: 1.6em;
+            margin-bottom: 8px;
+            font-size: 10pt;
+            display: table;
+            width: 100%;
         }
         
         .label {
-            font-weight: bold;
-            display: inline-block;
-            width: 150px;
+            font-weight: 600;
+            color: #6c6b70;
+            display: table-cell;
+            width: 90px;
+            padding-right: 10px;
+            vertical-align: top;
+        }
+        
+        .value {
+            color: #3e3c41;
+            font-weight: 400;
+            display: table-cell;
+            vertical-align: top;
         }
         
         .amount-section {
-            border: 2px solid #4a6b85;
-            padding: 20px;
-            margin: 30px 0;
+            background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
+            color: white;
+            border-radius: 6px;
+            padding: 15px 20px;
+            margin: 20px 0;
             text-align: center;
-            background-color: #f8f9fa;
+            box-shadow: 0 1px 4px rgba(38, 128, 235, 0.15);
         }
         
         .amount-number {
             font-size: 16pt;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #4a6b85;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: white;
         }
         
         .amount-words {
-            font-style: italic;
-            font-size: 14pt;
+            font-size: 10pt;
+            font-weight: 300;
+            opacity: 0.9;
         }
         
         .period-highlight {
-            background-color: #f0f0f0;
-            padding: 10px;
-            border-left: 4px solid #4a6b85;
+            background-color: #f9fafb;
+            padding: 15px;
+            border-left: 4px solid #2680eb;
+            border-radius: 4px;
             margin: 20px 0;
         }
         
         .signature-section {
-            margin-top: 3em;
+            margin-top: 30px;
             page-break-inside: avoid;
-            border-top: 1px solid #ddd;
-            padding-top: 20px;
+            background-color: #f5f7f9;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e3e5e8;
+        }
+        
+        .signature-section h3 {
+            color: #2680eb;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            font-size: 12pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         .signature-location {
             text-align: left;
-            margin-bottom: 30px;
-            font-size: 11pt;
+            margin-bottom: 20px;
+            font-size: 10pt;
         }
         
         .signature-block {
-            text-align: left;
-            margin-bottom: 40px;
-            min-height: 120px;
-            padding: 20px 0;
+            background-color: white;
+            border: 1px solid #e3e5e8;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            min-height: 100px;
         }
         
         .signature-title {
-            font-weight: bold;
-            margin-bottom: 15px;
-            font-size: 11pt;
-            color: #4a6b85;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 10pt;
+            color: #3e3c41;
         }
         
         .signature-image {
-            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
-            border: 2px dashed #4a6b85;
-            border-radius: 8px;
-            padding: 15px;
+            padding: 10px 0;
             margin: 10px 0;
-            min-height: 80px;
+            min-height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         
         .signature-name {
-            font-weight: bold;
-            font-size: 11pt;
+            font-weight: 600;
+            font-size: 10pt;
             margin-top: 10px;
             padding-top: 10px;
-            border-top: 1px solid #ddd;
-            color: #4a6b85;
+            border-top: 1px solid #e3e5e8;
+            color: #3e3c41;
         }
         
         .align-right {
@@ -145,95 +191,107 @@
         }
         
         .footer {
-            margin-top: 40px;
-            font-size: 10pt;
+            margin-top: 30px;
+            font-size: 9pt;
             text-align: center;
-            color: #666;
-            border-top: 1px solid #ddd;
-            padding-top: 20px;
+            color: #6c6b70;
+            border-top: 1px solid #e3e5e8;
+            padding-top: 15px;
+            font-style: italic;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
-    <div class="document-title">QUITTANCE DE LOYER</div>
-    <div class="document-subtitle">Période : {{ mois|title }} {{ annee }}</div>
-    
-    <div class="info-section">
-        <h3>Bailleur</h3>
-        <div class="info-row">
-            <span class="label">Nom :</span>
-            {{ premier_bailleur.full_name }}
-        </div>
-        <div class="info-row">
-            <span class="label">Adresse :</span>
-            {{ bailleur_adresse }}
-        </div>
+    <!-- En-tête du document -->
+    <div class="document-header">
+        <h1>Quittance de Loyer</h1>
+        <div class="period">{{ mois|title }} {{ annee }}</div>
     </div>
     
-    <div class="info-section">
-        <h3>Locataire</h3>
-        <div class="info-row">
-            <span class="label">Nom :</span>
-            {{ locataire_full_name }}
-        </div>
-        <div class="info-row">
-            <span class="label">Adresse du bien loué :</span>
-            {{ adresse_bien }}
-        </div>
-    </div>
-    
-    <div class="period-highlight">
-        <div class="info-row">
-            <span class="label">Période de location :</span>
-            {{ mois|title }} {{ annee }}
-        </div>
-        <div class="info-row">
-            <span class="label">Date de paiement :</span>
-            {{ date_paiement|date:"d/m/Y" }}
-        </div>
-    </div>
-    
-    <div class="amount-section">
-        <div class="amount-number">
-            Montant du loyer : {{ montant_loyer }}€
-        </div>
-        <div class="amount-words">
-            Soit : {{ montant_en_lettres }}
-        </div>
-    </div>
-    
-    <p>
-        {% if bailleur_type == "personne_physique" %}
-            Je soussigné(e) <strong>{{ premier_bailleur.personne.firstName }} {{ premier_bailleur.personne.lastName }}</strong>, 
-            propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
-            reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
-            locataire dudit logement, la somme de <strong>{{ montant_loyer }}€</strong> 
-            ({{ montant_en_lettres }}) correspondant au loyer du mois de 
-            <strong>{{ mois|lower }} {{ annee }}</strong>.
-        {% elif bailleur_type == "societe" %}
-            Je soussigné(e) <strong>{{ premier_bailleur.signataire.firstName }} {{ premier_bailleur.signataire.lastName }}</strong>, 
-            représentant de la société <strong>{{ premier_bailleur.societe.raison_sociale }}</strong> 
-            ({{ premier_bailleur.societe.forme_juridique }}), 
-            propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
-            reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
-            locataire dudit logement, la somme de <strong>{{ montant_loyer }}€</strong> 
-            ({{ montant_en_lettres }}) correspondant au loyer du mois de 
-            <strong>{{ mois|lower }} {{ annee }}</strong>.
-        {% endif %}
-    </p>
-    
-    <p>
-        Le paiement a été effectué le <strong>{{ date_paiement|date:"d/m/Y" }}</strong>.
-    </p>
-    
-    <div class="signature-section">
-        <!-- Bloc 1: Lieu et date -->
-        <div class="signature-location">
-            <div>Fait à : {{ bailleur_adresse }}</div>
-            <div>Le : {{ date_generation|date:"d/m/Y" }}</div>
+    <!-- Parties -->
+    <div class="info-grid">
+        <div class="info-section">
+            <h3>Bailleur</h3>
+            <div class="info-row">
+                <span class="label">Nom :</span>
+                <span class="value">{{ premier_bailleur.full_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Adresse :</span>
+                <span class="value">{{ bailleur_adresse }}</span>
+            </div>
         </div>
         
-        <!-- Bloc 2: Signature -->
+        <div class="info-section">
+            <h3>Locataire</h3>
+            <div class="info-row">
+                <span class="label">Nom :</span>
+                <span class="value">{{ locataire_full_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Adresse du bien :</span>
+                <span class="value">{{ adresse_bien }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Montant -->
+    <div class="amount-section">
+        <div class="amount-number">
+            {{ montant_loyer }} €
+        </div>
+        <div class="amount-words">
+            {{ montant_en_lettres }}
+        </div>
+    </div>
+    
+    <!-- Attestation -->
+    <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e3e5e8;">
+        <p style="margin-bottom: 15px;">
+            {% if bailleur_type == "personne_physique" %}
+                Je soussigné(e) <strong>{{ premier_bailleur.personne.firstName }} {{ premier_bailleur.personne.lastName }}</strong>, 
+                propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
+                reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
+                locataire dudit logement, la somme de <strong style="color: #2680eb;">{{ montant_loyer }}€</strong> 
+                ({{ montant_en_lettres }}) correspondant au loyer du mois de 
+                <strong>{{ mois|lower }} {{ annee }}</strong>.
+            {% elif bailleur_type == "societe" %}
+                Je soussigné(e) <strong>{{ premier_bailleur.signataire.firstName }} {{ premier_bailleur.signataire.lastName }}</strong>, 
+                représentant de la société <strong>{{ premier_bailleur.societe.raison_sociale }}</strong> 
+                ({{ premier_bailleur.societe.forme_juridique }}), 
+                propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
+                reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
+                locataire dudit logement, la somme de <strong style="color: #2680eb;">{{ montant_loyer }}€</strong> 
+                ({{ montant_en_lettres }}) correspondant au loyer du mois de 
+                <strong>{{ mois|lower }} {{ annee }}</strong>.
+            {% endif %}
+        </p>
+        
+        <p style="margin: 0;">
+            Le paiement a été effectué le <strong>{{ date_paiement|date:"d/m/Y" }}</strong>.
+        </p>
+    </div>
+    
+    <!-- Signature -->
+    <div class="signature-section">
+        <h3>Signature</h3>
+        
+        <!-- Lieu et date -->
+        <div class="signature-location">
+            <div>
+                <span class="label">Le :</span>
+                <span class="value">{{ date_generation|date:"d/m/Y" }}</span>
+            </div>
+        </div>
+        
+        <!-- Bloc signature -->
         <div class="signature-block">
             <div class="signature-title">
                 {% if bailleur_type == "personne_physique" %}
@@ -244,12 +302,11 @@
             </div>
             <div class="signature-image">
                 {% if bailleur_signature %}
-                    <img src="{{ bailleur_signature }}" alt="Signature" style="max-width: 350px; max-height: 80px; height: auto;" />
+                    <img src="{{ bailleur_signature }}" alt="Signature" style="max-width: 300px; max-height: 60px; height: auto;" />
                 {% else %}
-                    <em style="color: #6c757d;">Signature à apposer</em>
+                    <em style="color: #6c6b70;">Signature à apposer</em>
                 {% endif %}
             </div>
-            <div class="signature-name">{{ signataire_full_name }}</div>
         </div>
     </div>
     

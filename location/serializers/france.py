@@ -28,6 +28,7 @@ from ..serializers_composed import (
 ADRESSE_STEPS = [
     {
         "id": "bien.localisation.adresse",
+        "required_fields": ["bien.localisation.adresse"],
         "fields": {
             "bien.localisation.adresse": Bien.adresse,
             "bien.localisation.latitude": Bien.latitude,
@@ -41,6 +42,7 @@ ADRESSE_STEPS = [
 TYPE_BIEN_STEPS = [
     {
         "id": "bien.caracteristiques.type_bien",
+        "required_fields": ["bien.caracteristiques.type_bien"],
         "fields": {
             "bien.caracteristiques.type_bien": Bien.type_bien,
         },
@@ -49,6 +51,7 @@ TYPE_BIEN_STEPS = [
 SUPERFICIE_STEPS = [
     {
         "id": "bien.caracteristiques.superficie",
+        "required_fields": ["bien.caracteristiques.superficie"],
         "fields": {
             "bien.caracteristiques.superficie": Bien.superficie,
         },
@@ -57,6 +60,7 @@ SUPERFICIE_STEPS = [
 PIECES_INFO_STEPS = [
     {
         "id": "bien.caracteristiques.pieces_info",
+        "required_fields": [],  # Validation par business rule uniquement
         "fields": {
             "bien.caracteristiques.pieces_info": Bien.pieces_info,
         },
@@ -66,6 +70,7 @@ PIECES_INFO_STEPS = [
 MEUBLE_STEPS = [
     {
         "id": "bien.caracteristiques.meuble",
+        "required_fields": ["bien.caracteristiques.meuble"],
         "fields": {
             "bien.caracteristiques.meuble": Bien.meuble,
         },
@@ -76,6 +81,7 @@ MEUBLE_STEPS = [
 REGIME_JURIDIQUE_STEPS = [
     {
         "id": "bien.regime.regime_juridique",
+        "required_fields": ["bien.regime.regime_juridique"],
         "fields": {
             "bien.regime.regime_juridique": Bien.regime_juridique,
         },
@@ -84,6 +90,7 @@ REGIME_JURIDIQUE_STEPS = [
 PERIODE_CONSTRUCTION_STEPS = [
     {
         "id": "bien.regime.periode_construction",
+        "required_fields": ["bien.regime.periode_construction"],
         "fields": {
             "bien.regime.periode_construction": Bien.periode_construction,
         },
@@ -95,6 +102,7 @@ EQUIPEMENTS_PRIVATIVES_STEPS = [
     {
         "id": "bien.equipements.annexes_privatives",
         "default": [],
+        "required_fields": [],  # Optionnel
         "fields": {
             "bien.equipements.annexes_privatives": Bien.annexes_privatives,
         },
@@ -104,6 +112,7 @@ EQUIPEMENTS_COLLECTIVES_STEPS = [
     {
         "id": "bien.equipements.annexes_collectives",
         "default": [],
+        "required_fields": [],  # Optionnel
         "fields": {
             "bien.equipements.annexes_collectives": Bien.annexes_collectives,
         },
@@ -113,6 +122,7 @@ EQUIPEMENTS_INFORMATION_STEPS = [
     {
         "id": "bien.equipements.information",
         "default": [],
+        "required_fields": [],  # Optionnel
         "fields": {
             "bien.equipements.information": Bien.information,
         },
@@ -123,21 +133,25 @@ EQUIPEMENTS_INFORMATION_STEPS = [
 ENERGIE_CHAUFFAGE_STEPS = [
     {
         "id": "bien.energie.chauffage",
+        "required_fields": [],  # Validation par business rule
         "fields": {
             "bien.energie.chauffage.type": Bien.chauffage_type,
             "bien.energie.chauffage.energie": Bien.chauffage_energie,
         },
-        "business_rules": ["energieAutreDetail"],  # Si "autre", demander le détail
+        "business_rules": ["chauffageValidation"],  # Validation complète du chauffage
     },
 ]
 ENERGIE_EAU_CHAUDE_STEPS = [
     {
         "id": "bien.energie.eau_chaude",
+        "required_fields": [],  # Validation par business rule
         "fields": {
             "bien.energie.eau_chaude.type": Bien.eau_chaude_type,
             "bien.energie.eau_chaude.energie": Bien.eau_chaude_energie,
         },
-        "business_rules": ["energieAutreDetail"],  # Si "autre", demander le détail
+        "business_rules": [
+            "eauChaudeValidation"
+        ],  # Validation complète de l'eau chaude
     },
 ]
 
@@ -145,6 +159,7 @@ ENERGIE_EAU_CHAUDE_STEPS = [
 DPE_STEPS = [
     {
         "id": "bien.performance_energetique.classe_dpe",
+        "required_fields": ["bien.performance_energetique.classe_dpe"],
         "fields": {
             "bien.performance_energetique.classe_dpe": Bien.classe_dpe,
         },
@@ -152,17 +167,21 @@ DPE_STEPS = [
     {
         "id": "bien.performance_energetique.depenses_energetiques",
         "condition": "dpe_not_na",
+        "required_fields": ["bien.performance_energetique.depenses_energetiques"],
         "fields": {
             "bien.performance_energetique.depenses_energetiques": Bien.depenses_energetiques,
         },
     },
     {
         "id": "bien.regime.identifiant_fiscal",
+        "required_fields": [
+            "bien.regime.fill_identifiant_fiscal"
+        ],  # Choix de remplir ou non
         "fields": {
             "bien.regime.identifiant_fiscal": Bien.identifiant_fiscal,
         },
         "business_rules": [
-            "identifiantFiscalChoice"
+            "identifiantFiscalValidation"
         ],  # Validation du choix de remplissage
     },
 ]
@@ -172,38 +191,47 @@ PERSON_STEPS = [
     # Bailleur
     {
         "id": "bailleur.bailleur_type",
+        "required_fields": ["bailleur.bailleur_type"],
         "fields": {},  # Pas de mapping direct, c'est un choix UI
     },
     {
         "id": "bailleur.personne",
         "condition": "bailleur_is_physique",
+        "required_fields": [],  # Validation par business rule
         "fields": {},  # Géré par le serializer BailleurInfoSerializer
-        "business_rules": ["bailleurPersonneRequired"],
+        "business_rules": [
+            "bailleurPersonneValidation"
+        ],  # Validation personne physique
     },
     {
         "id": "bailleur.signataire",
         "condition": "bailleur_is_morale",
+        "required_fields": [],  # Géré par serializer
         "fields": {},  # Géré par le serializer
     },
     {
         "id": "bailleur.societe",
         "condition": "bailleur_is_morale",
+        "required_fields": [],  # Validation par business rule
         "fields": {},  # Géré par le serializer
-        "business_rules": ["validSiret"],
+        "business_rules": ["societeValidation"],  # Validation complète société
     },
     {
         "id": "bailleur.co_bailleurs",
+        "required_fields": [],  # Optionnel
         "fields": {},  # Relation many-to-many
     },
     # Locataires
     {
         "id": "locataires",
+        "required_fields": [],  # Validation par business rule
         "fields": {},  # Relation many-to-many
         "business_rules": ["locatairesRequired"],
     },
     {
         "id": "solidaires",
         "condition": "has_multiple_tenants",
+        "required_fields": ["solidaires"],
         "fields": {
             "solidaires": Location.solidaires,
         },
@@ -214,12 +242,17 @@ PERSON_STEPS = [
 MODALITES_FINANCIERES_STEPS = [
     {
         "id": "modalites_financieres.loyer_hors_charges",
+        "required_fields": ["modalites_financieres.loyer_hors_charges"],
         "fields": {
             "modalites_financieres.loyer_hors_charges": RentTerms.montant_loyer,
         },
     },
     {
         "id": "modalites_financieres.charges_mensuelles",
+        "required_fields": [
+            "modalites_financieres.type_charges",
+            "modalites_financieres.charges",
+        ],
         "fields": {
             "modalites_financieres.charges": RentTerms.montant_charges,
             "modalites_financieres.type_charges": RentTerms.type_charges,
@@ -232,6 +265,7 @@ ZONE_TENDUE_STEPS = [
     {
         "id": "modalites_zone_tendue.premiere_mise_en_location",
         "condition": "zone_tendue",
+        "required_fields": ["modalites_zone_tendue.premiere_mise_en_location"],
         "fields": {
             "modalites_zone_tendue.premiere_mise_en_location": RentTerms.premiere_mise_en_location,
         },
@@ -239,6 +273,7 @@ ZONE_TENDUE_STEPS = [
     {
         "id": "modalites_zone_tendue.locataire_derniers_18_mois",
         "condition": "zone_tendue_not_first_rental",
+        "required_fields": ["modalites_zone_tendue.locataire_derniers_18_mois"],
         "fields": {
             "modalites_zone_tendue.locataire_derniers_18_mois": RentTerms.locataire_derniers_18_mois,
         },
@@ -246,6 +281,7 @@ ZONE_TENDUE_STEPS = [
     {
         "id": "modalites_zone_tendue.dernier_montant_loyer",
         "condition": "zone_tendue_has_previous_tenant",
+        "required_fields": ["modalites_zone_tendue.dernier_montant_loyer"],
         "fields": {
             "modalites_zone_tendue.dernier_montant_loyer": RentTerms.dernier_montant_loyer,
         },
@@ -256,6 +292,7 @@ ZONE_TENDUE_STEPS = [
 BAIL_DATE_STEPS = [
     {
         "id": "dates.date_debut",
+        "required_fields": ["dates.date_debut"],  # date_fin est optionnelle
         "fields": {
             "dates.date_debut": Location.date_debut,
             "dates.date_fin": Location.date_fin,
@@ -270,6 +307,11 @@ PERIODE_QUITTANCE_STEPS = [
     {
         "id": "periode_quittance",
         "always_unlocked": True,  # Toujours éditable pour créer de nouvelles quittances
+        "required_fields": [
+            "periode_quittance.mois",
+            "periode_quittance.annee",
+            "periode_quittance.date_paiement",
+        ],
         "fields": {},  # Géré directement par le serializer Quittance
     },
 ]
@@ -283,11 +325,13 @@ ETAT_LIEUX_DEFINITION_STEPS = [
     {
         "id": "type_etat_lieux",
         "always_unlocked": True,
+        "required_fields": ["type_etat_lieux"],
         "fields": {},  # Champ direct dans EtatLieux
     },
     {
         "id": "date_etat_lieux",
         "always_unlocked": True,
+        "required_fields": ["date_etat_lieux"],
         "fields": {},  # Champ direct dans EtatLieux
     },
 ]
@@ -297,11 +341,13 @@ DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS = [
     {
         "id": "equipements_chauffage",
         "always_unlocked": True,
+        "required_fields": [],  # Optionnel
         "fields": {},  # Stocké en JSON dans EtatLieux
     },
     {
         "id": "releve_compteurs",
         "always_unlocked": True,
+        "required_fields": [],  # Validation par business rule
         "fields": {},  # Stocké en JSON dans EtatLieux
         "business_rules": ["compteursConditionnels"],
     },
@@ -311,6 +357,7 @@ DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS = [
 ETAT_LIEUX_CLES_STEPS = [
     {
         "id": "nombre_cles",
+        "required_fields": [],  # Optionnel
         "always_unlocked": True,
         "fields": {},  # Stocké en JSON dans EtatLieux
     },
@@ -320,6 +367,7 @@ ETAT_LIEUX_CLES_STEPS = [
 DETAIL_ETAT_LIEUX_STEPS = [
     {
         "id": "description_pieces",
+        "required_fields": [],  # Optionnel
         "always_unlocked": True,
         "fields": {},  # Stocké en JSON (rooms) dans EtatLieux
     },

@@ -95,16 +95,18 @@ class FormOrchestrator:
                 if "always_unlocked" in step_full_config:
                     step_copy["always_unlocked"] = step_full_config["always_unlocked"]
 
-                # Extraire les champs required depuis les fields mappings
-                required_fields = []
+                # Ajouter les required_fields définis explicitement
+                if "required_fields" in step_full_config:
+                    step_copy["required_fields"] = step_full_config["required_fields"]
+
+                # Extraire les champs mappés (pour info seulement, pas pour validation)
+                mapped_fields = []
                 fields = step_full_config.get("fields", {})
                 for field_path in fields.keys():
-                    # Pour l'instant on considère tous les fields mappés comme potentiellement required
-                    # Le frontend décidera avec Zod + business rules
-                    required_fields.append(field_path)
+                    mapped_fields.append(field_path)
 
-                if required_fields:
-                    step_copy["mapped_fields"] = required_fields
+                if mapped_fields:
+                    step_copy["mapped_fields"] = mapped_fields
 
             # Si une valeur par défaut est définie et qu'il n'y a pas de données existantes
             # on ajoute la valeur par défaut dans les données de pré-remplissage

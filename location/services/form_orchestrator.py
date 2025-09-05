@@ -56,27 +56,55 @@ class FormOrchestrator:
         # Obtenir d'abord les steps verrouillées si c'est une mise à jour
         locked_steps = set()
         if location_id:
-            from .field_locking import FieldLockingService
             import logging
+
+            from .field_locking import FieldLockingService
+
             logger = logging.getLogger(__name__)
-            
+
             locked_steps = FieldLockingService.get_locked_steps(location_id, country)
             if locked_steps:
-                logger.info(f"Found {len(locked_steps)} locked steps for location {location_id}")
+                logger.info(
+                    f"Found {len(locked_steps)} locked steps for location {location_id}"
+                )
+
+        # Enrichir les steps avec les infos de validation depuis les Field Mappings
 
         # Filtrer les steps : garder seulement celles qui sont non verrouillées
         # Les steps avec données existantes sont gardées (pour permettre modification)
         steps = []
         for step in step_config:
             step_id = step["id"]
-            
+
             # Si la step est verrouillée, on la skip
             if step_id in locked_steps:
                 logger.debug(f"Skipping locked step: {step_id}")
                 continue
 
-            # Copier la step (elle contient déjà id, condition et default si nécessaire)
-            step_copy = step.copy()
+            # Copier la step SANS les fields (qui contiennent des objets Django non sérialisables)
+            step_copy = {k: v for k, v in step.items() if k != "fields"}
+
+            # Enrichir avec les infos du Field Mapping si disponibles
+            step_full_config = serializer_class.get_step_config_by_id(step_id)
+            if step_full_config:
+                # Ajouter les business rules
+                if "business_rules" in step_full_config:
+                    step_copy["business_rules"] = step_full_config["business_rules"]
+
+                # Ajouter le flag always_unlocked
+                if "always_unlocked" in step_full_config:
+                    step_copy["always_unlocked"] = step_full_config["always_unlocked"]
+
+                # Extraire les champs required depuis les fields mappings
+                required_fields = []
+                fields = step_full_config.get("fields", {})
+                for field_path in fields.keys():
+                    # Pour l'instant on considère tous les fields mappés comme potentiellement required
+                    # Le frontend décidera avec Zod + business rules
+                    required_fields.append(field_path)
+
+                if required_fields:
+                    step_copy["mapped_fields"] = required_fields
 
             # Si une valeur par défaut est définie et qu'il n'y a pas de données existantes
             # on ajoute la valeur par défaut dans les données de pré-remplissage
@@ -90,7 +118,7 @@ class FormOrchestrator:
             "form_type": form_type,
             "steps": steps,
             "prefill_data": existing_data,
-            "locked_steps_count": len(locked_steps) if location_id else 0
+            "locked_steps_count": len(locked_steps) if location_id else 0,
         }
 
     def _get_serializer_class(self, form_type: str, country: str):
@@ -194,6 +222,10 @@ class FormOrchestrator:
         """
         Extrait les données d'une Location pour pré-remplissage.
         Format aligné avec les serializers.
+
+        Note: Cette fonction fait du mapping inverse (modèle -> formulaire).
+        Les field mappings du serializer sont dans l'autre sens (formulaire -> modèle),
+        donc on garde le mapping manuel pour l'instant.
         """
         data = {
             "bien": {

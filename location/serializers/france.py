@@ -5,6 +5,8 @@ Définit les règles métier et validations pour les formulaires français.
 
 from rest_framework import serializers
 
+from location.models import Bien, Location, RentTerms
+
 from ..serializers_composed import (
     BailleurInfoSerializer,
     BienBailSerializer,
@@ -17,100 +19,310 @@ from ..serializers_composed import (
     PersonneSerializer,
 )
 
+# ========================================
+# STEPS CONFIGURATION
+# Organisation par domaine fonctionnel
+# ========================================
+
+# --- BIEN - Localisation ---
 ADRESSE_STEPS = [
-    {"id": "bien.localisation.adresse"},
+    {
+        "id": "bien.localisation.adresse",
+        "fields": {
+            "bien.localisation.adresse": Bien.adresse,
+            "bien.localisation.latitude": Bien.latitude,
+            "bien.localisation.longitude": Bien.longitude,
+            "bien.localisation.area_id": RentTerms.rent_price_id,
+        },
+    },
 ]
+
+# --- BIEN - Caractéristiques de base ---
 TYPE_BIEN_STEPS = [
-    {"id": "bien.caracteristiques.type_bien"},
+    {
+        "id": "bien.caracteristiques.type_bien",
+        "fields": {
+            "bien.caracteristiques.type_bien": Bien.type_bien,
+        },
+    },
 ]
-REGIME_JURIDIQUE_STEPS = [{"id": "bien.regime.regime_juridique"}]
-PERIODE_CONSTRUCTION_STEPS = [{"id": "bien.regime.periode_construction"}]
-SUPERFICIE_STEPS = [{"id": "bien.caracteristiques.superficie"}]
-PIECES_INFO_STEPS = [{"id": "bien.caracteristiques.pieces_info"}]
-# # BIEN - Détails
-MEUBLE_STEPS = [{"id": "bien.caracteristiques.meuble"}]
+SUPERFICIE_STEPS = [
+    {
+        "id": "bien.caracteristiques.superficie",
+        "fields": {
+            "bien.caracteristiques.superficie": Bien.superficie,
+        },
+    },
+]
+PIECES_INFO_STEPS = [
+    {
+        "id": "bien.caracteristiques.pieces_info",
+        "fields": {
+            "bien.caracteristiques.pieces_info": Bien.pieces_info,
+        },
+        "business_rules": ["atLeastOneRoom"],  # Au moins 1 chambre ou séjour
+    },
+]
+MEUBLE_STEPS = [
+    {
+        "id": "bien.caracteristiques.meuble",
+        "fields": {
+            "bien.caracteristiques.meuble": Bien.meuble,
+        },
+    },
+]
 
-
-PERSON_STEPS = [
-    # BAILLEUR
-    {"id": "bailleur.bailleur_type"},
-    {"id": "bailleur.personne", "condition": "bailleur_is_physique"},
-    {"id": "bailleur.signataire", "condition": "bailleur_is_morale"},
-    {"id": "bailleur.societe", "condition": "bailleur_is_morale"},
-    {"id": "bailleur.co_bailleurs"},
-    # LOCATAIRES
-    {"id": "locataires"},
-    {"id": "solidaires", "condition": "has_multiple_tenants"},
+# --- BIEN - Régime juridique ---
+REGIME_JURIDIQUE_STEPS = [
+    {
+        "id": "bien.regime.regime_juridique",
+        "fields": {
+            "bien.regime.regime_juridique": Bien.regime_juridique,
+        },
+    },
 ]
-EQUIPEMENTS_AND_ENERGY_STEPS = [
-    # BIEN - Équipements
-    {"id": "bien.equipements.annexes_privatives", "default": []},
-    {"id": "bien.equipements.annexes_collectives", "default": []},
-    {"id": "bien.equipements.information", "default": []},
-    # BIEN - Énergie
-    {"id": "bien.energie.chauffage"},
-    {"id": "bien.energie.eau_chaude"},
+PERIODE_CONSTRUCTION_STEPS = [
+    {
+        "id": "bien.regime.periode_construction",
+        "fields": {
+            "bien.regime.periode_construction": Bien.periode_construction,
+        },
+    },
 ]
 
-EQUIPEMENTS_ETAT_LIEUX_STEPS = [
-    # BIEN - Équipements
-    {"id": "bien.equipements.annexes_privatives", "default": []},
+# --- BIEN - Équipements (partagés) ---
+EQUIPEMENTS_PRIVATIVES_STEPS = [
+    {
+        "id": "bien.equipements.annexes_privatives",
+        "default": [],
+        "fields": {
+            "bien.equipements.annexes_privatives": Bien.annexes_privatives,
+        },
+    },
 ]
-ETAT_LIEUX_ENERGY_STEPS = [
-    # BIEN - Énergie
-    {"id": "bien.energie.chauffage"},
-    {"id": "bien.energie.eau_chaude"},
+EQUIPEMENTS_COLLECTIVES_STEPS = [
+    {
+        "id": "bien.equipements.annexes_collectives",
+        "default": [],
+        "fields": {
+            "bien.equipements.annexes_collectives": Bien.annexes_collectives,
+        },
+    },
 ]
+EQUIPEMENTS_INFORMATION_STEPS = [
+    {
+        "id": "bien.equipements.information",
+        "default": [],
+        "fields": {
+            "bien.equipements.information": Bien.information,
+        },
+    },
+]
+
+# --- BIEN - Énergie (partagés) ---
+ENERGIE_CHAUFFAGE_STEPS = [
+    {
+        "id": "bien.energie.chauffage",
+        "fields": {
+            "bien.energie.chauffage.type": Bien.chauffage_type,
+            "bien.energie.chauffage.energie": Bien.chauffage_energie,
+        },
+        "business_rules": ["energieAutreDetail"],  # Si "autre", demander le détail
+    },
+]
+ENERGIE_EAU_CHAUDE_STEPS = [
+    {
+        "id": "bien.energie.eau_chaude",
+        "fields": {
+            "bien.energie.eau_chaude.type": Bien.eau_chaude_type,
+            "bien.energie.eau_chaude.energie": Bien.eau_chaude_energie,
+        },
+        "business_rules": ["energieAutreDetail"],  # Si "autre", demander le détail
+    },
+]
+
+# --- BIEN - Performance énergétique (DPE) ---
 DPE_STEPS = [
-    # BIEN - DPE
-    {"id": "bien.performance_energetique.classe_dpe"},
+    {
+        "id": "bien.performance_energetique.classe_dpe",
+        "fields": {
+            "bien.performance_energetique.classe_dpe": Bien.classe_dpe,
+        },
+    },
     {
         "id": "bien.performance_energetique.depenses_energetiques",
         "condition": "dpe_not_na",
+        "fields": {
+            "bien.performance_energetique.depenses_energetiques": Bien.depenses_energetiques,
+        },
     },
-    {"id": "bien.regime.identifiant_fiscal"},
+    {
+        "id": "bien.regime.identifiant_fiscal",
+        "fields": {
+            "bien.regime.identifiant_fiscal": Bien.identifiant_fiscal,
+        },
+        "business_rules": [
+            "identifiantFiscalChoice"
+        ],  # Validation du choix de remplissage
+    },
 ]
 
-BAIL_DATE = [{"id": "dates.date_debut"}]
+# --- PERSONNES (Bailleur et Locataires) ---
+PERSON_STEPS = [
+    # Bailleur
+    {
+        "id": "bailleur.bailleur_type",
+        "fields": {},  # Pas de mapping direct, c'est un choix UI
+    },
+    {
+        "id": "bailleur.personne",
+        "condition": "bailleur_is_physique",
+        "fields": {},  # Géré par le serializer BailleurInfoSerializer
+        "business_rules": ["bailleurPersonneRequired"],
+    },
+    {
+        "id": "bailleur.signataire",
+        "condition": "bailleur_is_morale",
+        "fields": {},  # Géré par le serializer
+    },
+    {
+        "id": "bailleur.societe",
+        "condition": "bailleur_is_morale",
+        "fields": {},  # Géré par le serializer
+        "business_rules": ["validSiret"],
+    },
+    {
+        "id": "bailleur.co_bailleurs",
+        "fields": {},  # Relation many-to-many
+    },
+    # Locataires
+    {
+        "id": "locataires",
+        "fields": {},  # Relation many-to-many
+        "business_rules": ["locatairesRequired"],
+    },
+    {
+        "id": "solidaires",
+        "condition": "has_multiple_tenants",
+        "fields": {
+            "solidaires": Location.solidaires,
+        },
+    },
+]
 
+# --- MODALITÉS FINANCIÈRES ---
 MODALITES_FINANCIERES_STEPS = [
-    # Modalités financières
-    {"id": "modalites_financieres.loyer_hors_charges"},
-    {"id": "modalites_financieres.charges_mensuelles"},
+    {
+        "id": "modalites_financieres.loyer_hors_charges",
+        "fields": {
+            "modalites_financieres.loyer_hors_charges": RentTerms.montant_loyer,
+        },
+    },
+    {
+        "id": "modalites_financieres.charges_mensuelles",
+        "fields": {
+            "modalites_financieres.charges": RentTerms.montant_charges,
+            "modalites_financieres.type_charges": RentTerms.type_charges,
+        },
+    },
 ]
 
+# --- ZONE TENDUE ---
 ZONE_TENDUE_STEPS = [
-    # ZONE TENDUE (conditionnel - déterminé automatiquement par l'adresse)
     {
         "id": "modalites_zone_tendue.premiere_mise_en_location",
         "condition": "zone_tendue",
+        "fields": {
+            "modalites_zone_tendue.premiere_mise_en_location": RentTerms.premiere_mise_en_location,
+        },
     },
     {
         "id": "modalites_zone_tendue.locataire_derniers_18_mois",
         "condition": "zone_tendue_not_first_rental",
+        "fields": {
+            "modalites_zone_tendue.locataire_derniers_18_mois": RentTerms.locataire_derniers_18_mois,
+        },
     },
     {
         "id": "modalites_zone_tendue.dernier_montant_loyer",
         "condition": "zone_tendue_has_previous_tenant",
+        "fields": {
+            "modalites_zone_tendue.dernier_montant_loyer": RentTerms.dernier_montant_loyer,
+        },
     },
 ]
+
+# --- DATES ---
+BAIL_DATE_STEPS = [
+    {
+        "id": "dates.date_debut",
+        "fields": {
+            "dates.date_debut": Location.date_debut,
+            "dates.date_fin": Location.date_fin,
+        },
+    },
+]
+
+# ========================================
+# STEPS SPÉCIFIQUES QUITTANCE
+# ========================================
 PERIODE_QUITTANCE_STEPS = [
-    {"id": "periode_quittance", "always_unlocked": True},  # Toujours éditable pour créer de nouvelles quittances
+    {
+        "id": "periode_quittance",
+        "always_unlocked": True,  # Toujours éditable pour créer de nouvelles quittances
+        "fields": {},  # Géré directement par le serializer Quittance
+    },
 ]
-DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS = [
-    {"id": "equipements_chauffage"},
-    {"id": "releve_compteurs"},
-]
-ETAT_LIEUX_CLES_STEPS = [
-    {"id": "nombre_cles"},
-]
+
+# ========================================
+# STEPS SPÉCIFIQUES ÉTAT DES LIEUX
+# ========================================
+
+# --- Définition de l'état des lieux ---
 ETAT_LIEUX_DEFINITION_STEPS = [
-    {"id": "type_etat_lieux"},
-    {"id": "date_etat_lieux"},
+    {
+        "id": "type_etat_lieux",
+        "always_unlocked": True,
+        "fields": {},  # Champ direct dans EtatLieux
+    },
+    {
+        "id": "date_etat_lieux",
+        "always_unlocked": True,
+        "fields": {},  # Champ direct dans EtatLieux
+    },
 ]
+
+# --- Détails techniques état des lieux ---
+DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS = [
+    {
+        "id": "equipements_chauffage",
+        "always_unlocked": True,
+        "fields": {},  # Stocké en JSON dans EtatLieux
+    },
+    {
+        "id": "releve_compteurs",
+        "always_unlocked": True,
+        "fields": {},  # Stocké en JSON dans EtatLieux
+        "business_rules": ["compteursConditionnels"],
+    },
+]
+
+# --- Clés ---
+ETAT_LIEUX_CLES_STEPS = [
+    {
+        "id": "nombre_cles",
+        "always_unlocked": True,
+        "fields": {},  # Stocké en JSON dans EtatLieux
+    },
+]
+
+# --- Description des pièces ---
 DETAIL_ETAT_LIEUX_STEPS = [
-    # ÉTAT DES LIEUX
-    {"id": "description_pieces"},
+    {
+        "id": "description_pieces",
+        "always_unlocked": True,
+        "fields": {},  # Stocké en JSON (rooms) dans EtatLieux
+    },
 ]
 
 
@@ -127,6 +339,103 @@ class BaseLocationSerializer(serializers.Serializer):
 
     # Type de document source
     source = serializers.CharField(required=True)
+
+    @classmethod
+    def get_all_field_mappings(cls):
+        """
+        Collecte tous les mappings depuis toutes les STEPS.
+
+        Returns: Dict[str, Field] mapping field_path -> Django Field object
+        """
+        mappings = {}
+
+        # Utiliser get_step_config() du serializer
+        all_steps = cls.get_step_config()
+
+        for step in all_steps:
+            fields = step.get("fields", {})
+            for field_path, field_obj in fields.items():
+                mappings[field_path] = field_obj
+
+        return mappings
+
+    @classmethod
+    def get_field_to_step_mapping(cls, model_class):
+        """
+        Retourne le mapping inverse : field_name -> step_id pour un modèle.
+        Args:
+            model_class: Classe du modèle (Bien, RentTerms, Location)
+        Returns: Dict[str, str] mapping field_name -> field_path
+        """
+        mappings = cls.get_all_field_mappings()
+        result = {}
+
+        for field_path, field_obj in mappings.items():
+            if field_obj and hasattr(field_obj, "field"):
+                if field_obj.field.model == model_class:
+                    field_name = field_obj.field.name
+                    result[field_name] = field_path
+
+        return result
+
+    @classmethod
+    def extract_model_data(cls, model_class, form_data):
+        """
+        Extrait automatiquement les données pour un modèle depuis form_data.
+        Args:
+            model_class: Classe du modèle
+            form_data: Données du formulaire
+        Returns: Dict avec les champs du modèle
+        """
+        mappings = cls.get_all_field_mappings()
+        result = {}
+
+        for field_path, field_obj in mappings.items():
+            if field_obj and hasattr(field_obj, "field"):
+                if field_obj.field.model == model_class:
+                    # Utiliser field_path pour extraire la valeur
+                    value = cls._get_nested_value(form_data, field_path)
+                    if value is not None:
+                        field_name = field_obj.field.name
+                        result[field_name] = value
+
+        return result
+
+    @classmethod
+    def _get_nested_value(cls, data, path):
+        """
+        Extrait une valeur imbriquée depuis un dictionnaire.
+        Ex: _get_nested_value({"a": {"b": "c"}}, "a.b") -> "c"
+        """
+        keys = path.split(".")
+        current = data
+        for key in keys:
+            if isinstance(current, dict):
+                current = current.get(key)
+                if current is None:
+                    return None
+            else:
+                return None
+        return current
+
+    @classmethod
+    def get_step_config_by_id(cls, step_id):
+        """
+        Trouve la configuration d'une step par son ID.
+
+        Args:
+            step_id: L'ID de la step à rechercher
+
+        Returns: La configuration de la step ou None si non trouvée
+        """
+        # Utiliser get_step_config() du serializer
+        all_steps = cls.get_step_config()
+
+        for step in all_steps:
+            if step.get("id") == step_id:
+                return step
+
+        return None
 
 
 class FranceBailSerializer(BaseLocationSerializer):
@@ -171,12 +480,19 @@ class FranceBailSerializer(BaseLocationSerializer):
         BAIL_STEPS.extend(PIECES_INFO_STEPS)
         BAIL_STEPS.extend(MEUBLE_STEPS)
 
-        BAIL_STEPS.extend(EQUIPEMENTS_AND_ENERGY_STEPS)
+        # Équipements complets pour bail
+        BAIL_STEPS.extend(EQUIPEMENTS_PRIVATIVES_STEPS)
+        BAIL_STEPS.extend(EQUIPEMENTS_COLLECTIVES_STEPS)
+        BAIL_STEPS.extend(EQUIPEMENTS_INFORMATION_STEPS)
+
+        # Énergie
+        BAIL_STEPS.extend(ENERGIE_CHAUFFAGE_STEPS)
+        BAIL_STEPS.extend(ENERGIE_EAU_CHAUDE_STEPS)
+
         BAIL_STEPS.extend(DPE_STEPS)
         BAIL_STEPS.extend(PERSON_STEPS)
         BAIL_STEPS.extend(ZONE_TENDUE_STEPS)
-        BAIL_STEPS.extend(BAIL_DATE)
-
+        BAIL_STEPS.extend(BAIL_DATE_STEPS)
         BAIL_STEPS.extend(MODALITES_FINANCIERES_STEPS)
 
         return BAIL_STEPS
@@ -293,10 +609,20 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         ETAT_LIEUX_STEPS.extend(PERSON_STEPS)
         ETAT_LIEUX_STEPS.extend(ADRESSE_STEPS)
         ETAT_LIEUX_STEPS.extend(TYPE_BIEN_STEPS)
-        ETAT_LIEUX_STEPS.extend(EQUIPEMENTS_ETAT_LIEUX_STEPS)
+
+        # Équipements - seulement privatives pour état des lieux
+        ETAT_LIEUX_STEPS.extend(EQUIPEMENTS_PRIVATIVES_STEPS)
+
         ETAT_LIEUX_STEPS.extend(ETAT_LIEUX_CLES_STEPS)
-        ETAT_LIEUX_STEPS.extend(ETAT_LIEUX_ENERGY_STEPS)
+
+        # Énergie - réutilisation des steps atomiques
+        ETAT_LIEUX_STEPS.extend(ENERGIE_CHAUFFAGE_STEPS)
+        ETAT_LIEUX_STEPS.extend(ENERGIE_EAU_CHAUDE_STEPS)
+
         ETAT_LIEUX_STEPS.extend(DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS)
         ETAT_LIEUX_STEPS.extend(PIECES_INFO_STEPS)
         ETAT_LIEUX_STEPS.extend(DETAIL_ETAT_LIEUX_STEPS)
         return ETAT_LIEUX_STEPS
+
+
+# Les helper functions sont maintenant des méthodes de BaseLocationSerializer

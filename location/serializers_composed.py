@@ -30,8 +30,8 @@ class CaracteristiquesBienSerializer(serializers.Serializer):
     )
     etage = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
     porte = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
-    dernier_etage = serializers.BooleanField(required=False, default=False)
-    meuble = serializers.BooleanField(required=False, default=False)
+    dernier_etage = serializers.BooleanField(required=False, allow_null=True, default=None)
+    meuble = serializers.BooleanField(required=False, allow_null=True, default=None)
     pieces_info = serializers.JSONField(
         required=False,
         help_text="Détail des pièces: chambres, sallesDeBain, cuisines, etc.",

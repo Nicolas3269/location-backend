@@ -4,7 +4,6 @@ from django.conf import settings
 from django.core.mail import send_mail as django_send_mail
 
 from bail.models import BailSignatureRequest
-from location.models import Bien
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ def create_signature_requests(bail):
     create_signature_requests_generic(bail, BailSignatureRequest)
 
 
-def create_bien_from_form_data(validated_data, save=True, source="bail"):
+def create_bien_from_form_data(validated_data, serializer_class, save=True):
     """
     Crée un objet Bien à partir des données VALIDÉES du serializer.
 
@@ -51,82 +50,15 @@ def create_bien_from_form_data(validated_data, save=True, source="bail"):
         validated_data: Les données déjà validées par le serializer principal
         save: Si True, sauvegarde l'objet en base.
               Si False, retourne un objet non sauvegardé.
-        source: Type de formulaire ("bail", "quittance", "etat_lieux")
+        serializer_class: La classe du serializer utilisé pour extraire les mappings (obligatoire)
 
     Returns:
         Instance de Bien
     """
-    # Les données sont déjà validées, extraire directement les données du bien
-    if "bien" not in validated_data:
-        # Si pas de données bien, retourner None
-        return None
+    # Utiliser le mapping automatique du serializer
+    from location.models import Bien
 
-    validated = validated_data["bien"]
-
-    # Les données sont déjà dans le bon format (snake_case) depuis le serializer
-    # Extraire directement tous les champs disponibles
-    bien_fields = {}
-
-    # Localisation (toujours présent)
-    if "localisation" in validated:
-        localisation = validated["localisation"]
-        if "adresse" in localisation:
-            bien_fields["adresse"] = localisation["adresse"]
-        if "latitude" in localisation:
-            bien_fields["latitude"] = localisation["latitude"]
-        if "longitude" in localisation:
-            bien_fields["longitude"] = localisation["longitude"]
-
-    # Caractéristiques (optionnel pour quittance)
-    if "caracteristiques" in validated:
-        caracteristiques = validated["caracteristiques"]
-        for field in [
-            "superficie",
-            "type_bien",
-            "meuble",
-            "etage",
-            "porte",
-            "dernier_etage",
-            "pieces_info",
-        ]:
-            if field in caracteristiques:
-                bien_fields[field] = caracteristiques[field]
-
-    # Performance énergétique
-    if "performance_energetique" in validated:
-        perf = validated["performance_energetique"]
-        if "classe_dpe" in perf:
-            bien_fields["classe_dpe"] = perf["classe_dpe"]
-        if "depenses_energetiques" in perf:
-            bien_fields["depenses_energetiques"] = perf["depenses_energetiques"]
-
-    # Énergie
-    if "energie" in validated:
-        energie = validated["energie"]
-        if "chauffage" in energie:
-            if "type" in energie["chauffage"]:
-                bien_fields["chauffage_type"] = energie["chauffage"]["type"]
-            if "energie" in energie["chauffage"]:
-                bien_fields["chauffage_energie"] = energie["chauffage"]["energie"]
-        if "eau_chaude" in energie:
-            if "type" in energie["eau_chaude"]:
-                bien_fields["eau_chaude_type"] = energie["eau_chaude"]["type"]
-            if "energie" in energie["eau_chaude"]:
-                bien_fields["eau_chaude_energie"] = energie["eau_chaude"]["energie"]
-
-    # Régime juridique
-    if "regime" in validated:
-        regime = validated["regime"]
-        for field in ["regime_juridique", "periode_construction", "identifiant_fiscal"]:
-            if field in regime:
-                bien_fields[field] = regime[field]
-
-    # Équipements
-    if "equipements" in validated:
-        equipements = validated["equipements"]
-        for field in ["annexes_privatives", "annexes_collectives", "information"]:
-            if field in equipements:
-                bien_fields[field] = equipements[field]
+    bien_fields = serializer_class.extract_model_data(Bien, validated_data)
 
     # Enlever les valeurs None pour éviter les erreurs
     bien_fields = {k: v for k, v in bien_fields.items() if v is not None}

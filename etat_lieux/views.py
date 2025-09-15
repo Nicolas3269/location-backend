@@ -365,28 +365,16 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
                 logger.warning(f"Impossible de convertir la photo {photo.nom_original}")
 
         # Enrichir chaque élément avec ses données et ses photos
+        from etat_lieux.utils import EtatElementUtils
+
         elements_enrichis = []
         if piece_detail.elements:
             for element_key, element_data in piece_detail.elements.items():
-                element_enrichi = {
-                    "key": element_key,
-                    "name": element_key.replace("_", " ").title(),
-                    "state": element_data.get("state", ""),
-                    "state_display": {
-                        "TB": "Très bon",
-                        "B": "Bon",
-                        "P": "Passable",
-                        "M": "Mauvais",
-                    }.get(element_data.get("state", ""), "Non renseigné"),
-                    "state_css_class": {
-                        "TB": "state-excellent",
-                        "B": "state-good",
-                        "P": "state-fair",
-                        "M": "state-poor",
-                    }.get(element_data.get("state", ""), "state-empty"),
-                    "comment": element_data.get("comment", ""),
-                    "photos": photos_by_element.get(element_key, []),
-                }
+                element_enrichi = EtatElementUtils.enrich_element(
+                    element_key,
+                    element_data,
+                    photos=photos_by_element.get(element_key, [])
+                )
                 elements_enrichis.append(element_enrichi)
 
         piece_enrichie = {"piece": piece, "elements": elements_enrichis}

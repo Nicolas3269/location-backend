@@ -96,7 +96,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
 
         # Ne pas passer automatiquement de DRAFT à SIGNING
         # Cela sera fait par send_signature_email quand on envoie vraiment l'email
-        
+
         # Passer de SIGNING à SIGNED si toutes les signatures sont complètes
         if self.status == DocumentStatus.SIGNING:
             if (
@@ -107,6 +107,35 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
 
         if current_status != self.status:
             self.save(update_fields=["status"])
+
+    def get_equipements_chauffage_formatted(self):
+        """Prépare les données des équipements de chauffage pour l'affichage dans le PDF"""
+        from etat_lieux.utils import EtatElementUtils
+
+        if not self.equipements_chauffage:
+            return {'chaudieres': [], 'chauffe_eaux': []}
+
+        chaudieres = []
+        chauffe_eaux = []
+
+        for uuid, data in self.equipements_chauffage.items():
+            if isinstance(data, dict):
+                equipment = EtatElementUtils.format_equipment(data.get('type', ''), data)
+                equipment['uuid'] = uuid
+
+                if data.get('type') == 'chaudiere':
+                    chaudieres.append(equipment)
+                else:
+                    chauffe_eaux.append(equipment)
+
+        # Trier par UUID pour un ordre cohérent
+        chaudieres.sort(key=lambda x: x['uuid'])
+        chauffe_eaux.sort(key=lambda x: x['uuid'])
+
+        return {
+            'chaudieres': chaudieres,
+            'chauffe_eaux': chauffe_eaux
+        }
 
 
 class EtatLieuxPiece(models.Model):

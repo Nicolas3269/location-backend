@@ -655,6 +655,67 @@
     </div>
     {% endif %}
 
+    <!-- État des équipements de chauffage -->
+    {% with equipements=etat_lieux.get_equipements_chauffage_formatted %}
+    {% if equipements.chaudieres or equipements.chauffe_eaux %}
+    <div class="info-section">
+        <h2>État des équipements de chauffage</h2>
+
+        {% if equipements.chauffe_eaux %}
+        <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 11pt; font-weight: 600; margin-bottom: 10px;">Chauffe-eau</h3>
+            <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                {% for equipment in equipements.chauffe_eaux %}
+                <div style="border: 1px solid #e3e5e8; border-radius: 4px; padding: 10px 15px; background: #f9fafb; min-width: 180px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+                        <span style="font-size: 10pt; color: #6b7280;">
+                            {% if equipements.chauffe_eaux|length > 1 %}
+                                Chauffe-eau {{ forloop.counter }} :
+                            {% else %}
+                                État :
+                            {% endif %}
+                        </span>
+                        <span class="{{ equipment.etat_css_class }}" style="font-size: 10pt; font-weight: 500;">
+                            {{ equipment.etat_label }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if equipements.chaudieres %}
+        <div>
+            <h3 style="font-size: 11pt; font-weight: 600; margin-bottom: 10px;">Chaudières</h3>
+            <table class="compact-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Chaudière</th>
+                        <th style="width: 35%;">État</th>
+                        <th style="width: 35%;">Dernier entretien</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for equipment in equipements.chaudieres %}
+                    <tr>
+                        <td>Chaudière {{ forloop.counter }}</td>
+                        <td>
+                            <span class="{{ equipment.etat_css_class }}">
+                                {{ equipment.etat_label }}
+                            </span>
+                        </td>
+                        <td>{{ equipment.date_entretien_formatted|default:"Non renseigné" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
     <!-- Identification compteurs et relevés -->
     {% if etat_lieux.compteurs %}
     <div class="info-section">

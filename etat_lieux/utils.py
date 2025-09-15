@@ -18,67 +18,76 @@ class EtatElementUtils:
     """Classe utilitaire pour la gestion des états des éléments"""
 
     ETAT_LABELS = {
-        'TB': 'Très bon',
-        'B': 'Bon',
-        'P': 'Passable',
-        'M': 'Mauvais',
-        '': 'Non renseigné'
+        "TB": "Très bon",
+        "B": "Bon",
+        "P": "Passable",
+        "M": "Mauvais",
+        "": "Non renseigné",
     }
 
     ETAT_CSS_CLASSES = {
-        'TB': 'state-excellent',
-        'B': 'state-good',
-        'P': 'state-fair',
-        'M': 'state-poor',
-        '': 'state-empty'
+        "TB": "state-excellent",
+        "B": "state-good",
+        "P": "state-fair",
+        "M": "state-poor",
+        "": "state-empty",
     }
 
     ETAT_COLORS = {
-        'TB': '#10b981',  # green
-        'B': '#22c55e',   # light green
-        'P': '#f97316',   # orange
-        'M': '#ef4444',   # red
-        '': '#9ca3af'     # gray
+        "TB": "#10b981",  # green
+        "B": "#22c55e",  # light green
+        "P": "#f97316",  # orange
+        "M": "#ef4444",  # red
+        "": "#9ca3af",  # gray
     }
 
     MONTHS = {
-        '01': 'Janvier', '02': 'Février', '03': 'Mars', '04': 'Avril',
-        '05': 'Mai', '06': 'Juin', '07': 'Juillet', '08': 'Août',
-        '09': 'Septembre', '10': 'Octobre', '11': 'Novembre', '12': 'Décembre'
+        "01": "Janvier",
+        "02": "Février",
+        "03": "Mars",
+        "04": "Avril",
+        "05": "Mai",
+        "06": "Juin",
+        "07": "Juillet",
+        "08": "Août",
+        "09": "Septembre",
+        "10": "Octobre",
+        "11": "Novembre",
+        "12": "Décembre",
     }
 
     @classmethod
     def get_etat_display(cls, etat):
         """Retourne le label d'affichage pour un état"""
-        return cls.ETAT_LABELS.get(etat, cls.ETAT_LABELS[''])
+        return cls.ETAT_LABELS.get(etat, cls.ETAT_LABELS[""])
 
     @classmethod
     def get_etat_css_class(cls, etat):
         """Retourne la classe CSS pour un état"""
-        return cls.ETAT_CSS_CLASSES.get(etat, cls.ETAT_CSS_CLASSES[''])
+        return cls.ETAT_CSS_CLASSES.get(etat, cls.ETAT_CSS_CLASSES[""])
 
     @classmethod
     def get_etat_color(cls, etat):
         """Retourne la couleur pour un état"""
-        return cls.ETAT_COLORS.get(etat, cls.ETAT_COLORS[''])
+        return cls.ETAT_COLORS.get(etat, cls.ETAT_COLORS[""])
 
     @classmethod
     def format_date_entretien(cls, date_str):
         """Formate une date d'entretien YYYY-MM en format lisible"""
         if not date_str:
-            return ''
+            return ""
 
-        date_parts = date_str.split('-')
+        date_parts = date_str.split("-")
         if len(date_parts) != 2:
-            return ''
+            return ""
 
         year, month = date_parts
-        month_name = cls.MONTHS.get(month, '')
+        month_name = cls.MONTHS.get(month, "")
 
         if month_name:
             return f"{month_name} {year}"
 
-        return ''
+        return ""
 
     @classmethod
     def enrich_element(cls, element_key, element_data, photos=None):
@@ -99,23 +108,27 @@ class EtatElementUtils:
     @classmethod
     def format_equipment(cls, equipment_type, equipment_data):
         """Formate les données d'un équipement de chauffage"""
-        etat = equipment_data.get('etat', '')
+        etat = equipment_data.get("etat", "")
 
         result = {
-            'type': equipment_type,
-            'type_label': 'Chaudière' if equipment_type == 'chaudiere' else 'Chauffe-eau',
-            'etat': etat,
-            'etat_label': cls.get_etat_display(etat),
-            'etat_color': cls.get_etat_color(etat),
-            'etat_css_class': cls.get_etat_css_class(etat),
-            'date_entretien': '',
-            'date_entretien_formatted': ''
+            "type": equipment_type,
+            "type_label": "Chaudière"
+            if equipment_type == "chaudiere"
+            else "Chauffe-eau",
+            "etat": etat,
+            "etat_label": cls.get_etat_display(etat),
+            "etat_color": cls.get_etat_color(etat),
+            "etat_css_class": cls.get_etat_css_class(etat),
+            "date_entretien": "",
+            "date_entretien_formatted": "",
         }
 
         # Format date d'entretien pour les chaudières
-        if equipment_type == 'chaudiere' and equipment_data.get('date_entretien'):
-            result['date_entretien'] = equipment_data['date_entretien']
-            result['date_entretien_formatted'] = cls.format_date_entretien(equipment_data['date_entretien'])
+        if equipment_type == "chaudiere" and equipment_data.get("date_entretien"):
+            result["date_entretien"] = equipment_data["date_entretien"]
+            result["date_entretien_formatted"] = cls.format_date_entretien(
+                equipment_data["date_entretien"]
+            )
 
         return result
 
@@ -207,8 +220,9 @@ def get_or_create_pieces_for_bien(bien):
         "cuisines": {"type": "kitchen", "nom_base": "Cuisine"},
         "sallesDeBain": {"type": "bathroom", "nom_base": "Salle de bain"},
         "sallesEau": {"type": "bathroom", "nom_base": "Salle d'eau"},
-        "wc": {"type": "bathroom", "nom_base": "WC"},
-        "bureau": {"type": "other", "nom_base": "Bureau"},
+        "wc": {"type": "wc", "nom_base": "WC"},
+        "autres_pieces": {"type": "other", "nom_base": "Autre pièce"},
+        "bureau": {"type": "other", "nom_base": "Bureau"},  # Garder pour compatibilité
         "entrees": {"type": "room", "nom_base": "Entrée"},
         "couloirs": {"type": "room", "nom_base": "Couloir"},
         "dressings": {"type": "room", "nom_base": "Dressing"},

@@ -633,8 +633,9 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         required=False, default=dict, help_text="Nombre de clés remises"
     )
     equipements_chauffage = serializers.JSONField(
-        required=False, default=dict,
-        help_text="Équipements de chauffage avec type, état et date d'entretien"
+        required=False,
+        default=dict,
+        help_text="Équipements de chauffage avec type, état et date d'entretien",
     )
 
     # Rooms avec leur état (pour l'état des lieux)
@@ -655,7 +656,6 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         """
         ETAT_LIEUX_STEPS = []
         ETAT_LIEUX_STEPS.extend(ETAT_LIEUX_DEFINITION_STEPS)
-        ETAT_LIEUX_STEPS.extend(MEUBLE_STEPS)
         ETAT_LIEUX_STEPS.extend(PERSON_STEPS)
         ETAT_LIEUX_STEPS.extend(ADRESSE_STEPS)
         ETAT_LIEUX_STEPS.extend(TYPE_BIEN_STEPS)
@@ -668,11 +668,21 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         # Énergie - réutilisation des steps atomiques
         ETAT_LIEUX_STEPS.extend(ENERGIE_CHAUFFAGE_STEPS)
         ETAT_LIEUX_STEPS.extend(ENERGIE_EAU_CHAUDE_STEPS)
-
         ETAT_LIEUX_STEPS.extend(DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS)
+
+        ETAT_LIEUX_STEPS.extend(MEUBLE_STEPS)
         ETAT_LIEUX_STEPS.extend(PIECES_INFO_STEPS)
         ETAT_LIEUX_STEPS.extend(DETAIL_ETAT_LIEUX_STEPS)
         return ETAT_LIEUX_STEPS
+
+    @classmethod
+    def get_equipment_config(cls):
+        """
+        Configuration des équipements pour les états des lieux.
+        Retourne la configuration complète des équipements disponibles.
+        """
+        from location.equipment_config import get_all_equipements_config
+        return get_all_equipements_config()
 
 
 # Les helper functions sont maintenant des méthodes de BaseLocationSerializer

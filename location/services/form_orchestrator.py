@@ -115,13 +115,19 @@ class FormOrchestrator:
 
             steps.append(step_copy)
 
-        return {
+        result = {
             "country": country,
             "form_type": form_type,
             "steps": steps,
             "prefill_data": existing_data,
             "locked_steps_count": len(locked_steps) if location_id else 0,
         }
+
+        # Ajouter la configuration des équipements depuis le serializer si disponible
+        if hasattr(serializer_class, "get_equipment_config"):
+            result["equipment_config"] = serializer_class.get_equipment_config()
+
+        return result
 
     def _get_serializer_class(self, form_type: str, country: str):
         """Retourne la classe de serializer appropriée."""

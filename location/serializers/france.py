@@ -353,6 +353,7 @@ DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS = [
     },
 ]
 
+
 # --- Clés ---
 ETAT_LIEUX_CLES_STEPS = [
     {
@@ -632,7 +633,8 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         required=False, default=dict, help_text="Nombre de clés remises"
     )
     equipements_chauffage = serializers.JSONField(
-        required=False, default=dict, help_text="État des équipements de chauffage"
+        required=False, default=dict,
+        help_text="Équipements de chauffage avec type, état et date d'entretien"
     )
 
     # Rooms avec leur état (pour l'état des lieux)

@@ -52,6 +52,8 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     # Inventaire (garde en JSON car structure simple)
     nombre_cles = models.JSONField(default=dict)
     compteurs = models.JSONField(default=dict)
+    # Équipements de chauffage avec leur état et date d'entretien
+    # Structure: { "uuid": { "type": str, "etat": str, "date_entretien": str } }
     equipements_chauffage = models.JSONField(default=dict)
 
     # PDF spécifique EDL

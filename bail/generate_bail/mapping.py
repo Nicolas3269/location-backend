@@ -117,7 +117,7 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
             "jardin": "Jardin",
             "parking": "Place de parking",
             "garage": "Garage ou box fermé",
-            "dependance": "Dépendance ou annexe",
+            "boite_aux_lettres": "Boîte aux lettres",
         }
         for annexe in annexes_raw:
             # Vérifier si l'annexe est dans les labels définis

@@ -24,7 +24,7 @@ from etat_lieux.utils import (
     create_etat_lieux_signature_requests,
     save_etat_lieux_photos,
 )
-from location.models import Bien, Location
+from location.models import Bailleur, Bien, Locataire, Location
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
     confirm_signature_generic,
@@ -175,40 +175,40 @@ def resolve_location_id(location_id, bien_id):
 def extract_photos_with_references(request, photo_references):
     """
     Extrait les photos depuis une requête multipart en utilisant les références fournies.
-    
+
     Args:
         request: La requête HTTP
         photo_references: Liste des références de photos depuis validated_data
-    
+
     Returns:
         dict: Dictionnaire des photos uploadées avec leurs clés
     """
     uploaded_photos = {}
-    
+
     if photo_references and request.FILES:
         # Extraire les photos selon les références
         for photo_ref in photo_references:
             field_name = photo_ref.get("file_field_name")
             if field_name and field_name in request.FILES:
                 uploaded_file = request.FILES[field_name]
-                
+
                 # Créer une clé unique pour cette photo
                 photo_key = (
                     f"{photo_ref['room_id']}_{photo_ref['element_key']}_"
                     f"{photo_ref['photo_index']}"
                 )
                 uploaded_photos[photo_key] = uploaded_file
-        
+
         if uploaded_photos:
             logger.info(f"Reçu {len(uploaded_photos)} photos uploadées")
-    
+
     return uploaded_photos
 
 
 def extract_form_data_and_photos(request):
     """
     Extrait les données du formulaire et les photos depuis la requête.
-    
+
     Returns:
         tuple: (form_data, uploaded_photos)
     """
@@ -216,7 +216,7 @@ def extract_form_data_and_photos(request):
         json_data_str = request.POST.get("json_data")
         if not json_data_str:
             raise ValueError("json_data est requis pour les requêtes multipart")
-        
+
         form_data = json.loads(json_data_str)
         # Extraire les photos avec leurs références
         photo_references = form_data.get("photo_references", [])
@@ -225,7 +225,7 @@ def extract_form_data_and_photos(request):
         # Traitement des données JSON simple (sans photos)
         form_data = json.loads(request.body)
         uploaded_photos = {}
-    
+
     return form_data, uploaded_photos
 
 
@@ -373,7 +373,7 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
                 element_enrichi = EtatElementUtils.enrich_element(
                     element_key,
                     element_data,
-                    photos=photos_by_element.get(element_key, [])
+                    photos=photos_by_element.get(element_key, []),
                 )
                 elements_enrichis.append(element_enrichi)
 
@@ -383,14 +383,22 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
         logger.info(
             f"Pièce {piece.nom} enrichie avec {len(elements_enrichis)} éléments"
         )
+
+    # Récupérer les bailleurs et locataires de la location
+    location: Location = etat_lieux.location
+    bailleurs: list[Bailleur] = location.bien.bailleurs.all() if location.bien else []
+    locataires: list[Locataire] = (
+        location.locataires.all() if location.locataires else []
+    )
+
     return {
         "etat_lieux": etat_lieux,
         "now": timezone.now(),
-        "location": etat_lieux.location,
+        "location": location,
+        "bailleurs": bailleurs,
+        "locataires": locataires,
         "pieces_enrichies": pieces_enrichies,
     }
-
-
 
 
 @api_view(["POST"])
@@ -399,7 +407,7 @@ def generate_etat_lieux_pdf(request):
     """
     Génère uniquement le PDF pour un état des lieux existant.
     L'état des lieux doit avoir été créé au préalable via /location/create-or-update/
-    
+
     Attend:
     - etat_lieux_id: ID de l'état des lieux (obligatoire)
     """
@@ -407,18 +415,21 @@ def generate_etat_lieux_pdf(request):
         etat_lieux_id = request.data.get("etat_lieux_id")
         if not etat_lieux_id:
             return JsonResponse(
-                {"success": False, "error": "etat_lieux_id est requis"},
-                status=400
+                {"success": False, "error": "etat_lieux_id est requis"}, status=400
             )
-        
+
         # Récupérer l'état des lieux
         from etat_lieux.models import EtatLieux
+
         try:
             etat_lieux = EtatLieux.objects.get(id=etat_lieux_id)
         except EtatLieux.DoesNotExist:
             return JsonResponse(
-                {"success": False, "error": f"État des lieux {etat_lieux_id} non trouvé"},
-                status=404
+                {
+                    "success": False,
+                    "error": f"État des lieux {etat_lieux_id} non trouvé",
+                },
+                status=404,
             )
 
         # Générer le PDF
@@ -438,18 +449,20 @@ def generate_etat_lieux_pdf(request):
         first_sign_req = etat_lieux.signature_requests.order_by("order").first()
 
         # Retourner la réponse
-        return JsonResponse({
-            "success": True,
-            "etatLieuxId": str(etat_lieux.id),
-            "pdfUrl": request.build_absolute_uri(etat_lieux.pdf.url),
-            "linkTokenFirstSigner": (
-                str(first_sign_req.link_token) if first_sign_req else None
-            ),
-            "grilleVetustUrl": get_static_pdf_iframe_url(
-                request, "bails/grille_vetuste.pdf"
-            ),
-            "type": etat_lieux.type_etat_lieux,
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "etatLieuxId": str(etat_lieux.id),
+                "pdfUrl": request.build_absolute_uri(etat_lieux.pdf.url),
+                "linkTokenFirstSigner": (
+                    str(first_sign_req.link_token) if first_sign_req else None
+                ),
+                "grilleVetustUrl": get_static_pdf_iframe_url(
+                    request, "bails/grille_vetuste.pdf"
+                ),
+                "type": etat_lieux.type_etat_lieux,
+            }
+        )
 
     except Exception as e:
         logger.exception("Erreur lors de la génération de l'état des lieux PDF")

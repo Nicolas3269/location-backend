@@ -483,42 +483,87 @@
     </div>
     
     <!-- Parties -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-        <!-- Bailleur -->
-        <div class="info-section">
-            <h2>Le bailleur (ou son mandataire)</h2>
-            {% for bailleur in etat_lieux.location.bien.bailleurs.all|slice:":1" %}
-            <div style="font-size: 9pt;">
-                <div style="margin-bottom: 4px;">
-                    <span class="info-label">Nom :</span>
-                    <span class="info-value">{{ bailleur.signataire.prenom }} {{ bailleur.signataire.nom }}</span>
+    <div style="margin-bottom: 30px;">
+        <!-- Bailleurs -->
+        {% if bailleurs %}
+        <div class="info-section" style="margin-bottom: 25px; padding: 20px;">
+            <h2 style="margin-bottom: 20px;">Bailleur{% if bailleurs|length > 1 %}s{% endif %}</h2>
+            {% for bailleur in bailleurs %}
+            <div style="font-size: 10pt; line-height: 1.8; {% if not forloop.last %}margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e3e5e8;{% endif %}">
+                {% if bailleur.personne %}
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #2680eb;">Personne physique</strong>
                 </div>
-                <div>
-                    <span class="info-label">Domicile :</span>
-                    <span class="info-value">{{ bailleur.signataire.adresse|default:"" }}</span>
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 120px;">Nom :</span>
+                    <span class="info-value">{{ bailleur.personne.firstName }} {{ bailleur.personne.lastName }}</span>
                 </div>
-            </div>
-            {% endfor %}
-        </div>
-        
-        <!-- Locataire -->
-        <div class="info-section">
-            <h2>Le locataire</h2>
-            {% for locataire in etat_lieux.location.locataires.all|slice:":1" %}
-            <div style="font-size: 9pt;">
-                <div style="margin-bottom: 4px;">
-                    <span class="info-label">Nom :</span>
-                    <span class="info-value">{{ locataire.prenom }} {{ locataire.nom }}</span>
+                {% if bailleur.personne.email %}
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 120px;">Email :</span>
+                    <span class="info-value">{{ bailleur.personne.email }}</span>
                 </div>
-                {% if etat_lieux.type_etat_lieux == "sortie" %}
-                <div>
-                    <span class="info-label">Nouvelle adresse :</span>
-                    <span class="info-value">{{ locataire.adresse|default:"" }}</span>
+                {% endif %}
+                <div style="padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 120px;">Domicile :</span>
+                    <span class="info-value">{{ bailleur.personne.adresse|default:"" }}</span>
+                </div>
+                {% elif bailleur.societe %}
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #2680eb;">Personne morale</strong>
+                </div>
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 120px;">Raison sociale :</span>
+                    <span class="info-value">{{ bailleur.societe.raison_sociale }} ({{ bailleur.societe.forme_juridique }})</span>
+                </div>
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 120px;">SIRET :</span>
+                    <span class="info-value">{{ bailleur.societe.siret }}</span>
+                </div>
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 120px;">Domicile :</span>
+                    <span class="info-value">{{ bailleur.societe.adresse|default:"" }}</span>
+                </div>
+                <div style="padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 120px;">Représenté par :</span>
+                    <span class="info-value">{{ bailleur.signataire.firstName }} {{ bailleur.signataire.lastName }}
+                    {% if bailleur.signataire.email %} ({{ bailleur.signataire.email }}){% endif %}</span>
                 </div>
                 {% endif %}
             </div>
             {% endfor %}
         </div>
+        {% endif %}
+
+        <!-- Locataires -->
+        {% if locataires %}
+        <div class="info-section" style="padding: 20px;">
+            <h2 style="margin-bottom: 20px;">Locataire{% if locataires|length > 1 %}s{% endif %}</h2>
+            {% for locataire in locataires %}
+            <div style="font-size: 10pt; line-height: 1.8; {% if not forloop.last %}margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #e3e5e8;{% endif %}">
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #2680eb;">Personne physique</strong>
+                </div>
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 120px;">Nom :</span>
+                    <span class="info-value">{{ locataire.firstName }} {{ locataire.lastName }}</span>
+                </div>
+                {% if locataire.email %}
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 120px;">Email :</span>
+                    <span class="info-value">{{ locataire.email }}</span>
+                </div>
+                {% endif %}
+                {% if etat_lieux.type_etat_lieux == "sortie" and locataire.adresse %}
+                <div style="padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 120px;">Nouvelle adresse :</span>
+                    <span class="info-value">{{ locataire.adresse }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- Clés remises -->
@@ -876,36 +921,36 @@
     <!-- Section signatures -->
     <div class="signature-section">
         <h2 style="color: #2680eb; font-size: 14pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 20px 0;">Signatures</h2>
-        
+
         <!-- Bailleur signature blocks -->
+        {% if bailleurs %}
         <h4 style="color: #3e3c41; font-size: 11pt; font-weight: 600; margin: 0 0 15px 0;">
-            {% with count=etat_lieux.location.bien.bailleurs.all|length %}
-                Bailleur{% if count > 1 %}s{% endif %}
-            {% endwith %}
+            Bailleur{% if bailleurs|length > 1 %}s{% endif %}
         </h4>
         <div style="margin-bottom: 30px;">
-            {% for bailleur in etat_lieux.location.bien.bailleurs.all %}
+            {% for bailleur in bailleurs %}
             <div class="signature-block">
                 <!-- ID invisible pour PyMuPDF -->
                 <p style="color:white; margin: 0; font-size: 1pt;">ID_SIGNATURE_BAILLEUR_{{ bailleur.signataire.id }}</p>
             </div>
             {% endfor %}
         </div>
-        
+        {% endif %}
+
         <!-- Locataire signature blocks -->
+        {% if locataires %}
         <h4 style="color: #3e3c41; font-size: 11pt; font-weight: 600; margin: 0 0 15px 0;">
-            {% with count=etat_lieux.location.locataires.all|length %}
-                Locataire{% if count > 1 %}s{% endif %}
-            {% endwith %}
+            Locataire{% if locataires|length > 1 %}s{% endif %}
         </h4>
         <div>
-            {% for person in etat_lieux.location.locataires.all %}
+            {% for person in locataires %}
             <div class="signature-block">
                 <!-- ID invisible pour PyMuPDF -->
                 <p style="color:white; margin: 0; font-size: 1pt;">ID_SIGNATURE_LOC_{{ person.id }}</p>
             </div>
             {% endfor %}
         </div>
+        {% endif %}
     </div>
 </body>
 </html>

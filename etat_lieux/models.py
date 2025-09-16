@@ -56,6 +56,10 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     # Structure: { "uuid": { "type": str, "etat": str, "date_entretien": str } }
     equipements_chauffage = models.JSONField(default=dict)
 
+    # Équipements des annexes privatives - état global simple
+    # Structure: { "annexe_id": { "state": str, "comment": str, "photos": [...] } }
+    annexes_privatives_equipements = models.JSONField(default=dict)
+
     # PDF spécifique EDL
     grille_vetuste_pdf = models.FileField(
         upload_to="etat_lieux_pdfs/",

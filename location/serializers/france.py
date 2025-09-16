@@ -353,6 +353,16 @@ DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS = [
     },
 ]
 
+# --- Équipements des annexes privatives état des lieux ---
+ANNEXES_PRIVATIVES_EQUIPEMENTS_STEPS = [
+    {
+        "id": "bien.equipements.annexes_privatives_equipements",
+        "condition": "at_least_one_annexes_privatives_selected",
+        "required_fields": [],  # Optionnel
+        "fields": {},  # Stocké en JSON dans EtatLieux
+    },
+]
+
 
 # --- Clés ---
 ETAT_LIEUX_CLES_STEPS = [
@@ -638,6 +648,12 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         help_text="Équipements de chauffage avec type, état et date d'entretien",
     )
 
+    annexes_privatives_equipements = serializers.JSONField(
+        required=False,
+        default=dict,
+        help_text="Équipements des annexes privatives avec leur état",
+    )
+
     # Rooms avec leur état (pour l'état des lieux)
     rooms = serializers.JSONField(
         required=False, default=list, help_text="Détails des pièces avec leur état"
@@ -662,6 +678,9 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
 
         # Équipements - seulement privatives pour état des lieux
         ETAT_LIEUX_STEPS.extend(EQUIPEMENTS_PRIVATIVES_STEPS)
+
+        # Annexes privatives - leurs équipements
+        ETAT_LIEUX_STEPS.extend(ANNEXES_PRIVATIVES_EQUIPEMENTS_STEPS)
 
         ETAT_LIEUX_STEPS.extend(ETAT_LIEUX_CLES_STEPS)
 

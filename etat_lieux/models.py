@@ -112,10 +112,43 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         if current_status != self.status:
             self.save(update_fields=["status"])
 
-    def get_equipements_chauffage_formatted(self):
-        """Prépare les données des équipements de chauffage pour l'affichage dans le PDF"""
+    def _format_equipment_data(self, equipment, include_date_entretien=False):
+        """Méthode commune pour formater les données d'un équipement"""
         from etat_lieux.utils import EtatElementUtils
 
+        # Récupérer les photos de l'équipement
+        photos = [
+            photo.image.url for photo in equipment.photos.all()
+            if photo.image
+        ]
+
+        formatted = {
+            'uuid': str(equipment.id),
+            'type': equipment.equipment_key,
+            'type_label': equipment.equipment_name,
+            'etat': equipment.etat,
+            'etat_label': EtatElementUtils.get_etat_display(equipment.etat),
+            'etat_color': EtatElementUtils.get_etat_color(equipment.etat),
+            'etat_css_class': EtatElementUtils.get_etat_css_class(equipment.etat),
+            'comment': equipment.comment,
+            'photos': photos,
+        }
+
+        # Ajouter les données spécifiques au chauffage si nécessaire
+        if include_date_entretien:
+            formatted['date_entretien'] = (
+                equipment.data.get('date_entretien', '')
+                if equipment.data else ''
+            )
+            formatted['date_entretien_formatted'] = EtatElementUtils.format_date_entretien(
+                equipment.data.get('date_entretien', '')
+                if equipment.data else ''
+            )
+
+        return formatted
+
+    def get_equipements_chauffage_formatted(self):
+        """Prépare les données des équipements de chauffage pour l'affichage dans le PDF"""
         chaudieres = []
         chauffe_eaux = []
 
@@ -123,31 +156,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         for equipment in self.equipements.filter(
             equipment_type=EquipmentType.CHAUFFAGE
         ):
-            # Récupérer les photos de cet équipement
-            photos = [
-                photo.image.url for photo in equipment.photos.all()
-                if photo.image
-            ]
-
-            formatted = {
-                'uuid': str(equipment.id),
-                'type': equipment.equipment_key,
-                'type_label': equipment.equipment_name,
-                'etat': equipment.etat,
-                'etat_label': EtatElementUtils.get_etat_display(equipment.etat),
-                'etat_color': EtatElementUtils.get_etat_color(equipment.etat),
-                'etat_css_class': EtatElementUtils.get_etat_css_class(equipment.etat),
-                'comment': equipment.comment,
-                'photos': photos,
-                'date_entretien': (
-                    equipment.data.get('date_entretien', '')
-                    if equipment.data else ''
-                ),
-                'date_entretien_formatted': EtatElementUtils.format_date_entretien(
-                    equipment.data.get('date_entretien', '')
-                    if equipment.data else ''
-                )
-            }
+            formatted = self._format_equipment_data(equipment, include_date_entretien=True)
 
             if equipment.equipment_key == 'chaudiere':
                 chaudieres.append(formatted)
@@ -169,20 +178,11 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
 
         # Récupérer tous les équipements d'annexes
         for equipment in self.equipements.filter(equipment_type=EquipmentType.ANNEXE):
-            # Récupérer les photos de cet équipement
-            photos = [
-                {
-                    'url': photo.image.url if photo.image else None,
-                    'name': photo.nom_original
-                }
-                for photo in equipment.photos.all()
-            ]
+            # Utiliser la méthode commune pour formater les données
+            formatted = self._format_equipment_data(equipment)
 
-            formatted_annexes[equipment.equipment_key] = {
-                'state': equipment.etat,
-                'comment': equipment.comment,
-                'photos': photos
-            }
+            # Adapter le format pour les annexes (garder la compatibilité avec le template)
+            formatted_annexes[equipment.equipment_key] = formatted
 
         return formatted_annexes
 

@@ -8,27 +8,32 @@ import uuid
 from django.db import models
 from django.utils import timezone
 
-from location.models import BaseModel, Bien, Locataire, Location, Personne
+from location.models import BaseModel, Locataire, Location, Personne
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
 from signature.document_status import DocumentStatus
 
 
-class EtatLieuxType(models.TextChoices):
-    """Types d'état des lieux"""
-
-    ENTREE = "entree", "État des lieux d'entrée"
-    SORTIE = "sortie", "État des lieux de sortie"
+# Enums pour les équipements
+class EquipmentType(models.TextChoices):
+    PIECE = 'piece', 'Équipement de pièce'
+    CHAUFFAGE = 'chauffage', 'Chauffage'
+    ANNEXE = 'annexe', 'Annexe'
 
 
 class ElementState(models.TextChoices):
     """États possibles pour un élément"""
-
-    MAUVAIS = "M", "Mauvais"
-    PASSABLE = "P", "Passable"
-    BON = "B", "Bon"
     TRES_BON = "TB", "Très bon"
+    BON = "B", "Bon"
+    PASSABLE = "P", "Passable"
+    MAUVAIS = "M", "Mauvais"
     EMPTY = "", "Non renseigné"
+
+
+class EtatLieuxType(models.TextChoices):
+    """Types d'état des lieux"""
+    ENTREE = "entree", "État des lieux d'entrée"
+    SORTIE = "sortie", "État des lieux de sortie"
 
 
 class EtatLieux(SignableDocumentMixin, BaseModel):
@@ -52,13 +57,8 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     # Inventaire (garde en JSON car structure simple)
     nombre_cles = models.JSONField(default=dict)
     compteurs = models.JSONField(default=dict)
-    # Équipements de chauffage avec leur état et date d'entretien
-    # Structure: { "uuid": { "type": str, "etat": str, "date_entretien": str } }
-    equipements_chauffage = models.JSONField(default=dict)
-
-    # Équipements des annexes privatives - état global simple
-    # Structure: { "annexe_id": { "state": str, "comment": str, "photos": [...] } }
-    annexes_privatives_equipements = models.JSONField(default=dict)
+    # Les équipements sont maintenant gérés via le modèle EtatLieuxEquipement
+    # (anciennement stockés dans des JSONField)
 
     # PDF spécifique EDL
     grille_vetuste_pdf = models.FileField(
@@ -92,7 +92,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     def get_file_prefix(self):
         """Retourne le préfixe pour les noms de fichiers"""
         return "etat_lieux"
-    
+
     def check_and_update_status(self):
         """Met à jour automatiquement le statut selon les signatures"""
         from signature.document_status import DocumentStatus
@@ -116,21 +116,43 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         """Prépare les données des équipements de chauffage pour l'affichage dans le PDF"""
         from etat_lieux.utils import EtatElementUtils
 
-        if not self.equipements_chauffage:
-            return {'chaudieres': [], 'chauffe_eaux': []}
-
         chaudieres = []
         chauffe_eaux = []
 
-        for uuid, data in self.equipements_chauffage.items():
-            if isinstance(data, dict):
-                equipment = EtatElementUtils.format_equipment(data.get('type', ''), data)
-                equipment['uuid'] = uuid
+        # Récupérer tous les équipements de chauffage
+        for equipment in self.equipements.filter(
+            equipment_type=EquipmentType.CHAUFFAGE
+        ):
+            # Récupérer les photos de cet équipement
+            photos = [
+                photo.image.url for photo in equipment.photos.all()
+                if photo.image
+            ]
 
-                if data.get('type') == 'chaudiere':
-                    chaudieres.append(equipment)
-                else:
-                    chauffe_eaux.append(equipment)
+            formatted = {
+                'uuid': str(equipment.id),
+                'type': equipment.equipment_key,
+                'type_label': equipment.equipment_name,
+                'etat': equipment.etat,
+                'etat_label': EtatElementUtils.get_etat_display(equipment.etat),
+                'etat_color': EtatElementUtils.get_etat_color(equipment.etat),
+                'etat_css_class': EtatElementUtils.get_etat_css_class(equipment.etat),
+                'comment': equipment.comment,
+                'photos': photos,
+                'date_entretien': (
+                    equipment.data.get('date_entretien', '')
+                    if equipment.data else ''
+                ),
+                'date_entretien_formatted': EtatElementUtils.format_date_entretien(
+                    equipment.data.get('date_entretien', '')
+                    if equipment.data else ''
+                )
+            }
+
+            if equipment.equipment_key == 'chaudiere':
+                chaudieres.append(formatted)
+            else:
+                chauffe_eaux.append(formatted)
 
         # Trier par UUID pour un ordre cohérent
         chaudieres.sort(key=lambda x: x['uuid'])
@@ -141,15 +163,38 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
             'chauffe_eaux': chauffe_eaux
         }
 
+    def get_annexes_privatives_formatted(self):
+        """Prépare les données des annexes privatives pour l'affichage dans le PDF"""
+        formatted_annexes = {}
 
-class EtatLieuxPiece(models.Model):
-    """Pièce pour les états des lieux - rattachée directement au bien"""
+        # Récupérer tous les équipements d'annexes
+        for equipment in self.equipements.filter(equipment_type=EquipmentType.ANNEXE):
+            # Récupérer les photos de cet équipement
+            photos = [
+                {
+                    'url': photo.image.url if photo.image else None,
+                    'name': photo.nom_original
+                }
+                for photo in equipment.photos.all()
+            ]
+
+            formatted_annexes[equipment.equipment_key] = {
+                'state': equipment.etat,
+                'comment': equipment.comment,
+                'photos': photos
+            }
+
+        return formatted_annexes
+
+
+class EtatLieuxPiece(BaseModel):
+    """Pièce pour un état des lieux spécifique"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    # Relation directe avec le bien
-    bien = models.ForeignKey(
-        Bien, on_delete=models.CASCADE, related_name="pieces_etat_lieux"
+    # Relation directe avec l'état des lieux
+    etat_lieux = models.ForeignKey(
+        EtatLieux, on_delete=models.CASCADE, related_name="pieces"
     )
 
     # Informations de la pièce
@@ -159,72 +204,102 @@ class EtatLieuxPiece(models.Model):
     class Meta:
         verbose_name = "Pièce état des lieux"
         verbose_name_plural = "Pièces état des lieux"
-        unique_together = [["bien", "nom"]]
+        unique_together = [["etat_lieux", "nom"]]
         db_table = "etat_lieux_piece"
 
     def __str__(self):
-        return f"{self.nom} - {self.bien.adresse}"
+        return f"{self.nom} - {self.etat_lieux}"
 
 
-class EtatLieuxPieceDetail(BaseModel):
-    """Détails d'une pièce pour un état des lieux spécifique"""
+class EtatLieuxEquipement(BaseModel):
+    """Équipement pour un état des lieux (sol, mur, chaudière, cave, etc.)"""
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # L'ID est généré côté frontend
+    id = models.UUIDField(primary_key=True, editable=False)
 
     etat_lieux = models.ForeignKey(
-        EtatLieux, on_delete=models.CASCADE, related_name="pieces_details"
+        EtatLieux, on_delete=models.CASCADE, related_name="equipements"
     )
+
+    # Type d'équipement
+    equipment_type = models.CharField(
+        max_length=20,
+        choices=EquipmentType.choices,
+        help_text="Type d'équipement"
+    )
+
+    # Clé de l'équipement
+    equipment_key = models.CharField(
+        max_length=50,
+        help_text="Identifiant de l'équipement (sol, murs, chaudiere, cave, etc.)"
+    )
+
+    # Nom d'affichage de l'équipement
+    equipment_name = models.CharField(
+        max_length=100,
+        help_text="Nom d'affichage de l'équipement (Sol, Murs, Chaudière, Cave, etc.)"
+    )
+
+    # Relation optionnelle avec la pièce (seulement pour type='piece')
     piece = models.ForeignKey(
-        EtatLieuxPiece, on_delete=models.CASCADE, related_name="details_etat_lieux"
+        EtatLieuxPiece,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="equipements",
+        help_text="Pièce associée (si équipement de pièce)"
     )
 
-    # États des éléments (JSONField pour flexibilité)
-    elements = models.JSONField(
-        default=dict, help_text="États des différents éléments de la pièce"
+    # État et commentaires
+    etat = models.CharField(
+        max_length=20,
+        choices=ElementState.choices,
+        blank=True,
+        help_text="État de l'équipement"
     )
+    comment = models.TextField(blank=True, help_text="Commentaire sur l'équipement")
 
-    # Équipements et mobilier
-    equipments = models.JSONField(
-        default=list, help_text="Liste des équipements de la pièce"
+    # Données additionnelles (date_entretien, etc.)
+    data = models.JSONField(
+        default=dict,
+        help_text="Données additionnelles spécifiques au type d'équipement"
     )
-    mobilier = models.JSONField(default=list, help_text="Liste du mobilier de la pièce")
-
-    # Spécifique sortie
-    degradations = models.JSONField(default=list, blank=True)
 
     class Meta:
-        verbose_name = "Détail pièce état des lieux"
-        verbose_name_plural = "Détails pièces état des lieux"
-        unique_together = [["etat_lieux", "piece"]]
-        db_table = "etat_lieux_piecedetail"
+        verbose_name = "Équipement état des lieux"
+        verbose_name_plural = "Équipements état des lieux"
+        unique_together = [["etat_lieux", "equipment_type", "equipment_key", "piece"]]
+        db_table = "etat_lieux_equipement"
 
     def __str__(self):
-        return f"{self.piece.nom} - {self.etat_lieux}"
+        if self.piece:
+            return f"{self.equipment_name} - {self.piece.nom}"
+        return f"{self.equipment_name} - {self.etat_lieux}"
 
 
 class EtatLieuxPhoto(BaseModel):
-    """Photos associées aux états des lieux"""
+    """Photos associées aux équipements d'état des lieux"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    # Relation avec le détail de pièce spécifique à un état des lieux
-    piece_detail = models.ForeignKey(
-        EtatLieuxPieceDetail,
+    # Relation directe avec l'équipement
+    equipment = models.ForeignKey(
+        EtatLieuxEquipement,
         on_delete=models.CASCADE,
         related_name="photos",
-        help_text="Détail de pièce spécifique à un état des lieux",
+        help_text="Équipement associé"
     )
 
-    # Localisation de la photo dans le formulaire
-    element_key = models.CharField(
-        max_length=50, help_text="Clé de l'élément (sol, murs, etc.)"
+    # Index de la photo
+    photo_index = models.IntegerField(
+        default=0,
+        help_text="Index de la photo pour cet équipement"
     )
-    photo_index = models.IntegerField(help_text="Index de la photo pour cet élément")
 
     # Fichier photo
     image = models.ImageField(
         upload_to="etat_lieux_photos/",
-        help_text="Photo de l'élément",
+        help_text="Photo de l'équipement",
     )
 
     # Métadonnées
@@ -233,13 +308,11 @@ class EtatLieuxPhoto(BaseModel):
     class Meta:
         verbose_name = "Photo état des lieux"
         verbose_name_plural = "Photos état des lieux"
-        ordering = ["piece_detail", "element_key", "photo_index"]
+        ordering = ["equipment", "photo_index"]
         db_table = "etat_lieux_photo"
 
     def __str__(self):
-        piece_nom = self.piece_detail.piece.nom
-        etat_id = str(self.piece_detail.etat_lieux.id)[:8]
-        return f"Photo {piece_nom}/{self.element_key} - EDL {etat_id}"
+        return f"Photo {self.equipment.equipment_name} - {self.equipment.etat_lieux}"
 
 
 class EtatLieuxSignatureRequest(AbstractSignatureRequest):
@@ -295,9 +368,10 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
             .order_by("order")
             .first()
         )
-    
+
     def mark_as_signed(self):
         """Marque la demande comme signée et met à jour le statut du document"""
         super().mark_as_signed()
         # Vérifier et mettre à jour le statut du document
         self.etat_lieux.check_and_update_status()
+

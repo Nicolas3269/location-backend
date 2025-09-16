@@ -3,19 +3,28 @@ from django.utils.html import format_html
 
 from etat_lieux.models import (
     EtatLieux,
+    EtatLieuxEquipement,
     EtatLieuxPhoto,
     EtatLieuxPiece,
-    EtatLieuxPieceDetail,
     EtatLieuxSignatureRequest,
 )
 
 
-class EtatLieuxPieceInlineBien(admin.TabularInline):
-    """Inline pour afficher les pièces d'état des lieux d'un bien"""
+class EtatLieuxPieceInline(admin.TabularInline):
+    """Inline pour afficher les pièces d'un état des lieux"""
 
     model = EtatLieuxPiece
     extra = 0
     fields = ("nom", "type_piece")
+    show_change_link = True
+
+
+class EtatLieuxEquipementInline(admin.TabularInline):
+    """Inline pour afficher les équipements d'un état des lieux"""
+
+    model = EtatLieuxEquipement
+    extra = 0
+    fields = ("equipment_type", "equipment_key", "equipment_name", "etat")
     show_change_link = True
 
 
@@ -80,7 +89,7 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         ),
     )
 
-    inlines = [EtatLieuxSignatureRequestInline]
+    inlines = [EtatLieuxPieceInline, EtatLieuxEquipementInline, EtatLieuxSignatureRequestInline]
 
     def location_info(self, obj):
         """Affiche les informations de la location"""
@@ -122,56 +131,76 @@ class EtatLieuxPieceAdmin(admin.ModelAdmin):
     list_display = (
         "nom",
         "type_piece",
-        "bien_adresse",
+        "etat_lieux_display",
     )
 
     list_filter = (
         "type_piece",
-        "bien__type_bien",
+        "etat_lieux__type_etat_lieux",
     )
 
     search_fields = (
         "nom",
-        "bien__adresse",
-    )
-
-    fieldsets = ((None, {"fields": ("bien", "nom", "type_piece")}),)
-
-    def bien_adresse(self, obj):
-        """Bien de la pièce"""
-        return obj.bien.adresse
-
-    bien_adresse.short_description = "Bien"
-
-
-@admin.register(EtatLieuxPieceDetail)
-class EtatLieuxPieceDetailAdmin(admin.ModelAdmin):
-    """Interface d'administration pour les détails des pièces d'état des lieux"""
-
-    list_display = (
-        "piece_nom",
-        "etat_lieux_type",
-        "etat_lieux_bien",
-    )
-
-    list_filter = (
-        "etat_lieux__type_etat_lieux",
-        "piece__type_piece",
-    )
-
-    search_fields = (
-        "piece__nom",
         "etat_lieux__location__bien__adresse",
     )
 
-    readonly_fields = ("elements", "equipments", "mobilier", "degradations")
+    fieldsets = ((None, {"fields": ("etat_lieux", "nom", "type_piece")}),)
+
+    def etat_lieux_display(self, obj):
+        """État des lieux de la pièce"""
+        if obj.etat_lieux:
+            return f"{obj.etat_lieux.get_type_etat_lieux_display()} - {obj.etat_lieux.location.bien.adresse}"
+        return "-"
+
+    etat_lieux_display.short_description = "État des lieux"
+
+
+@admin.register(EtatLieuxEquipement)
+class EtatLieuxEquipementAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les équipements d'état des lieux"""
+
+    list_display = (
+        "equipment_name",
+        "equipment_type",
+        "equipment_key",
+        "etat",
+        "piece_nom",
+        "etat_lieux_type",
+    )
+
+    list_filter = (
+        "equipment_type",
+        "etat",
+        "etat_lieux__type_etat_lieux",
+    )
+
+    search_fields = (
+        "equipment_name",
+        "equipment_key",
+        "etat_lieux__location__bien__adresse",
+        "piece__nom",
+    )
+
+    readonly_fields = ("id", "data", "created_at", "updated_at")
 
     fieldsets = (
-        (None, {"fields": ("etat_lieux", "piece")}),
+        (None, {"fields": ("id", "etat_lieux", "piece")}),
         (
-            "Données JSON",
+            "Équipement",
             {
-                "fields": ("elements", "equipments", "mobilier", "degradations"),
+                "fields": ("equipment_type", "equipment_key", "equipment_name"),
+            },
+        ),
+        (
+            "État",
+            {
+                "fields": ("etat", "comment", "data"),
+            },
+        ),
+        (
+            "Métadonnées",
+            {
+                "fields": ("created_at", "updated_at"),
                 "classes": ("collapse",),
             },
         ),
@@ -179,7 +208,7 @@ class EtatLieuxPieceDetailAdmin(admin.ModelAdmin):
 
     def piece_nom(self, obj):
         """Nom de la pièce"""
-        return obj.piece.nom
+        return obj.piece.nom if obj.piece else "-"
 
     piece_nom.short_description = "Pièce"
 
@@ -188,12 +217,6 @@ class EtatLieuxPieceDetailAdmin(admin.ModelAdmin):
         return obj.etat_lieux.get_type_etat_lieux_display()
 
     etat_lieux_type.short_description = "Type état des lieux"
-
-    def etat_lieux_bien(self, obj):
-        """Bien de l'état des lieux"""
-        return obj.etat_lieux.location.bien.adresse
-
-    etat_lieux_bien.short_description = "Bien"
 
 
 @admin.register(EtatLieuxSignatureRequest)
@@ -290,8 +313,7 @@ class EtatLieuxPhotoAdmin(admin.ModelAdmin):
 
     list_display = (
         "id",
-        "piece_display",
-        "element_key",
+        "equipment_display",
         "photo_index",
         "nom_original",
         "image_preview",
@@ -299,16 +321,15 @@ class EtatLieuxPhotoAdmin(admin.ModelAdmin):
     )
 
     list_filter = (
-        "element_key",
+        "equipment__equipment_type",
         "created_at",
-        "piece_detail__piece__nom",
     )
 
     search_fields = (
-        "piece_detail__piece__nom",
-        "element_key",
+        "equipment__equipment_name",
+        "equipment__equipment_key",
         "nom_original",
-        "piece_detail__piece__bien__adresse",
+        "equipment__etat_lieux__location__bien__adresse",
     )
 
     readonly_fields = (
@@ -319,7 +340,7 @@ class EtatLieuxPhotoAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
-        (None, {"fields": ("piece_detail", "element_key", "photo_index")}),
+        (None, {"fields": ("equipment", "photo_index")}),
         ("Fichier", {"fields": ("image", "image_preview", "nom_original")}),
         (
             "Métadonnées",
@@ -330,13 +351,13 @@ class EtatLieuxPhotoAdmin(admin.ModelAdmin):
         ),
     )
 
-    def piece_display(self, obj):
-        """Affichage de la pièce et du bien"""
-        piece = obj.piece_detail.piece
-        etat_lieux = obj.piece_detail.etat_lieux
-        return f"{piece.nom} - {etat_lieux.get_type_etat_lieux_display()}"
+    def equipment_display(self, obj):
+        """Affichage de l'équipement"""
+        if obj.equipment:
+            return f"{obj.equipment.equipment_name} ({obj.equipment.equipment_type})"
+        return "-"
 
-    piece_display.short_description = "Pièce"
+    equipment_display.short_description = "Équipement"
 
     def image_preview(self, obj):
         """Prévisualisation de l'image"""

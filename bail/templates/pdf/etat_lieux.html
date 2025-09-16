@@ -724,6 +724,27 @@
                             {{ equipment.etat_label }}
                         </span>
                     </div>
+
+                    <!-- Commentaire de l'équipement -->
+                    {% if equipment.comment %}
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e3e5e8;">
+                        <div style="font-size: 9pt; color: #6b7280;">Commentaire :</div>
+                        <div style="font-size: 9pt; color: #1f2937; margin-top: 4px;">{{ equipment.comment }}</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Photos de l'équipement -->
+                    {% if equipment.photos %}
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e3e5e8;">
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            {% for photo_url in equipment.photos|slice:":4" %}
+                            <img src="{{ photo_url }}"
+                                 alt="Photo chauffe-eau"
+                                 style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px; border: 1px solid #e3e5e8;"/>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
@@ -752,11 +773,96 @@
                         </td>
                         <td>{{ equipment.date_entretien_formatted|default:"Non renseigné" }}</td>
                     </tr>
+                    {% if equipment.comment or equipment.photos %}
+                    <tr>
+                        <td colspan="3" style="padding: 8px 12px; background: #f9fafb; border-top: none;">
+                            {% if equipment.comment %}
+                            <div style="margin-bottom: {% if equipment.photos %}8px{% else %}0{% endif %};">
+                                <span style="font-size: 9pt; color: #6b7280;">Commentaire :</span>
+                                <span style="font-size: 9pt; color: #1f2937;">{{ equipment.comment }}</span>
+                            </div>
+                            {% endif %}
+                            {% if equipment.photos %}
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                {% for photo_url in equipment.photos|slice:":4" %}
+                                <img src="{{ photo_url }}"
+                                     alt="Photo chaudière"
+                                     style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px; border: 1px solid #e3e5e8;"/>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
                     {% endfor %}
                 </tbody>
             </table>
         </div>
         {% endif %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- État des annexes privatives -->
+    {% with annexes=etat_lieux.get_annexes_privatives_formatted %}
+    {% if annexes %}
+    <div class="info-section">
+        <h2>État des annexes privatives</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+            {% for annexe_id, annexe_data in annexes.items %}
+            <div style="border: 1px solid #e3e5e8; border-radius: 4px; padding: 10px 15px; background: #f9fafb; min-width: 180px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
+                    <span style="font-size: 10pt; color: #1f2937; font-weight: 600;">
+                        {% if annexe_id == "cave" %}Cave
+                        {% elif annexe_id == "grenier" %}Grenier
+                        {% elif annexe_id == "garage" %}Garage ou box fermé
+                        {% elif annexe_id == "parking" %}Place de parking
+                        {% elif annexe_id == "jardin" %}Jardin
+                        {% elif annexe_id == "terrasse" %}Terrasse
+                        {% elif annexe_id == "balcon" %}Balcon
+                        {% elif annexe_id == "loggia" %}Loggia
+                        {% elif annexe_id == "veranda" %}Véranda
+                        {% elif annexe_id == "dependance" %}Dépendance
+                        {% elif annexe_id == "piscine" %}Piscine
+                        {% elif annexe_id == "boite_aux_lettres" %}Boîte aux lettres
+                        {% else %}{{ annexe_id|title }}
+                        {% endif %} :
+                    </span>
+                    {% if annexe_data.state %}
+                    <span class="{{ annexe_data.state_css_class }}" style="font-size: 10pt; font-weight: 500;">
+                        {% if annexe_data.state == "tres_bon" %}Très bon
+                        {% elif annexe_data.state == "bon" %}Bon
+                        {% elif annexe_data.state == "usage_normal" %}Usage normal
+                        {% elif annexe_data.state == "mauvais" %}Mauvais
+                        {% else %}{{ annexe_data.state }}
+                        {% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+
+                <!-- Commentaire de l'annexe -->
+                {% if annexe_data.comment %}
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e3e5e8;">
+                    <div style="font-size: 9pt; color: #6b7280;">Commentaire :</div>
+                    <div style="font-size: 9pt; color: #1f2937; margin-top: 4px;">{{ annexe_data.comment }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Photos de l'annexe -->
+                {% if annexe_data.photos %}
+                <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e3e5e8;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        {% for photo in annexe_data.photos|slice:":4" %}
+                        <img src="{{ photo.url }}"
+                             alt="Photo {{ annexe_id }}"
+                             style="width: 120px; height: 90px; object-fit: cover; border-radius: 4px; border: 1px solid #e3e5e8;"/>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
     </div>
     {% endif %}
     {% endwith %}

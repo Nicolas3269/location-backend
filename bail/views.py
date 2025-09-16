@@ -25,7 +25,7 @@ from bail.models import (
 from bail.utils import (
     create_signature_requests,
 )
-from etat_lieux.utils import get_or_create_pieces_for_bien
+# from etat_lieux.utils import get_or_create_pieces_for_bien  # Supprimé - nouvelle architecture
 from location.models import (
     Bien,
 )
@@ -576,18 +576,9 @@ def get_bien_detail(request, bien_id):
                 {"error": "Vous n'avez pas accès à ce bien"}, status=403
             )
 
-        # Récupérer ou créer les pièces pour ce bien
-        pieces = get_or_create_pieces_for_bien(bien)
-
+        # Avec la nouvelle architecture, les pièces sont créées avec l'état des lieux
+        # et gérées côté frontend. Cette route retourne une liste vide.
         pieces_data = []
-        for piece in pieces:
-            pieces_data.append(
-                {
-                    "id": str(piece.id),
-                    "nom": piece.nom,
-                    "type": piece.type_piece,
-                }
-            )
 
         # Données du bien
         bien_data = {

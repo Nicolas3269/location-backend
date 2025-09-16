@@ -16,13 +16,13 @@ from weasyprint import HTML
 from backend.pdf_utils import get_static_pdf_iframe_url
 from etat_lieux.models import (
     EtatLieux,
-    EtatLieuxPieceDetail,
+    EtatLieuxEquipement,
+    EtatLieuxPiece,
     EtatLieuxSignatureRequest,
 )
 from etat_lieux.utils import (
     create_etat_lieux_from_form_data,
     create_etat_lieux_signature_requests,
-    save_etat_lieux_photos,
 )
 from location.models import Bailleur, Bien, Locataire, Location
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
@@ -52,21 +52,9 @@ def get_or_create_pieces(request, bien_id):
                 status=404,
             )
 
-        # Récupérer ou créer les pièces
-        from etat_lieux.utils import get_or_create_pieces_for_bien
-
-        pieces = get_or_create_pieces_for_bien(bien)
-
-        # Formater la réponse avec les UUIDs
+        # Avec la nouvelle architecture, les pièces sont créées avec l'état des lieux
+        # et gérées côté frontend. Cette route retourne une liste vide.
         pieces_data = []
-        for piece in pieces:
-            pieces_data.append(
-                {
-                    "id": str(piece.id),  # UUID as string
-                    "nom": piece.nom,
-                    "type": piece.type_piece,
-                }
-            )
 
         return JsonResponse(
             {
@@ -188,15 +176,10 @@ def extract_photos_with_references(request, photo_references):
     if photo_references and request.FILES:
         # Extraire les photos selon les références
         for photo_ref in photo_references:
-            field_name = photo_ref.get("file_field_name")
-            if field_name and field_name in request.FILES:
-                uploaded_file = request.FILES[field_name]
-
-                # Créer une clé unique pour cette photo
-                photo_key = (
-                    f"{photo_ref['room_id']}_{photo_ref['element_key']}_"
-                    f"{photo_ref['photo_index']}"
-                )
+            # Utiliser directement la photo_key fournie par le frontend
+            photo_key = photo_ref.get("photo_key")
+            if photo_key and photo_key in request.FILES:
+                uploaded_file = request.FILES[photo_key]
                 uploaded_photos[photo_key] = uploaded_file
 
         if uploaded_photos:
@@ -230,43 +213,105 @@ def extract_form_data_and_photos(request):
 
 
 def update_or_create_etat_lieux(location_id, form_data, uploaded_photos, user):
-    etat_lieux_type = form_data.get("type_etat_lieux", "entree")
-    anciens_etats_lieux = EtatLieux.objects.filter(
-        location_id=location_id, type_etat_lieux=etat_lieux_type
+    from django.db import transaction
+
+    etat_lieux_type = form_data.get("type_etat_lieux")
+
+    logger.info(
+        f"update_or_create_etat_lieux appelé pour location {location_id}, type {etat_lieux_type}"
     )
 
-    if anciens_etats_lieux.exists():
-        count = anciens_etats_lieux.count()
-        logger.info(
-            f"Suppression de {count} ancien(s) état(s) des lieux "
-            f"de type '{etat_lieux_type}' pour la location {location_id}"
+    # Utiliser une transaction atomique pour éviter les race conditions
+    with transaction.atomic():
+        anciens_etats_lieux = EtatLieux.objects.filter(
+            location_id=location_id, type_etat_lieux=etat_lieux_type
         )
 
-        for ancien_etat_lieux in anciens_etats_lieux:
-            # Supprimer d'abord les détails des pièces associés
-            # (même si on_delete=CASCADE devrait le faire automatiquement)
-            EtatLieuxPieceDetail.objects.filter(etat_lieux=ancien_etat_lieux).delete()
+        if anciens_etats_lieux.exists():
+            count = anciens_etats_lieux.count()
+            logger.info(
+                f"Suppression de {count} ancien(s) état(s) des lieux "
+                f"de type '{etat_lieux_type}' pour la location {location_id}"
+            )
 
-            # Supprimer les demandes de signature associées
-            # (au cas où on_delete=CASCADE ne fonctionnerait pas correctement)
-            ancien_etat_lieux.signature_requests.all().delete()
+            # Lister les IDs des pièces existantes avant suppression
+            pieces_existantes = EtatLieuxPiece.objects.filter(
+                etat_lieux__in=anciens_etats_lieux
+            ).values_list("id", flat=True)
+            logger.info(f"Pièces existantes à supprimer: {list(pieces_existantes)}")
 
-            # Supprimer le fichier PDF associé
-            if ancien_etat_lieux.pdf:
-                try:
-                    ancien_etat_lieux.pdf.delete(save=False)
-                except Exception as e:
-                    logger.warning(
-                        f"Impossible de supprimer le PDF de l'état des lieux "
-                        f"{ancien_etat_lieux.id}: {e}"
-                    )
+            for ancien_etat_lieux in anciens_etats_lieux:
+                # Compter avant suppression
+                pieces_before = EtatLieuxPiece.objects.filter(
+                    etat_lieux=ancien_etat_lieux
+                ).count()
+                equipments_before = EtatLieuxEquipement.objects.filter(
+                    etat_lieux=ancien_etat_lieux
+                ).count()
 
-            # Maintenant supprimer l'état des lieux lui-même
-            ancien_etat_lieux.delete()
+                # Supprimer d'abord les pièces et équipements associés
+                # (même si on_delete=CASCADE devrait le faire automatiquement)
+                pieces_deleted, _ = EtatLieuxPiece.objects.filter(
+                    etat_lieux=ancien_etat_lieux
+                ).delete()
+                equipments_deleted, _ = EtatLieuxEquipement.objects.filter(
+                    etat_lieux=ancien_etat_lieux
+                ).delete()
 
-    etat_lieux: EtatLieux = create_etat_lieux_from_form_data(
-        form_data, location_id, user
-    )
+                # Vérifier après suppression
+                pieces_after = EtatLieuxPiece.objects.filter(
+                    etat_lieux=ancien_etat_lieux
+                ).count()
+                equipments_after = EtatLieuxEquipement.objects.filter(
+                    etat_lieux=ancien_etat_lieux
+                ).count()
+
+                logger.info(
+                    f"Suppression pour état des lieux {ancien_etat_lieux.id}: "
+                    f"Pièces: {pieces_before} → {pieces_deleted} supprimées → {pieces_after} restantes | "
+                    f"Équipements: {equipments_before} → {equipments_deleted} supprimés → {equipments_after} restants"
+                )
+
+                # Supprimer les demandes de signature associées
+                # (au cas où on_delete=CASCADE ne fonctionnerait pas correctement)
+                ancien_etat_lieux.signature_requests.all().delete()
+
+                # Supprimer le fichier PDF associé
+                if ancien_etat_lieux.pdf:
+                    try:
+                        ancien_etat_lieux.pdf.delete(save=False)
+                    except Exception as e:
+                        logger.warning(
+                            f"Impossible de supprimer le PDF de l'état des lieux "
+                            f"{ancien_etat_lieux.id}: {e}"
+                        )
+
+                # Maintenant supprimer l'état des lieux lui-même
+                ancien_etat_lieux.delete()
+
+            # Vérifier que la suppression est bien complète
+            pieces_restantes = EtatLieuxPiece.objects.filter(
+                id__in=pieces_existantes
+            ).count()
+            if pieces_restantes > 0:
+                logger.error(
+                    f"ATTENTION: {pieces_restantes} pièces n'ont pas été supprimées!"
+                )
+        else:
+            logger.info(
+                f"Aucun ancien état des lieux trouvé pour location {location_id}"
+            )
+
+        # Vérifier qu'il n'y a plus d'état des lieux pour cette location avant de créer
+        verification = EtatLieux.objects.filter(
+            location_id=location_id, type_etat_lieux=etat_lieux_type
+        ).exists()
+        if verification:
+            logger.error("ERREUR: Un état des lieux existe encore après suppression!")
+
+        etat_lieux, equipment_id_map = create_etat_lieux_from_form_data(
+            form_data, location_id
+        )
 
     # Sauvegarder les photos si présentes
     if uploaded_photos:
@@ -275,8 +320,13 @@ def update_or_create_etat_lieux(location_id, form_data, uploaded_photos, user):
         # Chaque état des lieux peut avoir ses propres photos
         logger.info(f"Traitement de {len(uploaded_photos)} photos uploadées")
 
-        save_etat_lieux_photos(
-            etat_lieux, uploaded_photos, form_data.get("photo_references", [])
+        from etat_lieux.utils import save_equipment_photos
+
+        save_equipment_photos(
+            etat_lieux,
+            uploaded_photos,
+            form_data.get("photo_references", []),
+            equipment_id_map,
         )
 
     return etat_lieux
@@ -325,57 +375,60 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
     Prépare et enrichit les données de l'état des lieux pour la génération PDF.
     Convertit les photos en Base64 et structure les données.
 
+    Utilise la nouvelle architecture avec EtatLieuxEquipment.
+
     Returns:
         dict: Données enrichies pour le template PDF
     """
     logger.info(
         f"Préparation des données pour le PDF de l'état des lieux {etat_lieux.id}"
     )
-    pieces_enrichies = []
-    for piece_detail in etat_lieux.pieces_details.all():
-        piece = piece_detail.piece
 
-        # Récupérer les photos de ce piece_detail (spécifiques à cet état des lieux)
-        piece_photos = piece_detail.photos.all()
-        logger.info(
-            f"Pièce {piece.nom} - État des lieux {etat_lieux.id}: "
-            f"{piece_photos.count()} photos"
+    from etat_lieux.models import EquipmentType
+    from etat_lieux.utils import EtatElementUtils
+
+    pieces_enrichies = []
+
+    # Nouvelle architecture : parcourir les pièces
+    for piece in etat_lieux.pieces.all():
+        # Récupérer les équipements de cette pièce
+        equipments: list[EtatLieuxEquipement] = piece.equipements.filter(
+            equipment_type=EquipmentType.PIECE
         )
 
-        # Grouper les photos par élément et convertir en Base64
-        photos_by_element = {}
-        for photo in piece_photos:
-            element_key = photo.element_key
-            logger.info(f"Photo: {photo.nom_original}, élément: {element_key}")
-            if element_key not in photos_by_element:
-                photos_by_element[element_key] = []
-
-            # Convertir l'image en Base64 pour WeasyPrint
-            photo_data_url = image_to_base64_data_url(photo.image)
-            if photo_data_url:
-                # Créer un objet photo enrichi avec la data URL
-                photo_enrichi = {
-                    "id": photo.id,
-                    "nom_original": photo.nom_original,
-                    "data_url": photo_data_url,  # Base64 data URL
-                    "url": photo.image.url,  # URL originale (pour debug)
-                }
-                photos_by_element[element_key].append(photo_enrichi)
-            else:
-                logger.warning(f"Impossible de convertir la photo {photo.nom_original}")
-
-        # Enrichir chaque élément avec ses données et ses photos
-        from etat_lieux.utils import EtatElementUtils
-
         elements_enrichis = []
-        if piece_detail.elements:
-            for element_key, element_data in piece_detail.elements.items():
-                element_enrichi = EtatElementUtils.enrich_element(
-                    element_key,
-                    element_data,
-                    photos=photos_by_element.get(element_key, []),
-                )
-                elements_enrichis.append(element_enrichi)
+        for equipment in equipments:
+            # Récupérer les photos de cet équipement
+            photos_enrichies = []
+            for photo in equipment.photos.all():
+                # Convertir l'image en Base64 pour WeasyPrint
+                photo_data_url = image_to_base64_data_url(photo.image)
+                if photo_data_url:
+                    photos_enrichies.append(
+                        {
+                            "id": photo.id,
+                            "nom_original": photo.nom_original,
+                            "data_url": photo_data_url,  # Base64 data URL
+                            "url": photo.image.url,  # URL originale (pour debug)
+                        }
+                    )
+                else:
+                    logger.warning(
+                        f"Impossible de convertir la photo {photo.nom_original}"
+                    )
+
+            # Créer l'élément enrichi
+            element_enrichi = {
+                "key": equipment.equipment_key,
+                "name": equipment.equipment_name,
+                "state": equipment.etat,
+                "state_display": EtatElementUtils.get_etat_display(equipment.etat),
+                "state_css_class": EtatElementUtils.get_etat_css_class(equipment.etat),
+                "state_color": EtatElementUtils.get_etat_color(equipment.etat),
+                "comment": equipment.comment,
+                "photos": photos_enrichies,
+            }
+            elements_enrichis.append(element_enrichi)
 
         piece_enrichie = {"piece": piece, "elements": elements_enrichis}
         pieces_enrichies.append(piece_enrichie)
@@ -383,6 +436,49 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
         logger.info(
             f"Pièce {piece.nom} enrichie avec {len(elements_enrichis)} éléments"
         )
+
+    # Support de l'ancienne architecture si des pieces_details existent encore
+    if hasattr(etat_lieux, "pieces_details") and etat_lieux.pieces_details.exists():
+        logger.info(
+            "Détection de l'ancienne architecture pieces_details, support de compatibilité activé"
+        )
+        for piece_detail in etat_lieux.pieces_details.all():
+            piece = piece_detail.piece
+
+            # Récupérer les photos de ce piece_detail
+            piece_photos = piece_detail.photos.all()
+
+            # Grouper les photos par élément
+            photos_by_element = {}
+            for photo in piece_photos:
+                element_key = photo.element_key
+                if element_key not in photos_by_element:
+                    photos_by_element[element_key] = []
+
+                photo_data_url = image_to_base64_data_url(photo.image)
+                if photo_data_url:
+                    photos_by_element[element_key].append(
+                        {
+                            "id": photo.id,
+                            "nom_original": photo.nom_original,
+                            "data_url": photo_data_url,
+                            "url": photo.image.url,
+                        }
+                    )
+
+            # Enrichir chaque élément
+            elements_enrichis = []
+            if piece_detail.elements:
+                for element_key, element_data in piece_detail.elements.items():
+                    element_enrichi = EtatElementUtils.enrich_element(
+                        element_key,
+                        element_data,
+                        photos=photos_by_element.get(element_key, []),
+                    )
+                    elements_enrichis.append(element_enrichi)
+
+            piece_enrichie = {"piece": piece, "elements": elements_enrichis}
+            pieces_enrichies.append(piece_enrichie)
 
     # Récupérer les bailleurs et locataires de la location
     location: Location = etat_lieux.location

@@ -190,7 +190,10 @@ def _extract_rent_terms_data(data, location, serializer_class):
     # Si zone_tendue ou permis_de_louer ne sont pas dans les données extraites,
     # les calculer depuis les coordonnées GPS
     if (
-        ("zone_tendue" not in rent_terms_data or "permis_de_louer" not in rent_terms_data)
+        (
+            "zone_tendue" not in rent_terms_data
+            or "permis_de_louer" not in rent_terms_data
+        )
         and location.bien.latitude
         and location.bien.longitude
     ):
@@ -199,7 +202,7 @@ def _extract_rent_terms_data(data, location, serializer_class):
         ban_result = check_zone_status_via_ban(
             location.bien.latitude, location.bien.longitude
         )
-        
+
         # Ajouter seulement si pas déjà présent
         if "zone_tendue" not in rent_terms_data:
             rent_terms_data["zone_tendue"] = ban_result.get("is_zone_tendue")
@@ -280,9 +283,7 @@ def update_bien_fields(bien, data, serializer_class, location_id=None):
     Met à jour uniquement les champs None/vides ET non verrouillés.
     """
     country = data.get("country", "FR")
-    bien_from_form = create_bien_from_form_data(
-        data, serializer_class, save=False
-    )
+    bien_from_form = create_bien_from_form_data(data, serializer_class, save=False)
 
     # Obtenir les steps verrouillées si location_id est fourni
     locked_steps = set()
@@ -438,14 +439,17 @@ def update_location_fields(location, data, location_id=None):
     return location
 
 
-def create_new_location(data, serializer_class):
+def create_new_location(data, serializer_class, location_id=None):
     """
     Crée une nouvelle location complète avec toutes les entités associées.
+
+    Args:
+        data: Données validées du formulaire
+        serializer_class: Classe de serializer à utiliser
+        location_id: UUID spécifique à utiliser pour la location (optionnel)
     """
     # 1. Créer le bien (peut être partiel selon la source)
-    bien = create_bien_from_form_data(
-        data, serializer_class, save=True
-    )
+    bien = create_bien_from_form_data(data, serializer_class, save=True)
 
     # 2. Créer le bailleur principal et les autres bailleurs
     bailleur, autres_bailleurs = create_or_get_bailleur(data)
@@ -455,9 +459,14 @@ def create_new_location(data, serializer_class):
     for autre_bailleur in autres_bailleurs:
         bien.bailleurs.add(autre_bailleur)
 
-    # 3. Créer la Location (entité pivot)
+    # 3. Créer la Location (entité pivot) avec l'ID fourni si disponible
     location_fields = get_location_fields_from_data(data)
-    location = Location.objects.create(bien=bien, **location_fields)
+    if location_id:
+        # Utiliser l'UUID fourni par le frontend (via form-requirements)
+        location = Location.objects.create(id=location_id, bien=bien, **location_fields)
+    else:
+        # Laisser Django générer un UUID
+        location = Location.objects.create(bien=bien, **location_fields)
 
     # 4. Créer les locataires
     locataires = create_locataires(data)
@@ -567,14 +576,17 @@ def create_or_update_location(request):
                 location = Location.objects.get(id=location_id)
                 logger.info(f"Mise à jour de la location existante: {location_id}")
             except Location.DoesNotExist:
-                logger.warning(
-                    f"Location {location_id} non trouvée, création d'une nouvelle"
+                logger.info(
+                    f"Location {location_id} non trouvée, création avec l'UUID fourni"
                 )
                 location = None
 
         # Créer ou mettre à jour la location
         if not location:
-            location, bien = create_new_location(validated_data, serializer_class)
+            # Si on a un location_id spécifique, créer avec cet ID
+            location, bien = create_new_location(
+                validated_data, serializer_class, location_id=location_id
+            )
         else:
             location, bien = update_existing_location(
                 location, validated_data, serializer_class

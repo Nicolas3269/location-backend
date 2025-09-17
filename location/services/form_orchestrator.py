@@ -20,7 +20,11 @@ class FormOrchestrator:
     """
 
     def get_form_requirements(
-        self, form_type: str, location_id: Optional[str] = None, country: str = "FR"
+        self,
+        form_type: str,
+        location_id: Optional[str] = None,
+        country: str = "FR",
+        type_etat_lieux: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Point d'entrée pour obtenir les requirements d'un formulaire.
@@ -41,21 +45,58 @@ class FormOrchestrator:
         if not serializer_class:
             return {"error": f"No serializer found for {form_type} in {country}"}
 
-        # Obtenir les données existantes si location_id fourni
+        import uuid
+
+        # Vérifier les conflits de documents et déterminer le location_id à utiliser
+        has_conflict = False
+        is_new = False
+        has_been_renewed = False  # Nouveau flag pour indiquer un renouvellement suite à conflit
         existing_data = {}
+
         if location_id:
             try:
                 location = Location.objects.get(id=location_id)
-                existing_data = self._extract_location_data(location)
+                has_conflict = self._check_document_conflict(
+                    location, form_type, type_etat_lieux
+                )
             except Location.DoesNotExist:
-                return {"error": "Location not found"}
+                # Si la location n'existe pas, pas de conflit possible
+                print(f"Location not found: {location_id}")
+
+        # Déterminer le location_id final
+        if has_conflict:
+            # Document verrouillé - créer un nouveau
+            final_location_id = str(uuid.uuid4())
+            is_new = True
+            has_been_renewed = True  # Indique qu'on a créé un nouveau à cause d'un conflit
+        elif not location_id:
+            # Première création
+            final_location_id = str(uuid.uuid4())
+            is_new = True
+            has_been_renewed = False
+        else:
+            # Obtenir les données existantes
+            try:
+                location = Location.objects.get(id=location_id)
+                existing_data = self._extract_location_data(location)
+                final_location_id = location_id
+                is_new = False
+                has_been_renewed = False
+
+            except Location.DoesNotExist:
+                print(f"Location not found: {location_id}")
+                # Réutiliser l'existant
+                final_location_id = location_id
+                is_new = True
+                has_been_renewed = False
 
         # Obtenir la configuration des steps depuis le serializer
         step_config = self._get_step_config(serializer_class, form_type)
 
         # Obtenir d'abord les steps verrouillées si c'est une mise à jour
+        # Mais seulement si on réutilise la location existante (pas si is_new)
         locked_steps = set()
-        if location_id:
+        if not is_new and location_id:
             import logging
 
             from .field_locking import FieldLockingService
@@ -115,7 +156,25 @@ class FormOrchestrator:
 
             steps.append(step_copy)
 
+        # Construire le formData avec le location_id approprié
+        form_data = {
+            "location_id": final_location_id,
+            "source": form_type,
+            "country": country,
+        }
+
+        # Ajouter type_etat_lieux si c'est un état des lieux
+        if form_type == "etat_lieux" and type_etat_lieux:
+            form_data["type_etat_lieux"] = type_etat_lieux
+
+        # Merger avec les données existantes si disponibles
+        if existing_data:
+            form_data.update(existing_data)
+
         result = {
+            "formData": form_data,
+            "is_new": is_new,
+            "has_been_renewed": has_been_renewed,  # Nouveau flag
             "country": country,
             "form_type": form_type,
             "steps": steps,
@@ -464,3 +523,60 @@ class FormOrchestrator:
                 data["dates"]["date_fin"] = location.date_fin.isoformat()
 
         return data
+
+    def _check_document_conflict(
+        self, location: Location, source: str, type_etat_lieux: Optional[str] = None
+    ) -> bool:
+        """
+        Vérifie s'il y a un conflit pour le type de document demandé.
+        Un conflit existe si le document est signé ou en cours de signature.
+
+        Args:
+            location_id: ID de la location
+            source: Type de document ('bail', 'etat_lieux', 'quittance')
+            type_etat_lieux: Type d'état des lieux si source == 'etat_lieux'
+
+        Returns:
+            True si conflit (document verrouillé), False sinon
+
+        """
+
+        if source == "bail":
+            # Un bail existe et est signé ou en cours de signature ?
+            if hasattr(location, "bail"):
+                from signature.document_status import DocumentStatus
+
+                # Status SIGNING ou SIGNED = document verrouillé
+                return location.bail.status in [
+                    DocumentStatus.SIGNING,
+                    DocumentStatus.SIGNED,
+                ]
+            return False
+
+        elif source == "etat_lieux":
+            if not type_etat_lieux:
+                return False  # Pas de type spécifié, pas de conflit
+
+            # Un état des lieux de ce type existe et est signé ou en cours ?
+            from etat_lieux.models import EtatLieux
+
+            etat_lieux = EtatLieux.objects.filter(
+                location=location, type_etat_lieux=type_etat_lieux
+            ).first()
+
+            if etat_lieux:
+                from signature.document_status import DocumentStatus
+
+                # Status SIGNING ou SIGNED = document verrouillé
+                return etat_lieux.status in [
+                    DocumentStatus.SIGNING,
+                    DocumentStatus.SIGNED,
+                ]
+            return False
+
+        elif source == "quittance":
+            # Les quittances n'ont pas de processus de signature
+            # Elles sont toujours éditables et écrasées si elles existent
+            return False  # Jamais verrouillé pour les quittances
+
+        return False

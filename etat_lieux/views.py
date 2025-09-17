@@ -17,7 +17,6 @@ from backend.pdf_utils import get_static_pdf_iframe_url
 from etat_lieux.models import (
     EtatLieux,
     EtatLieuxEquipement,
-    EtatLieuxPiece,
     EtatLieuxSignatureRequest,
 )
 from etat_lieux.utils import (
@@ -234,49 +233,8 @@ def update_or_create_etat_lieux(location_id, form_data, uploaded_photos, user):
                 f"de type '{etat_lieux_type}' pour la location {location_id}"
             )
 
-            # Lister les IDs des pièces existantes avant suppression
-            pieces_existantes = EtatLieuxPiece.objects.filter(
-                etat_lieux__in=anciens_etats_lieux
-            ).values_list("id", flat=True)
-            logger.info(f"Pièces existantes à supprimer: {list(pieces_existantes)}")
-
             for ancien_etat_lieux in anciens_etats_lieux:
-                # Compter avant suppression
-                pieces_before = EtatLieuxPiece.objects.filter(
-                    etat_lieux=ancien_etat_lieux
-                ).count()
-                equipments_before = EtatLieuxEquipement.objects.filter(
-                    etat_lieux=ancien_etat_lieux
-                ).count()
-
-                # Supprimer d'abord les pièces et équipements associés
-                # (même si on_delete=CASCADE devrait le faire automatiquement)
-                pieces_deleted, _ = EtatLieuxPiece.objects.filter(
-                    etat_lieux=ancien_etat_lieux
-                ).delete()
-                equipments_deleted, _ = EtatLieuxEquipement.objects.filter(
-                    etat_lieux=ancien_etat_lieux
-                ).delete()
-
-                # Vérifier après suppression
-                pieces_after = EtatLieuxPiece.objects.filter(
-                    etat_lieux=ancien_etat_lieux
-                ).count()
-                equipments_after = EtatLieuxEquipement.objects.filter(
-                    etat_lieux=ancien_etat_lieux
-                ).count()
-
-                logger.info(
-                    f"Suppression pour état des lieux {ancien_etat_lieux.id}: "
-                    f"Pièces: {pieces_before} → {pieces_deleted} supprimées → {pieces_after} restantes | "
-                    f"Équipements: {equipments_before} → {equipments_deleted} supprimés → {equipments_after} restants"
-                )
-
-                # Supprimer les demandes de signature associées
-                # (au cas où on_delete=CASCADE ne fonctionnerait pas correctement)
-                ancien_etat_lieux.signature_requests.all().delete()
-
-                # Supprimer le fichier PDF associé
+                # Supprimer le fichier PDF associé avant de supprimer l'objet
                 if ancien_etat_lieux.pdf:
                     try:
                         ancien_etat_lieux.pdf.delete(save=False)
@@ -286,17 +244,13 @@ def update_or_create_etat_lieux(location_id, form_data, uploaded_photos, user):
                             f"{ancien_etat_lieux.id}: {e}"
                         )
 
-                # Maintenant supprimer l'état des lieux lui-même
+                # Supprimer l'état des lieux (CASCADE supprimera automatiquement:
+                # - Les pièces (EtatLieuxPiece)
+                # - Les équipements (EtatLieuxEquipement)
+                # - Les demandes de signature
+                # - Les photos associées
                 ancien_etat_lieux.delete()
-
-            # Vérifier que la suppression est bien complète
-            pieces_restantes = EtatLieuxPiece.objects.filter(
-                id__in=pieces_existantes
-            ).count()
-            if pieces_restantes > 0:
-                logger.error(
-                    f"ATTENTION: {pieces_restantes} pièces n'ont pas été supprimées!"
-                )
+                logger.info(f"État des lieux {ancien_etat_lieux.id} supprimé avec toutes ses dépendances")
         else:
             logger.info(
                 f"Aucun ancien état des lieux trouvé pour location {location_id}"

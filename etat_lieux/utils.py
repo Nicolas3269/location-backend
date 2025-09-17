@@ -404,7 +404,7 @@ def create_etat_lieux_from_form_data(
         type_etat_lieux=type_etat_lieux,
         date_etat_lieux=form_data.get("date_etat_lieux"),
         nombre_cles=form_data.get("nombre_cles"),
-        compteurs=form_data.get("releve_compteurs"),
+        compteurs=form_data.get("compteurs"),
     )
 
     # Initialiser les variables

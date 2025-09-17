@@ -142,7 +142,7 @@ class BelgiumEtatLieuxSerializer(serializers.Serializer):
     description_pieces = serializers.JSONField(
         required=True, help_text="Description détaillée de l'état de chaque pièce"
     )
-    releve_compteurs = serializers.JSONField(
+    compteurs = serializers.JSONField(
         required=True,  # Obligatoire en Belgique
         help_text="Relevés des compteurs (eau, gaz, électricité)",
     )

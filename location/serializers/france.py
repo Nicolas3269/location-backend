@@ -345,7 +345,7 @@ DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS = [
         "fields": {},  # Stocké en JSON dans EtatLieux
     },
     {
-        "id": "releve_compteurs",
+        "id": "compteurs",
         "always_unlocked": True,
         "required_fields": [],  # Validation par business rule
         "fields": {},  # Stocké en JSON dans EtatLieux
@@ -636,7 +636,7 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
     )
     date_etat_lieux = serializers.DateField(required=True)
 
-    releve_compteurs = serializers.JSONField(
+    compteurs = serializers.JSONField(
         required=False, help_text="Relevés des compteurs (eau, gaz, électricité)"
     )
     nombre_cles = serializers.JSONField(
@@ -701,6 +701,7 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         Retourne la configuration complète des équipements disponibles.
         """
         from location.equipment_config import get_all_equipements_config
+
         return get_all_equipements_config()
 
 

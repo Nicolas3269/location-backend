@@ -11,8 +11,11 @@ EQUIPEMENTS_AUTOMATIQUES = [
     {"id": "murs", "label": "Murs", "icon": "🧱"},
     {"id": "sol", "label": "Sol", "icon": "🟫"},
     {"id": "plafond", "label": "Plafond", "icon": "⬜"},
-    {"id": "eclairage_interrupteurs", "label": "Éclairages et interrupteurs",
-     "icon": "💡"},
+    {
+        "id": "eclairage_interrupteurs",
+        "label": "Éclairages et interrupteurs",
+        "icon": "💡",
+    },
     {"id": "prises_electriques", "label": "Prises électriques", "icon": "🔌"},
 ]
 
@@ -32,8 +35,11 @@ EQUIPEMENTS_SPECIFIQUES = {
     "kitchen": {
         "equipments": [
             {"id": "placards_tiroirs", "label": "Placards et tiroirs", "icon": "🗄️"},
-            {"id": "evier_robinetterie", "label": "Évier et robinetterie",
-             "icon": "🚰"},
+            {
+                "id": "evier_robinetterie",
+                "label": "Évier et robinetterie",
+                "icon": "🚰",
+            },
             {"id": "plaque_cuisson", "label": "Plaque de cuisson", "icon": "🔥"},
             {"id": "four", "label": "Four", "icon": "🔥"},
             {"id": "microonde", "label": "Micro-ondes", "icon": "📡"},
@@ -46,14 +52,30 @@ EQUIPEMENTS_SPECIFIQUES = {
             {"id": "cafetiere", "label": "Cafetière", "icon": "☕"},
             {"id": "lave_vaisselle", "label": "Lave-vaisselle", "icon": "🍽️"},
             # Mobilier (si meublé)
-            {"id": "chaise_cuisine", "label": "Chaise", "icon": "🪑",
-             "furnished_only": True},
-            {"id": "table_cuisine", "label": "Table", "icon": "🪑",
-             "furnished_only": True},
-            {"id": "buffet_cuisine", "label": "Buffet", "icon": "🗄️",
-             "furnished_only": True},
-            {"id": "tabouret_cuisine", "label": "Tabouret", "icon": "🪑",
-             "furnished_only": True},
+            {
+                "id": "chaise_cuisine",
+                "label": "Chaise",
+                "icon": "🪑",
+                "furnished_only": True,
+            },
+            {
+                "id": "table_cuisine",
+                "label": "Table",
+                "icon": "🪑",
+                "furnished_only": True,
+            },
+            {
+                "id": "buffet_cuisine",
+                "label": "Buffet",
+                "icon": "🗄️",
+                "furnished_only": True,
+            },
+            {
+                "id": "tabouret_cuisine",
+                "label": "Tabouret",
+                "icon": "🪑",
+                "furnished_only": True,
+            },
         ],
     },
     "bathroom": {
@@ -63,7 +85,7 @@ EQUIPEMENTS_SPECIFIQUES = {
             {"id": "colonne_douche", "label": "Colonne de douche", "icon": "🚿"},
             {"id": "baignoire", "label": "Baignoire", "icon": "🛁"},
             {"id": "douche", "label": "Douche", "icon": "🚿"},
-            {"id": "meuble_sdb", "label": "Meuble salle de bain", "icon": "🗄️"},
+            {"id": "meuble_sdb", "label": "Meuble", "icon": "🗄️"},
             {"id": "placard_sdb", "label": "Placard", "icon": "🗄️"},
             {"id": "wc_sdb", "label": "WC", "icon": "🚽"},
         ],
@@ -80,40 +102,91 @@ EQUIPEMENTS_SPECIFIQUES = {
         "equipments": [
             {"id": "placard_chambre", "label": "Placard", "icon": "🗄️"},
             # Mobilier (si meublé)
-            {"id": "lit_simple", "label": "Lit simple", "icon": "🛏️",
-             "furnished_only": True},
-            {"id": "lit_double", "label": "Lit double", "icon": "🛏️",
-             "furnished_only": True},
-            {"id": "chaise_chambre", "label": "Chaise", "icon": "🪑",
-             "furnished_only": True},
-            {"id": "table_chevet", "label": "Table de chevet", "icon": "🗄️",
-             "furnished_only": True},
-            {"id": "bureau_chambre", "label": "Bureau", "icon": "🖥️",
-             "furnished_only": True},
-            {"id": "commode_chambre", "label": "Commode", "icon": "🗄️",
-             "furnished_only": True},
+            {
+                "id": "lit_simple",
+                "label": "Lit simple",
+                "icon": "🛏️",
+                "furnished_only": True,
+            },
+            {
+                "id": "lit_double",
+                "label": "Lit double",
+                "icon": "🛏️",
+                "furnished_only": True,
+            },
+            {
+                "id": "chaise_chambre",
+                "label": "Chaise",
+                "icon": "🪑",
+                "furnished_only": True,
+            },
+            {
+                "id": "table_chevet",
+                "label": "Table de chevet",
+                "icon": "🗄️",
+                "furnished_only": True,
+            },
+            {
+                "id": "bureau_chambre",
+                "label": "Bureau",
+                "icon": "🖥️",
+                "furnished_only": True,
+            },
+            {
+                "id": "commode_chambre",
+                "label": "Commode",
+                "icon": "🗄️",
+                "furnished_only": True,
+            },
         ],
     },
     "living": {
         "equipments": [
             {"id": "placard_sejour", "label": "Placard", "icon": "🗄️"},
             # Mobilier (si meublé)
-            {"id": "chaise_sejour", "label": "Chaise", "icon": "🪑",
-             "furnished_only": True},
-            {"id": "tabouret_sejour", "label": "Tabouret", "icon": "🪑",
-             "furnished_only": True},
-            {"id": "table_sejour", "label": "Table", "icon": "🪑",
-             "furnished_only": True},
-            {"id": "canape", "label": "Canapé", "icon": "🛋️",
-             "furnished_only": True},
-            {"id": "fauteuil", "label": "Fauteuil", "icon": "🪑",
-             "furnished_only": True},
-            {"id": "bureau_sejour", "label": "Bureau", "icon": "🖥️",
-             "furnished_only": True},
-            {"id": "buffet_sejour", "label": "Buffet", "icon": "🗄️",
-             "furnished_only": True},
-            {"id": "commode_sejour", "label": "Commode", "icon": "🗄️",
-             "furnished_only": True},
+            {
+                "id": "chaise_sejour",
+                "label": "Chaise",
+                "icon": "🪑",
+                "furnished_only": True,
+            },
+            {
+                "id": "tabouret_sejour",
+                "label": "Tabouret",
+                "icon": "🪑",
+                "furnished_only": True,
+            },
+            {
+                "id": "table_sejour",
+                "label": "Table",
+                "icon": "🪑",
+                "furnished_only": True,
+            },
+            {"id": "canape", "label": "Canapé", "icon": "🛋️", "furnished_only": True},
+            {
+                "id": "fauteuil",
+                "label": "Fauteuil",
+                "icon": "🪑",
+                "furnished_only": True,
+            },
+            {
+                "id": "bureau_sejour",
+                "label": "Bureau",
+                "icon": "🖥️",
+                "furnished_only": True,
+            },
+            {
+                "id": "buffet_sejour",
+                "label": "Buffet",
+                "icon": "🗄️",
+                "furnished_only": True,
+            },
+            {
+                "id": "commode_sejour",
+                "label": "Commode",
+                "icon": "🗄️",
+                "furnished_only": True,
+            },
         ],
     },
     "other": {
@@ -123,37 +196,6 @@ EQUIPEMENTS_SPECIFIQUES = {
         "equipments": [],
     },
 }
-
-
-def get_equipements_for_room_type(room_type, is_furnished=False):
-    """
-    Retourne la liste des équipements disponibles pour un type de pièce.
-
-    Args:
-        room_type: Type de la pièce (kitchen, bathroom, bedroom, etc.)
-        is_furnished: Si le logement est meublé
-
-    Returns:
-        Liste des équipements avec leurs métadonnées
-    """
-    equipements = []
-
-    # Ajouter les équipements automatiques
-    equipements.extend(EQUIPEMENTS_AUTOMATIQUES)
-
-    # Ajouter les équipements communs optionnels
-    equipements.extend(EQUIPEMENTS_COMMUNS)
-
-    # Ajouter les équipements spécifiques à la pièce
-    if room_type in EQUIPEMENTS_SPECIFIQUES:
-        config = EQUIPEMENTS_SPECIFIQUES[room_type]
-        for equipment in config.get("equipments", []):
-            # Si l'équipement est pour meublé uniquement, vérifier
-            if equipment.get("furnished_only", False) and not is_furnished:
-                continue
-            equipements.append(equipment)
-
-    return equipements
 
 
 def get_all_equipements_config():

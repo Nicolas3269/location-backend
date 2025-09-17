@@ -27,10 +27,10 @@ CHAUFFAGE_EQUIPMENT_CONFIG = {
 }
 
 
-class EtatElementUtils:
+class StateEquipmentUtils:
     """Classe utilitaire pour la gestion des états des éléments"""
 
-    ETAT_LABELS = {
+    STATE_LABELS = {
         "TB": "Très bon",
         "B": "Bon",
         "P": "Passable",
@@ -38,7 +38,7 @@ class EtatElementUtils:
         "": "Non renseigné",
     }
 
-    ETAT_CSS_CLASSES = {
+    STATE_CSS_CLASSES = {
         "TB": "state-excellent",
         "B": "state-good",
         "P": "state-fair",
@@ -46,7 +46,7 @@ class EtatElementUtils:
         "": "state-empty",
     }
 
-    ETAT_COLORS = {
+    STATE_COLORS = {
         "TB": "#10b981",  # green
         "B": "#22c55e",  # light green
         "P": "#f97316",  # orange
@@ -70,19 +70,19 @@ class EtatElementUtils:
     }
 
     @classmethod
-    def get_etat_display(cls, etat):
+    def get_state_display(cls, state):
         """Retourne le label d'affichage pour un état"""
-        return cls.ETAT_LABELS.get(etat, cls.ETAT_LABELS[""])
+        return cls.STATE_LABELS.get(state, cls.STATE_LABELS[""])
 
     @classmethod
-    def get_etat_css_class(cls, etat):
+    def get_state_css_class(cls, state):
         """Retourne la classe CSS pour un état"""
-        return cls.ETAT_CSS_CLASSES.get(etat, cls.ETAT_CSS_CLASSES[""])
+        return cls.STATE_CSS_CLASSES.get(state, cls.STATE_CSS_CLASSES[""])
 
     @classmethod
-    def get_etat_color(cls, etat):
+    def get_state_color(cls, state):
         """Retourne la couleur pour un état"""
-        return cls.ETAT_COLORS.get(etat, cls.ETAT_COLORS[""])
+        return cls.STATE_COLORS.get(state, cls.STATE_COLORS[""])
 
     @classmethod
     def format_date_entretien(cls, date_str):
@@ -111,9 +111,9 @@ class EtatElementUtils:
             "key": element_key,
             "name": element_key.replace("_", " ").title(),
             "state": state,
-            "state_display": cls.get_etat_display(state),
-            "state_css_class": cls.get_etat_css_class(state),
-            "state_color": cls.get_etat_color(state),
+            "state_display": cls.get_state_display(state),
+            "state_css_class": cls.get_state_css_class(state),
+            "state_color": cls.get_state_color(state),
             "comment": element_data.get("comment", ""),
             "photos": photos or [],
         }
@@ -213,7 +213,7 @@ def create_equipments(etat_lieux: EtatLieux, equipments_data: List[Dict]) -> Non
             "equipment_type": equipment_type,
             "equipment_key": equipment_data.get("equipment_key"),
             "equipment_name": equipment_data.get("equipment_name"),
-            "etat": equipment_data.get("etat"),  # Backend uses 'etat'
+            "state": equipment_data.get("state"),
             "comment": equipment_data.get("comment"),
             "data": equipment_data.get("data"),
         }
@@ -373,7 +373,7 @@ def transform_rooms_to_pieces_and_equipments(
                     "equipment_key": equipment.get("equipment_key"),
                     "equipment_name": equipment.get("equipment_name"),
                     "piece_id": piece_id,
-                    "etat": equipment.get("state"),
+                    "state": equipment.get("state"),
                     "comment": equipment.get("comment"),
                     "data": equipment.get("data", {}),
                 }
@@ -449,7 +449,7 @@ def create_etat_lieux_from_form_data(
             "equipment_type": chauffage_data.get("equipment_type"),
             "equipment_key": equipment_type_key,
             "equipment_name": chauffage_data.get("equipment_name"),
-            "etat": chauffage_data.get("state"),  # Frontend "state" -> backend "etat"
+            "state": chauffage_data.get("state"),
             "comment": chauffage_data.get("comment"),
             "data": chauffage_data.get("data", {}),
         }
@@ -473,7 +473,7 @@ def create_etat_lieux_from_form_data(
                 "equipment_type": "annexe",
                 "equipment_key": annexe_type,
                 "equipment_name": annexe_type.replace("_", " ").title(),
-                "etat": annexe_data.get("state"),
+                "state": annexe_data.get("state"),
                 "comment": annexe_data.get("comment"),
                 "data": {},
             }

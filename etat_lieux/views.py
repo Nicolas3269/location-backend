@@ -385,7 +385,7 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
     )
 
     from etat_lieux.models import EquipmentType
-    from etat_lieux.utils import EtatElementUtils
+    from etat_lieux.utils import StateEquipmentUtils
 
     pieces_enrichies = []
 
@@ -421,10 +421,12 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
             element_enrichi = {
                 "key": equipment.equipment_key,
                 "name": equipment.equipment_name,
-                "state": equipment.etat,
-                "state_display": EtatElementUtils.get_etat_display(equipment.etat),
-                "state_css_class": EtatElementUtils.get_etat_css_class(equipment.etat),
-                "state_color": EtatElementUtils.get_etat_color(equipment.etat),
+                "state": equipment.state,
+                "state_display": StateEquipmentUtils.get_state_display(equipment.state),
+                "state_css_class": StateEquipmentUtils.get_state_css_class(
+                    equipment.state
+                ),
+                "state_color": StateEquipmentUtils.get_state_color(equipment.state),
                 "comment": equipment.comment,
                 "photos": photos_enrichies,
             }
@@ -470,7 +472,7 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
             elements_enrichis = []
             if piece_detail.elements:
                 for element_key, element_data in piece_detail.elements.items():
-                    element_enrichi = EtatElementUtils.enrich_element(
+                    element_enrichi = StateEquipmentUtils.enrich_element(
                         element_key,
                         element_data,
                         photos=photos_by_element.get(element_key, []),

@@ -24,7 +24,7 @@ class EtatLieuxEquipementInline(admin.TabularInline):
 
     model = EtatLieuxEquipement
     extra = 0
-    fields = ("equipment_type", "equipment_key", "equipment_name", "etat")
+    fields = ("equipment_type", "equipment_key", "equipment_name", "state")
     show_change_link = True
 
 
@@ -163,14 +163,14 @@ class EtatLieuxEquipementAdmin(admin.ModelAdmin):
         "equipment_name",
         "equipment_type",
         "equipment_key",
-        "etat",
+        "state",
         "piece_nom",
         "etat_lieux_type",
     )
 
     list_filter = (
         "equipment_type",
-        "etat",
+        "state",
         "etat_lieux__type_etat_lieux",
     )
 
@@ -194,7 +194,7 @@ class EtatLieuxEquipementAdmin(admin.ModelAdmin):
         (
             "État",
             {
-                "fields": ("etat", "comment", "data"),
+                "fields": ("state", "comment", "data"),
             },
         ),
         (

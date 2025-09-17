@@ -9,20 +9,21 @@ from django.db import models
 from django.utils import timezone
 
 from location.models import BaseModel, Locataire, Location, Personne
+from signature.document_status import DocumentStatus
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
-from signature.document_status import DocumentStatus
 
 
 # Enums pour les équipements
 class EquipmentType(models.TextChoices):
-    PIECE = 'piece', 'Équipement de pièce'
-    CHAUFFAGE = 'chauffage', 'Chauffage'
-    ANNEXE = 'annexe', 'Annexe'
+    PIECE = "piece", "Équipement de pièce"
+    CHAUFFAGE = "chauffage", "Chauffage"
+    ANNEXE = "annexe", "Annexe"
 
 
 class ElementState(models.TextChoices):
     """États possibles pour un élément"""
+
     TRES_BON = "TB", "Très bon"
     BON = "B", "Bon"
     PASSABLE = "P", "Passable"
@@ -32,6 +33,7 @@ class ElementState(models.TextChoices):
 
 class EtatLieuxType(models.TextChoices):
     """Types d'état des lieux"""
+
     ENTREE = "entree", "État des lieux d'entrée"
     SORTIE = "sortie", "État des lieux de sortie"
 
@@ -46,7 +48,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     )
 
     type_etat_lieux = models.CharField(max_length=10, choices=EtatLieuxType.choices)
-    
+
     # Statut du document
     status = models.CharField(
         max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.DRAFT
@@ -78,7 +80,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         ordering = ["-created_at"]
         db_table = "etat_lieux_etatlieux"
         # Unicité : un seul état des lieux par type (entrée/sortie) et par location
-        unique_together = [['location', 'type_etat_lieux']]
+        unique_together = [["location", "type_etat_lieux"]]
 
     def __str__(self):
         type_display = self.get_type_etat_lieux_display()
@@ -96,6 +98,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     def check_and_update_status(self):
         """Met à jour automatiquement le statut selon les signatures"""
         from signature.document_status import DocumentStatus
+
         current_status = self.status
 
         # Ne pas passer automatiquement de DRAFT à SIGNING
@@ -114,35 +117,32 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
 
     def _format_equipment_data(self, equipment, include_date_entretien=False):
         """Méthode commune pour formater les données d'un équipement"""
-        from etat_lieux.utils import EtatElementUtils
+        from etat_lieux.utils import StateEquipmentUtils
 
         # Récupérer les photos de l'équipement
-        photos = [
-            photo.image.url for photo in equipment.photos.all()
-            if photo.image
-        ]
+        photos = [photo.image.url for photo in equipment.photos.all() if photo.image]
 
         formatted = {
-            'uuid': str(equipment.id),
-            'type': equipment.equipment_key,
-            'type_label': equipment.equipment_name,
-            'etat': equipment.etat,
-            'etat_label': EtatElementUtils.get_etat_display(equipment.etat),
-            'etat_color': EtatElementUtils.get_etat_color(equipment.etat),
-            'etat_css_class': EtatElementUtils.get_etat_css_class(equipment.etat),
-            'comment': equipment.comment,
-            'photos': photos,
+            "uuid": str(equipment.id),
+            "type": equipment.equipment_key,
+            "type_label": equipment.equipment_name,
+            "state": equipment.state,
+            "state_label": StateEquipmentUtils.get_state_display(equipment.state),
+            "state_color": StateEquipmentUtils.get_state_color(equipment.state),
+            "state_css_class": StateEquipmentUtils.get_state_css_class(equipment.state),
+            "comment": equipment.comment,
+            "photos": photos,
         }
 
         # Ajouter les données spécifiques au chauffage si nécessaire
         if include_date_entretien:
-            formatted['date_entretien'] = (
-                equipment.data.get('date_entretien', '')
-                if equipment.data else ''
+            formatted["date_entretien"] = (
+                equipment.data.get("date_entretien", "") if equipment.data else ""
             )
-            formatted['date_entretien_formatted'] = EtatElementUtils.format_date_entretien(
-                equipment.data.get('date_entretien', '')
-                if equipment.data else ''
+            formatted["date_entretien_formatted"] = (
+                StateEquipmentUtils.format_date_entretien(
+                    equipment.data.get("date_entretien", "") if equipment.data else ""
+                )
             )
 
         return formatted
@@ -156,21 +156,20 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         for equipment in self.equipements.filter(
             equipment_type=EquipmentType.CHAUFFAGE
         ):
-            formatted = self._format_equipment_data(equipment, include_date_entretien=True)
+            formatted = self._format_equipment_data(
+                equipment, include_date_entretien=True
+            )
 
-            if equipment.equipment_key == 'chaudiere':
+            if equipment.equipment_key == "chaudiere":
                 chaudieres.append(formatted)
             else:
                 chauffe_eaux.append(formatted)
 
         # Trier par UUID pour un ordre cohérent
-        chaudieres.sort(key=lambda x: x['uuid'])
-        chauffe_eaux.sort(key=lambda x: x['uuid'])
+        chaudieres.sort(key=lambda x: x["uuid"])
+        chauffe_eaux.sort(key=lambda x: x["uuid"])
 
-        return {
-            'chaudieres': chaudieres,
-            'chauffe_eaux': chauffe_eaux
-        }
+        return {"chaudieres": chaudieres, "chauffe_eaux": chauffe_eaux}
 
     def get_annexes_privatives_formatted(self):
         """Prépare les données des annexes privatives pour l'affichage dans le PDF"""
@@ -223,21 +222,19 @@ class EtatLieuxEquipement(BaseModel):
 
     # Type d'équipement
     equipment_type = models.CharField(
-        max_length=20,
-        choices=EquipmentType.choices,
-        help_text="Type d'équipement"
+        max_length=20, choices=EquipmentType.choices, help_text="Type d'équipement"
     )
 
     # Clé de l'équipement
     equipment_key = models.CharField(
         max_length=50,
-        help_text="Identifiant de l'équipement (sol, murs, chaudiere, cave, etc.)"
+        help_text="Identifiant de l'équipement (sol, murs, chaudiere, cave, etc.)",
     )
 
     # Nom d'affichage de l'équipement
     equipment_name = models.CharField(
         max_length=100,
-        help_text="Nom d'affichage de l'équipement (Sol, Murs, Chaudière, Cave, etc.)"
+        help_text="Nom d'affichage de l'équipement (Sol, Murs, Chaudière, Cave, etc.)",
     )
 
     # Relation optionnelle avec la pièce (seulement pour type='piece')
@@ -247,22 +244,22 @@ class EtatLieuxEquipement(BaseModel):
         null=True,
         blank=True,
         related_name="equipements",
-        help_text="Pièce associée (si équipement de pièce)"
+        help_text="Pièce associée (si équipement de pièce)",
     )
 
     # État et commentaires
-    etat = models.CharField(
+    state = models.CharField(
         max_length=20,
         choices=ElementState.choices,
         blank=True,
-        help_text="État de l'équipement"
+        help_text="État de l'équipement",
     )
     comment = models.TextField(blank=True, help_text="Commentaire sur l'équipement")
 
     # Données additionnelles (date_entretien, etc.)
     data = models.JSONField(
         default=dict,
-        help_text="Données additionnelles spécifiques au type d'équipement"
+        help_text="Données additionnelles spécifiques au type d'équipement",
     )
 
     class Meta:
@@ -287,13 +284,12 @@ class EtatLieuxPhoto(BaseModel):
         EtatLieuxEquipement,
         on_delete=models.CASCADE,
         related_name="photos",
-        help_text="Équipement associé"
+        help_text="Équipement associé",
     )
 
     # Index de la photo
     photo_index = models.IntegerField(
-        default=0,
-        help_text="Index de la photo pour cet équipement"
+        default=0, help_text="Index de la photo pour cet équipement"
     )
 
     # Fichier photo
@@ -374,4 +370,3 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
         super().mark_as_signed()
         # Vérifier et mettre à jour le statut du document
         self.etat_lieux.check_and_update_status()
-

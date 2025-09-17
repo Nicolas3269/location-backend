@@ -720,8 +720,8 @@
                                 État :
                             {% endif %}
                         </span>
-                        <span class="{{ equipment.etat_css_class }}" style="font-size: 10pt; font-weight: 500;">
-                            {{ equipment.etat_label }}
+                        <span class="{{ equipment.state_css_class }}" style="font-size: 10pt; font-weight: 500;">
+                            {{ equipment.state_label }}
                         </span>
                     </div>
 
@@ -767,8 +767,8 @@
                     <tr>
                         <td>Chaudière {{ forloop.counter }}</td>
                         <td>
-                            <span class="{{ equipment.etat_css_class }}">
-                                {{ equipment.etat_label }}
+                            <span class="{{ equipment.state_css_class }}">
+                                {{ equipment.state_label }}
                             </span>
                         </td>
                         <td>{{ equipment.date_entretien_formatted|default:"Non renseigné" }}</td>
@@ -828,11 +828,11 @@
             </h3>
             <div style="display: flex; flex-wrap: wrap; gap: 15px;">
                 <div style="border: 1px solid #e3e5e8; border-radius: 4px; padding: 10px 15px; background: #f9fafb; min-width: 180px;">
-                    {% if annexe_data.etat %}
+                    {% if annexe_data.state %}
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
                         <span style="font-size: 10pt; color: #6b7280;">État :</span>
-                        <span class="{{ annexe_data.etat_css_class }}" style="font-size: 10pt; font-weight: 500;">
-                            {{ annexe_data.etat_label }}
+                        <span class="{{ annexe_data.state_css_class }}" style="font-size: 10pt; font-weight: 500;">
+                            {{ annexe_data.state_label }}
                         </span>
                     </div>
                     {% endif %}

@@ -198,6 +198,74 @@ EQUIPEMENTS_SPECIFIQUES = {
 }
 
 
+# Équipements meublés transversaux (non liés à une pièce spécifique)
+EQUIPEMENTS_MEUBLES = {
+    "entretien": {
+        "label": "Matériel d'entretien ménager adapté",
+        "equipments": [
+            {"id": "aspirateur", "label": "Aspirateur", "icon": "🧹"},
+            {"id": "balais", "label": "Balais", "icon": "🧹"},
+            {"id": "balayettes", "label": "Balayettes", "icon": "🧹"},
+            {"id": "pelles", "label": "Pelles", "icon": "🗑️"},
+            {"id": "seaux", "label": "Seaux", "icon": "🪣"},
+            {"id": "torchons", "label": "Torchons", "icon": "🧽"},
+        ],
+    },
+    "linge": {
+        "label": "Linge de maison et entretien du linge",
+        "equipments": [
+            {"id": "lave_linge", "label": "Lave-linge", "icon": "🌀"},
+            {"id": "seche_linge", "label": "Sèche-linge", "icon": "♨️"},
+            {"id": "fer_repasser", "label": "Fer à repasser", "icon": "👔"},
+            {"id": "peignoirs_bain", "label": "Peignoirs de bain", "icon": "🧖"},
+            {"id": "serviettes", "label": "Serviettes", "icon": "🧻"},
+            {"id": "gants", "label": "Gants", "icon": "🧤"},
+            {"id": "nappes", "label": "Nappes", "icon": "🍽️"},
+            {"id": "coussins", "label": "Coussins", "icon": "🛏️"},
+        ],
+    },
+    "cuisine": {
+        "label": "Vaisselle et ustensiles de cuisine",
+        "equipments": [
+            {"id": "assiettes", "label": "Assiettes", "icon": "🍽️"},
+            {"id": "fourchettes", "label": "Fourchettes", "icon": "🍴"},
+            {"id": "cuillers", "label": "Cuillères", "icon": "🥄"},
+            {"id": "couteaux", "label": "Couteaux", "icon": "🔪"},
+            {"id": "verres", "label": "Verres", "icon": "🥃"},
+            {"id": "bols_tasses", "label": "Bols/Tasses", "icon": "☕"},
+            {"id": "ouvre_boite", "label": "Tire-bouchon/Décapsuleur/Ouvre-boîte", "icon": "🍾"},
+            {"id": "carafes", "label": "Carafes", "icon": "🍶"},
+            {"id": "planches_decouper", "label": "Planches à découper", "icon": "🪵"},
+            {"id": "plats_saladiers", "label": "Plats/Saladiers", "icon": "🥗"},
+            {"id": "passoires", "label": "Passoires", "icon": "🕳️"},
+            {"id": "poeles", "label": "Poêles", "icon": "🍳"},
+            {"id": "casseroles", "label": "Casseroles", "icon": "🍲"},
+            {"id": "egouttoir", "label": "Égouttoir", "icon": "🍽️"},
+        ],
+    },
+    "divertissement": {
+        "label": "Divertissement",
+        "equipments": [
+            {"id": "television", "label": "Télévision", "icon": "📺"},
+            {"id": "videoprojecteur", "label": "Vidéoprojecteur", "icon": "📽️"},
+        ],
+    },
+    "literie": {
+        "label": "Literie",
+        "equipments": [
+            {"id": "lit", "label": "Lit", "icon": "🛏️"},
+            {"id": "matelas", "label": "Matelas", "icon": "🛏️"},
+            {"id": "taies", "label": "Taies", "icon": "🛏️"},
+            {"id": "oreillers", "label": "Oreillers", "icon": "🛏️"},
+            {"id": "draps", "label": "Draps", "icon": "🛏️"},
+            {"id": "couette_couverture", "label": "Couette/Couverture/Couvre-lit", "icon": "🛏️"},
+            {"id": "housse_couette", "label": "Housse de couette", "icon": "🛏️"},
+            {"id": "alaise", "label": "Alaise", "icon": "🛏️"},
+        ],
+    },
+}
+
+
 def get_all_equipements_config():
     """
     Retourne la configuration complète des équipements.
@@ -207,4 +275,5 @@ def get_all_equipements_config():
         "automatiques": EQUIPEMENTS_AUTOMATIQUES,
         "communs": EQUIPEMENTS_COMMUNS,
         "specifiques": EQUIPEMENTS_SPECIFIQUES,
+        "meubles": EQUIPEMENTS_MEUBLES,
     }

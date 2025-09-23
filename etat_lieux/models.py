@@ -58,7 +58,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     date_etat_lieux = models.DateField(default=timezone.now)
     # Inventaire (garde en JSON car structure simple)
     nombre_cles = models.JSONField(default=dict)
-    compteurs = models.JSONField(default=dict)
+    compteurs = models.JSONField(default=None, null=True, blank=True)
     # Les équipements sont maintenant gérés via le modèle EtatLieuxEquipement
     # (anciennement stockés dans des JSONField)
 

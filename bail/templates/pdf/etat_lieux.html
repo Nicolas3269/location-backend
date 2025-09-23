@@ -1,3 +1,4 @@
+{% load compteurs_tags %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -866,7 +867,7 @@
     {% endwith %}
 
     <!-- Identification compteurs et relevés -->
-    {% if etat_lieux.compteurs %}
+    {% if etat_lieux.compteurs|has_compteur_data %}
     <div class="info-section">
         <h2>Identification compteurs et relevés</h2>
         <table class="compact-table">
@@ -878,7 +879,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% if etat_lieux.compteurs.electricite %}
+                {% if etat_lieux.compteurs.electricite|has_electricite_data %}
                 <tr>
                     <td>Électricité</td>
                     <td>{{ etat_lieux.compteurs.electricite.numero|default:"-" }}</td>
@@ -893,8 +894,8 @@
                     </td>
                 </tr>
                 {% endif %}
-                    
-                {% if etat_lieux.compteurs.gaz %}
+
+                {% if etat_lieux.compteurs.gaz|has_gaz_data %}
                 <tr>
                     <td>Gaz</td>
                     <td>{{ etat_lieux.compteurs.gaz.numero|default:"-" }}</td>
@@ -907,8 +908,8 @@
                     </td>
                 </tr>
                 {% endif %}
-                    
-                {% if etat_lieux.compteurs.eau %}
+
+                {% if etat_lieux.compteurs.eau|has_eau_data %}
                 <tr>
                     <td>Eau</td>
                     <td>{{ etat_lieux.compteurs.eau.numero|default:"-" }}</td>

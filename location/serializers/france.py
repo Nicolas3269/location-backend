@@ -374,17 +374,6 @@ ETAT_LIEUX_CLES_STEPS = [
     },
 ]
 
-# --- Équipements meublés (conditionnellement affiché) ---
-EQUIPEMENTS_MEUBLES_STEPS = [
-    {
-        "id": "equipements_meubles",
-        "required_fields": [],  # Optionnel
-        "always_unlocked": True,
-        "condition": "meuble",  # Affiché seulement si logement meublé
-        "fields": {},  # Stocké en JSON dans EtatLieux
-    },
-]
-
 # --- Description des pièces ---
 DETAIL_ETAT_LIEUX_STEPS = [
     {
@@ -651,7 +640,7 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         required=False,
         default=None,
         allow_null=True,
-        help_text="Relevés des compteurs (eau, gaz, électricité)"
+        help_text="Relevés des compteurs (eau, gaz, électricité)",
     )
     nombre_cles = serializers.JSONField(
         required=False, default=dict, help_text="Nombre de clés remises"
@@ -671,11 +660,6 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
     # Rooms avec leur état (pour l'état des lieux)
     rooms = serializers.JSONField(
         required=False, default=list, help_text="Détails des pièces avec leur état"
-    )
-
-    # Équipements meublés (pour logement meublé)
-    equipements_meubles = serializers.JSONField(
-        required=False, default=list, help_text="Liste des équipements meublés avec leur état"
     )
 
     # Références des photos pour le multipart
@@ -709,7 +693,6 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         ETAT_LIEUX_STEPS.extend(DETAIL_ETAT_LIEUX_EQUIPEMENT_STEPS)
 
         ETAT_LIEUX_STEPS.extend(MEUBLE_STEPS)
-        ETAT_LIEUX_STEPS.extend(EQUIPEMENTS_MEUBLES_STEPS)
         ETAT_LIEUX_STEPS.extend(PIECES_INFO_STEPS)
         ETAT_LIEUX_STEPS.extend(DETAIL_ETAT_LIEUX_STEPS)
         return ETAT_LIEUX_STEPS
@@ -721,24 +704,26 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         validated_data = super().to_internal_value(data)
 
         # Si compteurs est un objet vide ou ne contient que des objets vides, le convertir en None
-        if 'compteurs' in validated_data:
-            compteurs = validated_data['compteurs']
+        if "compteurs" in validated_data:
+            compteurs = validated_data["compteurs"]
             if compteurs is not None:
                 # V\u00e9rifier si c'est un dictionnaire vide ou avec seulement des sous-dictionnaires vides
                 if isinstance(compteurs, dict):
                     has_data = False
                     for key, value in compteurs.items():
-                        if isinstance(value, dict) and value:  # Si le sous-dict a du contenu
+                        if (
+                            isinstance(value, dict) and value
+                        ):  # Si le sous-dict a du contenu
                             # V\u00e9rifier si le sous-dict a des valeurs non vides
                             for sub_val in value.values():
-                                if sub_val not in [None, '', {}]:
+                                if sub_val not in [None, "", {}]:
                                     has_data = True
                                     break
                         if has_data:
                             break
 
                     if not has_data:
-                        validated_data['compteurs'] = None
+                        validated_data["compteurs"] = None
 
         return validated_data
 

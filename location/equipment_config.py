@@ -15,18 +15,54 @@ EQUIPEMENTS_AUTOMATIQUES = [
         "id": "eclairage_interrupteurs",
         "label": "Éclairages et interrupteurs",
         "icon": "💡",
+        "is_countable": True,
     },
-    {"id": "prises_electriques", "label": "Prises électriques", "icon": "🔌"},
+    {
+        "id": "prises_electriques",
+        "label": "Prises électriques",
+        "icon": "🔌",
+        "is_countable": True,
+    },
 ]
 
 # Équipements optionnels communs à toutes les pièces
 EQUIPEMENTS_COMMUNS = [
-    {"id": "portes", "label": "Portes", "icon": "🚪"},
-    {"id": "vitrages_volets", "label": "Vitrages/Volets", "icon": "🪟"},
-    {"id": "radiateur", "label": "Radiateur", "icon": "🔥"},
-    {"id": "rideaux_stores", "label": "Rideaux/Stores", "icon": "🪞"},
-    {"id": "luminaires_plafonniers", "label": "Luminaires/Plafonniers", "icon": "💡"},
-    {"id": "lampes_appliques", "label": "Lampes/Appliques", "icon": "🛋️"},
+    {
+        "id": "portes",
+        "label": "Portes",
+        "icon": "🚪",
+        "is_countable": True,
+    },
+    {
+        "id": "vitrages_volets",
+        "label": "Vitrages / Volets",
+        "icon": "🪟",
+        "is_countable": True,
+    },
+    {
+        "id": "radiateur",
+        "label": "Radiateur",
+        "icon": "🔥",
+        "is_countable": True,
+    },
+    {
+        "id": "rideaux_stores",
+        "label": "Rideaux / Stores",
+        "icon": "🪞",
+        "is_countable": True,
+    },
+    {
+        "id": "luminaires_plafonniers",
+        "label": "Luminaires / Plafonniers",
+        "icon": "💡",
+        "is_countable": True,
+    },
+    {
+        "id": "lampes_appliques",
+        "label": "Lampes / Appliques",
+        "icon": "🛋️",
+        "is_countable": True,
+    },
 ]
 
 # Équipements spécifiques par type de pièce
@@ -497,7 +533,7 @@ EQUIPEMENTS_SPECIFIQUES = {
             },
             {
                 "id": "couette_couverture",
-                "label": "Couette/Couverture/Couvre-lit",
+                "label": "Couette / Couverture / Couvre-lit",
                 "icon": "🛜️",
                 "furnished_only": True,
                 "is_countable": True,
@@ -792,7 +828,7 @@ EQUIPEMENTS_SPECIFIQUES = {
             },
             {
                 "id": "couette_couverture",
-                "label": "Couette/Couverture/Couvre-lit",
+                "label": "Couette / Couverture / Couvre-lit",
                 "icon": "🛜️",
                 "furnished_only": True,
                 "is_countable": True,
@@ -1043,7 +1079,7 @@ EQUIPEMENTS_SPECIFIQUES = {
             },
             {
                 "id": "couette_couverture",
-                "label": "Couette/Couverture/Couvre-lit",
+                "label": "Couette / Couverture / Couvre-lit",
                 "icon": "🛜️",
                 "furnished_only": True,
                 "is_countable": True,

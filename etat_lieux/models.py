@@ -256,6 +256,13 @@ class EtatLieuxEquipement(BaseModel):
     )
     comment = models.TextField(blank=True, help_text="Commentaire sur l'équipement")
 
+    # Quantité (pour les équipements comptables)
+    quantity = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Quantité de l'équipement (pour les équipements comptables)"
+    )
+
     # Données additionnelles (date_entretien, etc.)
     data = models.JSONField(
         default=dict,

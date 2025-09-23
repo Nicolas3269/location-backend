@@ -703,16 +703,30 @@
 
     <!-- État des équipements de chauffage -->
     {% with equipements=etat_lieux.get_equipements_chauffage_formatted %}
-    {% if equipements.chaudieres or equipements.chauffe_eaux %}
+    {% if equipements.chaudieres or equipements.chauffe_eaux or total_radiateurs > 0 %}
     <div class="info-section">
         <h2>État des équipements de chauffage</h2>
 
+        <!-- Radiateurs -->
+        {% if total_radiateurs > 0 %}
+        <div style="margin-bottom: 20px;">
+            <h3 style="font-size: 11pt; font-weight: 600; margin-bottom: 10px; color: #1f2937;">Radiateurs</h3>
+            <div style="border: 1px solid #e3e5e8; border-radius: 4px; padding: 12px 15px; background: #f9fafb;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 10pt; color: #6b7280;">Nombre total dans le logement :</span>
+                    <span style="font-size: 11pt; font-weight: 600; color: #1f2937;">{{ total_radiateurs }}</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Chauffe-eau -->
         {% if equipements.chauffe_eaux %}
         <div style="margin-bottom: 20px;">
             <h3 style="font-size: 11pt; font-weight: 600; margin-bottom: 10px; color: #1f2937;">Chauffe-eau{% if equipements.chauffe_eaux|length > 1 %}x{% endif %}</h3>
             <div style="display: flex; flex-wrap: wrap; gap: 15px;">
                 {% for equipment in equipements.chauffe_eaux %}
-                <div style="border: 1px solid #e3e5e8; border-radius: 4px; padding: 10px 15px; background: #f9fafb; min-width: 180px;">
+                <div style="border: 1px solid #e3e5e8; border-radius: 4px; padding: 12px 15px; background: #f9fafb; min-width: 200px;">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px;">
                         <span style="font-size: 10pt; color: #6b7280;">
                             {% if equipements.chauffe_eaux|length > 1 %}
@@ -946,25 +960,33 @@
             <table class="elements-table">
                 <thead>
                     <tr>
-                        <th style="width: 35%;">Élément</th>
+                        <th style="width: 30%;">Élément</th>
+                        <th style="width: 10%;">Qté</th>
                         <th style="width: 15%;">État</th>
-                        <th style="width: 50%;">Description / détails</th>
+                        <th style="width: 45%;">Description / détails</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for element in piece_data.elements %}
                     <tr>
                         <td>{{ element.name }}</td>
+                        <td style="text-align: center;">
+                            {% if element.quantity %}
+                                {{ element.quantity }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
                         <td class="{{ element.state_css_class }}">
                             {{ element.state_display }}
                         </td>
                         <td>{{ element.comment|default:"-" }}</td>
                     </tr>
-                    
+
                     <!-- Photos pour cet élément -->
                     {% if element.photos %}
                     <tr>
-                        <td colspan="3">
+                        <td colspan="4">
                             <div class="element-photos">
                                 <h5>Photos - {{ element.name }}</h5>
                                 <div class="photos-grid">
@@ -983,33 +1005,6 @@
                 </tbody>
             </table>
 
-            <!-- Équipements -->
-            {% if piece_data.piece.equipments %}
-            <div class="equipment-section">
-                <h4>Équipements</h4>
-                <ul class="equipment-list">
-                    {% for equipment in piece_data.piece.equipments %}
-                    <li class="equipment-item">
-                        {{ equipment.name }} - Quantité: {{ equipment.quantity }}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-
-            <!-- Mobilier (si meublé) -->
-            {% if etat_lieux.location.bien.meuble and piece_data.piece.mobilier %}
-            <div class="equipment-section">
-                <h4>Mobilier</h4>
-                <ul class="equipment-list">
-                    {% for mobilier in piece_data.piece.mobilier %}
-                    <li class="equipment-item">
-                        {{ mobilier.name }} - Quantité: {{ mobilier.quantity }}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
         </div>
     </div>
     {% endfor %}

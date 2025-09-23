@@ -343,6 +343,9 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
 
     pieces_enrichies = []
 
+    # Calculer le nombre total de radiateurs
+    total_radiateurs = 0
+
     # Nouvelle architecture : parcourir les pièces
     for piece in etat_lieux.pieces.all():
         # Récupérer les équipements de cette pièce
@@ -352,6 +355,9 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
 
         elements_enrichis = []
         for equipment in equipments:
+            # Compter les radiateurs
+            if equipment.equipment_key == "radiateur" and equipment.quantity:
+                total_radiateurs += equipment.quantity
             # Récupérer les photos de cet équipement
             photos_enrichies = []
             for photo in equipment.photos.all():
@@ -382,6 +388,7 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
                 ),
                 "state_color": StateEquipmentUtils.get_state_color(equipment.state),
                 "comment": equipment.comment,
+                "quantity": equipment.quantity if hasattr(equipment, 'quantity') else None,
                 "photos": photos_enrichies,
             }
             elements_enrichis.append(element_enrichi)
@@ -450,6 +457,7 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
         "bailleurs": bailleurs,
         "locataires": locataires,
         "pieces_enrichies": pieces_enrichies,
+        "total_radiateurs": total_radiateurs,
     }
 
 

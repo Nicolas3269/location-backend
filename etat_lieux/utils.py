@@ -215,6 +215,7 @@ def create_equipments(etat_lieux: EtatLieux, equipments_data: List[Dict]) -> Non
             "equipment_name": equipment_data.get("equipment_name"),
             "state": equipment_data.get("state"),
             "comment": equipment_data.get("comment"),
+            "quantity": equipment_data.get("quantity"),
             "data": equipment_data.get("data"),
         }
 
@@ -375,6 +376,7 @@ def transform_rooms_to_pieces_and_equipments(
                     "piece_id": piece_id,
                     "state": equipment.get("state"),
                     "comment": equipment.get("comment"),
+                    "quantity": equipment.get("quantity"),
                     "data": equipment.get("data", {}),
                 }
             )

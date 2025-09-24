@@ -573,43 +573,43 @@
         <h2>Clés remises</h2>
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; row-gap: 12px; font-size: 10pt;">
             {% if etat_lieux.nombre_cles.immeuble and etat_lieux.nombre_cles.immeuble.count > 0 %}
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="info-label" style="min-width: 150px;">Clés immeuble</span>
+            <div style="display: flex; align-items: center;">
+                <span class="info-label" style="display: inline-block; min-width: 140px;">Clés immeuble</span>
                 <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.immeuble.count }}</span>
             </div>
             {% endif %}
-            
+
             {% if etat_lieux.nombre_cles.entree and etat_lieux.nombre_cles.entree.count > 0 %}
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="info-label" style="min-width: 150px;">Clés porte d'entrée</span>
+            <div style="display: flex; align-items: center;">
+                <span class="info-label" style="display: inline-block; min-width: 140px;">Clés porte d'entrée</span>
                 <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.entree.count }}</span>
             </div>
             {% endif %}
-            
+
             {% if etat_lieux.nombre_cles.boiteAuxLettres and etat_lieux.nombre_cles.boiteAuxLettres.count > 0 %}
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="info-label" style="min-width: 150px;">Boîte aux lettres</span>
+            <div style="display: flex; align-items: center;">
+                <span class="info-label" style="display: inline-block; min-width: 140px;">Boîte aux lettres</span>
                 <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.boiteAuxLettres.count }}</span>
             </div>
             {% endif %}
-            
+
             {% if etat_lieux.nombre_cles.cave and etat_lieux.nombre_cles.cave.count > 0 %}
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="info-label" style="min-width: 150px;">Clés cave</span>
+            <div style="display: flex; align-items: center;">
+                <span class="info-label" style="display: inline-block; min-width: 140px;">Clés cave</span>
                 <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.cave.count }}</span>
             </div>
             {% endif %}
-            
+
             {% if etat_lieux.nombre_cles.portail and etat_lieux.nombre_cles.portail.count > 0 %}
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="info-label" style="min-width: 150px;">Badge/clé portail</span>
+            <div style="display: flex; align-items: center;">
+                <span class="info-label" style="display: inline-block; min-width: 140px;">Badge/clé portail</span>
                 <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.portail.count }}</span>
             </div>
             {% endif %}
-            
+
             {% if etat_lieux.nombre_cles.parking and etat_lieux.nombre_cles.parking.count > 0 %}
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="info-label" style="min-width: 150px;">Parking</span>
+            <div style="display: flex; align-items: center;">
+                <span class="info-label" style="display: inline-block; min-width: 140px;">Parking</span>
                 <span class="badge" style="font-size: 10pt; padding: 3px 10px;">{{ etat_lieux.nombre_cles.parking.count }}</span>
             </div>
             {% endif %}

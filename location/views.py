@@ -187,6 +187,13 @@ def _extract_rent_terms_data(data, location, serializer_class):
     # Cela inclut rent_price_id (mappé depuis bien.localisation.area_id)
     rent_terms_data = serializer_class.extract_model_data(RentTerms, data)
 
+    # Gérer justificatif_complement_loyer depuis modalites_zone_tendue si présent
+    modalites_zone_tendue = data.get("modalites_zone_tendue") or {}
+    if "justificatif_complement_loyer" in modalites_zone_tendue:
+        rent_terms_data["justificatif_complement_loyer"] = modalites_zone_tendue[
+            "justificatif_complement_loyer"
+        ]
+
     # Si zone_tendue ou permis_de_louer ne sont pas dans les données extraites,
     # les calculer depuis les coordonnées GPS
     if (
@@ -769,52 +776,6 @@ def get_bien_locations(request, bien_id):
         logger.error(
             f"Erreur lors de la récupération des locations du bien {bien_id}: {str(e)}"
         )
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
-
-
-def _update_location(location, data):
-    """
-    Met à jour une location existante avec de nouvelles données
-    Les données sont déjà validées par le serializer et converties en snake_case
-    """
-    try:
-        # Mettre à jour les dates si fournies
-        if "date_debut" in data:
-            location.date_debut = data["date_debut"]
-        if "date_fin" in data:
-            location.date_fin = data["date_fin"]
-        if "solidaires" in data:
-            location.solidaires = data["solidaires"]  # Déjà un booléen validé
-
-        location.save()
-
-        # Mettre à jour les conditions financières si elles existent
-        modalites = data.get("modalites") or {}
-        if modalites and hasattr(location, "rent_terms"):
-            rent_terms = location.rent_terms
-            if "prix" in modalites:
-                rent_terms.montant_loyer = modalites["prix"]
-            if "charges" in modalites:
-                rent_terms.montant_charges = modalites["charges"]
-            if "type_charges" in modalites:
-                rent_terms.type_charges = modalites["type_charges"]
-            if "depot_garantie" in modalites:
-                rent_terms.depot_garantie = modalites["depot_garantie"]
-            if "justificatif_complement_loyer" in modalites:
-                rent_terms.justificatif_complement_loyer = modalites[
-                    "justificatif_complement_loyer"
-                ]
-            rent_terms.save()
-
-        return JsonResponse(
-            {
-                "success": True,
-                "location_id": str(location.id),
-                "message": "Location mise à jour avec succès",
-            }
-        )
-    except Exception as e:
-        logger.error(f"Erreur lors de la mise à jour de la location: {str(e)}")
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 

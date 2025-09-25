@@ -250,7 +250,9 @@ def update_or_create_etat_lieux(location_id, form_data, uploaded_photos, user):
                 # - Les demandes de signature
                 # - Les photos associées
                 ancien_etat_lieux.delete()
-                logger.info(f"État des lieux {ancien_etat_lieux.id} supprimé avec toutes ses dépendances")
+                logger.info(
+                    f"État des lieux {ancien_etat_lieux.id} supprimé avec toutes ses dépendances"
+                )
         else:
             logger.info(
                 f"Aucun ancien état des lieux trouvé pour location {location_id}"
@@ -356,7 +358,7 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
         elements_enrichis = []
         for equipment in equipments:
             # Compter les radiateurs
-            if equipment.equipment_key == "radiateur" and equipment.quantity:
+            if equipment.equipment_key == "radiateurs" and equipment.quantity:
                 total_radiateurs += equipment.quantity
             # Récupérer les photos de cet équipement
             photos_enrichies = []
@@ -388,7 +390,9 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
                 ),
                 "state_color": StateEquipmentUtils.get_state_color(equipment.state),
                 "comment": equipment.comment,
-                "quantity": equipment.quantity if hasattr(equipment, 'quantity') else None,
+                "quantity": equipment.quantity
+                if hasattr(equipment, "quantity")
+                else None,
                 "photos": photos_enrichies,
             }
             elements_enrichis.append(element_enrichi)

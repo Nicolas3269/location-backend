@@ -1011,12 +1011,14 @@
 
     <!-- Section observations -->
     <!-- Section commentaires généraux -->
+    {% if etat_lieux.commentaires_generaux %}
     <div class="comments-section">
         <div class="comments-title">Observations générales :</div>
-        <div style="min-height: 80px;">
-            <!-- Espace pour les commentaires généraux -->
-        </div>
+        <p style="margin: 10px 0; color: #3e3c41; font-size: 10pt; line-height: 1.5;">
+            {{ etat_lieux.commentaires_generaux|linebreaksbr }}
+        </p>
     </div>
+    {% endif %}
 
     <!-- Section signatures -->
     <div class="signature-section">

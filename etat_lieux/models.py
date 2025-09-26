@@ -59,6 +59,15 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     # Inventaire (garde en JSON car structure simple)
     nombre_cles = models.JSONField(default=dict)
     compteurs = models.JSONField(default=None, null=True, blank=True)
+
+    # Commentaires généraux sur l'état des lieux
+    commentaires_generaux = models.TextField(
+        default=None,
+        null=True,
+        blank=True,
+        help_text="Commentaires généraux sur l'état des lieux"
+    )
+
     # Les équipements sont maintenant gérés via le modèle EtatLieuxEquipement
     # (anciennement stockés dans des JSONField)
 

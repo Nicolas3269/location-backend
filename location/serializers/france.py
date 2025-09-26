@@ -374,6 +374,16 @@ ETAT_LIEUX_CLES_STEPS = [
     },
 ]
 
+# --- Commentaires généraux ---
+COMMENTAIRES_GENERAUX_STEPS = [
+    {
+        "id": "commentaires_generaux",
+        "required_fields": [],  # Optionnel
+        "always_unlocked": True,
+        "fields": {},  # Stocké en TextField dans EtatLieux
+    },
+]
+
 # --- Description des pièces ---
 DETAIL_ETAT_LIEUX_STEPS = [
     {
@@ -662,6 +672,15 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         required=False, default=list, help_text="Détails des pièces avec leur état"
     )
 
+    # Commentaires généraux sur l'état des lieux
+    commentaires_generaux = serializers.CharField(
+        required=False,
+        default=None,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Commentaires généraux sur l'état des lieux"
+    )
+
     # Références des photos pour le multipart
     photo_references = serializers.JSONField(
         required=False, default=list, help_text="Références des photos uploadées"
@@ -695,6 +714,7 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         ETAT_LIEUX_STEPS.extend(MEUBLE_STEPS)
         ETAT_LIEUX_STEPS.extend(PIECES_INFO_STEPS)
         ETAT_LIEUX_STEPS.extend(DETAIL_ETAT_LIEUX_STEPS)
+        ETAT_LIEUX_STEPS.extend(COMMENTAIRES_GENERAUX_STEPS)
         return ETAT_LIEUX_STEPS
 
     def to_internal_value(self, data):

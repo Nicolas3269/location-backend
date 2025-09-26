@@ -459,28 +459,36 @@ def create_etat_lieux_from_form_data(
 
         equipments.append(equipment_data)
 
-    # 3. Traiter les annexes privatives (indépendant des rooms)
-    annexes_privatives = form_data.get("annexes_privatives_equipements", {})
-    for annexe_uuid, annexe_data in annexes_privatives.items():
-        if not annexe_data:
-            continue
+    # 3. Traiter les annexes privatives (liste d'objets)
+    annexes_privatives = form_data.get("annexes_privatives_equipements", [])
 
-        annexe_type = annexe_data.get("type")
-        if not annexe_type:
-            logger.warning(f"Annexe sans type ignorée: {annexe_uuid}")
-            continue
+    if isinstance(annexes_privatives, list):
+        for annexe_data in annexes_privatives:
+            if not annexe_data:
+                continue
 
-        equipments.append(
-            {
-                "id": annexe_uuid,  # Le frontend envoie déjà des UUIDs
-                "equipment_type": "annexe",
-                "equipment_key": annexe_type,
-                "equipment_name": annexe_type.replace("_", " ").title(),
-                "state": annexe_data.get("state"),
-                "comment": annexe_data.get("comment"),
-                "data": {},
-            }
-        )
+            annexe_id = annexe_data.get("id")
+            annexe_type = annexe_data.get("type")
+            annexe_label = annexe_data.get("label")
+
+            if not annexe_id or not annexe_type:
+                logger.warning("Annexe sans ID ou type ignorée")
+                continue
+
+            # Utiliser le label fourni par le frontend, sinon fallback sur le type formaté
+            equipment_name = annexe_label if annexe_label else annexe_type.replace("_", " ").title()
+
+            equipments.append(
+                {
+                    "id": annexe_id,
+                    "equipment_type": "annexe",
+                    "equipment_key": annexe_type,
+                    "equipment_name": equipment_name,
+                    "state": annexe_data.get("state"),
+                    "comment": annexe_data.get("comment"),
+                    "data": {},
+                }
+            )
 
     # 4. Créer tous les équipements (rooms + chauffage + annexes)
     logger.info(f"Création de {len(equipments)} équipements")

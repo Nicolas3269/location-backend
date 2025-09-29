@@ -202,10 +202,23 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Email settings
 # Configuration par défaut (développement)
+
+# Permettre de surcharger via variables d'environnement pour les tests
+USE_MAILHOG = os.environ.get("USE_MAILHOG", "").lower() == "true"
+
 if DEBUG:
-    # En environnement de développement, utiliser le backend console
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-    DEFAULT_FROM_EMAIL = "HESTIA <noreply@hestia.software>"
+    if USE_MAILHOG:
+        # Mode test avec MailHog
+        EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+        EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
+        EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 1025))
+        EMAIL_USE_TLS = False
+        EMAIL_USE_SSL = False
+        DEFAULT_FROM_EMAIL = "HESTIA TEST <noreply@hestia.local>"
+    else:
+        # Mode développement normal - affiche dans la console
+        EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+        DEFAULT_FROM_EMAIL = "HESTIA <noreply@hestia.software>"
 else:
     # En environnement de production, utiliser Mailgun
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

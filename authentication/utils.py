@@ -110,8 +110,10 @@ Cordialement,
 L'équipe HESTIA
 """
 
+    # Inclure l'OTP dans l'objet pour faciliter l'auto-complétion sur mobile
+    # Format standard reconnu par iOS et Android
     send_mail(
-        subject="Vérifiez votre adresse email",
+        subject=f"{verification.otp} - Vérifiez votre adresse email",
         message=message,
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[verification.email],

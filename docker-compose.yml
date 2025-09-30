@@ -33,7 +33,7 @@ services:
       - "1025:1025" # SMTP server
       - "8025:8025" # Web UI
     logging:
-      driver: "none" # Désactive les logs verbeux de MailHog ok
+      driver: "none" # Désactive les logs verbeux de MailHog
 
   # hestia:
   #   build:

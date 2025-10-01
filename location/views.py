@@ -27,6 +27,197 @@ from signature.document_status import DocumentStatus
 logger = logging.getLogger(__name__)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_locataire_locations(request):
+    """
+    Récupère toutes les locations où l'utilisateur est locataire
+    """
+    try:
+        user_email = request.user.email
+
+        # Trouver tous les locataires avec cet email
+        locataires = Locataire.objects.filter(email=user_email)
+
+        if not locataires.exists():
+            return JsonResponse({
+                "success": True,
+                "locations": []
+            })
+
+        # Récupérer toutes les locations de ces locataires
+        locations = Location.objects.filter(
+            locataires__in=locataires
+        ).distinct().order_by("-created_at")
+
+        locations_data = []
+        for location in locations:
+            # Récupérer le bailleur principal
+            bailleur = location.bien.bailleurs.first()
+            bailleur_data = {}
+            if bailleur:
+                if bailleur.personne:
+                    bailleur_data = {
+                        "first_name": bailleur.personne.firstName,
+                        "last_name": bailleur.personne.lastName,
+                        "email": bailleur.personne.email,
+                    }
+                elif bailleur.societe:
+                    bailleur_data = {
+                        "first_name": bailleur.societe.raison_sociale,
+                        "last_name": "",
+                        "email": bailleur.societe.email,
+                    }
+
+            # Récupérer les conditions financières
+            montant_loyer = 0
+            montant_charges = 0
+            depot_garantie = 0
+            try:
+                rent_terms = location.rent_terms
+                montant_loyer = float(rent_terms.montant_loyer) if rent_terms.montant_loyer else 0
+                montant_charges = float(rent_terms.montant_charges) if rent_terms.montant_charges else 0
+                depot_garantie = float(rent_terms.depot_garantie) if rent_terms.depot_garantie else 0
+            except RentTerms.DoesNotExist:
+                pass
+
+            # Déterminer le statut
+            from bail.models import Bail
+            bail_actif = Bail.objects.filter(location=location, is_active=True).first()
+            status = bail_actif.status if bail_actif else DocumentStatus.DRAFT
+
+            locations_data.append({
+                "id": str(location.id),
+                "date_debut": location.date_debut.isoformat() if location.date_debut else None,
+                "date_fin": location.date_fin.isoformat() if location.date_fin else None,
+                "montant_loyer": montant_loyer,
+                "montant_charges": montant_charges,
+                "depot_garantie": depot_garantie,
+                "status": status,
+                "bien": {
+                    "id": location.bien.id,
+                    "adresse": location.bien.adresse,
+                    "type": location.bien.type_bien or "Appartement",
+                    "superficie": float(location.bien.superficie) if location.bien.superficie else 0,
+                    "meuble": location.bien.meuble or False,
+                },
+                "bailleur": bailleur_data,
+            })
+
+        return JsonResponse({
+            "success": True,
+            "locations": locations_data
+        })
+
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des locations du locataire: {str(e)}")
+        return JsonResponse(
+            {"success": False, "error": str(e)},
+            status=500
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_location_detail(request, location_id):
+    """
+    Récupère les détails d'une location spécifique
+    """
+    try:
+        location = Location.objects.get(id=location_id)
+
+        # Vérifier que l'utilisateur a accès à cette location
+        user_email = request.user.email
+        has_access = False
+
+        # Vérifier si l'utilisateur est signataire d'un des bailleurs du bien
+        for bailleur in location.bien.bailleurs.all():
+            if bailleur.signataire and bailleur.signataire.email == user_email:
+                has_access = True
+                break
+
+        # Vérifier si l'utilisateur est un des locataires
+        if not has_access:
+            for locataire in location.locataires.all():
+                if locataire.email == user_email:
+                    has_access = True
+                    break
+
+        if not has_access:
+            return JsonResponse(
+                {"error": "Vous n'avez pas accès à cette location"}, status=403
+            )
+
+        # Récupérer le bailleur principal
+        bailleur = location.bien.bailleurs.first()
+        bailleur_data = {}
+        if bailleur:
+            if bailleur.personne:
+                bailleur_data = {
+                    "first_name": bailleur.personne.firstName,
+                    "last_name": bailleur.personne.lastName,
+                    "email": bailleur.personne.email,
+                }
+            elif bailleur.societe:
+                bailleur_data = {
+                    "first_name": bailleur.societe.raison_sociale,
+                    "last_name": "",
+                    "email": bailleur.societe.email,
+                }
+
+        # Récupérer les conditions financières
+        montant_loyer = 0
+        montant_charges = 0
+        depot_garantie = 0
+        try:
+            rent_terms = location.rent_terms
+            montant_loyer = float(rent_terms.montant_loyer) if rent_terms.montant_loyer else 0
+            montant_charges = float(rent_terms.montant_charges) if rent_terms.montant_charges else 0
+            depot_garantie = float(rent_terms.depot_garantie) if rent_terms.depot_garantie else 0
+        except RentTerms.DoesNotExist:
+            pass
+
+        # Déterminer le statut
+        from bail.models import Bail
+        bail_actif = Bail.objects.filter(location=location, is_active=True).first()
+        status = bail_actif.status if bail_actif else DocumentStatus.DRAFT
+
+        location_data = {
+            "id": str(location.id),
+            "date_debut": location.date_debut.isoformat() if location.date_debut else None,
+            "date_fin": location.date_fin.isoformat() if location.date_fin else None,
+            "montant_loyer": montant_loyer,
+            "montant_charges": montant_charges,
+            "depot_garantie": depot_garantie,
+            "status": status,
+            "bien": {
+                "id": location.bien.id,
+                "adresse": location.bien.adresse,
+                "type": location.bien.type_bien or "Appartement",
+                "superficie": float(location.bien.superficie) if location.bien.superficie else 0,
+                "meuble": location.bien.meuble or False,
+            },
+            "bailleur": bailleur_data,
+        }
+
+        return JsonResponse({
+            "success": True,
+            "location": location_data
+        })
+
+    except Location.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "error": "Location non trouvée"},
+            status=404
+        )
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération de la location: {str(e)}")
+        return JsonResponse(
+            {"success": False, "error": str(e)},
+            status=500
+        )
+
+
 def create_or_get_bailleur(data):
     """
     Crée ou récupère un bailleur depuis les données du formulaire.

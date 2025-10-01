@@ -256,6 +256,7 @@ def generate_quittance_pdf(request):
                 "quittanceId": str(quittance.id),
                 "pdfUrl": request.build_absolute_uri(quittance.pdf.url),
                 "filename": pdf_filename,
+                "bienId": location.bien.id,
                 "context_info": {
                     "bailleur": f"{signataire_full_name}",
                     "locataire": f"{premier_locataire.full_name}",

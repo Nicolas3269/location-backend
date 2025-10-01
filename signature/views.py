@@ -199,6 +199,10 @@ def confirm_signature_generic(request, model_class, document_type):
         elif hasattr(document, "pdf") and document.pdf:
             response_data["pdfUrl"] = request.build_absolute_uri(document.pdf.url)
 
+        # Ajouter le bienId pour la redirection
+        if hasattr(document, "location") and document.location and hasattr(document.location, "bien"):
+            response_data["bienId"] = document.location.bien.id
+
         return JsonResponse(response_data)
 
     except Exception as e:

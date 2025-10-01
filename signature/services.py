@@ -143,7 +143,7 @@ def send_otp_email(signature_request, document_type="document"):
         return False
 
     # Sujet et message spécifiques à l'OTP
-    subject = f"Code de vérification pour la signature de votre {document_display_name}"
+    subject = f"🔏 Code {otp} - Signature de votre {document_display_name}"
 
     text_message = f"""
     Bonjour {signature_request.get_signataire_name()},

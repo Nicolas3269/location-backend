@@ -10,6 +10,7 @@ class QuittanceAdmin(admin.ModelAdmin):
     """Administration des quittances de loyer"""
 
     list_display = [
+        "id_short",
         "location_info",
         "periode",
         "montant_loyer",
@@ -42,6 +43,7 @@ class QuittanceAdmin(admin.ModelAdmin):
         "updated_at",
         "pdf_preview",
         "periode_display",
+        "locataires_display",
         "montant_loyer",
         "montant_charges",
         "montant_total",
@@ -54,6 +56,7 @@ class QuittanceAdmin(admin.ModelAdmin):
                 "fields": (
                     "id",
                     "location",
+                    "locataires_display",
                     "periode_display",
                     "date_paiement",
                 )
@@ -90,6 +93,18 @@ class QuittanceAdmin(admin.ModelAdmin):
             },
         ),
     )
+
+    def id_short(self, obj):
+        """Affiche l'UUID raccourci avec lien vers le détail"""
+        detail_url = reverse("admin:quittance_quittance_change", args=[obj.pk])
+        return format_html(
+            '<a href="{}" title="Voir le détail">{}</a>',
+            detail_url,
+            str(obj.id)[:8]
+        )
+
+    id_short.short_description = "ID"
+    id_short.admin_order_field = "id"
 
     def location_info(self, obj):
         """Affiche les informations de la location avec lien"""
@@ -128,6 +143,21 @@ class QuittanceAdmin(admin.ModelAdmin):
         return f"{obj.mois.title()} {obj.annee}"
 
     periode_display.short_description = "Période"
+
+    def locataires_display(self, obj):
+        """Affiche les locataires liés à cette quittance"""
+        locataires = obj.locataires.all()
+        if locataires.exists():
+            # Si des locataires sont spécifiquement liés à la quittance
+            locataires_list = [f"{loc.firstName} {loc.lastName}" for loc in locataires]
+            return format_html("<br>".join(locataires_list))
+        else:
+            # Sinon, afficher tous les locataires de la location
+            location_locataires = obj.location.locataires.all()
+            locataires_list = [f"{loc.firstName} {loc.lastName}" for loc in location_locataires]
+            return format_html("<br>".join(locataires_list) + "<br><small>(Tous les locataires de la location)</small>")
+
+    locataires_display.short_description = "Locataire(s) concerné(s)"
 
     def pdf_link(self, obj):
         """Lien vers le PDF"""

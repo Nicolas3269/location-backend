@@ -230,10 +230,14 @@
         </div>
         
         <div class="info-section">
-            <h3>Locataire</h3>
+            <h3>Locataire{% if nb_locataires > 1 %}s{% endif %}</h3>
             <div class="info-row">
                 <span class="label">Nom :</span>
-                <span class="value">{{ locataire_full_name }}</span>
+                <span class="value">
+                    {% for locataire in locataires %}
+                        {{ locataire.full_name }}{% if not forloop.last %}<br>{% endif %}
+                    {% endfor %}
+                </span>
             </div>
             <div class="info-row">
                 <span class="label">Adresse du bien :</span>
@@ -256,20 +260,34 @@
     <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e3e5e8;">
         <p style="margin-bottom: 15px;">
             {% if bailleur_type == "personne_physique" %}
-                Je soussigné(e) <strong>{{ premier_bailleur.personne.firstName }} {{ premier_bailleur.personne.lastName }}</strong>, 
-                propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
-                reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
-                locataire dudit logement, la somme de <strong style="color: #2680eb;">{{ montant_loyer }}€</strong> 
-                ({{ montant_en_lettres }}) correspondant au loyer du mois de 
+                Je soussigné(e) <strong>{{ premier_bailleur.personne.firstName }} {{ premier_bailleur.personne.lastName }}</strong>,
+                propriétaire du logement situé <strong>{{ adresse_bien }}</strong>,
+                reconnais avoir reçu de
+                {% if nb_locataires > 1 %}
+                    <strong>{% for loc in locataires %}{{ loc.full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</strong>,
+                    locataires dudit logement,
+                {% else %}
+                    <strong>{{ locataires.0.full_name }}</strong>,
+                    locataire dudit logement,
+                {% endif %}
+                la somme de <strong style="color: #2680eb;">{{ montant_loyer }}€</strong>
+                ({{ montant_en_lettres }}) correspondant au loyer du mois de
                 <strong>{{ mois|lower }} {{ annee }}</strong>.
             {% elif bailleur_type == "societe" %}
-                Je soussigné(e) <strong>{{ premier_bailleur.signataire.firstName }} {{ premier_bailleur.signataire.lastName }}</strong>, 
-                représentant de la société <strong>{{ premier_bailleur.societe.raison_sociale }}</strong> 
-                ({{ premier_bailleur.societe.forme_juridique }}), 
-                propriétaire du logement situé <strong>{{ adresse_bien }}</strong>, 
-                reconnais avoir reçu de <strong>{{ locataire_full_name }}</strong>, 
-                locataire dudit logement, la somme de <strong style="color: #2680eb;">{{ montant_loyer }}€</strong> 
-                ({{ montant_en_lettres }}) correspondant au loyer du mois de 
+                Je soussigné(e) <strong>{{ premier_bailleur.signataire.firstName }} {{ premier_bailleur.signataire.lastName }}</strong>,
+                représentant de la société <strong>{{ premier_bailleur.societe.raison_sociale }}</strong>
+                ({{ premier_bailleur.societe.forme_juridique }}),
+                propriétaire du logement situé <strong>{{ adresse_bien }}</strong>,
+                reconnais avoir reçu de
+                {% if nb_locataires > 1 %}
+                    <strong>{% for loc in locataires %}{{ loc.full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</strong>,
+                    locataires dudit logement,
+                {% else %}
+                    <strong>{{ locataires.0.full_name }}</strong>,
+                    locataire dudit logement,
+                {% endif %}
+                la somme de <strong style="color: #2680eb;">{{ montant_loyer }}€</strong>
+                ({{ montant_en_lettres }}) correspondant au loyer du mois de
                 <strong>{{ mois|lower }} {{ annee }}</strong>.
             {% endif %}
         </p>

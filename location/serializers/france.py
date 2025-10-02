@@ -605,7 +605,6 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True
     )
-    modalites_financieres = ModalitesFinancieresSerializer(required=True)
 
     # Options de location
     solidaires = serializers.BooleanField(

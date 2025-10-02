@@ -316,7 +316,25 @@ def create_locataires(data):
         # Récupérer l'UUID frontend si fourni
         frontend_id = validated.get("id")
 
-        # Créer le locataire avec l'UUID frontend ou laisser Django générer un UUID
+        if frontend_id:
+            import uuid as uuid_module
+
+            # Convertir en UUID si nécessaire
+            if isinstance(frontend_id, str):
+                frontend_uuid = uuid_module.UUID(frontend_id)
+            else:
+                frontend_uuid = frontend_id
+
+            # Essayer de récupérer le locataire existant par UUID
+            try:
+                locataire = Locataire.objects.get(id=frontend_uuid)
+                logger.info(f"Locataire existant récupéré: {locataire.id} ({locataire.firstName} {locataire.lastName})")
+                locataires.append(locataire)
+                continue
+            except Locataire.DoesNotExist:
+                logger.info(f"Locataire avec UUID {frontend_uuid} n'existe pas, création...")
+
+        # Créer le locataire s'il n'existe pas
         locataire_data = {
             "lastName": validated["lastName"],
             "firstName": validated["firstName"],
@@ -328,13 +346,16 @@ def create_locataires(data):
         }
 
         if frontend_id:
-            # Utiliser l'UUID du frontend
             import uuid as uuid_module
-            locataire_data["id"] = uuid_module.UUID(frontend_id)
+            # Convertir en UUID si nécessaire
+            if isinstance(frontend_id, str):
+                locataire_data["id"] = uuid_module.UUID(frontend_id)
+            else:
+                locataire_data["id"] = frontend_id
 
         locataire = Locataire.objects.create(**locataire_data)
         locataires.append(locataire)
-        logger.info(f"Locataire créé: {locataire.id}")
+        logger.info(f"Locataire créé: {locataire.id} ({locataire.firstName} {locataire.lastName})")
 
     return locataires
 
@@ -709,7 +730,16 @@ def update_existing_location(location, data, serializer_class):
     # 2. Mettre à jour la Location (dates, solidaires) en respectant les verrouillages
     update_location_fields(location, data, location_id=str(location.id))
 
-    # 3. Mettre à jour ou créer les conditions financières (incluant dépôt de garantie)
+    # 3. Créer et associer les locataires si fournis
+    locataires_data = data.get("locataires")
+    if locataires_data:
+        locataires = create_locataires(data)
+        # Associer les nouveaux locataires à la location
+        for locataire in locataires:
+            location.locataires.add(locataire)
+        logger.info(f"{len(locataires)} locataire(s) ajouté(s) à la location {location.id}")
+
+    # 4. Mettre à jour ou créer les conditions financières (incluant dépôt de garantie)
     update_rent_terms(location, data, serializer_class=serializer_class)
 
     return location, location.bien

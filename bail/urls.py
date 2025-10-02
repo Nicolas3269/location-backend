@@ -20,8 +20,8 @@ urlpatterns = [
     path("generate-bail/", generate_bail_pdf, name="generate_bail_pdf"),
     # La route create-partial est maintenant dans quittance/urls.py
     path("bail/<str:bail_id>/bien-id/", get_bail_bien_id, name="get_bail_bien_id"),
-    path("bien/detail/<int:bien_id>/", get_bien_detail, name="get_bien_detail"),
-    path("bien/<int:bien_id>/baux/", get_bien_baux, name="get_bien_baux"),
+    path("bien/detail/<uuid:bien_id>/", get_bien_detail, name="get_bien_detail"),
+    path("bien/<uuid:bien_id>/baux/", get_bien_baux, name="get_bien_baux"),
     path(
         "generate-notice-information/",
         generate_notice_information_pdf,

@@ -16,7 +16,7 @@ urlpatterns = [
         "create-or-update/", create_or_update_location, name="create_or_update_location"
     ),
     path(
-        "bien/<int:bien_id>/locations/", get_bien_locations, name="get_bien_locations"
+        "bien/<uuid:bien_id>/locations/", get_bien_locations, name="get_bien_locations"
     ),
     path(
         "mes-locations/", get_locataire_locations, name="get_locataire_locations"

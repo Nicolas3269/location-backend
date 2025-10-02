@@ -13,7 +13,7 @@ app_name = "etat_lieux"
 
 urlpatterns = [
     path(
-        "pieces/<int:bien_id>/",
+        "pieces/<uuid:bien_id>/",
         get_or_create_pieces,
         name="get_or_create_pieces",
     ),

@@ -100,6 +100,7 @@ class ZoneReglementaireSerializer(serializers.Serializer):
 class PersonneSerializer(serializers.Serializer):
     """Serializer pour une personne (bailleur, locataire, signataire)"""
 
+    id = serializers.UUIDField(required=False, allow_null=True, help_text="UUID généré côté frontend")
     lastName = serializers.CharField(max_length=100)
     firstName = serializers.CharField(max_length=100)
     email = serializers.EmailField()

@@ -657,7 +657,7 @@
         {% for bailleur in bail.location.bien.bailleurs.all %}
         <div class="signature-block">
           <!-- ID invisible pour PyMuPDF -->
-          <p style="color:white; margin: 0;">ID_SIGNATURE_BAILLEUR_{{ bailleur.signataire.id }}</p>
+          <p style="color:white; margin: 0; white-space: nowrap;">ID_SIGNATURE_BAILLEUR_{{ bailleur.signataire.id }}</p>
         </div>
         {% endfor %}
       </div>
@@ -672,7 +672,7 @@
         {% for person in bail.location.locataires.all %}
         <div class="signature-block">
           <!-- ID invisible pour PyMuPDF -->
-          <p style="color:white; margin: 0;">ID_SIGNATURE_LOC_{{ person.id }}</p>
+          <p style="color:white; margin: 0; white-space: nowrap;">ID_SIGNATURE_LOC_{{ person.id }}</p>
         </div>
         {% endfor %}
       </div>

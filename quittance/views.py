@@ -224,8 +224,10 @@ def generate_quittance_pdf(request):
                 status=400,
             )
 
-        montant_loyer = float(quittance.montant_loyer)
-        montant_en_lettres = amount_to_words_french(montant_loyer)
+        montant_loyer_hc = float(quittance.montant_loyer)
+        montant_charges = float(quittance.montant_charges or 0)
+        montant_total = montant_loyer_hc + montant_charges
+        montant_en_lettres = amount_to_words_french(montant_total)
 
         # Récupérer le premier bailleur
         premier_bailleur: Bailleur = location.bien.bailleurs.first()
@@ -281,11 +283,12 @@ def generate_quittance_pdf(request):
         # Générer la signature automatique (signataire qui signe)
         signature_data_url = generate_text_signature(signataire_full_name)
 
-        # Formater le montant du loyer (sans décimales si entier)
-        if montant_loyer % 1 == 0:
-            montant_loyer_formate = f"{int(montant_loyer)}"
-        else:
-            montant_loyer_formate = f"{montant_loyer:.2f}"
+        # Formater les montants (sans décimales si entier)
+        def format_amount(amount):
+            if amount % 1 == 0:
+                return f"{int(amount)}"
+            else:
+                return f"{amount:.2f}"
 
         context = {
             "location": location,
@@ -294,7 +297,9 @@ def generate_quittance_pdf(request):
             "annee": annee,
             "date_paiement": date_paiement_obj,
             "date_generation": timezone.now().date(),
-            "montant_loyer": montant_loyer_formate,
+            "montant_loyer_hc": format_amount(montant_loyer_hc),
+            "montant_charges": format_amount(montant_charges),
+            "montant_total": format_amount(montant_total),
             "montant_en_lettres": montant_en_lettres,
             # Informations du bailleur
             "premier_bailleur": premier_bailleur,
@@ -356,7 +361,7 @@ def generate_quittance_pdf(request):
                     "bailleur": f"{signataire_full_name}",
                     "locataire": ", ".join([loc.full_name for loc in locataires]),
                     "periode": f"{mois} {annee}",
-                    "montant": f"{montant_loyer}€",
+                    "montant": f"{montant_total}€",
                 },
             }
         )

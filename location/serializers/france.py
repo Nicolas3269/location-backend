@@ -228,6 +228,9 @@ PERSON_STEPS = [
         "fields": {},  # Relation many-to-many
         "business_rules": ["locatairesRequired"],
     },
+]
+
+PERSON_STEPS_SOLIDAIRES = [
     {
         "id": "solidaires",
         "condition": "has_multiple_tenants",
@@ -584,6 +587,7 @@ class FranceBailSerializer(BaseLocationSerializer):
 
         BAIL_STEPS.extend(DPE_STEPS)
         BAIL_STEPS.extend(PERSON_STEPS)
+        BAIL_STEPS.extend(PERSON_STEPS_SOLIDAIRES)
         BAIL_STEPS.extend(ZONE_TENDUE_STEPS)
         BAIL_STEPS.extend(BAIL_DATE_STEPS)
         BAIL_STEPS.extend(MODALITES_FINANCIERES_STEPS)
@@ -654,7 +658,6 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
         QUITTANCE_STEPS = []
         QUITTANCE_STEPS.extend(ADRESSE_STEPS)
         QUITTANCE_STEPS.extend(TYPE_BIEN_STEPS)
-        QUITTANCE_STEPS.extend(SUPERFICIE_STEPS)
         QUITTANCE_STEPS.extend(PERSON_STEPS)
         QUITTANCE_STEPS.extend(QUITTANCE_LOCATAIRE_SELECTION_STEPS)
         QUITTANCE_STEPS.extend(QUITTANCE_MONTANT_STEPS)
@@ -724,7 +727,7 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         default=None,
         allow_null=True,
         allow_blank=True,
-        help_text="Commentaires généraux sur l'état des lieux"
+        help_text="Commentaires généraux sur l'état des lieux",
     )
 
     # Références des photos pour le multipart

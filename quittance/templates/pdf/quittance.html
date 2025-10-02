@@ -133,7 +133,7 @@
             page-break-inside: avoid;
             background-color: #f5f7f9;
             border-radius: 8px;
-            padding: 20px;
+            padding: 15px;
             border: 1px solid #e3e5e8;
         }
         
@@ -156,9 +156,9 @@
             background-color: white;
             border: 1px solid #e3e5e8;
             border-radius: 4px;
-            padding: 15px;
-            margin-top: 15px;
-            min-height: 100px;
+            padding: 10px;
+            margin-top: 10px;
+            min-height: 80px;
         }
         
         .signature-title {
@@ -169,8 +169,8 @@
         }
         
         .signature-image {
-            padding: 10px 0;
-            margin: 10px 0;
+            padding: 5px 0;
+            margin: 0;
             min-height: 60px;
             display: flex;
             align-items: center;
@@ -249,10 +249,7 @@
     <!-- Montant -->
     <div class="amount-section">
         <div class="amount-number">
-            {{ montant_loyer }} €
-        </div>
-        <div class="amount-words">
-            {{ montant_en_lettres }}
+            {{ montant_total }} €
         </div>
     </div>
     
@@ -270,9 +267,7 @@
                     <strong>{{ locataires.0.full_name }}</strong>,
                     locataire dudit logement,
                 {% endif %}
-                la somme de <strong style="color: #2680eb;">{{ montant_loyer }}€</strong>
-                ({{ montant_en_lettres }}) correspondant au loyer du mois de
-                <strong>{{ mois|lower }} {{ annee }}</strong>.
+                les sommes suivantes au titre du loyer du mois de <strong>{{ mois|lower }} {{ annee }}</strong> :
             {% elif bailleur_type == "societe" %}
                 Je soussigné(e) <strong>{{ premier_bailleur.signataire.firstName }} {{ premier_bailleur.signataire.lastName }}</strong>,
                 représentant de la société <strong>{{ premier_bailleur.societe.raison_sociale }}</strong>
@@ -286,12 +281,26 @@
                     <strong>{{ locataires.0.full_name }}</strong>,
                     locataire dudit logement,
                 {% endif %}
-                la somme de <strong style="color: #2680eb;">{{ montant_loyer }}€</strong>
-                ({{ montant_en_lettres }}) correspondant au loyer du mois de
-                <strong>{{ mois|lower }} {{ annee }}</strong>.
+                les sommes suivantes au titre du loyer du mois de <strong>{{ mois|lower }} {{ annee }}</strong> :
             {% endif %}
         </p>
-        
+
+        <ul style="list-style: none; padding: 0; margin: 15px 0;">
+            <li style="margin-bottom: 8px;">
+                <span style="font-weight: 600;">Loyer hors charges :</span>
+                <strong style="color: #2680eb;">{{ montant_loyer_hc }}€</strong>
+            </li>
+            <li style="margin-bottom: 8px;">
+                <span style="font-weight: 600;">Charges récupérables :</span>
+                <strong style="color: #2680eb;">{{ montant_charges }}€</strong>
+            </li>
+            <li style="margin-bottom: 8px; padding-top: 8px; border-top: 1px solid #e3e5e8;">
+                <span style="font-weight: 600;">Total payé :</span>
+                <strong style="color: #2680eb; font-size: 11pt;">{{ montant_total }}€</strong>
+                <span style="color: #6c6b70; font-size: 9pt;">({{ montant_en_lettres }})</span>
+            </li>
+        </ul>
+
         <p style="margin: 0;">
             Le paiement a été effectué le <strong>{{ date_paiement|date:"d/m/Y" }}</strong>.
         </p>
@@ -299,8 +308,14 @@
     
     <!-- Signature -->
     <div class="signature-section">
-        <h3>Signature</h3>
-        
+        <h3>
+            {% if bailleur_type == "personne_physique" %}
+                Signature du bailleur
+            {% elif bailleur_type == "societe" %}
+                Signature du représentant
+            {% endif %}
+        </h3>
+
         <!-- Lieu et date -->
         <div class="signature-location">
             <div>
@@ -308,16 +323,9 @@
                 <span class="value">{{ date_generation|date:"d/m/Y" }}</span>
             </div>
         </div>
-        
+
         <!-- Bloc signature -->
         <div class="signature-block">
-            <div class="signature-title">
-                {% if bailleur_type == "personne_physique" %}
-                    Signature du bailleur
-                {% elif bailleur_type == "societe" %}
-                    Signature du représentant
-                {% endif %}
-            </div>
             <div class="signature-image">
                 {% if bailleur_signature %}
                     <img src="{{ bailleur_signature }}" alt="Signature" style="max-width: 300px; max-height: 60px; height: auto;" />

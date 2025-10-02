@@ -8,8 +8,10 @@ from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
+from location.models import BaseModel
 
-class AbstractSignatureRequest(models.Model):
+
+class AbstractSignatureRequest(BaseModel):
     """Modèle abstrait pour les demandes de signature"""
 
     # Signataire (peut être bailleur ou locataire)
@@ -52,10 +54,6 @@ class AbstractSignatureRequest(models.Model):
     signature_image = models.ImageField(
         upload_to="signatures/", null=True, blank=True
     )
-
-    # Timestamps
-    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
-    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     class Meta:
         abstract = True

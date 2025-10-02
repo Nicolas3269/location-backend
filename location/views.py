@@ -304,22 +304,35 @@ def create_locataires(data):
     Crée les locataires depuis les données du formulaire en utilisant les serializers.
     Retourne la liste des locataires créés.
     Les données sont déjà validées par FranceBailSerializer/FranceQuittanceSerializer/FranceEtatLieuxSerializer.
+
+    Si un UUID frontend est fourni (data.locataires[].id), il est utilisé comme PK.
+    Sinon Django génère un UUID automatiquement.
     """
     # Les données sont déjà validées, on les utilise directement
     locataires_data = data.get("locataires") or []
     locataires = []
 
     for validated in locataires_data:
-        locataire = Locataire.objects.create(
-            lastName=validated["lastName"],
-            firstName=validated["firstName"],
-            email=validated["email"],
-            adresse=validated.get("adresse") or "",
-            date_naissance=validated.get("date_naissance"),
-            profession=validated.get("profession") or "",
-            revenu_mensuel=validated.get("revenus_mensuels"),
-        )
+        # Récupérer l'UUID frontend si fourni
+        frontend_id = validated.get("id")
 
+        # Créer le locataire avec l'UUID frontend ou laisser Django générer un UUID
+        locataire_data = {
+            "lastName": validated["lastName"],
+            "firstName": validated["firstName"],
+            "email": validated["email"],
+            "adresse": validated.get("adresse") or "",
+            "date_naissance": validated.get("date_naissance"),
+            "profession": validated.get("profession") or "",
+            "revenu_mensuel": validated.get("revenus_mensuels"),
+        }
+
+        if frontend_id:
+            # Utiliser l'UUID du frontend
+            import uuid as uuid_module
+            locataire_data["id"] = uuid_module.UUID(frontend_id)
+
+        locataire = Locataire.objects.create(**locataire_data)
         locataires.append(locataire)
         logger.info(f"Locataire créé: {locataire.id}")
 

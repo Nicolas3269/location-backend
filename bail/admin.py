@@ -18,10 +18,10 @@ class DocumentInline(admin.TabularInline):
         "type_document",
         "nom_original",
         "file_link",
-        "date_creation",
+        "created_at",
         "uploade_par",
     )
-    readonly_fields = ("file_link", "date_creation", "uploade_par")
+    readonly_fields = ("file_link", "created_at", "uploade_par")
     show_change_link = True
 
     def file_link(self, obj):
@@ -204,16 +204,16 @@ class DocumentAdmin(admin.ModelAdmin):
         "type_document",
         "get_bail_info",
         "get_bien_info",
-        "date_creation",
+        "created_at",
         "uploade_par",
     )
-    list_filter = ("type_document", "date_creation")
+    list_filter = ("type_document", "created_at")
     search_fields = (
         "nom_original",
         "bail__location__bien__adresse",
         "bien__adresse",
     )
-    date_hierarchy = "date_creation"
+    date_hierarchy = "created_at"
 
     fieldsets = (
         (
@@ -237,15 +237,15 @@ class DocumentAdmin(admin.ModelAdmin):
             "Métadonnées",
             {
                 "fields": (
-                    "date_creation",
-                    "date_modification",
+                    "created_at",
+                    "updated_at",
                     "uploade_par",
                 ),
                 "classes": ("collapse",),
             },
         ),
     )
-    readonly_fields = ("date_creation", "date_modification")
+    readonly_fields = ("created_at", "updated_at")
 
     def get_bail_info(self, obj):
         """Affiche les informations du bail associé"""

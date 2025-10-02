@@ -18,8 +18,15 @@ from rent_control.views import get_rent_control_info
 
 
 class BaseModel(models.Model):
-    """Modèle de base avec timestamps"""
+    """
+    Modèle de base pour tous les modèles Hestia.
 
+    Fournit :
+    - UUID comme clé primaire (compatibilité frontend, sécurité, distribution)
+    - Timestamps automatiques (created_at, updated_at) pour l'audit
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -43,7 +50,7 @@ class DPEClass(models.TextChoices):
 # ==============================
 
 
-class Personne(models.Model):
+class Personne(BaseModel):
     """Personne physique (propriétaire, signataire, etc.)"""
 
     lastName = models.CharField(max_length=100, db_column="nom")
@@ -69,7 +76,7 @@ class Personne(models.Model):
         return f"{self.firstName} {self.lastName}"
 
 
-class Societe(models.Model):
+class Societe(BaseModel):
     """Société (propriétaire, mandataire, etc.)"""
 
     siret = models.CharField(max_length=14)
@@ -93,7 +100,7 @@ class Societe(models.Model):
         return f"{self.forme_juridique} {self.raison_sociale}"
 
 
-class Mandataire(models.Model):
+class Mandataire(BaseModel):
     """Mandataire/Agence qui gère pour le compte du propriétaire"""
 
     # Un mandataire est toujours une société dans la pratique
@@ -122,7 +129,7 @@ class Mandataire(models.Model):
         return f"{self.societe.raison_sociale} (Mandataire)"
 
 
-class Bailleur(models.Model):
+class Bailleur(BaseModel):
     """Bailleur (propriétaire ou société propriétaire)"""
 
     # Un bailleur peut être soit une personne physique, soit une société
@@ -240,7 +247,7 @@ class Bailleur(models.Model):
         return "Bailleur inconnu"
 
 
-class Bien(models.Model):
+class Bien(BaseModel):
     """Model representing the rental property."""
 
     bailleurs = models.ManyToManyField(
@@ -409,8 +416,6 @@ class Locataire(Personne):
 
 class Location(BaseModel):
     """Location = relation entre un bien et des locataires"""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
 
     # Relations essentielles
     bien = models.ForeignKey(Bien, on_delete=models.PROTECT, related_name="locations")

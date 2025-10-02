@@ -41,8 +41,6 @@ class EtatLieuxType(models.TextChoices):
 class EtatLieux(SignableDocumentMixin, BaseModel):
     """État des lieux"""
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
     location = models.ForeignKey(
         Location, on_delete=models.CASCADE, related_name="etats_lieux"
     )
@@ -198,8 +196,6 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
 class EtatLieuxPiece(BaseModel):
     """Pièce pour un état des lieux spécifique"""
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
     # Relation directe avec l'état des lieux
     etat_lieux = models.ForeignKey(
         EtatLieux, on_delete=models.CASCADE, related_name="pieces"
@@ -220,10 +216,12 @@ class EtatLieuxPiece(BaseModel):
 
 
 class EtatLieuxEquipement(BaseModel):
-    """Équipement pour un état des lieux (sol, mur, chaudière, cave, etc.)"""
+    """
+    Équipement pour un état des lieux (sol, mur, chaudière, cave, etc.)
 
-    # L'ID est généré côté frontend
-    id = models.UUIDField(primary_key=True, editable=False)
+    Note: L'ID peut être fourni par le frontend lors de la création.
+    Si non fourni, Django génère automatiquement un UUID via BaseModel.
+    """
 
     etat_lieux = models.ForeignKey(
         EtatLieux, on_delete=models.CASCADE, related_name="equipements"
@@ -293,8 +291,6 @@ class EtatLieuxEquipement(BaseModel):
 class EtatLieuxPhoto(BaseModel):
     """Photos associées aux équipements d'état des lieux"""
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
     # Relation directe avec l'équipement
     equipment = models.ForeignKey(
         EtatLieuxEquipement,
@@ -330,8 +326,6 @@ class EtatLieuxPhoto(BaseModel):
 class EtatLieuxSignatureRequest(AbstractSignatureRequest):
     """Demande de signature pour un état des lieux"""
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
     etat_lieux = models.ForeignKey(
         EtatLieux, on_delete=models.CASCADE, related_name="signature_requests"
     )
@@ -351,9 +345,6 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
         blank=True,
         related_name="etat_lieux_signatures_locataire",
     )
-
-    # Garder l'ancien champ pour compatibilité
-    date_creation = models.DateTimeField(default=timezone.now)
 
     class Meta:
         verbose_name = "Demande signature état des lieux"

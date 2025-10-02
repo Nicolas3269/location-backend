@@ -122,10 +122,8 @@ class DocumentType(models.TextChoices):
     AUTRE = "autre", "Autre document"
 
 
-class Document(models.Model):
+class Document(BaseModel):
     """Modèle pour gérer tous les documents liés aux baux et aux biens."""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     # Relations - un document peut être lié soit à un bail, soit à un bien
     bail = models.ForeignKey(
@@ -147,9 +145,6 @@ class Document(models.Model):
     nom_original = models.CharField(max_length=255)
     file = models.FileField(upload_to="documents/%Y/%m/")
 
-    date_creation = models.DateTimeField(default=timezone.now)
-    date_modification = models.DateTimeField(auto_now=True)
-
     uploade_par = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -162,7 +157,7 @@ class Document(models.Model):
         db_table = "bail_document"
         verbose_name = "Document"
         verbose_name_plural = "Documents"
-        ordering = ["-date_creation"]
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.get_type_document_display()} - {self.nom_original}"

@@ -7,19 +7,26 @@ import uuid
 
 from django.db import models
 
-from location.models import BaseModel, Location
+from location.models import BaseModel, Locataire, Location
 from signature.document_status import DocumentStatus
 
 
 class Quittance(BaseModel):
     """Quittance de loyer"""
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
     location = models.ForeignKey(
         Location, on_delete=models.CASCADE, related_name="quittances"
     )
-    
+
+    # Locataires concernés par cette quittance (permet de gérer les quittances partielles)
+    # Si vide, on considère que la quittance concerne tous les locataires de la location
+    locataires = models.ManyToManyField(
+        Locataire,
+        related_name="quittances",
+        blank=True,
+        help_text="Locataire(s) concerné(s) par cette quittance. Si vide, tous les locataires de la location sont concernés.",
+    )
+
     # Statut du document
     status = models.CharField(
         max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.DRAFT
@@ -34,6 +41,24 @@ class Quittance(BaseModel):
     # Date de paiement
     date_paiement = models.DateField(help_text="Date à laquelle le loyer a été payé")
 
+    # Montants spécifiques à cette quittance (peuvent différer du bail en cas d'évolution)
+    montant_loyer = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Montant du loyer hors charges pour cette quittance",
+    )
+    montant_charges = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Montant des charges pour cette quittance",
+    )
+
     # Document
     pdf = models.FileField(
         upload_to="quittances_pdfs/",
@@ -43,36 +68,19 @@ class Quittance(BaseModel):
     )
 
     @property
-    def montant_loyer(self):
-        """Récupère le montant du loyer depuis RentTerms"""
-        if hasattr(self.location, "rent_terms"):
-            return self.location.rent_terms.montant_loyer
-        return None
-
-    @property
-    def montant_charges(self):
-        """Récupère le montant des charges depuis RentTerms"""
-        if hasattr(self.location, "rent_terms"):
-            return self.location.rent_terms.montant_charges
-        return None
-
-    @property
     def montant_total(self):
         """Calcule le montant total (loyer + charges)"""
-        loyer = self.montant_loyer or 0
-        charges = self.montant_charges or 0
-        return loyer + charges
+        return (self.montant_loyer or 0) + (self.montant_charges or 0)
 
     class Meta:
         verbose_name = "Quittance"
         verbose_name_plural = "Quittances"
         ordering = ["-created_at"]
-        unique_together = [["location", "mois", "annee"]]
         db_table = "quittance_quittance"
 
     def __str__(self):
         return f"Quittance {self.mois} {self.annee} - {self.location.bien.adresse}"
-    
+
     def check_and_update_status(self):
         """Met à jour automatiquement le statut selon les signatures"""
         # Pour les quittances, le statut est géré différemment :

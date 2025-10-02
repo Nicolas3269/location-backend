@@ -282,7 +282,7 @@ def upload_document(request):
                     "name": document.nom_original,
                     "url": request.build_absolute_uri(document.file.url),
                     "type": document.get_type_document_display(),
-                    "created_at": document.date_creation.isoformat(),
+                    "created_at": document.created_at.isoformat(),
                 }
             )
 

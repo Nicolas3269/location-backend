@@ -58,29 +58,48 @@ def get_or_create_quittance_for_location(location, validated_data):
     mois = periode_quittance.get("mois")
     annee = periode_quittance.get("annee")
     date_paiement = validated_data.get("date_paiement")
-    
+
+    # Récupérer les montants depuis validated_data (champs à la racine du serializer)
+    loyer_hors_charges = validated_data.get("loyer_hors_charges")
+    charges = validated_data.get("charges")
+
     if not mois or not annee or not date_paiement:
         raise ValueError("mois, annee et date_paiement sont requis pour générer une quittance")
-    
+
+    if loyer_hors_charges is None or charges is None:
+        raise ValueError("loyer_hors_charges et charges sont requis pour générer une quittance")
+
     # Convertir la date de paiement
     if isinstance(date_paiement, str):
         date_paiement_obj = datetime.strptime(date_paiement, "%Y-%m-%d").date()
     else:
         date_paiement_obj = date_paiement
-    
+
     # Vérifier si une quittance existe déjà pour cette période
     existing_quittance = Quittance.objects.filter(
         location=location, mois=mois, annee=annee
     ).first()
-    
+
     if existing_quittance:
         logger.info(f"Quittance existante trouvée: {existing_quittance.id}")
-        # Mettre à jour la date de paiement si différente
+        # Mettre à jour les champs si différents
+        updated = False
         if existing_quittance.date_paiement != date_paiement_obj:
             existing_quittance.date_paiement = date_paiement_obj
+            updated = True
+        if existing_quittance.montant_loyer != loyer_hors_charges:
+            existing_quittance.montant_loyer = loyer_hors_charges
+            updated = True
+        if existing_quittance.montant_charges != charges:
+            existing_quittance.montant_charges = charges
+            updated = True
+
+        if updated:
             existing_quittance.save()
+            logger.info(f"Quittance mise à jour: {existing_quittance.id}")
+
         return str(existing_quittance.id)
-    
+
     # Créer une nouvelle quittance avec le statut DRAFT par défaut
     from signature.document_status import DocumentStatus
     quittance = Quittance.objects.create(
@@ -88,9 +107,27 @@ def get_or_create_quittance_for_location(location, validated_data):
         mois=mois,
         annee=annee,
         date_paiement=date_paiement_obj,
+        montant_loyer=loyer_hors_charges,
+        montant_charges=charges,
         status=DocumentStatus.DRAFT,
     )
-    
+
+    # Gérer les locataires spécifiques (si locataire_ids est fourni)
+    # Les UUIDs sont maintenant les mêmes côté frontend et backend (PK de Locataire)
+    locataire_ids = validated_data.get("locataire_ids", [])
+    if locataire_ids:
+        from location.models import Locataire
+
+        # Récupérer directement les locataires par leurs UUIDs
+        locataires_selectionnes = Locataire.objects.filter(id__in=locataire_ids)
+
+        if locataires_selectionnes.exists():
+            quittance.locataires.set(locataires_selectionnes)
+            logger.info(f"Quittance créée pour {locataires_selectionnes.count()} locataire(s) spécifique(s)")
+        else:
+            logger.warning(f"Aucun locataire trouvé pour les IDs: {locataire_ids}")
+    # Sinon, la quittance concerne tous les locataires (relation M2M vide = tous)
+
     logger.info(f"Quittance créée: {quittance.id}")
     return str(quittance.id)
 
@@ -131,17 +168,17 @@ def generate_quittance_pdf(request):
         date_paiement_obj = quittance.date_paiement
 
         # Préparer les données pour le template
-        # Récupérer le montant du loyer depuis RentTerms
-        if hasattr(location, "rent_terms"):
-            montant_loyer = float(location.rent_terms.montant_loyer)
-        else:
+        # Récupérer les montants depuis la Quittance (pas depuis RentTerms)
+        if quittance.montant_loyer is None:
             return JsonResponse(
                 {
                     "success": False,
-                    "error": "Aucune condition financière trouvée pour cette location",
+                    "error": "Le montant du loyer n'est pas défini pour cette quittance",
                 },
                 status=400,
             )
+
+        montant_loyer = float(quittance.montant_loyer)
         montant_en_lettres = amount_to_words_french(montant_loyer)
 
         # Récupérer le premier bailleur et le premier locataire

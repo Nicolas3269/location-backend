@@ -229,13 +229,13 @@ class EtatLieuxSignatureRequestAdmin(admin.ModelAdmin):
         "order",
         "signed",
         "signed_at",
-        "date_creation",
+        "created_at",
     )
 
     list_filter = (
         "signed",
         "etat_lieux__type_etat_lieux",
-        "date_creation",
+        "created_at",
     )
 
     search_fields = (
@@ -249,7 +249,7 @@ class EtatLieuxSignatureRequestAdmin(admin.ModelAdmin):
         "link_token",
         "otp_generated_at",
         "signed_at",
-        "date_creation",
+        "created_at",
         "signature_image_link",
     )
 
@@ -273,7 +273,7 @@ class EtatLieuxSignatureRequestAdmin(admin.ModelAdmin):
                 ),
             },
         ),
-        ("Métadonnées", {"fields": ("id", "date_creation"), "classes": ("collapse",)}),
+        ("Métadonnées", {"fields": ("id", "created_at"), "classes": ("collapse",)}),
     )
 
     def etat_lieux_display(self, obj):

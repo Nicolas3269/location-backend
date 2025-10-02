@@ -303,6 +303,30 @@ BAIL_DATE_STEPS = [
 # ========================================
 # STEPS SPÉCIFIQUES QUITTANCE
 # ========================================
+QUITTANCE_LOCATAIRE_SELECTION_STEPS = [
+    {
+        "id": "quittance.locataire_selection",
+        "condition": "has_multiple_tenants",
+        "always_unlocked": True,
+        "required_fields": ["locataire_ids"],
+        "fields": {},  # Liste d'IDs de locataires
+        "question": "Pour quel(s) locataire(s) souhaitez-vous générer cette quittance ?",
+    },
+]
+
+QUITTANCE_MONTANT_STEPS = [
+    {
+        "id": "quittance.montant",
+        "always_unlocked": True,
+        "required_fields": [
+            "loyer_hors_charges",
+            "charges",
+        ],
+        "fields": {},  # Montants pré-remplis depuis modalites_financieres
+        "question": "Quel est le montant de cette quittance ?",
+    },
+]
+
 PERIODE_QUITTANCE_STEPS = [
     {
         "id": "periode_quittance",
@@ -588,6 +612,28 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
         default=False, help_text="Les locataires sont-ils solidaires ?"
     )
 
+    # Spécifique quittance - sélection des locataires pour cette quittance
+    locataire_ids = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_null=True,
+        help_text="IDs des locataires pour cette quittance (si plusieurs locataires)",
+    )
+
+    # Montants (peuvent être ajustés par rapport au bail)
+    loyer_hors_charges = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=True,
+        help_text="Montant du loyer hors charges pour cette quittance",
+    )
+    charges = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=True,
+        help_text="Montant des charges pour cette quittance",
+    )
+
     # Spécifique quittance
     periode_quittance = serializers.DictField(
         child=serializers.CharField(),
@@ -611,7 +657,8 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
         QUITTANCE_STEPS.extend(TYPE_BIEN_STEPS)
         QUITTANCE_STEPS.extend(SUPERFICIE_STEPS)
         QUITTANCE_STEPS.extend(PERSON_STEPS)
-        QUITTANCE_STEPS.extend(MODALITES_FINANCIERES_STEPS)
+        QUITTANCE_STEPS.extend(QUITTANCE_LOCATAIRE_SELECTION_STEPS)
+        QUITTANCE_STEPS.extend(QUITTANCE_MONTANT_STEPS)
         QUITTANCE_STEPS.extend(PERIODE_QUITTANCE_STEPS)
         return QUITTANCE_STEPS
 

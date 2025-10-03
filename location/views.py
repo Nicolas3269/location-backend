@@ -40,15 +40,14 @@ def get_locataire_locations(request):
         locataires = Locataire.objects.filter(email=user_email)
 
         if not locataires.exists():
-            return JsonResponse({
-                "success": True,
-                "locations": []
-            })
+            return JsonResponse({"success": True, "locations": []})
 
         # Récupérer toutes les locations de ces locataires
-        locations = Location.objects.filter(
-            locataires__in=locataires
-        ).distinct().order_by("-created_at")
+        locations = (
+            Location.objects.filter(locataires__in=locataires)
+            .distinct()
+            .order_by("-created_at")
+        )
 
         locations_data = []
         for location in locations:
@@ -75,46 +74,66 @@ def get_locataire_locations(request):
             depot_garantie = 0
             try:
                 rent_terms = location.rent_terms
-                montant_loyer = float(rent_terms.montant_loyer) if rent_terms.montant_loyer else 0
-                montant_charges = float(rent_terms.montant_charges) if rent_terms.montant_charges else 0
-                depot_garantie = float(rent_terms.depot_garantie) if rent_terms.depot_garantie else 0
+                montant_loyer = (
+                    float(rent_terms.montant_loyer) if rent_terms.montant_loyer else 0
+                )
+                montant_charges = (
+                    float(rent_terms.montant_charges)
+                    if rent_terms.montant_charges
+                    else 0
+                )
+                depot_garantie = (
+                    float(rent_terms.depot_garantie) if rent_terms.depot_garantie else 0
+                )
             except RentTerms.DoesNotExist:
                 pass
 
-            # Déterminer le statut
+            # Déterminer le statut - récupérer le bail actif (SIGNING ou SIGNED, ou le plus récent DRAFT)
             from bail.models import Bail
-            bail_actif = Bail.objects.filter(location=location, is_active=True).first()
+
+            bail_actif = (
+                Bail.objects.filter(
+                    location=location,
+                    status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED],
+                )
+                .order_by("-created_at")
+                .first()
+            ) or Bail.objects.filter(location=location).order_by("-created_at").first()
             status = bail_actif.status if bail_actif else DocumentStatus.DRAFT
 
-            locations_data.append({
-                "id": str(location.id),
-                "date_debut": location.date_debut.isoformat() if location.date_debut else None,
-                "date_fin": location.date_fin.isoformat() if location.date_fin else None,
-                "montant_loyer": montant_loyer,
-                "montant_charges": montant_charges,
-                "depot_garantie": depot_garantie,
-                "status": status,
-                "bien": {
-                    "id": location.bien.id,
-                    "adresse": location.bien.adresse,
-                    "type": location.bien.type_bien or "Appartement",
-                    "superficie": float(location.bien.superficie) if location.bien.superficie else 0,
-                    "meuble": location.bien.meuble or False,
-                },
-                "bailleur": bailleur_data,
-            })
+            locations_data.append(
+                {
+                    "id": str(location.id),
+                    "date_debut": location.date_debut.isoformat()
+                    if location.date_debut
+                    else None,
+                    "date_fin": location.date_fin.isoformat()
+                    if location.date_fin
+                    else None,
+                    "montant_loyer": montant_loyer,
+                    "montant_charges": montant_charges,
+                    "depot_garantie": depot_garantie,
+                    "status": status,
+                    "bien": {
+                        "id": location.bien.id,
+                        "adresse": location.bien.adresse,
+                        "type": location.bien.type_bien or "Appartement",
+                        "superficie": float(location.bien.superficie)
+                        if location.bien.superficie
+                        else 0,
+                        "meuble": location.bien.meuble or False,
+                    },
+                    "bailleur": bailleur_data,
+                }
+            )
 
-        return JsonResponse({
-            "success": True,
-            "locations": locations_data
-        })
+        return JsonResponse({"success": True, "locations": locations_data})
 
     except Exception as e:
-        logger.error(f"Erreur lors de la récupération des locations du locataire: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": str(e)},
-            status=500
+        logger.error(
+            f"Erreur lors de la récupération des locations du locataire: {str(e)}"
         )
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 @api_view(["GET"])
@@ -171,20 +190,36 @@ def get_location_detail(request, location_id):
         depot_garantie = 0
         try:
             rent_terms = location.rent_terms
-            montant_loyer = float(rent_terms.montant_loyer) if rent_terms.montant_loyer else 0
-            montant_charges = float(rent_terms.montant_charges) if rent_terms.montant_charges else 0
-            depot_garantie = float(rent_terms.depot_garantie) if rent_terms.depot_garantie else 0
+            montant_loyer = (
+                float(rent_terms.montant_loyer) if rent_terms.montant_loyer else 0
+            )
+            montant_charges = (
+                float(rent_terms.montant_charges) if rent_terms.montant_charges else 0
+            )
+            depot_garantie = (
+                float(rent_terms.depot_garantie) if rent_terms.depot_garantie else 0
+            )
         except RentTerms.DoesNotExist:
             pass
 
-        # Déterminer le statut
+        # Déterminer le statut - récupérer le bail actif (SIGNING ou SIGNED, ou le plus récent DRAFT)
         from bail.models import Bail
-        bail_actif = Bail.objects.filter(location=location, is_active=True).first()
+
+        bail_actif = (
+            Bail.objects.filter(
+                location=location,
+                status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED],
+            )
+            .order_by("-created_at")
+            .first()
+        ) or Bail.objects.filter(location=location).order_by("-created_at").first()
         status = bail_actif.status if bail_actif else DocumentStatus.DRAFT
 
         location_data = {
             "id": str(location.id),
-            "date_debut": location.date_debut.isoformat() if location.date_debut else None,
+            "date_debut": location.date_debut.isoformat()
+            if location.date_debut
+            else None,
             "date_fin": location.date_fin.isoformat() if location.date_fin else None,
             "montant_loyer": montant_loyer,
             "montant_charges": montant_charges,
@@ -194,28 +229,23 @@ def get_location_detail(request, location_id):
                 "id": location.bien.id,
                 "adresse": location.bien.adresse,
                 "type": location.bien.type_bien or "Appartement",
-                "superficie": float(location.bien.superficie) if location.bien.superficie else 0,
+                "superficie": float(location.bien.superficie)
+                if location.bien.superficie
+                else 0,
                 "meuble": location.bien.meuble or False,
             },
             "bailleur": bailleur_data,
         }
 
-        return JsonResponse({
-            "success": True,
-            "location": location_data
-        })
+        return JsonResponse({"success": True, "location": location_data})
 
     except Location.DoesNotExist:
         return JsonResponse(
-            {"success": False, "error": "Location non trouvée"},
-            status=404
+            {"success": False, "error": "Location non trouvée"}, status=404
         )
     except Exception as e:
         logger.error(f"Erreur lors de la récupération de la location: {str(e)}")
-        return JsonResponse(
-            {"success": False, "error": str(e)},
-            status=500
-        )
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 def create_or_get_bailleur(data):
@@ -316,25 +346,7 @@ def create_locataires(data):
         # Récupérer l'UUID frontend si fourni
         frontend_id = validated.get("id")
 
-        if frontend_id:
-            import uuid as uuid_module
-
-            # Convertir en UUID si nécessaire
-            if isinstance(frontend_id, str):
-                frontend_uuid = uuid_module.UUID(frontend_id)
-            else:
-                frontend_uuid = frontend_id
-
-            # Essayer de récupérer le locataire existant par UUID
-            try:
-                locataire = Locataire.objects.get(id=frontend_uuid)
-                logger.info(f"Locataire existant récupéré: {locataire.id} ({locataire.firstName} {locataire.lastName})")
-                locataires.append(locataire)
-                continue
-            except Locataire.DoesNotExist:
-                logger.info(f"Locataire avec UUID {frontend_uuid} n'existe pas, création...")
-
-        # Créer le locataire s'il n'existe pas
+        # Préparer les données du locataire
         locataire_data = {
             "lastName": validated["lastName"],
             "firstName": validated["firstName"],
@@ -347,15 +359,40 @@ def create_locataires(data):
 
         if frontend_id:
             import uuid as uuid_module
+
             # Convertir en UUID si nécessaire
             if isinstance(frontend_id, str):
-                locataire_data["id"] = uuid_module.UUID(frontend_id)
+                frontend_uuid = uuid_module.UUID(frontend_id)
             else:
-                locataire_data["id"] = frontend_id
+                frontend_uuid = frontend_id
 
-        locataire = Locataire.objects.create(**locataire_data)
-        locataires.append(locataire)
-        logger.info(f"Locataire créé: {locataire.id} ({locataire.firstName} {locataire.lastName})")
+            # Utiliser get_or_create avec l'UUID fourni
+            locataire, created = Locataire.objects.get_or_create(
+                id=frontend_uuid,
+                defaults=locataire_data
+            )
+
+            if created:
+                logger.info(
+                    f"Locataire créé: {locataire.id} ({locataire.firstName} {locataire.lastName})"
+                )
+            else:
+                # Mettre à jour les données du locataire existant
+                for key, value in locataire_data.items():
+                    setattr(locataire, key, value)
+                locataire.save()
+                logger.info(
+                    f"Locataire existant récupéré et mis à jour: {locataire.id} ({locataire.firstName} {locataire.lastName})"
+                )
+
+            locataires.append(locataire)
+        else:
+            # Pas d'UUID fourni, créer un nouveau locataire avec UUID auto-généré
+            locataire = Locataire.objects.create(**locataire_data)
+            locataires.append(locataire)
+            logger.info(
+                f"Locataire créé (UUID auto): {locataire.id} ({locataire.firstName} {locataire.lastName})"
+            )
 
     return locataires
 
@@ -605,17 +642,19 @@ def get_or_create_bail_for_location(location):
     """
     from bail.models import Bail
 
-    # Vérifier si un bail existe déjà pour cette location
-    if hasattr(location, "bail"):
-        logger.info(f"Bail existant trouvé: {location.bail.id}")
-        return location.bail.id
+    # Vérifier si un bail DRAFT existe déjà pour cette location
+    existing_bail = Bail.objects.filter(
+        location=location, status=DocumentStatus.DRAFT
+    ).first()
+
+    if existing_bail:
+        logger.info(f"Bail DRAFT existant trouvé: {existing_bail.id}")
+        return existing_bail.id
 
     # Créer un nouveau bail
     bail = Bail.objects.create(
         location=location,
         status=DocumentStatus.DRAFT,
-        version=1,
-        is_active=True,
     )
     logger.info(f"Bail créé automatiquement: {bail.id}")
     return bail.id
@@ -703,9 +742,10 @@ def create_new_location(data, serializer_class, location_id=None):
     # 4. Créer les locataires
     locataires = create_locataires(data)
 
-    # Associer les locataires à la location
-    for locataire in locataires:
-        location.locataires.add(locataire)
+    # Associer les locataires à la location (utiliser set() pour éviter les doublons)
+    if locataires:
+        location.locataires.set(locataires)
+        logger.info(f"{len(locataires)} locataire(s) associé(s) à la location {location.id}")
 
     # 6. Créer les conditions financières si fournies
     create_rent_terms(location, data, serializer_class=serializer_class)
@@ -734,10 +774,11 @@ def update_existing_location(location, data, serializer_class):
     locataires_data = data.get("locataires")
     if locataires_data:
         locataires = create_locataires(data)
-        # Associer les nouveaux locataires à la location
-        for locataire in locataires:
-            location.locataires.add(locataire)
-        logger.info(f"{len(locataires)} locataire(s) ajouté(s) à la location {location.id}")
+        # Utiliser set() pour remplacer complètement les locataires (évite les doublons)
+        location.locataires.set(locataires)
+        logger.info(
+            f"{len(locataires)} locataire(s) associé(s) à la location {location.id}"
+        )
 
     # 4. Mettre à jour ou créer les conditions financières (incluant dépôt de garantie)
     update_rent_terms(location, data, serializer_class=serializer_class)
@@ -918,10 +959,15 @@ def get_bien_locations(request, bien_id):
             # Récupérer les baux associés à cette location
             from bail.models import Bail
 
-            baux = Bail.objects.filter(location=location).order_by("-version")
+            baux = Bail.objects.filter(location=location).order_by("-created_at")
 
-            # Récupérer le bail actif s'il existe
-            bail_actif = baux.filter(is_active=True).first()
+            # Récupérer le bail actif (SIGNING ou SIGNED, ou le plus récent)
+            bail_actif = (
+                baux.filter(
+                    status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED]
+                ).first()
+                or baux.first()
+            )
 
             # Déterminer le statut global
             status = bail_actif.status if bail_actif else DocumentStatus.DRAFT
@@ -1053,7 +1099,7 @@ def get_location_documents(request, location_id):
         # 1. Récupérer les baux associés à cette location
         from bail.models import Bail
 
-        baux = Bail.objects.filter(location=location).order_by("-version")
+        baux = Bail.objects.filter(location=location).order_by("-created_at")
 
         for bail in baux:
             if bail.pdf or bail.latest_pdf:
@@ -1068,7 +1114,7 @@ def get_location_documents(request, location_id):
                     {
                         "id": f"bail-{bail.id}",
                         "type": "bail",
-                        "nom": f"Bail v{bail.version} - {', '.join([f'{l.firstName} {l.lastName}' for l in location.locataires.all()])}",
+                        "nom": f"Bail - {', '.join([f'{l.firstName} {l.lastName}' for l in location.locataires.all()])}",
                         "date": bail.date_signature.isoformat()
                         if bail.date_signature
                         else bail.created_at.isoformat(),
@@ -1076,8 +1122,6 @@ def get_location_documents(request, location_id):
                         if bail.latest_pdf
                         else get_pdf_iframe_url(request, bail.pdf),
                         "status": status,
-                        "version": bail.version,
-                        "is_active": bail.is_active,
                     }
                 )
 
@@ -1207,3 +1251,211 @@ def get_location_documents(request, location_id):
             f"Erreur lors de la récupération des documents de la location {location_id}: {str(e)}"
         )
         return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cancel_bail(request, bail_id):
+    """
+    Annule un bail SIGNING/SIGNED.
+
+    POST /api/location/bails/{bail_id}/cancel/
+
+    Le frontend créera ensuite un nouveau bail via from_location pour correction.
+
+    Returns:
+        - success: True
+        - location_id: UUID de la location (pour créer nouveau bail)
+        - message: Message de confirmation
+    """
+    from django.utils import timezone
+
+    from bail.models import Bail
+
+    try:
+        bail = Bail.objects.get(id=bail_id)
+
+        # Vérifier que l'utilisateur est propriétaire du bien
+        user_email = request.user.email
+        has_access = False
+
+        for bailleur in bail.location.bien.bailleurs.all():
+            if bailleur.signataire and bailleur.signataire.email == user_email:
+                has_access = True
+                break
+
+        if not has_access:
+            return JsonResponse(
+                {"error": "Vous n'avez pas les droits pour annuler ce bail"}, status=403
+            )
+
+        # Vérifier que le bail est SIGNING ou SIGNED
+        if bail.status not in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
+            return JsonResponse(
+                {
+                    "error": f"Seuls les baux en signature ou signés peuvent être annulés. Statut actuel: {bail.status}"
+                },
+                status=400,
+            )
+
+        # Annuler le bail
+        bail.status = DocumentStatus.CANCELLED
+        bail.cancelled_at = timezone.now()
+        bail.save()
+
+        logger.info(f"Bail {bail_id} annulé par {user_email}")
+
+        return JsonResponse(
+            {
+                "success": True,
+                "location_id": str(bail.location_id),
+                "message": "Bail annulé avec succès. Vous pouvez maintenant créer un nouveau bail pour corriger.",
+            }
+        )
+
+    except Bail.DoesNotExist:
+        return JsonResponse({"error": f"Bail {bail_id} introuvable"}, status=404)
+    except Exception as e:
+        logger.error(f"Erreur lors de l'annulation du bail {bail_id}: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cancel_etat_lieux(request, etat_lieux_id):
+    """
+    Annule un état des lieux SIGNING/SIGNED.
+
+    POST /api/location/etats-lieux/{etat_lieux_id}/cancel/
+
+    Le frontend créera ensuite un nouvel EDL via from_location pour correction.
+
+    Returns:
+        - success: True
+        - location_id: UUID de la location (pour créer nouvel EDL)
+        - type_etat_lieux: Type de l'EDL annulé ('entree' ou 'sortie')
+        - message: Message de confirmation
+    """
+    from django.utils import timezone
+
+    from etat_lieux.models import EtatLieux
+
+    try:
+        etat_lieux = EtatLieux.objects.get(id=etat_lieux_id)
+
+        # Vérifier que l'utilisateur est propriétaire du bien
+        user_email = request.user.email
+        has_access = False
+
+        for bailleur in etat_lieux.location.bien.bailleurs.all():
+            if bailleur.signataire and bailleur.signataire.email == user_email:
+                has_access = True
+                break
+
+        if not has_access:
+            return JsonResponse(
+                {"error": "Vous n'avez pas les droits pour annuler cet état des lieux"},
+                status=403,
+            )
+
+        # Vérifier que l'EDL est SIGNING ou SIGNED
+        if etat_lieux.status not in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
+            return JsonResponse(
+                {
+                    "error": f"Seuls les états des lieux en signature ou signés peuvent être annulés. Statut actuel: {etat_lieux.status}"
+                },
+                status=400,
+            )
+
+        # Annuler l'état des lieux
+        etat_lieux.status = DocumentStatus.CANCELLED
+        etat_lieux.cancelled_at = timezone.now()
+        etat_lieux.save()
+
+        logger.info(f"État des lieux {etat_lieux_id} annulé par {user_email}")
+
+        return JsonResponse(
+            {
+                "success": True,
+                "location_id": str(etat_lieux.location_id),
+                "type_etat_lieux": etat_lieux.type_etat_lieux,
+                "message": "État des lieux annulé avec succès. Vous pouvez maintenant créer un nouvel état des lieux pour corriger.",
+            }
+        )
+
+    except EtatLieux.DoesNotExist:
+        return JsonResponse(
+            {"error": f"État des lieux {etat_lieux_id} introuvable"}, status=404
+        )
+    except Exception as e:
+        logger.error(
+            f"Erreur lors de l'annulation de l'état des lieux {etat_lieux_id}: {str(e)}"
+        )
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cancel_quittance(request, quittance_id):
+    """
+    Annule une quittance (DRAFT, SIGNING ou SIGNED).
+
+    POST /api/location/quittances/{quittance_id}/cancel/
+
+    Contrairement aux bails/états des lieux, les quittances peuvent être annulées à tout moment
+    car elles n'ont pas de processus de signature formel et peuvent être régénérées facilement.
+
+    Returns:
+        - success: True
+        - location_id: UUID de la location
+        - message: Message de confirmation
+    """
+    from django.utils import timezone
+
+    from quittance.models import Quittance
+
+    try:
+        quittance = Quittance.objects.get(id=quittance_id)
+
+        # Vérifier que l'utilisateur est propriétaire du bien
+        user_email = request.user.email
+        has_access = False
+
+        for bailleur in quittance.location.bien.bailleurs.all():
+            if bailleur.signataire and bailleur.signataire.email == user_email:
+                has_access = True
+                break
+            elif bailleur.personne and bailleur.personne.email == user_email:
+                has_access = True
+                break
+
+        if not has_access:
+            return JsonResponse(
+                {"error": "Vous n'avez pas les droits pour annuler cette quittance"},
+                status=403,
+            )
+
+        # Pour les quittances, on peut annuler à tout moment (pas de restriction de statut)
+        quittance.status = DocumentStatus.CANCELLED
+        quittance.cancelled_at = timezone.now()
+        quittance.save()
+
+        logger.info(f"Quittance {quittance_id} annulée par {user_email}")
+
+        return JsonResponse(
+            {
+                "success": True,
+                "location_id": str(quittance.location_id),
+                "message": "Quittance annulée avec succès",
+            }
+        )
+
+    except Quittance.DoesNotExist:
+        return JsonResponse(
+            {"error": f"Quittance {quittance_id} introuvable"}, status=404
+        )
+    except Exception as e:
+        logger.error(
+            f"Erreur lors de l'annulation de la quittance {quittance_id}: {str(e)}"
+        )
+        return JsonResponse({"error": str(e)}, status=500)

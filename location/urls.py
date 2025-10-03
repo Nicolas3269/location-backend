@@ -1,12 +1,18 @@
 from django.urls import path
 
-from .api.form_requirements import get_form_requirements
+from .api.form_requirements import (
+    get_form_requirements,
+    get_form_requirements_authenticated,
+)
 from .views import (
     create_or_update_location,
     get_bien_locations,
     get_location_detail,
     get_location_documents,
     get_locataire_locations,
+    cancel_bail,
+    cancel_etat_lieux,
+    cancel_quittance,
 )
 
 app_name = "location"
@@ -36,5 +42,26 @@ urlpatterns = [
         "forms/<str:form_type>/requirements/",
         get_form_requirements,
         name="get_form_requirements",
+    ),
+    path(
+        "forms/<str:form_type>/requirements/authenticated/",
+        get_form_requirements_authenticated,
+        name="get_form_requirements_authenticated",
+    ),
+    # Annulation de documents
+    path(
+        "bails/<uuid:bail_id>/cancel/",
+        cancel_bail,
+        name="cancel_bail",
+    ),
+    path(
+        "etats-lieux/<uuid:etat_lieux_id>/cancel/",
+        cancel_etat_lieux,
+        name="cancel_etat_lieux",
+    ),
+    path(
+        "quittances/<uuid:quittance_id>/cancel/",
+        cancel_quittance,
+        name="cancel_quittance",
     ),
 ]

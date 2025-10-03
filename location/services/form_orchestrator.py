@@ -25,9 +25,21 @@ class FormOrchestrator:
         location_id: Optional[str] = None,
         country: str = "FR",
         type_etat_lieux: Optional[str] = None,
+        context_mode: str = "new",
+        context_source_id: Optional[str] = None,
+        user: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
         Point d'entrée pour obtenir les requirements d'un formulaire.
+
+        Args:
+            form_type: Type de formulaire ('bail', 'etat_lieux', 'quittance')
+            location_id: ID de la location (optionnel)
+            country: Pays ('FR', 'BE')
+            type_etat_lieux: Type d'état des lieux si applicable
+            context_mode: Mode de contexte ('new', 'from_bailleur', 'from_bien', 'from_location')
+            context_source_id: ID de la source contextuelle (bailleur_id, bien_id, location_id)
+            user: Utilisateur authentifié (pour modes contextuels)
 
         Returns:
             - steps: Liste des steps avec données manquantes (ordonnées)
@@ -47,11 +59,16 @@ class FormOrchestrator:
 
         import uuid
 
+        # Extraire les données contextuelles selon le mode
+        contextual_prefill = self._get_contextual_prefill(
+            context_mode, context_source_id, user, country
+        )
+
         # Vérifier les conflits de documents et déterminer le location_id à utiliser
         has_conflict = False
         is_new = False
         has_been_renewed = False  # Nouveau flag pour indiquer un renouvellement suite à conflit
-        existing_data = {}
+        existing_data = contextual_prefill  # Initialiser avec les données contextuelles
 
         if location_id:
             try:
@@ -78,14 +95,17 @@ class FormOrchestrator:
             # Obtenir les données existantes
             try:
                 location = Location.objects.get(id=location_id)
-                existing_data = self._extract_location_data(location)
+                location_data = self._extract_location_data(location)
+                # Merger les données de location avec les données contextuelles
+                # Les données de location ont priorité
+                existing_data = {**existing_data, **location_data}
                 final_location_id = location_id
                 is_new = False
                 has_been_renewed = False
 
             except Location.DoesNotExist:
                 print(f"Location not found: {location_id}")
-                # Réutiliser l'existant
+                # Réutiliser l'existant (données contextuelles seulement)
                 final_location_id = location_id
                 is_new = True
                 has_been_renewed = False
@@ -177,6 +197,7 @@ class FormOrchestrator:
             "has_been_renewed": has_been_renewed,  # Nouveau flag
             "country": country,
             "form_type": form_type,
+            "context_mode": context_mode,
             "steps": steps,
             "prefill_data": existing_data,
             "locked_steps_count": len(locked_steps) if location_id else 0,
@@ -284,6 +305,191 @@ class FormOrchestrator:
 
         # Définir la valeur finale
         current[parts[-1]] = value
+
+    def _get_contextual_prefill(
+        self,
+        context_mode: str,
+        context_source_id: Optional[str],
+        user: Optional[Any],
+        country: str,
+    ) -> Dict[str, Any]:
+        """
+        Extrait les données de pré-remplissage selon le mode contextuel.
+
+        Modes:
+        - 'new': Aucun pré-remplissage (mode standalone)
+        - 'from_bailleur': Pré-remplit le bailleur depuis bailleur_id
+        - 'from_bien': Pré-remplit bien + bailleur depuis bien_id
+        - 'from_location': Pré-remplit tout depuis location_id (cas édition)
+
+        Returns:
+            Dictionnaire de données pré-remplies selon le contexte
+        """
+        from location.models import Bailleur
+
+        if context_mode == "new":
+            return {}
+
+        if not context_source_id:
+            return {}
+
+        try:
+            if context_mode == "from_bailleur":
+                # Pré-remplir uniquement les données du bailleur
+                bailleur = Bailleur.objects.get(id=context_source_id)
+                return self._extract_bailleur_data(bailleur)
+
+            elif context_mode == "from_bien":
+                # Pré-remplir bien + bailleur
+                bien = Bien.objects.get(id=context_source_id)
+                return self._extract_bien_and_bailleur_data(bien, country)
+
+            elif context_mode == "from_location":
+                # Pré-remplir tout - utilisé pour édition
+                location = Location.objects.get(id=context_source_id)
+                data = self._extract_location_data(location)
+
+                # Pour les quittances, ajouter locataire_ids (UUIDs des locataires existants)
+                # Cela permet à get_or_create_quittance de récupérer directement les locataires
+                if location.locataires.exists():
+                    data["locataire_ids"] = [str(loc.id) for loc in location.locataires.all()]
+
+                return data
+
+        except Exception as e:
+            import traceback
+            print(f"Error extracting contextual prefill: {e}")
+            traceback.print_exc()
+            return {}
+
+        return {}
+
+    def _extract_bailleur_data(self, bailleur) -> Dict[str, Any]:
+        """Extrait uniquement les données du bailleur."""
+        data = {"bailleur": {}}
+
+        bailleur_type = (
+            "physique"
+            if bailleur.personne
+            else "morale"
+            if bailleur.societe
+            else None
+        )
+        data["bailleur"]["bailleur_type"] = bailleur_type
+
+        if bailleur_type == "physique" and bailleur.personne:
+            personne = bailleur.personne
+            data["bailleur"]["personne"] = {
+                "lastName": personne.lastName,
+                "firstName": personne.firstName,
+                "email": personne.email,
+                "adresse": personne.adresse,
+            }
+        elif bailleur_type == "morale" and bailleur.societe:
+            societe = bailleur.societe
+            data["bailleur"]["societe"] = {
+                "raison_sociale": societe.raison_sociale,
+                "siret": societe.siret,
+                "forme_juridique": societe.forme_juridique,
+                "adresse": societe.adresse,
+                "email": societe.email,
+            }
+            if bailleur.signataire:
+                data["bailleur"]["signataire"] = {
+                    "lastName": bailleur.signataire.lastName,
+                    "firstName": bailleur.signataire.firstName,
+                    "email": bailleur.signataire.email,
+                }
+
+        return data
+
+    def _extract_bien_and_bailleur_data(self, bien: Bien, country: str) -> Dict[str, Any]:
+        """Extrait les données du bien ET du bailleur principal."""
+        data = {
+            "bien": {
+                "localisation": {},
+                "caracteristiques": {},
+                "performance_energetique": {},
+                "equipements": {},
+                "energie": {},
+                "regime": {},
+                "zone_reglementaire": {},
+            },
+            "bailleur": {},
+        }
+
+        # Données du bien (même logique que _extract_location_data)
+        if bien.adresse:
+            data["bien"]["localisation"]["adresse"] = bien.adresse
+            if bien.latitude:
+                data["bien"]["localisation"]["latitude"] = bien.latitude
+            if bien.longitude:
+                data["bien"]["localisation"]["longitude"] = bien.longitude
+                # Ajouter area_id
+                _, area = get_rent_control_info(bien.latitude, bien.longitude)
+                if area:
+                    data["bien"]["localisation"]["area_id"] = area.id
+
+        # Caractéristiques
+        if bien.superficie or bien.type_bien:
+            data["bien"]["caracteristiques"] = {
+                "superficie": bien.superficie,
+                "type_bien": bien.type_bien,
+                "etage": bien.etage if bien.etage else None,
+                "porte": bien.porte if bien.porte else None,
+                "dernier_etage": bien.dernier_etage,
+                "meuble": bien.meuble,
+            }
+            if bien.pieces_info:
+                data["bien"]["caracteristiques"]["pieces_info"] = bien.pieces_info
+
+        # Performance énergétique
+        if bien.classe_dpe:
+            data["bien"]["performance_energetique"] = {
+                "classe_dpe": bien.classe_dpe,
+                "depenses_energetiques": bien.depenses_energetiques
+                if bien.depenses_energetiques
+                else None,
+            }
+
+        # Régime juridique
+        if hasattr(bien, "regime_juridique"):
+            data["bien"]["regime"] = {
+                "regime_juridique": bien.regime_juridique or "monopropriete",
+                "periode_construction": bien.periode_construction,
+                "identifiant_fiscal": bien.identifiant_fiscal,
+            }
+
+        # Équipements
+        if hasattr(bien, "annexes_privatives") and bien.annexes_privatives is not None:
+            data["bien"]["equipements"]["annexes_privatives"] = bien.annexes_privatives
+
+        if hasattr(bien, "annexes_collectives") and bien.annexes_collectives is not None:
+            data["bien"]["equipements"]["annexes_collectives"] = bien.annexes_collectives
+
+        if hasattr(bien, "information") and bien.information is not None:
+            data["bien"]["equipements"]["information"] = bien.information
+
+        # Énergie
+        if hasattr(bien, "chauffage_type") and bien.chauffage_type is not None:
+            chauffage_data = {"type": bien.chauffage_type}
+            if bien.chauffage_energie is not None:
+                chauffage_data["energie"] = bien.chauffage_energie
+            data["bien"]["energie"]["chauffage"] = chauffage_data
+
+        if hasattr(bien, "eau_chaude_type") and bien.eau_chaude_type is not None:
+            eau_chaude_data = {"type": bien.eau_chaude_type}
+            if bien.eau_chaude_energie is not None:
+                eau_chaude_data["energie"] = bien.eau_chaude_energie
+            data["bien"]["energie"]["eau_chaude"] = eau_chaude_data
+
+        # Bailleur principal
+        if bien.bailleurs.exists():
+            bailleur = bien.bailleurs.first()
+            bailleur_data = self._extract_bailleur_data(bailleur)
+            data["bailleur"] = bailleur_data.get("bailleur", {})
+
+        return data
 
     def _extract_location_data(self, location: Location) -> Dict[str, Any]:
         """
@@ -476,6 +682,7 @@ class FormOrchestrator:
         if location.locataires.exists():
             data["locataires"] = [
                 {
+                    "id": str(loc.id),  # IMPORTANT: UUID pour éviter les duplications
                     "firstName": loc.firstName,
                     "lastName": loc.lastName,
                     "email": loc.email,
@@ -543,15 +750,16 @@ class FormOrchestrator:
 
         if source == "bail":
             # Un bail existe et est signé ou en cours de signature ?
-            if hasattr(location, "bail"):
-                from signature.document_status import DocumentStatus
+            from bail.models import Bail
+            from signature.document_status import DocumentStatus
 
-                # Status SIGNING ou SIGNED = document verrouillé
-                return location.bail.status in [
-                    DocumentStatus.SIGNING,
-                    DocumentStatus.SIGNED,
-                ]
-            return False
+            # Chercher un bail SIGNING ou SIGNED pour cette location
+            signing_or_signed_bail = Bail.objects.filter(
+                location=location,
+                status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED]
+            ).first()
+
+            return signing_or_signed_bail is not None
 
         elif source == "etat_lieux":
             if not type_etat_lieux:

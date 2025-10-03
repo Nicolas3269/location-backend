@@ -84,8 +84,8 @@ class FieldLockingService:
 
         try:
             location = (
-                Location.objects.select_related("bail")
-                .prefetch_related("etats_lieux", "quittances")
+                Location.objects
+                .prefetch_related("bails", "etats_lieux", "quittances")
                 .get(id=location_id)
             )
         except Location.DoesNotExist:
@@ -95,17 +95,19 @@ class FieldLockingService:
         locked_steps = set()
         steps_to_check = []  # Collecter toutes les steps à vérifier
 
-        # Vérifier le bail
-        if hasattr(location, "bail") and location.bail:
-            bail: Bail = location.bail
-            if bail.status in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
-                bail_serializer = cls._get_serializer_class("bail", country)
-                if bail_serializer:
-                    bail_steps = bail_serializer.get_step_config()
-                    steps_to_check.extend(bail_steps)
-                    logger.info(
-                        f"Bail {bail.id} is {bail.status}, adding {len(bail_steps)} steps to check"
-                    )
+        # Vérifier le bail (chercher un bail SIGNING ou SIGNED)
+        bail = location.bails.filter(
+            status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED]
+        ).first()
+
+        if bail:
+            bail_serializer = cls._get_serializer_class("bail", country)
+            if bail_serializer:
+                bail_steps = bail_serializer.get_step_config()
+                steps_to_check.extend(bail_steps)
+                logger.info(
+                    f"Bail {bail.id} is {bail.status}, adding {len(bail_steps)} steps to check"
+                )
 
         # Vérifier l'état des lieux d'entrée
         etat_entree = location.etats_lieux.filter(type_etat_lieux="entree").first()

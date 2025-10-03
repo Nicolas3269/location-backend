@@ -7,6 +7,7 @@ import uuid
 
 from django.db import models
 from django.utils import timezone
+from simple_history.models import HistoricalRecords
 
 from location.models import BaseModel, Locataire, Location, Personne
 from signature.document_status import DocumentStatus
@@ -66,6 +67,12 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         help_text="Commentaires généraux sur l'état des lieux"
     )
 
+    # Annulation
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+
+    # Historique automatique
+    history = HistoricalRecords()
+
     # Les équipements sont maintenant gérés via le modèle EtatLieuxEquipement
     # (anciennement stockés dans des JSONField)
 
@@ -86,8 +93,13 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         verbose_name_plural = "États des lieux"
         ordering = ["-created_at"]
         db_table = "etat_lieux_etatlieux"
-        # Unicité : un seul état des lieux par type (entrée/sortie) et par location
-        unique_together = [["location", "type_etat_lieux"]]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["location", "type_etat_lieux"],
+                condition=models.Q(status__in=['SIGNING', 'SIGNED']),
+                name="unique_signing_or_signed_edl_per_location_and_type",
+            )
+        ]
 
     def __str__(self):
         type_display = self.get_type_etat_lieux_display()

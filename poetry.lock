@@ -655,6 +655,21 @@ redis = ">=3,<4.0.0 || >4.0.0,<4.0.1 || >4.0.1"
 hiredis = ["redis[hiredis] (>=3,!=4.0.0,!=4.0.1)"]
 
 [[package]]
+name = "django-simple-history"
+version = "3.10.1"
+description = "Store model history and view/revert changes from admin site."
+category = "main"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "django_simple_history-3.10.1-py3-none-any.whl", hash = "sha256:e12c27abfcd7e801a9d274d94542549ce8c617b0b384ae69afb161b56cd02ba4"},
+    {file = "django_simple_history-3.10.1.tar.gz", hash = "sha256:040f0c2286bed730312aa15f0acee9e7e6f839c4bcd721693251aa7ec5b65d95"},
+]
+
+[package.dependencies]
+django = ">=4.2"
+
+[[package]]
 name = "djangorestframework"
 version = "3.15.2"
 description = "Web APIs for Django, made easy."
@@ -2779,4 +2794,4 @@ test = ["pytest"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "e677b5fdcd119ceb83c024d0de14900e5cb2f016ec36dc991220fb0343e301da"
+content-hash = "86dc53810f5ad1c127211a813670ea7f9c1fb555b17b1f6174b10a6189452a78"

@@ -6,6 +6,7 @@ Location est l'entité pivot centrale
 import uuid
 
 from django.db import models
+from simple_history.models import HistoricalRecords
 
 from rent_control.choices import (
     ChargeType,
@@ -362,6 +363,9 @@ class Bien(BaseModel):
         max_length=50, blank=True, null=True, default=None
     )
 
+    # Historique automatique
+    history = HistoricalRecords()
+
     @property
     def nombre_pieces_principales(self):
         """
@@ -444,6 +448,9 @@ class Location(BaseModel):
         ],
         default="manual",
     )
+
+    # Historique automatique
+    history = HistoricalRecords()
 
     def __str__(self):
         return f"Location {self.bien} - {self.date_debut or 'Sans date'}"

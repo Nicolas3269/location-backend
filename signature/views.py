@@ -91,11 +91,13 @@ def get_signature_request_generic(request, token, model_class):
             }
         )
 
-        # Ajouter l'ID du document selon le type
+        # Ajouter l'ID du document selon le type et le location_id
         if hasattr(sig_req, "bail"):
             response_data["bail_id"] = sig_req.bail.id
+            response_data["location_id"] = str(sig_req.bail.location_id)
         elif hasattr(sig_req, "etat_lieux"):
             response_data["etat_lieux_id"] = sig_req.etat_lieux.id
+            response_data["location_id"] = str(sig_req.etat_lieux.location_id)
 
         # Tenter d'authentifier automatiquement l'utilisateur
         User = get_user_model()
@@ -199,9 +201,11 @@ def confirm_signature_generic(request, model_class, document_type):
         elif hasattr(document, "pdf") and document.pdf:
             response_data["pdfUrl"] = request.build_absolute_uri(document.pdf.url)
 
-        # Ajouter le bienId pour la redirection
-        if hasattr(document, "location") and document.location and hasattr(document.location, "bien"):
-            response_data["bienId"] = document.location.bien.id
+        # Ajouter le bienId et location_id pour la redirection et le nettoyage localStorage
+        if hasattr(document, "location") and document.location:
+            response_data["location_id"] = str(document.location.id)
+            if hasattr(document.location, "bien"):
+                response_data["bienId"] = document.location.bien.id
 
         return JsonResponse(response_data)
 

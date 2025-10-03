@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "django.contrib.gis",  # Add GeoDjango
+    "simple_history",
     # Apps
     "authentication",
     "location",

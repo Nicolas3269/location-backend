@@ -387,10 +387,11 @@ def get_user_profile_detailed(request):
             for locataire in locataires:
                 # Les locataires sont liés aux locations via ManyToMany
                 for location in Location.objects.filter(locataires=locataire):
-                    # Récupérer le bail actif de cette location s'il existe
+                    # Récupérer le bail actif de cette location s'il existe (SIGNING ou SIGNED)
                     bail = Bail.objects.filter(
-                        location=location, is_active=True
-                    ).first()
+                        location=location,
+                        status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED]
+                    ).order_by('-created_at').first()
 
                     date_fin = (
                         location.date_fin.isoformat() if location.date_fin else None

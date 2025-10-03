@@ -3,17 +3,15 @@ Nouveau modèle Bail refactorisé
 À renommer en models.py après validation
 """
 
-import uuid
-
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from simple_history.models import HistoricalRecords
 
 from location.models import BaseModel, Bien, Locataire, Location, Personne
+from signature.document_status import DocumentStatus
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
-from signature.document_status import DocumentStatus
-
 
 # Les modèles Personne, Societe, Mandataire, Bailleur, Bien, Locataire restent inchangés
 # (on garde les existants)
@@ -22,16 +20,17 @@ from signature.document_status import DocumentStatus
 class Bail(SignableDocumentMixin, BaseModel):
     """Contrat de bail (ex-Bail)"""
 
-    location = models.OneToOneField(
-        Location, on_delete=models.CASCADE, related_name="bail"
+    location = models.ForeignKey(
+        Location, on_delete=models.CASCADE, related_name="bails"
     )
 
-    # Version et statut
-    version = models.PositiveIntegerField(default=1)
-    is_active = models.BooleanField(default=True)
+    # Statut
     status = models.CharField(
         max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.DRAFT
     )
+
+    # Annulation
+    cancelled_at = models.DateTimeField(null=True, blank=True)
 
     # Durée
     duree_mois = models.IntegerField(default=12)
@@ -68,6 +67,9 @@ class Bail(SignableDocumentMixin, BaseModel):
         max_digits=10, decimal_places=2, null=True, blank=True
     )
 
+    # Historique automatique
+    history = HistoricalRecords()
+
     # Méthodes héritées de l'ancien Bail
     def check_and_update_status(self):
         """Met à jour automatiquement le statut selon les signatures"""
@@ -75,7 +77,7 @@ class Bail(SignableDocumentMixin, BaseModel):
 
         # Ne pas passer automatiquement de DRAFT à SIGNING
         # Cela sera fait par send_signature_email quand on envoie vraiment l'email
-        
+
         # Passer de SIGNING à SIGNED si toutes les signatures sont complètes
         if self.status == DocumentStatus.SIGNING:
             if (
@@ -101,11 +103,11 @@ class Bail(SignableDocumentMixin, BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["location"],
-                condition=models.Q(is_active=True),
-                name="unique_active_bail_per_location",
+                condition=models.Q(status__in=["SIGNING", "SIGNED"]),
+                name="unique_signing_or_signed_bail_per_location",
             )
         ]
-        ordering = ["-version"]
+        ordering = ["-created_at"]
         db_table = "bail_bail_new"
         verbose_name = "Bail"
         verbose_name_plural = "Bails"
@@ -217,7 +219,7 @@ class BailSignatureRequest(AbstractSignatureRequest):
         # Vérifier et mettre à jour le statut du bail
         if self.bail:
             self.bail.check_and_update_status()
-    
+
     def save(self, *args, **kwargs):
         """Override save pour mettre à jour automatiquement le statut du bail"""
         super().save(*args, **kwargs)

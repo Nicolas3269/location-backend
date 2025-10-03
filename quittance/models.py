@@ -6,6 +6,7 @@ Nouveau modèle Quittance refactorisé
 import uuid
 
 from django.db import models
+from simple_history.models import HistoricalRecords
 
 from location.models import BaseModel, Locataire, Location
 from signature.document_status import DocumentStatus
@@ -31,6 +32,9 @@ class Quittance(BaseModel):
     status = models.CharField(
         max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.DRAFT
     )
+
+    # Annulation
+    cancelled_at = models.DateTimeField(null=True, blank=True)
 
     # Période
     mois = models.CharField(
@@ -66,6 +70,9 @@ class Quittance(BaseModel):
         blank=True,
         help_text="PDF de la quittance généré",
     )
+
+    # Historique automatique
+    history = HistoricalRecords()
 
     @property
     def montant_total(self):

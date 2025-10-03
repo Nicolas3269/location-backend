@@ -57,10 +57,9 @@ class BailAdmin(admin.ModelAdmin):
         "get_montant_loyer",
         "status",
         "display_documents_status",
-        "version",
-        "is_active",
+        "cancelled_at",
     )
-    list_filter = ("status", "is_active", "version")
+    list_filter = ("status", "cancelled_at")
     search_fields = (
         "location__bien__adresse",
         "location__locataires__lastName",
@@ -75,9 +74,8 @@ class BailAdmin(admin.ModelAdmin):
             "Informations du bail",
             {
                 "fields": (
-                    "version",
-                    "is_active",
                     "status",
+                    "cancelled_at",
                     "duree_mois",
                 )
             },
@@ -321,7 +319,7 @@ class BailSignatureRequestAdmin(admin.ModelAdmin):
 
     def bail_display(self, obj):
         """Affichage du bail"""
-        return f"Bail {obj.bail.location.bien.adresse} - v{obj.bail.version}"
+        return f"Bail {obj.bail.location.bien.adresse} - {obj.bail.status}"
 
     bail_display.short_description = "Bail"
 

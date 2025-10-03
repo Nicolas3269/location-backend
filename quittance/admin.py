@@ -113,8 +113,11 @@ class QuittanceAdmin(admin.ModelAdmin):
             [f"{loc.firstName} {loc.lastName}" for loc in obj.location.locataires.all()]
         )
 
-        # Chercher s'il y a un bail pour cette location
-        bail = obj.location.bail if hasattr(obj.location, "bail") else None
+        # Chercher s'il y a un bail actif (SIGNING ou SIGNED) pour cette location
+        from signature.document_status import DocumentStatus
+        bail = obj.location.bails.filter(
+            status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED]
+        ).first()
         bail_link = ""
         if bail:
             bail_url = reverse("admin:bail_bail_change", args=[bail.pk])

@@ -241,7 +241,9 @@
             </div>
             <div class="info-row">
                 <span class="label">Adresse du bien :</span>
-                <span class="value">{{ adresse_bien }}</span>
+                <span class="value">
+                    {{ adresse_bien }}{% if location.bien.etage or location.bien.porte %}<br>{% if location.bien.etage %}Étage {{ location.bien.etage }}{% endif %}{% if location.bien.etage and location.bien.porte %}, {% endif %}{% if location.bien.porte %}Porte {{ location.bien.porte }}{% endif %}{% endif %}
+                </span>
             </div>
         </div>
     </div>
@@ -258,7 +260,7 @@
         <p style="margin-bottom: 15px;">
             {% if bailleur_type == "personne_physique" %}
                 Je soussigné(e) <strong>{{ premier_bailleur.personne.firstName }} {{ premier_bailleur.personne.lastName }}</strong>,
-                propriétaire du logement situé <strong>{{ adresse_bien }}</strong>,
+                propriétaire du logement situé <strong>{{ adresse_bien }}{% if location.bien.etage or location.bien.porte %}, {% if location.bien.etage %}Étage {{ location.bien.etage }}{% endif %}{% if location.bien.etage and location.bien.porte %}, {% endif %}{% if location.bien.porte %}Porte {{ location.bien.porte }}{% endif %}{% endif %}</strong>,
                 reconnais avoir reçu de
                 {% if nb_locataires > 1 %}
                     <strong>{% for loc in locataires %}{{ loc.full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</strong>,
@@ -272,7 +274,7 @@
                 Je soussigné(e) <strong>{{ premier_bailleur.signataire.firstName }} {{ premier_bailleur.signataire.lastName }}</strong>,
                 représentant de la société <strong>{{ premier_bailleur.societe.raison_sociale }}</strong>
                 ({{ premier_bailleur.societe.forme_juridique }}),
-                propriétaire du logement situé <strong>{{ adresse_bien }}</strong>,
+                propriétaire du logement situé <strong>{{ adresse_bien }}{% if location.bien.etage or location.bien.porte %}, {% if location.bien.etage %}Étage {{ location.bien.etage }}{% endif %}{% if location.bien.etage and location.bien.porte %}, {% endif %}{% if location.bien.porte %}Porte {{ location.bien.porte }}{% endif %}{% endif %}</strong>,
                 reconnais avoir reçu de
                 {% if nb_locataires > 1 %}
                     <strong>{% for loc in locataires %}{{ loc.full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</strong>,

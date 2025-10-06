@@ -45,6 +45,9 @@ TYPE_BIEN_STEPS = [
         "required_fields": ["bien.caracteristiques.type_bien"],
         "fields": {
             "bien.caracteristiques.type_bien": Bien.type_bien,
+            "bien.caracteristiques.etage": Bien.etage,
+            "bien.caracteristiques.porte": Bien.porte,
+            "bien.caracteristiques.dernier_etage": Bien.dernier_etage,
         },
     },
 ]

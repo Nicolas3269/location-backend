@@ -13,6 +13,7 @@ from bail.views import (
     get_signature_request,
     resend_otp_bail,
     upload_document,
+    upload_locataire_document,
 )
 
 urlpatterns = [
@@ -37,4 +38,9 @@ urlpatterns = [
         name="get_signature_request",
     ),
     path("resend-otp/", resend_otp_bail, name="resend_otp_bail"),
+    path(
+        "upload-locataire-document/",
+        upload_locataire_document,
+        name="upload_locataire_document",
+    ),
 ]

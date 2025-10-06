@@ -410,6 +410,10 @@ class Locataire(Personne):
         help_text="Indique si une caution est requise pour ce locataire",
     )
 
+    # Documents pour la signature du bail : maintenant gérés via Document model
+    # avec type_document = ATTESTATION_MRH ou CAUTION_SOLIDAIRE
+    # Voir: locataire.documents.filter(type_document='attestation_mrh')
+
     class Meta:
         verbose_name = "Locataire"
         verbose_name_plural = "Locataires"

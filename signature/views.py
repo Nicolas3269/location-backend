@@ -88,8 +88,56 @@ def get_signature_request_generic(request, token, model_class):
                     "last_name": person.lastName if person else "",
                 },
                 "otp_sent": True,
+                "is_tenant": bool(sig_req.locataire),  # Indiquer si c'est un locataire
             }
         )
+
+        # Si c'est un locataire, vérifier le statut des documents via Document model
+        if sig_req.locataire:
+            from bail.models import Document, DocumentType
+
+            locataire = sig_req.locataire
+            response_data["locataire_id"] = str(locataire.id)
+
+            # Récupérer les documents MRH et Caution via le modèle Document
+            mrh_docs = Document.objects.filter(
+                locataire=locataire, type_document=DocumentType.ATTESTATION_MRH
+            )
+            caution_docs = Document.objects.filter(
+                locataire=locataire, type_document=DocumentType.CAUTION_SOLIDAIRE
+            )
+
+            # Format liste pour les fichiers MRH
+            mrh_files = [
+                {
+                    "id": str(doc.id),
+                    "name": doc.nom_original,
+                    "url": request.build_absolute_uri(doc.file.url),
+                    "type": "Attestation MRH",
+                }
+                for doc in mrh_docs
+            ]
+
+            # Format liste pour les fichiers Caution
+            caution_files = [
+                {
+                    "id": str(doc.id),
+                    "name": doc.nom_original,
+                    "url": request.build_absolute_uri(doc.file.url),
+                    "type": "Caution solidaire",
+                }
+                for doc in caution_docs
+            ]
+
+            response_data["documents_required"] = {
+                "mrh_required": True,
+                "caution_required": locataire.caution_requise,
+                "mrh_files": mrh_files,
+                "caution_files": caution_files,
+                # Garder pour rétrocompatibilité
+                "mrh_uploaded": len(mrh_files) > 0,
+                "caution_uploaded": len(caution_files) > 0,
+            }
 
         # Ajouter l'ID du document selon le type et le location_id
         if hasattr(sig_req, "bail"):
@@ -272,3 +320,10 @@ def resend_otp_generic(request, model_class, document_type):
             {"error": str(e)},
             status=500,
         )
+
+
+# Les documents locataire (MRH, Caution) sont maintenant gérés via:
+# - Le modèle Document avec type_document
+# - Les vues upload_document et delete_document existantes
+# - L'endpoint standard /location/forms/tenant_documents/requirements/?token=xxx
+#   géré par FormOrchestrator._get_tenant_documents_requirements()

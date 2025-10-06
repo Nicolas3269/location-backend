@@ -121,13 +121,15 @@ class DocumentType(models.TextChoices):
     NOTICE_INFORMATION = "notice_information", "Notice d'information"
     DIAGNOSTIC = "diagnostic", "Diagnostic"
     PERMIS_DE_LOUER = "permis_de_louer", "Permis de louer"
+    ATTESTATION_MRH = "attestation_mrh", "Attestation MRH"
+    CAUTION_SOLIDAIRE = "caution_solidaire", "Caution solidaire"
     AUTRE = "autre", "Autre document"
 
 
 class Document(BaseModel):
-    """Modèle pour gérer tous les documents liés aux baux et aux biens."""
+    """Modèle pour gérer tous les documents liés aux baux, biens et locataires."""
 
-    # Relations - un document peut être lié soit à un bail, soit à un bien
+    # Relations - un document peut être lié soit à un bail, soit à un bien, soit à un locataire
     bail = models.ForeignKey(
         Bail,
         on_delete=models.CASCADE,
@@ -137,6 +139,13 @@ class Document(BaseModel):
     )
     bien = models.ForeignKey(
         Bien,
+        on_delete=models.CASCADE,
+        related_name="documents",
+        null=True,
+        blank=True,
+    )
+    locataire = models.ForeignKey(
+        "location.Locataire",
         on_delete=models.CASCADE,
         related_name="documents",
         null=True,

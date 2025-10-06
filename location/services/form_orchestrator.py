@@ -46,11 +46,17 @@ class FormOrchestrator:
             - prefill_data: Données existantes pour pré-remplissage
         """
         # Validation du type de formulaire
-        valid_types = ["bail", "quittance", "etat_lieux"]
+        valid_types = ["bail", "quittance", "etat_lieux", "tenant_documents"]
         if form_type not in valid_types:
             return {
                 "error": f"Invalid form type. Must be one of: {', '.join(valid_types)}"
             }
+
+        # Cas spécial pour tenant_documents (pas de serializer classique)
+        if form_type == "tenant_documents":
+            return self._get_tenant_documents_requirements(
+                location_id, context_source_id
+            )
 
         # Obtenir le serializer approprié
         serializer_class = self._get_serializer_class(form_type, country)
@@ -788,3 +794,102 @@ class FormOrchestrator:
             return False  # Jamais verrouillé pour les quittances
 
         return False
+
+    def _get_tenant_documents_requirements(
+        self, location_id: Optional[str], token: Optional[str]
+    ) -> Dict[str, Any]:
+        """
+        Retourne les requirements pour les documents tenant (MRH, Caution).
+        Utilise le token de signature pour récupérer le locataire.
+
+        Args:
+            location_id: ID de la location (non utilisé pour tenant_documents)
+            token: Token de signature (utilisé comme context_source_id)
+
+        Returns:
+            Dict avec steps, formData, etc.
+        """
+        from bail.models import BailSignatureRequest, Document, DocumentType
+        from django.shortcuts import get_object_or_404
+
+        if not token:
+            return {"error": "Token is required for tenant_documents"}
+
+        try:
+            # Récupérer la signature request via le token
+            sig_req = get_object_or_404(BailSignatureRequest, link_token=token)
+
+            # Vérifier que c'est bien un locataire (pas un bailleur)
+            locataire = sig_req.locataire
+            if not locataire:
+                return {"error": "This page is reserved for tenants"}
+
+            # Importer les steps
+            from location.serializers.france import (
+                TENANT_DOCUMENT_CAUTION_STEPS,
+                TENANT_DOCUMENT_MRH_STEPS,
+                TENANT_DOCUMENT_SIGNATURE_STEPS,
+            )
+
+            # Construire les steps
+            steps = []
+            steps.extend(TENANT_DOCUMENT_MRH_STEPS)
+
+            # Ajouter caution si requise
+            if locataire.caution_requise:
+                steps.extend(TENANT_DOCUMENT_CAUTION_STEPS)
+
+            # Ajouter signature comme dernière étape
+            steps.extend(TENANT_DOCUMENT_SIGNATURE_STEPS)
+
+            # Récupérer les documents existants
+            mrh_docs = Document.objects.filter(
+                locataire=locataire, type_document=DocumentType.ATTESTATION_MRH
+            )
+            caution_docs = Document.objects.filter(
+                locataire=locataire, type_document=DocumentType.CAUTION_SOLIDAIRE
+            )
+
+            # Formatter les fichiers
+            mrh_files = [
+                {
+                    "id": str(doc.id),
+                    "name": doc.nom_original,
+                    "url": doc.file.url,
+                    "type": "attestation_mrh",
+                }
+                for doc in mrh_docs
+            ]
+
+            caution_files = [
+                {
+                    "id": str(doc.id),
+                    "name": doc.nom_original,
+                    "url": doc.file.url,
+                    "type": "caution_solidaire",
+                }
+                for doc in caution_docs
+            ]
+
+            # Préparer formData
+            form_data = {
+                "locataire_id": str(locataire.id),
+                "tenant_documents": {
+                    "attestation_mrh": mrh_files,
+                    "caution_solidaire": caution_files if locataire.caution_requise else [],
+                },
+            }
+
+            return {
+                "steps": steps,
+                "formData": form_data,
+                "is_new": len(mrh_files) == 0,
+                "signataire": f"{locataire.firstName} {locataire.lastName}",
+                "location_id": token,  # On utilise le token comme ID
+            }
+
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception("Error in _get_tenant_documents_requirements")
+            return {"error": str(e)}

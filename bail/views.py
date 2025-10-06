@@ -710,3 +710,83 @@ def resend_otp_bail(request):
     Renvoie un OTP pour la signature de bail
     """
     return resend_otp_generic(request, BailSignatureRequest, "bail")
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_locataire_document(request):
+    """Upload de documents pour un locataire (MRH, Caution)"""
+    from location.models import Locataire
+
+    try:
+        if not request.FILES:
+            return JsonResponse(
+                {"success": False, "error": "Aucun fichier fourni"}, status=400
+            )
+
+        locataire_id = request.POST.get("locataire_id")
+        document_type = request.POST.get("document_type")
+
+        if not locataire_id:
+            return JsonResponse(
+                {"success": False, "error": "ID du locataire requis"}, status=400
+            )
+
+        if not document_type:
+            return JsonResponse(
+                {"success": False, "error": "Type de document requis"}, status=400
+            )
+
+        # Vérifier que le type est MRH ou Caution
+        if document_type not in [
+            DocumentType.ATTESTATION_MRH,
+            DocumentType.CAUTION_SOLIDAIRE,
+        ]:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": (
+                        "Type invalide. Attendu: attestation_mrh ou "
+                        "caution_solidaire"
+                    ),
+                },
+                status=400,
+            )
+
+        locataire = get_object_or_404(Locataire, id=locataire_id)
+
+        uploaded_files = []
+        files = request.FILES.getlist("files")
+
+        for file in files:
+            # Créer le document
+            document = Document.objects.create(
+                locataire=locataire,
+                type_document=document_type,
+                nom_original=file.name,
+                file=file,
+                uploade_par=request.user,
+            )
+
+            uploaded_files.append(
+                {
+                    "id": str(document.id),
+                    "name": document.nom_original,
+                    "url": request.build_absolute_uri(document.file.url),
+                    "type": document.get_type_document_display(),
+                }
+            )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "Documents uploadés avec succès",
+                "files": uploaded_files,
+            }
+        )
+
+    except Exception as e:
+        logger.exception("Erreur lors de l'upload des documents locataire")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+

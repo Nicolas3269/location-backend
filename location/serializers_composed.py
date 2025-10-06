@@ -351,11 +351,13 @@ from location.serializers.france import (
     FranceBailSerializer,
     FranceQuittanceSerializer,
     FranceEtatLieuxSerializer,
+    FranceTenantDocumentsSerializer,
 )
 
 # Alias pour utilisation dans views.py
 CreateBailSerializer = FranceBailSerializer
 CreateQuittanceSerializer = FranceQuittanceSerializer
 CreateEtatLieuxSerializer = FranceEtatLieuxSerializer
+CreateTenantDocumentsSerializer = FranceTenantDocumentsSerializer
 
 

@@ -424,6 +424,31 @@ DETAIL_ETAT_LIEUX_STEPS = [
     },
 ]
 
+# --- DOCUMENTS LOCATAIRES (Pré-signature) ---
+TENANT_DOCUMENT_MRH_STEPS = [
+    {
+        "id": "tenant_documents.mrh",
+        "required_fields": ["tenant_documents.attestation_mrh"],
+        "always_unlocked": True,
+    },
+]
+
+TENANT_DOCUMENT_CAUTION_STEPS = [
+    {
+        "id": "tenant_documents.caution",
+        "required_fields": ["tenant_documents.caution_solidaire"],
+        "always_unlocked": True,
+    },
+]
+
+TENANT_DOCUMENT_SIGNATURE_STEPS = [
+    {
+        "id": "tenant_documents.signature",
+        "required_fields": [],
+        "always_unlocked": True,
+    },
+]
+
 
 class BaseLocationSerializer(serializers.Serializer):
     """
@@ -808,6 +833,30 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         from location.equipment_config import get_all_equipements_config
 
         return get_all_equipements_config()
+
+
+class FranceTenantDocumentsSerializer(BaseLocationSerializer):
+    """
+    Serializer pour les documents locataires (pré-signature).
+    Utilisé pour collecter les documents MRH, caution, etc. avant la signature finale.
+    """
+
+    # Override source avec valeur par défaut
+    source = serializers.CharField(default="tenant_documents")
+
+    # Locataire ID (fourni via le token de signature)
+    locataire_id = serializers.IntegerField(required=False, allow_null=True)
+
+    @classmethod
+    def get_steps(cls):
+        """
+        Steps pour la collecte des documents locataires.
+        """
+        TENANT_DOCS_STEPS = []
+        TENANT_DOCS_STEPS.extend(TENANT_DOCUMENT_MRH_STEPS)
+        TENANT_DOCS_STEPS.extend(TENANT_DOCUMENT_CAUTION_STEPS)
+        TENANT_DOCS_STEPS.extend(TENANT_DOCUMENT_SIGNATURE_STEPS)
+        return TENANT_DOCS_STEPS
 
 
 # Les helper functions sont maintenant des méthodes de BaseLocationSerializer

@@ -33,7 +33,7 @@ def get_form_requirements(request, form_type):
     """
 
     # Valider le type de formulaire
-    valid_form_types = ["bail", "quittance", "etat_lieux"]
+    valid_form_types = ["bail", "quittance", "etat_lieux", "tenant_documents"]
     if form_type not in valid_form_types:
         return Response(
             {
@@ -45,6 +45,7 @@ def get_form_requirements(request, form_type):
     # Récupérer les paramètres
     location_id = request.query_params.get("location_id")
     type_etat_lieux = request.query_params.get("type_etat_lieux")
+    token = request.query_params.get("token")  # Pour tenant_documents
 
     # Utiliser l'orchestrateur en mode "new" (standalone)
     orchestrator = FormOrchestrator()
@@ -54,7 +55,7 @@ def get_form_requirements(request, form_type):
             form_type=form_type,
             location_id=location_id,
             context_mode="new",
-            context_source_id=None,
+            context_source_id=token,  # Pour tenant_documents, on passe le token
             type_etat_lieux=type_etat_lieux,
             user=None
         )
@@ -101,7 +102,7 @@ def get_form_requirements_authenticated(request, form_type):
     """
 
     # Valider le type de formulaire
-    valid_form_types = ["bail", "quittance", "etat_lieux"]
+    valid_form_types = ["bail", "quittance", "etat_lieux", "tenant_documents"]
     if form_type not in valid_form_types:
         return Response(
             {

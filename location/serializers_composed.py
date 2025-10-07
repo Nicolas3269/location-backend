@@ -196,6 +196,11 @@ class LocataireInfoSerializer(PersonneSerializer):
     revenus_mensuels = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
+    cautionRequise = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Indique si une caution est requise pour ce locataire",
+    )
 
 
 # ============================================

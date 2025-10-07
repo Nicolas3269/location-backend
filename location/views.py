@@ -355,6 +355,7 @@ def create_locataires(data):
             "date_naissance": validated.get("date_naissance"),
             "profession": validated.get("profession") or "",
             "revenu_mensuel": validated.get("revenus_mensuels"),
+            "caution_requise": validated.get("cautionRequise", False),
         }
 
         if frontend_id:

@@ -141,8 +141,61 @@ def get_signature_request_generic(request, token, model_class):
 
         # Ajouter l'ID du document selon le type et le location_id
         if hasattr(sig_req, "bail"):
-            response_data["bail_id"] = sig_req.bail.id
-            response_data["location_id"] = str(sig_req.bail.location_id)
+            bail = sig_req.bail
+            response_data["bail_id"] = bail.id
+            response_data["location_id"] = str(bail.location_id)
+
+            # Ajouter la liste des documents du dossier de location
+            from bail.models import Document as BailDocument, DocumentType as BailDocumentType
+
+            documents_list = []
+
+            # 1. Contrat de bail (PDF principal)
+            if bail.pdf:
+                documents_list.append({
+                    "name": "Contrat de bail",
+                    "url": request.build_absolute_uri(bail.pdf.url),
+                    "type": "bail",
+                    "required": True
+                })
+
+            # 2. Notice d'information
+            if bail.notice_information_pdf:
+                documents_list.append({
+                    "name": "Notice d'information",
+                    "url": request.build_absolute_uri(bail.notice_information_pdf.url),
+                    "type": "notice",
+                    "required": True
+                })
+
+            # 3. Diagnostics techniques
+            diagnostics = BailDocument.objects.filter(
+                bail=bail,
+                type_document=BailDocumentType.DIAGNOSTIC
+            )
+            for doc in diagnostics:
+                documents_list.append({
+                    "name": f"Diagnostic - {doc.nom_original}",
+                    "url": request.build_absolute_uri(doc.file.url),
+                    "type": "diagnostic",
+                    "required": False
+                })
+
+            # 4. Permis de louer
+            permis = BailDocument.objects.filter(
+                bail=bail,
+                type_document=BailDocumentType.PERMIS_DE_LOUER
+            )
+            for doc in permis:
+                documents_list.append({
+                    "name": f"Permis de louer - {doc.nom_original}",
+                    "url": request.build_absolute_uri(doc.file.url),
+                    "type": "permis_de_louer",
+                    "required": False
+                })
+
+            response_data["documents_list"] = documents_list
+
         elif hasattr(sig_req, "etat_lieux"):
             response_data["etat_lieux_id"] = sig_req.etat_lieux.id
             response_data["location_id"] = str(sig_req.etat_lieux.location_id)

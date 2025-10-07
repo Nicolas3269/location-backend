@@ -1,6 +1,6 @@
 """
 Service orchestrateur pour les formulaires adaptatifs.
-Architecture simplifiée - Le backend retourne uniquement les steps avec données manquantes.
+Architecture refactorisée - Coordonne les services spécialisés.
 """
 
 from typing import Any, Dict, List, Optional
@@ -8,16 +8,28 @@ from typing import Any, Dict, List, Optional
 from location.models import Bien, Location, RentTerms
 from rent_control.views import get_rent_control_info
 
+from .form_conflict_resolver import FormConflictResolver
+from .form_data_fetcher import FormDataFetcher
+from .form_metadata_calculator import FormMetadataCalculator
+from .form_step_filter import FormStepFilter
+
 
 class FormOrchestrator:
     """
-    Orchestrateur minimaliste pour les formulaires adaptatifs.
+    Orchestrateur léger qui coordonne les services spécialisés.
 
     Responsabilités:
-    1. Déterminer quelles steps ont des données manquantes
-    2. Retourner la liste des steps à afficher avec leur ordre
-    3. Fournir les données existantes pour pré-remplissage
+    1. Valider les paramètres d'entrée
+    2. Coordonner les appels aux services
+    3. Retourner la réponse structurée au frontend
     """
+
+    def __init__(self):
+        """Initialise les services."""
+        self.data_fetcher = FormDataFetcher()
+        self.step_filter = FormStepFilter()
+        self.conflict_resolver = FormConflictResolver()
+        self.metadata_calculator = FormMetadataCalculator()
 
     def get_form_requirements(
         self,
@@ -59,129 +71,44 @@ class FormOrchestrator:
                 location_id, context_source_id, request
             )
 
-        # Obtenir le serializer approprié
+        # 1. Obtenir le serializer approprié
         serializer_class = self._get_serializer_class(form_type, country)
         if not serializer_class:
             return {"error": f"No serializer found for {form_type} in {country}"}
 
-        import uuid
-
-        # Extraire les données contextuelles selon le mode
+        # 2. Extraire les données contextuelles selon le mode
         contextual_prefill = self._get_contextual_prefill(
             context_mode, context_source_id, user, country
         )
 
-        # Vérifier les conflits de documents et déterminer le location_id à utiliser
-        has_conflict = False
-        is_new = False
-        has_been_renewed = False  # Nouveau flag pour indiquer un renouvellement suite à conflit
-        existing_data = contextual_prefill  # Initialiser avec les données contextuelles
+        # 3. Résoudre les conflits et déterminer le location_id (SERVICE)
+        conflict_result = self.conflict_resolver.resolve_location_id(
+            form_type, location_id, type_etat_lieux
+        )
+        final_location_id = conflict_result["final_location_id"]
+        is_new = conflict_result["is_new"]
+        has_been_renewed = conflict_result["has_been_renewed"]
 
-        if location_id:
-            try:
-                location = Location.objects.get(id=location_id)
-                has_conflict = self._check_document_conflict(
-                    location, form_type, type_etat_lieux
-                )
-            except Location.DoesNotExist:
-                # Si la location n'existe pas, pas de conflit possible
-                print(f"Location not found: {location_id}")
-
-        # Déterminer le location_id final
-        if has_conflict:
-            # Document verrouillé - créer un nouveau
-            final_location_id = str(uuid.uuid4())
-            is_new = True
-            has_been_renewed = True  # Indique qu'on a créé un nouveau à cause d'un conflit
-        elif not location_id:
-            # Première création
-            final_location_id = str(uuid.uuid4())
-            is_new = True
-            has_been_renewed = False
-        else:
-            # Obtenir les données existantes
-            try:
-                location = Location.objects.get(id=location_id)
-                location_data = self._extract_location_data(location)
-                # Merger les données de location avec les données contextuelles
-                # Les données de location ont priorité
+        # 4. Fetch données existantes de la location (SERVICE)
+        existing_data = contextual_prefill.copy()  # Commencer avec données contextuelles
+        if not is_new and location_id:
+            location_data = self.data_fetcher.fetch_location_data(location_id)
+            if location_data:
+                # Merger : location data prioritaire sur contexte
                 existing_data = {**existing_data, **location_data}
-                final_location_id = location_id
-                is_new = False
-                has_been_renewed = False
 
-            except Location.DoesNotExist:
-                print(f"Location not found: {location_id}")
-                # Réutiliser l'existant (données contextuelles seulement)
-                final_location_id = location_id
-                is_new = True
-                has_been_renewed = False
-
-        # Obtenir la configuration des steps depuis le serializer
+        # 5. Obtenir la configuration des steps depuis le serializer
         step_config = self._get_step_config(serializer_class, form_type)
 
-        # Obtenir d'abord les steps verrouillées si c'est une mise à jour
-        # Mais seulement si on réutilise la location existante (pas si is_new)
-        locked_steps = set()
-        if not is_new and location_id:
-            import logging
+        # 6. Obtenir les steps verrouillées (SERVICE)
+        locked_steps = self.step_filter.get_locked_steps(
+            final_location_id, country, is_new
+        )
 
-            from .field_locking import FieldLockingService
-
-            logger = logging.getLogger(__name__)
-
-            locked_steps = FieldLockingService.get_locked_steps(location_id, country)
-            if locked_steps:
-                logger.info(
-                    f"Found {len(locked_steps)} locked steps for location {location_id}"
-                )
-
-        # Enrichir les steps avec les infos de validation depuis les Field Mappings
-
-        # Filtrer les steps : garder seulement celles qui sont non verrouillées
-        # Les steps avec données existantes sont gardées (pour permettre modification)
-        steps = []
-        for step in step_config:
-            step_id = step["id"]
-
-            # Si la step est verrouillée, on la skip
-            if step_id in locked_steps:
-                logger.debug(f"Skipping locked step: {step_id}")
-                continue
-
-            # Copier la step SANS les fields (qui contiennent des objets Django non sérialisables)
-            step_copy = {k: v for k, v in step.items() if k != "fields"}
-
-            # Enrichir avec les infos du Field Mapping si disponibles
-            step_full_config = serializer_class.get_step_config_by_id(step_id)
-            if step_full_config:
-                # Ajouter les business rules
-                if "business_rules" in step_full_config:
-                    step_copy["business_rules"] = step_full_config["business_rules"]
-
-                # Ajouter le flag always_unlocked
-                if "always_unlocked" in step_full_config:
-                    step_copy["always_unlocked"] = step_full_config["always_unlocked"]
-
-                # Ajouter les required_fields définis explicitement
-                if "required_fields" in step_full_config:
-                    step_copy["required_fields"] = step_full_config["required_fields"]
-
-                # Extraire les champs mappés (pour info seulement, pas pour validation)
-                mapped_fields = []
-                fields = step_full_config.get("fields", {})
-                for field_path in fields.keys():
-                    mapped_fields.append(field_path)
-
-                if mapped_fields:
-                    step_copy["mapped_fields"] = mapped_fields
-
-            # Si une valeur par défaut est définie et qu'il n'y a pas de données existantes
-            # on ajoute la valeur par défaut dans les données de pré-remplissage
-            if "default" in step and not self._field_has_value(step_id, existing_data):
-                self._set_field_value(step_id, step["default"], existing_data)
-
-            steps.append(step_copy)
+        # 7. Filtrer et enrichir les steps (SERVICE)
+        steps = self.step_filter.filter_steps(
+            step_config, existing_data, locked_steps, serializer_class
+        )
 
         # Construire le formData avec le location_id approprié
         form_data = {

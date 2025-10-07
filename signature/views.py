@@ -65,18 +65,27 @@ def get_signature_request_generic(request, token, model_class):
         if hasattr(document, "pdf") and document.pdf:
             response_data["pdfUrl"] = request.build_absolute_uri(document.pdf.url)
 
-        # Générer un OTP à chaque accès et l'envoyer par email
-        sig_req.generate_otp()
+        # Générer et envoyer un OTP seulement si demandé explicitement
+        # (via query param send_otp=true ou si aucun OTP n'existe)
+        send_otp_param = request.GET.get("send_otp", "false").lower() == "true"
+        should_send_otp = send_otp_param or not sig_req.otp
 
-        # Préparer les données de réponse
+        if should_send_otp:
+            sig_req.generate_otp()
+
+            # Préparer les données de réponse
+            person = sig_req.bailleur_signataire or sig_req.locataire
+            signer_email = sig_req.get_signataire_email()
+
+            # Envoyer l'OTP par email
+            from .services import send_otp_email
+
+            document_type = "bail" if hasattr(sig_req, "bail") else "etat_lieux"
+            send_otp_email(sig_req, document_type)
+
+        # Préparer les données du signataire
         person = sig_req.bailleur_signataire or sig_req.locataire
         signer_email = sig_req.get_signataire_email()
-
-        # Envoyer l'OTP par email
-        from .services import send_otp_email
-
-        document_type = "bail" if hasattr(sig_req, "bail") else "etat_lieux"
-        send_otp_email(sig_req, document_type)
 
         # Préparer la réponse dans le nouveau format unifié
         response_data.update(
@@ -87,7 +96,7 @@ def get_signature_request_generic(request, token, model_class):
                     "first_name": person.firstName if person else "",
                     "last_name": person.lastName if person else "",
                 },
-                "otp_sent": True,
+                "otp_sent": should_send_otp,
                 "is_tenant": bool(sig_req.locataire),  # Indiquer si c'est un locataire
             }
         )
@@ -146,59 +155,17 @@ def get_signature_request_generic(request, token, model_class):
             response_data["location_id"] = str(bail.location_id)
 
             # Ajouter la liste des documents du dossier de location
-            from bail.models import Document as BailDocument, DocumentType as BailDocumentType
-
-            documents_list = []
-
-            # 1. Contrat de bail (PDF principal)
-            if bail.pdf:
-                documents_list.append({
-                    "name": "Contrat de bail",
-                    "url": request.build_absolute_uri(bail.pdf.url),
-                    "type": "bail",
-                    "required": True
-                })
-
-            # 2. Notice d'information
-            if bail.notice_information_pdf:
-                documents_list.append({
-                    "name": "Notice d'information",
-                    "url": request.build_absolute_uri(bail.notice_information_pdf.url),
-                    "type": "notice",
-                    "required": True
-                })
-
-            # 3. Diagnostics techniques
-            diagnostics = BailDocument.objects.filter(
-                bail=bail,
-                type_document=BailDocumentType.DIAGNOSTIC
-            )
-            for doc in diagnostics:
-                documents_list.append({
-                    "name": f"Diagnostic - {doc.nom_original}",
-                    "url": request.build_absolute_uri(doc.file.url),
-                    "type": "diagnostic",
-                    "required": False
-                })
-
-            # 4. Permis de louer
-            permis = BailDocument.objects.filter(
-                bail=bail,
-                type_document=BailDocumentType.PERMIS_DE_LOUER
-            )
-            for doc in permis:
-                documents_list.append({
-                    "name": f"Permis de louer - {doc.nom_original}",
-                    "url": request.build_absolute_uri(doc.file.url),
-                    "type": "permis_de_louer",
-                    "required": False
-                })
-
-            response_data["documents_list"] = documents_list
+            from .document_list_service import get_bail_documents_list
+            response_data["documents_list"] = get_bail_documents_list(bail, request)
 
         elif hasattr(sig_req, "etat_lieux"):
-            response_data["etat_lieux_id"] = sig_req.etat_lieux.id
-            response_data["location_id"] = str(sig_req.etat_lieux.location_id)
+            etat_lieux = sig_req.etat_lieux
+            response_data["etat_lieux_id"] = etat_lieux.id
+            response_data["location_id"] = str(etat_lieux.location_id)
+
+            # Ajouter la liste des documents de l'état des lieux
+            from .document_list_service import get_etat_lieux_documents_list
+            response_data["documents_list"] = get_etat_lieux_documents_list(etat_lieux, request)
 
         # Tenter d'authentifier automatiquement l'utilisateur
         User = get_user_model()

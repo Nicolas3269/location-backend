@@ -57,7 +57,8 @@ def get_form_requirements(request, form_type):
             context_mode="new",
             context_source_id=token,  # Pour tenant_documents, on passe le token
             type_etat_lieux=type_etat_lieux,
-            user=None
+            user=None,
+            request=request
         )
 
         # Vérifier si une erreur a été retournée
@@ -144,7 +145,8 @@ def get_form_requirements_authenticated(request, form_type):
             context_mode=context_mode,
             context_source_id=context_source_id,
             type_etat_lieux=type_etat_lieux,
-            user=request.user
+            user=request.user,
+            request=request
         )
 
         # Vérifier si une erreur a été retournée

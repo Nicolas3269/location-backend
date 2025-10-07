@@ -755,6 +755,20 @@ def upload_locataire_document(request):
 
         locataire = get_object_or_404(Locataire, id=locataire_id)
 
+        # Pour attestation_mrh (document unique), supprimer les anciens documents
+        # avant d'uploader le nouveau (comportement "remplacer")
+        if document_type == DocumentType.ATTESTATION_MRH:
+            old_documents = Document.objects.filter(
+                locataire=locataire,
+                type_document=DocumentType.ATTESTATION_MRH
+            )
+            # Supprimer les fichiers physiques
+            for old_doc in old_documents:
+                if old_doc.file:
+                    old_doc.file.delete(save=False)
+            # Supprimer les entrées en BDD
+            old_documents.delete()
+
         uploaded_files = []
         files = request.FILES.getlist("files")
 

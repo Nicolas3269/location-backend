@@ -430,6 +430,7 @@ TENANT_DOCUMENT_MRH_STEPS = [
         "id": "tenant_documents.mrh",
         "required_fields": ["tenant_documents.attestation_mrh"],
         "always_unlocked": True,
+        "business_rules": ["mrh_has_been_uploaded"],
     },
 ]
 
@@ -438,6 +439,7 @@ TENANT_DOCUMENT_CAUTION_STEPS = [
         "id": "tenant_documents.caution",
         "required_fields": ["tenant_documents.caution_solidaire"],
         "always_unlocked": True,
+        "business_rules": ["garant_has_been_uploaded"],
     },
 ]
 

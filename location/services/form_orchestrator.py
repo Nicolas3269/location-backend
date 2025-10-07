@@ -28,6 +28,7 @@ class FormOrchestrator:
         context_mode: str = "new",
         context_source_id: Optional[str] = None,
         user: Optional[Any] = None,
+        request: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
         Point d'entrée pour obtenir les requirements d'un formulaire.
@@ -55,7 +56,7 @@ class FormOrchestrator:
         # Cas spécial pour tenant_documents (pas de serializer classique)
         if form_type == "tenant_documents":
             return self._get_tenant_documents_requirements(
-                location_id, context_source_id
+                location_id, context_source_id, request
             )
 
         # Obtenir le serializer approprié
@@ -796,7 +797,7 @@ class FormOrchestrator:
         return False
 
     def _get_tenant_documents_requirements(
-        self, location_id: Optional[str], token: Optional[str]
+        self, location_id: Optional[str], token: Optional[str], request: Optional[Any] = None
     ) -> Dict[str, Any]:
         """
         Retourne les requirements pour les documents tenant (MRH, Caution).
@@ -850,12 +851,12 @@ class FormOrchestrator:
                 locataire=locataire, type_document=DocumentType.CAUTION_SOLIDAIRE
             )
 
-            # Formatter les fichiers
+            # Formatter les fichiers avec URLs absolues
             mrh_files = [
                 {
                     "id": str(doc.id),
                     "name": doc.nom_original,
-                    "url": doc.file.url,
+                    "url": request.build_absolute_uri(doc.file.url),
                     "type": "attestation_mrh",
                 }
                 for doc in mrh_docs
@@ -865,7 +866,7 @@ class FormOrchestrator:
                 {
                     "id": str(doc.id),
                     "name": doc.nom_original,
-                    "url": doc.file.url,
+                    "url": request.build_absolute_uri(doc.file.url),
                     "type": "caution_solidaire",
                 }
                 for doc in caution_docs
@@ -874,6 +875,7 @@ class FormOrchestrator:
             # Préparer formData
             form_data = {
                 "locataire_id": str(locataire.id),
+                "caution_requise": locataire.caution_requise,
                 "tenant_documents": {
                     "attestation_mrh": mrh_files,
                     "caution_solidaire": caution_files if locataire.caution_requise else [],

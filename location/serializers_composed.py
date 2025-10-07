@@ -230,6 +230,9 @@ class ModalitesZoneTendueSerializer(serializers.Serializer):
     dernier_montant_loyer = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
+    dernier_loyer_periode = serializers.CharField(
+        max_length=7, required=False, allow_null=True, help_text="Format YYYY-MM (ex: 2024-03)"
+    )
     justificatif_complement_loyer = serializers.CharField(
         required=False, allow_blank=True
     )

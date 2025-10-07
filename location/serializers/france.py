@@ -287,9 +287,13 @@ ZONE_TENDUE_STEPS = [
     {
         "id": "modalites_zone_tendue.dernier_montant_loyer",
         "condition": "zone_tendue_has_previous_tenant",
-        "required_fields": ["modalites_zone_tendue.dernier_montant_loyer"],
+        "required_fields": [
+            "modalites_zone_tendue.dernier_montant_loyer",
+            "modalites_zone_tendue.dernier_loyer_periode",
+        ],
         "fields": {
             "modalites_zone_tendue.dernier_montant_loyer": RentTerms.dernier_montant_loyer,
+            "modalites_zone_tendue.dernier_loyer_periode": RentTerms.dernier_loyer_periode,
         },
     },
 ]

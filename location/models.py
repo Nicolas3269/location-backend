@@ -514,6 +514,13 @@ class RentTerms(BaseModel):
         default=None,
         help_text="Montant du dernier loyer si locataire dans les 18 derniers mois",
     )
+    dernier_loyer_periode = models.CharField(
+        max_length=7,
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Mois et année du dernier loyer perçu (format YYYY-MM, ex: 2024-03)",
+    )
     permis_de_louer = models.BooleanField(
         null=True,
         blank=True,

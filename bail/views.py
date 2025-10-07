@@ -762,11 +762,10 @@ def upload_locataire_document(request):
                 locataire=locataire,
                 type_document=DocumentType.ATTESTATION_MRH
             )
-            # Supprimer les fichiers physiques
+            # Supprimer les fichiers physiques avant de supprimer les entrées BDD
             for old_doc in old_documents:
                 if old_doc.file:
                     old_doc.file.delete(save=False)
-            # Supprimer les entrées en BDD
             old_documents.delete()
 
         uploaded_files = []

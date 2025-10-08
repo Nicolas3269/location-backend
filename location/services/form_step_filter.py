@@ -35,7 +35,7 @@ class FormStepFilter:
         for step in all_steps:
             step_id = step["id"]
 
-            # Skip si step verrouillée
+            # Skip les steps verrouillées (données déjà dans formData)
             if step_id in locked_steps:
                 continue
 
@@ -129,28 +129,26 @@ class FormStepFilter:
         Récupère les steps verrouillées pour une location.
 
         Args:
-            location_id: UUID de la location
+            location_id: UUID de la location (peut être source_location en mode extend)
             country: Code pays (FR, BE)
-            is_new: True si c'est une nouvelle location
+            is_new: True si c'est une nouvelle location (ignoré si location_id est une source)
 
         Returns:
             Set des step_ids verrouillées
         """
-        # Pas de verrouillage pour les nouvelles locations
-        if is_new:
-            return set()
-
         import logging
 
         from .field_locking import FieldLockingService
 
         logger = logging.getLogger(__name__)
 
+        # Vérifier le verrouillage même si is_new=True
+        # (car location_id peut être une source_location en mode extend)
         locked_steps = FieldLockingService.get_locked_steps(location_id, country)
 
         if locked_steps:
             logger.info(
-                f"Found {len(locked_steps)} locked steps for location {location_id}"
+                f"Found {len(locked_steps)} locked steps for location {location_id} (is_new={is_new})"
             )
 
         return locked_steps

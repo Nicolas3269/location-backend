@@ -3,9 +3,17 @@ Service orchestrateur pour les formulaires adaptatifs.
 Architecture refactorisée - Coordonne les services spécialisés.
 """
 
+import uuid
 from typing import Any, Dict, List, Optional
 
 from location.models import Bien, Location, RentTerms
+from location.types.form_state import (
+    CreateFormState,
+    EditFormState,
+    ExtendFormState,
+    FormState,
+    RenewFormState,
+)
 from rent_control.views import get_rent_control_info
 
 from .form_conflict_resolver import FormConflictResolver
@@ -34,11 +42,9 @@ class FormOrchestrator:
     def get_form_requirements(
         self,
         form_type: str,
-        location_id: Optional[str] = None,
+        form_state: FormState,
         country: str = "FR",
         type_etat_lieux: Optional[str] = None,
-        context_mode: str = "new",
-        context_source_id: Optional[str] = None,
         user: Optional[Any] = None,
         request: Optional[Any] = None,
     ) -> Dict[str, Any]:
@@ -47,12 +53,11 @@ class FormOrchestrator:
 
         Args:
             form_type: Type de formulaire ('bail', 'etat_lieux', 'quittance')
-            location_id: ID de la location (optionnel)
+            form_state: État du formulaire (CreateFormState | EditFormState | ExtendFormState | RenewFormState)
             country: Pays ('FR', 'BE')
             type_etat_lieux: Type d'état des lieux si applicable
-            context_mode: Mode de contexte ('new', 'from_bailleur', 'from_bien', 'from_location')
-            context_source_id: ID de la source contextuelle (bailleur_id, bien_id, location_id)
-            user: Utilisateur authentifié (pour modes contextuels)
+            user: Utilisateur authentifié (pour modes extend)
+            request: Request Django (pour tenant_documents)
 
         Returns:
             - steps: Liste des steps avec données manquantes (ordonnées)
@@ -67,47 +72,99 @@ class FormOrchestrator:
 
         # Cas spécial pour tenant_documents (pas de serializer classique)
         if form_type == "tenant_documents":
-            return self._get_tenant_documents_requirements(
-                location_id, context_source_id, request
-            )
+            # Pour tenant_documents, on utilise toujours EditFormState
+            # avec location_id = signature_request.id
+            if isinstance(form_state, EditFormState):
+                return self._get_tenant_documents_requirements(
+                    str(form_state.location_id), request
+                )
+            return {"error": "tenant_documents requires EditFormState"}
 
         # 1. Obtenir le serializer approprié
         serializer_class = self._get_serializer_class(form_type, country)
         if not serializer_class:
             return {"error": f"No serializer found for {form_type} in {country}"}
 
-        # 2. Extraire les données contextuelles selon le mode
-        contextual_prefill = self._get_contextual_prefill(
-            context_mode, context_source_id, user, country
-        )
+        # 2. Pattern matching exhaustif sur form_state
+        # Détermine : existing_data, final_location_id, is_new, has_been_renewed
+        if isinstance(form_state, CreateFormState) and form_state.kind == 'create':
+            # Nouveau formulaire vide
+            existing_data = {}
+            final_location_id = str(uuid.uuid4())
+            is_new = True
+            has_been_renewed = False
+            source_location_id = None  # Pas de source
 
-        # 3. Résoudre les conflits et déterminer le location_id (SERVICE)
-        conflict_result = self.conflict_resolver.resolve_location_id(
-            form_type, location_id, type_etat_lieux
-        )
-        final_location_id = conflict_result["final_location_id"]
-        is_new = conflict_result["is_new"]
-        has_been_renewed = conflict_result["has_been_renewed"]
+        elif isinstance(form_state, EditFormState) and form_state.kind == 'edit':
+            # Éditer location en DRAFT
+            location_id = str(form_state.location_id)
 
-        # 4. Fetch données existantes de la location (SERVICE)
-        existing_data = (
-            contextual_prefill.copy()
-        )  # Commencer avec données contextuelles
-        if not is_new and location_id:
-            location_data = self.data_fetcher.fetch_location_data(location_id)
-            if location_data:
-                # Merger : location data prioritaire sur contexte
-                existing_data = {**existing_data, **location_data}
+            # Vérifier conflit (si document déjà signé, on refuse l'édition)
+            conflict_result = self.conflict_resolver.resolve_location_id(
+                form_type, location_id, type_etat_lieux
+            )
 
-        # 5. Obtenir la configuration des steps depuis le serializer
+            if conflict_result["has_been_renewed"]:
+                # Document signé détecté → impossible d'éditer, utiliser RenewFormState
+                return {
+                    "error": "Cannot edit signed document. Use RenewFormState to create a new version."
+                }
+
+            existing_data = self.data_fetcher.fetch_location_data(location_id) or {}
+            final_location_id = location_id
+            is_new = False
+            has_been_renewed = False
+            source_location_id = None  # Pas de source
+
+        elif isinstance(form_state, ExtendFormState) and form_state.kind == 'extend':
+            # Créer depuis source (bien, bailleur, location)
+            source_id = str(form_state.source_id)
+
+            if form_state.source_type == 'location':
+                source_data = self.data_fetcher.fetch_location_data(source_id) or {}
+                source_location_id = source_id  # Pour verrouiller si location signée
+            elif form_state.source_type == 'bien':
+                source_data = self.data_fetcher.fetch_bien_data(source_id) or {}
+                source_location_id = None
+            elif form_state.source_type == 'bailleur':
+                source_data = self.data_fetcher.fetch_bailleur_data(source_id) or {}
+                source_location_id = None
+            else:
+                source_data = {}
+                source_location_id = None
+
+            # IMPORTANT: On copie TOUTES les données de la source
+            # prefill_fields sert uniquement à déterminer quels steps verrouiller
+            # mais on veut toutes les données
+            # (ex: rooms pour état des lieux depuis bail)
+            existing_data = source_data
+            final_location_id = str(uuid.uuid4())
+            is_new = True
+            has_been_renewed = False
+
+        elif isinstance(form_state, RenewFormState) and form_state.kind == 'renew':
+            # Renouvellement (document signé → nouveau location_id)
+            previous_location_id = str(form_state.previous_location_id)
+            existing_data = self.data_fetcher.fetch_location_data(previous_location_id) or {}
+            final_location_id = str(uuid.uuid4())
+            is_new = True
+            has_been_renewed = True
+            source_location_id = None  # Pas de source
+
+        else:
+            return {"error": f"Invalid FormState type: {type(form_state)}"}
+
+        # 3. Obtenir la configuration des steps depuis le serializer
         step_config = self._get_step_config(serializer_class, form_type)
 
-        # 6. Obtenir les steps verrouillées (SERVICE)
+        # 4. Obtenir les steps verrouillées (SERVICE)
+        # En mode extend depuis location, on vérifie le verrouillage de la source
+        lock_check_location_id = source_location_id if source_location_id else final_location_id
         locked_steps = self.step_filter.get_locked_steps(
-            final_location_id, country, is_new
+            lock_check_location_id, country, is_new
         )
 
-        # 7. Filtrer et enrichir les steps (SERVICE)
+        # 5. Filtrer et enrichir les steps (SERVICE)
         steps = self.step_filter.filter_steps(
             step_config, existing_data, locked_steps, serializer_class
         )
@@ -130,13 +187,12 @@ class FormOrchestrator:
         result = {
             "formData": form_data,
             "is_new": is_new,
-            "has_been_renewed": has_been_renewed,  # Nouveau flag
+            "has_been_renewed": has_been_renewed,
             "country": country,
             "form_type": form_type,
-            "context_mode": context_mode,
             "steps": steps,
             "prefill_data": existing_data,
-            "locked_steps_count": len(locked_steps) if location_id else 0,
+            "locked_steps_count": len(locked_steps),
         }
 
         # Ajouter la configuration des équipements depuis le serializer si disponible
@@ -676,17 +732,17 @@ class FormOrchestrator:
 
     def _get_tenant_documents_requirements(
         self,
-        location_id: Optional[str],
-        token: Optional[str],
+        location_id: str,
         request: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
         Retourne les requirements pour les documents tenant (MRH, Caution).
-        Utilise le token de signature pour récupérer le locataire.
+        Utilise le link_token (passé comme location_id)
+        pour récupérer la signature request.
 
         Args:
-            location_id: ID de la location (non utilisé pour tenant_documents)
-            token: Token de signature (utilisé comme context_source_id)
+            location_id: Link token du magic link
+            request: Request Django (pour build_absolute_uri)
 
         Returns:
             Dict avec steps, formData, etc.
@@ -695,12 +751,13 @@ class FormOrchestrator:
 
         from bail.models import BailSignatureRequest, Document, DocumentType
 
-        if not token:
-            return {"error": "Token is required for tenant_documents"}
+        if not location_id:
+            return {"error": "location_id is required for tenant_documents"}
 
         try:
-            # Récupérer la signature request via le token
-            sig_req = get_object_or_404(BailSignatureRequest, link_token=token)
+            # Récupérer la signature request via link_token
+            # Note: location_id contient en fait le link_token (magic link)
+            sig_req = get_object_or_404(BailSignatureRequest, link_token=location_id)
 
             # Vérifier que c'est bien un locataire (pas un bailleur)
             locataire = sig_req.locataire
@@ -771,7 +828,7 @@ class FormOrchestrator:
                 "formData": form_data,
                 "is_new": len(mrh_files) == 0,
                 "signataire": f"{locataire.firstName} {locataire.lastName}",
-                "location_id": token,  # On utilise le token comme ID
+                "location_id": location_id,  # UUID de la signature request
             }
 
         except Exception as e:

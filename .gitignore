@@ -7,3 +7,5 @@ key.pem
 .env.production
 venv/
 __pycache__/
+# Media files (generated PDFs)
+media/

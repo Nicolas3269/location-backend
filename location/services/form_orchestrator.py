@@ -12,6 +12,7 @@ from location.types.form_state import (
     EditFormState,
     ExtendFormState,
     FormState,
+    PrefillFormState,
     RenewFormState,
 )
 from rent_control.views import get_rent_control_info
@@ -117,30 +118,36 @@ class FormOrchestrator:
             source_location_id = None  # Pas de source
 
         elif isinstance(form_state, ExtendFormState) and form_state.kind == 'extend':
-            # Créer depuis source (bien, bailleur, location)
+            # Mode Extend: Location Actuelle/Ancienne - RÉUTILISER la location existante
+            source_id = str(form_state.source_id)
+            source_data = self.data_fetcher.fetch_location_data(source_id) or {}
+            source_location_id = source_id  # Pour check lock
+
+            # Copier TOUTES les données
+            existing_data = source_data
+            final_location_id = source_id  # ✅ RÉUTILISER le même location_id
+            is_new = False  # ✅ Pas une nouvelle location, c'est une location existante
+            has_been_renewed = False
+
+        elif isinstance(form_state, PrefillFormState) and form_state.kind == 'prefill':
+            # Mode Prefill: Nouvelle Location avec suggestions (JAMAIS de lock)
             source_id = str(form_state.source_id)
 
             if form_state.source_type == 'location':
                 source_data = self.data_fetcher.fetch_location_data(source_id) or {}
-                source_location_id = source_id  # Pour verrouiller si location signée
             elif form_state.source_type == 'bien':
                 source_data = self.data_fetcher.fetch_bien_data(source_id) or {}
-                source_location_id = None
             elif form_state.source_type == 'bailleur':
                 source_data = self.data_fetcher.fetch_bailleur_data(source_id) or {}
-                source_location_id = None
             else:
                 source_data = {}
-                source_location_id = None
 
-            # IMPORTANT: On copie TOUTES les données de la source
-            # prefill_fields sert uniquement à déterminer quels steps verrouiller
-            # mais on veut toutes les données
-            # (ex: rooms pour état des lieux depuis bail)
+            # Copier TOUTES les données (suggestions)
             existing_data = source_data
             final_location_id = str(uuid.uuid4())
             is_new = True
             has_been_renewed = False
+            source_location_id = None  # Pas de lock check en mode prefill
 
         elif isinstance(form_state, RenewFormState) and form_state.kind == 'renew':
             # Renouvellement (document signé → nouveau location_id)
@@ -164,6 +171,17 @@ class FormOrchestrator:
             lock_check_location_id, country, is_new
         )
 
+        # Pour PrefillFormState depuis bien, locker tous les steps
+        # SAUF ceux marqués unlocked_from_bien
+        if (isinstance(form_state, PrefillFormState) and
+            form_state.source_type == 'bien'):
+            for step in step_config:
+                step_id = step.get("id")
+                # Si le step n'est pas unlocked, le locker (s'il a une valeur)
+                if not step.get("unlocked_from_bien", False):
+                    if self._step_has_value(step_id, existing_data):
+                        locked_steps.add(step_id)
+
         # 5. Filtrer et enrichir les steps (SERVICE)
         steps = self.step_filter.filter_steps(
             step_config, existing_data, locked_steps, serializer_class
@@ -184,6 +202,23 @@ class FormOrchestrator:
         if existing_data:
             form_data.update(existing_data)
 
+        # Pour les états des lieux en mode ExtendFormState, filtrer les types disponibles
+        if form_type == "etat_lieux" and isinstance(form_state, ExtendFormState):
+            try:
+                location = Location.objects.get(id=form_state.source_id)
+                available_types = self._get_available_etat_lieux_types(location)
+
+                # Modifier le step type_etat_lieux pour n'afficher que les types disponibles
+                for step in steps:
+                    if step.get("id") == "type_etat_lieux" and available_types:
+                        step["available_choices"] = available_types
+                        # Si un seul choix, le pré-sélectionner
+                        if len(available_types) == 1 and not form_data.get("type_etat_lieux"):
+                            form_data["type_etat_lieux"] = available_types[0]
+            except Location.DoesNotExist:
+                pass
+
+
         result = {
             "formData": form_data,
             "is_new": is_new,
@@ -192,8 +227,33 @@ class FormOrchestrator:
             "form_type": form_type,
             "steps": steps,
             "prefill_data": existing_data,
+            "locked_steps": list(locked_steps),  # Liste des step_ids lockés
             "locked_steps_count": len(locked_steps),
         }
+
+        # Pour PrefillFormState, ajouter bien_id/bailleur_id au niveau racine
+        if isinstance(form_state, PrefillFormState):
+            if form_state.source_type == 'bien':
+                result["bien_id"] = str(form_state.source_id)
+                # Récupérer bailleur_id depuis le bien
+                try:
+                    bien = Bien.objects.prefetch_related("bailleurs").get(id=form_state.source_id)
+                    if bien.bailleurs.exists():
+                        result["bailleur_id"] = str(bien.bailleurs.first().id)
+                except Bien.DoesNotExist:
+                    pass
+            elif form_state.source_type == 'bailleur':
+                result["bailleur_id"] = str(form_state.source_id)
+            elif form_state.source_type == 'location':
+                # Pour prefill depuis location, récupérer bien_id et bailleur_id
+                try:
+                    location = Location.objects.select_related('bien').prefetch_related('bien__bailleurs').get(id=form_state.source_id)
+                    if location.bien:
+                        result["bien_id"] = str(location.bien.id)
+                        if location.bien.bailleurs.exists():
+                            result["bailleur_id"] = str(location.bien.bailleurs.first().id)
+                except Location.DoesNotExist:
+                    pass
 
         # Ajouter la configuration des équipements depuis le serializer si disponible
         if hasattr(serializer_class, "get_equipment_config"):
@@ -730,6 +790,44 @@ class FormOrchestrator:
 
         return False
 
+    def _get_available_etat_lieux_types(self, location: Location) -> list[str]:
+        """
+        Retourne les types d'état des lieux disponibles pour une location.
+        Un type est disponible si aucun EDL de ce type n'est SIGNED ou SIGNING.
+
+        Args:
+            location: Instance de Location
+
+        Returns:
+            Liste des types disponibles: ['entree', 'sortie'] ou ['entree'] ou ['sortie']
+        """
+        from etat_lieux.models import EtatLieux
+        from signature.document_status import DocumentStatus
+
+        available_types = []
+
+        # Vérifier l'entrée
+        edl_entree = EtatLieux.objects.filter(
+            location=location, type_etat_lieux="entree"
+        ).first()
+        if not edl_entree or edl_entree.status not in [
+            DocumentStatus.SIGNING,
+            DocumentStatus.SIGNED,
+        ]:
+            available_types.append("entree")
+
+        # Vérifier la sortie
+        edl_sortie = EtatLieux.objects.filter(
+            location=location, type_etat_lieux="sortie"
+        ).first()
+        if not edl_sortie or edl_sortie.status not in [
+            DocumentStatus.SIGNING,
+            DocumentStatus.SIGNED,
+        ]:
+            available_types.append("sortie")
+
+        return available_types
+
     def _get_tenant_documents_requirements(
         self,
         location_id: str,
@@ -837,3 +935,29 @@ class FormOrchestrator:
             logger = logging.getLogger(__name__)
             logger.exception("Error in _get_tenant_documents_requirements")
             return {"error": str(e)}
+
+    def _step_has_value(self, step_id: str, data: Dict[str, Any]) -> bool:
+        """
+        Vérifie si un step a une valeur dans les données.
+        Supporte les paths imbriqués (ex: "bien.localisation.adresse")
+        """
+        if not step_id or not data:
+            return False
+
+        parts = step_id.split(".")
+        current = data
+
+        for part in parts:
+            if not isinstance(current, dict) or part not in current:
+                return False
+            current = current[part]
+
+        # Vérifier si la valeur n'est pas None/vide
+        if current is None:
+            return False
+        if isinstance(current, str) and not current:
+            return False
+        if isinstance(current, (list, dict)) and len(current) == 0:
+            return False
+
+        return True

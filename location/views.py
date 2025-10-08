@@ -259,6 +259,19 @@ def create_or_get_bailleur(data):
         raise ValueError("Données du bailleur requises")
 
     validated = data["bailleur"]
+
+    # Vérifier si on doit réutiliser un bailleur existant
+    # (PrefillFormState depuis bailleur OU depuis bien)
+    bailleur_id = data.get("bailleur_id")  # Au niveau racine
+    if bailleur_id:
+        try:
+            bailleur = Bailleur.objects.get(id=bailleur_id)
+            logger.info(f"Réutilisation du bailleur existant: {bailleur_id}")
+            # Pas de co-bailleurs en mode réutilisation
+            return bailleur, []
+        except Bailleur.DoesNotExist:
+            logger.warning(f"Bailleur {bailleur_id} non trouvé, création d'un nouveau bailleur")
+
     bailleur_type = validated.get("bailleur_type")
     if not bailleur_type:
         raise ValueError("Type de bailleur requis")
@@ -720,8 +733,27 @@ def create_new_location(data, serializer_class, location_id=None):
         serializer_class: Classe de serializer à utiliser
         location_id: UUID spécifique à utiliser pour la location (optionnel)
     """
-    # 1. Créer le bien (peut être partiel selon la source)
-    bien = create_bien_from_form_data(data, serializer_class, save=True)
+    # 1. Créer OU récupérer le bien existant
+    # bien_id est au niveau racine (pas dans bien.bien_id)
+    bien_id = data.get("bien_id")  # PrefillFormState depuis bien
+
+    if bien_id:
+        # Réutiliser le bien existant (mode PrefillFormState depuis bien)
+        try:
+            bien = Bien.objects.get(id=bien_id)
+            logger.info(f"Réutilisation du bien existant: {bien_id}")
+
+            # Mettre à jour le bien avec les nouvelles données
+            # Note: Les champs lockés (adresse, type, etc.) ne sont pas dans data
+            # car ils ont été filtrés côté frontend (steps cachés)
+            # Seuls les champs unlocked_from_bien sont dans data
+            update_bien_fields(bien, data, serializer_class, location_id=None)
+        except Bien.DoesNotExist:
+            logger.warning(f"Bien {bien_id} non trouvé, création d'un nouveau bien")
+            bien = create_bien_from_form_data(data, serializer_class, save=True)
+    else:
+        # Créer un nouveau bien
+        bien = create_bien_from_form_data(data, serializer_class, save=True)
 
     # 2. Créer le bailleur principal et les autres bailleurs
     bailleur, autres_bailleurs = create_or_get_bailleur(data)

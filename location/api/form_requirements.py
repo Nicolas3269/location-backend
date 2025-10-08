@@ -18,6 +18,7 @@ from ..types.form_state import (
     CreateFormState,
     EditFormState,
     ExtendFormState,
+    PrefillFormState,
     RenewFormState,
 )
 
@@ -115,10 +116,12 @@ def get_form_requirements_authenticated(request, form_type):
 
     Query params:
         - location_id: Pour edit/renew d'un document existant
-        - context_mode: "from_bailleur" | "from_bien" | "from_location" (extend)
+        - context_mode: "from_bailleur" | "from_bien" | "from_location" |
+                        "location_actuelle" | "location_ancienne" |
+                        "location_nouvelle"
         - context_source_id: UUID source si context_mode fourni
         - type_etat_lieux: Type état des lieux si form_type == 'etat_lieux'
-        - prefill_fields: Champs à pré-remplir (mode extend)
+        - lock_fields: Champs à lock (mode extend), ignoré en mode prefill
 
     Args:
         form_type: Type de formulaire
@@ -143,7 +146,6 @@ def get_form_requirements_authenticated(request, form_type):
     context_mode = request.query_params.get("context_mode")
     context_source_id = request.query_params.get("context_source_id")
     type_etat_lieux = request.query_params.get("type_etat_lieux")
-    prefill_fields_str = request.query_params.get("prefill_fields", "")
 
     # Cas 1: Édition/Renouvellement (location_id fourni)
     # Inclut tenant_documents (locataire authentifié via magic link)
@@ -168,45 +170,71 @@ def get_form_requirements_authenticated(request, form_type):
                 # Document DRAFT → EditFormState
                 form_state = EditFormState(location_id=UUID(location_id))
 
-    # Cas 2: Mode extend (créer depuis source existante)
+    # Cas 2: Mode extend/prefill (créer depuis source existante)
     elif context_mode and context_source_id:
-        valid_context_modes = ["from_bailleur", "from_bien", "from_location"]
-        if context_mode not in valid_context_modes:
+        valid_modes = [
+            "from_bailleur", "from_bien", "from_location",
+            "location_actuelle", "location_ancienne", "location_nouvelle"
+        ]
+        if context_mode not in valid_modes:
             return Response(
                 {
                     "error": f"Invalid context_mode. "
-                    f"Must be one of: {', '.join(valid_context_modes)}"
+                    f"Must be one of: {', '.join(valid_modes)}"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Parser prefill_fields
-        prefill_fields = [
-            f.strip() for f in prefill_fields_str.split(",") if f.strip()
-        ]
-        if not prefill_fields:
-            # Par défaut, tout pré-remplir
+        # Modes Espace Bailleur
+        if context_mode in ["location_actuelle", "location_ancienne"]:
+            # Mode Extend: Lock SI source a docs signés
+            lock_fields_str = request.query_params.get("lock_fields", "")
+            lock_fields = [
+                f.strip() for f in lock_fields_str.split(",") if f.strip()
+            ]
+            if not lock_fields:
+                lock_fields = [
+                    "bien", "bailleur", "locataires", "rent_terms"
+                ]
+
+            form_state = ExtendFormState(
+                source_type="location",
+                source_id=UUID(context_source_id),
+                lock_fields=lock_fields,
+            )
+
+        elif context_mode == "location_nouvelle":
+            # Mode Prefill: Suggestions modifiables (pas de lock)
+            # sourceType pourrait être bien/bailleur/location
+            # Pour l'instant on assume location
+            form_state = PrefillFormState(
+                source_type="location",
+                source_id=UUID(context_source_id),
+            )
+
+        # Legacy modes (from_location, from_bien, from_bailleur)
+        else:
             if context_mode == "from_location":
-                prefill_fields = ["bien", "bailleur", "locataires", "rent_terms"]
-            elif context_mode == "from_bien":
-                prefill_fields = ["bien", "bailleur"]
-            else:  # from_bailleur
-                prefill_fields = ["bailleur"]
+                # Legacy: from_location = Extend avec lock
+                form_state = ExtendFormState(
+                    source_type="location",
+                    source_id=UUID(context_source_id),
+                    lock_fields=[
+                        "bien", "bailleur", "locataires", "rent_terms"
+                    ],
+                )
+            else:
+                # Legacy: from_bien/from_bailleur = Prefill sans lock
+                source_type_map = {
+                    "from_bien": "bien",
+                    "from_bailleur": "bailleur",
+                }
+                source_type = source_type_map[context_mode]
 
-        # Mapper context_mode vers source_type
-        source_type_map = {
-            "from_location": "location",
-            "from_bien": "bien",
-            "from_bailleur": "bailleur",
-        }
-        source_type = source_type_map[context_mode]
-
-        # Créer ExtendFormState
-        form_state = ExtendFormState(
-            source_type=source_type,  # type: ignore
-            source_id=UUID(context_source_id),
-            prefill_fields=prefill_fields,
-        )
+                form_state = PrefillFormState(
+                    source_type=source_type,  # type: ignore
+                    source_id=UUID(context_source_id),
+                )
 
     # Cas 3: Aucun paramètre → CreateFormState (nouveau formulaire)
     else:

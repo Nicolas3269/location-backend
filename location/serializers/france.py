@@ -58,6 +58,7 @@ SUPERFICIE_STEPS = [
         "fields": {
             "bien.caracteristiques.superficie": Bien.superficie,
         },
+        "unlocked_from_bien": True,  # Peut être corrigée même si bien existant
     },
 ]
 PIECES_INFO_STEPS = [
@@ -68,6 +69,7 @@ PIECES_INFO_STEPS = [
             "bien.caracteristiques.pieces_info": Bien.pieces_info,
         },
         "business_rules": ["atLeastOneRoom"],  # Au moins 1 chambre ou séjour
+        "unlocked_from_bien": True,  # Peut être complété/corrigé
     },
 ]
 MEUBLE_STEPS = [
@@ -77,6 +79,7 @@ MEUBLE_STEPS = [
         "fields": {
             "bien.caracteristiques.meuble": Bien.meuble,
         },
+        "unlocked_from_bien": True,  # Peut changer entre locations (meublé/non meublé)
     },
 ]
 
@@ -109,6 +112,7 @@ EQUIPEMENTS_PRIVATIVES_STEPS = [
         "fields": {
             "bien.equipements.annexes_privatives": Bien.annexes_privatives,
         },
+        "unlocked_from_bien": True,  # Équipements peuvent changer
     },
 ]
 EQUIPEMENTS_COLLECTIVES_STEPS = [
@@ -119,6 +123,7 @@ EQUIPEMENTS_COLLECTIVES_STEPS = [
         "fields": {
             "bien.equipements.annexes_collectives": Bien.annexes_collectives,
         },
+        "unlocked_from_bien": True,  # Équipements peuvent changer
     },
 ]
 EQUIPEMENTS_INFORMATION_STEPS = [
@@ -129,6 +134,7 @@ EQUIPEMENTS_INFORMATION_STEPS = [
         "fields": {
             "bien.equipements.information": Bien.information,
         },
+        "unlocked_from_bien": True,  # Informations peuvent changer
     },
 ]
 
@@ -142,6 +148,7 @@ ENERGIE_CHAUFFAGE_STEPS = [
             "bien.energie.chauffage.energie": Bien.chauffage_energie,
         },
         "business_rules": ["chauffageValidation"],  # Validation complète du chauffage
+        "unlocked_from_bien": True,  # Chauffage peut changer
     },
 ]
 ENERGIE_EAU_CHAUDE_STEPS = [
@@ -155,6 +162,7 @@ ENERGIE_EAU_CHAUDE_STEPS = [
         "business_rules": [
             "eauChaudeValidation"
         ],  # Validation complète de l'eau chaude
+        "unlocked_from_bien": True,  # Eau chaude peut changer
     },
 ]
 
@@ -166,6 +174,7 @@ DPE_STEPS = [
         "fields": {
             "bien.performance_energetique.classe_dpe": Bien.classe_dpe,
         },
+        "unlocked_from_bien": True,  # DPE peut être amélioré
     },
     {
         "id": "bien.performance_energetique.depenses_energetiques",
@@ -174,6 +183,7 @@ DPE_STEPS = [
         "fields": {
             "bien.performance_energetique.depenses_energetiques": Bien.depenses_energetiques,
         },
+        "unlocked_from_bien": True,  # Dépenses peuvent être mises à jour
     },
     {
         "id": "bien.regime.identifiant_fiscal",
@@ -186,6 +196,7 @@ DPE_STEPS = [
         "business_rules": [
             "identifiantFiscalValidation"
         ],  # Validation du choix de remplissage
+        "unlocked_from_bien": True,  # Peut être complété/corrigé
     },
 ]
 
@@ -464,6 +475,14 @@ class BaseLocationSerializer(serializers.Serializer):
 
     # Identifiant de la location existante (pour mise à jour)
     location_id = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+
+    # Identifiants pour réutiliser bien/bailleur existants (PrefillFormState)
+    bien_id = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    bailleur_id = serializers.CharField(
         required=False, allow_blank=True, allow_null=True
     )
 

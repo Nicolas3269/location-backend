@@ -8,7 +8,7 @@ et les transformer en dictionnaire utilisable par le frontend.
 from typing import Any, Dict, Optional
 
 from location.models import Bien, Location, RentTerms
-from rent_control.views import get_rent_control_info
+from rent_control.views import check_zone_status_via_ban, get_rent_control_info
 
 
 class FormDataFetcher:
@@ -41,7 +41,9 @@ class FormDataFetcher:
             Dict avec les données du bien ou None si inexistant
         """
         try:
-            bien = Bien.objects.select_related("bailleur").get(id=bien_id)
+            # Note: bailleurs est une relation ManyToMany, pas ForeignKey
+            # donc on ne peut pas utiliser select_related
+            bien = Bien.objects.prefetch_related("bailleurs").get(id=bien_id)
 
             data = {}
 
@@ -259,39 +261,95 @@ class FormDataFetcher:
         return data
 
     def _extract_bien_data(self, bien: Bien) -> Dict[str, Any]:
-        """Extrait les données d'un Bien (simplifié pour fetch_bien_data)."""
+        """Extrait les données d'un Bien pour prefill."""
         data = {
             "localisation": {},
             "caracteristiques": {},
             "performance_energetique": {},
+            "equipements": {},
+            "energie": {},
             "regime": {},
+            "zone_reglementaire": {},
         }
 
         # Localisation
         if bien.adresse:
             data["localisation"]["adresse"] = bien.adresse
-        if bien.latitude:
-            data["localisation"]["latitude"] = bien.latitude
-        if bien.longitude:
-            data["localisation"]["longitude"] = bien.longitude
+            if bien.latitude:
+                data["localisation"]["latitude"] = bien.latitude
+            if bien.longitude:
+                data["localisation"]["longitude"] = bien.longitude
+            # Calculer données réglementaires GPS (évoluent avec le temps)
+            if bien.latitude and bien.longitude:
+                # Zone tendue et permis de louer (via API BAN)
+                zone_status = check_zone_status_via_ban(
+                    bien.latitude, bien.longitude
+                )
+                if zone_status:
+                    data["zone_reglementaire"]["zone_tendue"] = zone_status.get(
+                        "is_zone_tendue", False
+                    )
+                    data["zone_reglementaire"]["permis_de_louer"] = zone_status.get(
+                        "is_permis_de_louer", False
+                    )
+
+                # Area ID pour encadrement des loyers (calcul prix de référence)
+                _, area = get_rent_control_info(bien.latitude, bien.longitude)
+                if area:
+                    data["localisation"]["area_id"] = area.id
 
         # Caractéristiques
         if bien.superficie or bien.type_bien:
             data["caracteristiques"] = {
                 "superficie": bien.superficie,
                 "type_bien": bien.type_bien,
+                "etage": bien.etage if bien.etage else None,
+                "porte": bien.porte if bien.porte else None,
+                "dernier_etage": bien.dernier_etage,
                 "meuble": bien.meuble,
             }
+            if bien.pieces_info:
+                data["caracteristiques"]["pieces_info"] = bien.pieces_info
 
         # Performance énergétique
         if bien.classe_dpe:
-            data["performance_energetique"] = {"classe_dpe": bien.classe_dpe}
+            data["performance_energetique"] = {
+                "classe_dpe": bien.classe_dpe,
+                "depenses_energetiques": (
+                    bien.depenses_energetiques if bien.depenses_energetiques else None
+                ),
+            }
 
         # Régime juridique
         if hasattr(bien, "regime_juridique"):
             data["regime"] = {
                 "regime_juridique": bien.regime_juridique or "monopropriete",
+                "periode_construction": bien.periode_construction if hasattr(bien, "periode_construction") else None,
+                "identifiant_fiscal": bien.identifiant_fiscal if hasattr(bien, "identifiant_fiscal") else None,
             }
+
+        # Équipements
+        if hasattr(bien, "annexes_privatives") and bien.annexes_privatives is not None:
+            data["equipements"]["annexes_privatives"] = bien.annexes_privatives
+
+        if hasattr(bien, "annexes_collectives") and bien.annexes_collectives is not None:
+            data["equipements"]["annexes_collectives"] = bien.annexes_collectives
+
+        if hasattr(bien, "information") and bien.information is not None:
+            data["equipements"]["information"] = bien.information
+
+        # Énergie
+        if hasattr(bien, "chauffage_type") and bien.chauffage_type is not None:
+            chauffage_data = {"type": bien.chauffage_type}
+            if bien.chauffage_energie is not None:
+                chauffage_data["energie"] = bien.chauffage_energie
+            data["energie"]["chauffage"] = chauffage_data
+
+        if hasattr(bien, "eau_chaude_type") and bien.eau_chaude_type is not None:
+            eau_chaude_data = {"type": bien.eau_chaude_type}
+            if bien.eau_chaude_energie is not None:
+                eau_chaude_data["energie"] = bien.eau_chaude_energie
+            data["energie"]["eau_chaude"] = eau_chaude_data
 
         return data
 

@@ -231,8 +231,8 @@ class FormOrchestrator:
             "locked_steps_count": len(locked_steps),
         }
 
-        # Pour PrefillFormState, ajouter bien_id/bailleur_id au niveau racine
-        if isinstance(form_state, PrefillFormState):
+        # Pour PrefillFormState ET ExtendFormState, ajouter bien_id/bailleur_id au niveau racine
+        if isinstance(form_state, (PrefillFormState, ExtendFormState)):
             if form_state.source_type == 'bien':
                 result["bien_id"] = str(form_state.source_id)
                 # Récupérer bailleur_id depuis le bien
@@ -245,7 +245,7 @@ class FormOrchestrator:
             elif form_state.source_type == 'bailleur':
                 result["bailleur_id"] = str(form_state.source_id)
             elif form_state.source_type == 'location':
-                # Pour prefill depuis location, récupérer bien_id et bailleur_id
+                # Pour prefill/extend depuis location, récupérer bien_id et bailleur_id
                 try:
                     location = Location.objects.select_related('bien').prefetch_related('bien__bailleurs').get(id=form_state.source_id)
                     if location.bien:

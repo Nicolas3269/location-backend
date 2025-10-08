@@ -412,7 +412,7 @@ Backend:
 
 Frontend (AdaptiveForm.tsx):
 → Détecte has_been_renewed: true
-→ Clear localStorage pour ce document
+→ Reset store Zustand (via resetFormProgress)
 → Reset currentStep = 0
 → Reset formData (vide)
 → Affiche le formulaire depuis le début
@@ -490,7 +490,7 @@ Backend:
 
 Frontend (AdaptiveForm.tsx):
 → Détecte has_been_renewed: true
-→ Clear localStorage pour ce document
+→ Reset store Zustand (via resetFormProgress)
 → Reset currentStep = 0
 → Reset formData (vide)
 → Affiche le formulaire depuis le début
@@ -725,11 +725,13 @@ def get_form_requirements(self, form_type, location_id, context_mode, context_so
 
 ### Principe
 
-Quand **l'utilisateur a signé** (statut devient SIGNING ou SIGNED) en mode standalone, **nettoyer le localStorage** pour éviter la pollution de données lors de la prochaine création.
+Quand **l'utilisateur a signé** (statut devient SIGNING ou SIGNED) en mode standalone, **nettoyer le store Zustand** pour éviter la pollution de données lors de la prochaine création.
 
 Le nettoyage se fait **dès que l'utilisateur courant a terminé sa signature**, pas forcément quand tous les signataires ont signé.
 
 ### Implémentation
+
+**Utiliser `resetFormProgress()` du store Zustand** (JAMAIS `localStorage.removeItem()` directement).
 
 **Quand nettoyer** :
 - ✅ Après que l'utilisateur a signé (document passe à SIGNING/SIGNED pour lui)
@@ -738,36 +740,35 @@ Le nettoyage se fait **dès que l'utilisateur courant a terminé sa signature**,
 
 ```typescript
 // Pour Quittance (dans StepQuittanceResult.tsx)
-// Nettoyage après génération du PDF (quittance = auto-signée)
+const { resetFormProgress } = useQuittanceFormStore()
 if (quittanceResult?.pdfUrl && bienId && countdown === 0) {
-  localStorage.removeItem('quittance-standalone-data')
-  localStorage.removeItem('quittance-standalone-progress')
+  resetFormProgress()
   router.push(`/mon-compte/mes-biens/${bienId}`)
 }
 
-// Pour Bail (à implémenter dans le composant de signature/succès)
-// Nettoyage après que l'utilisateur a signé (même si locataire n'a pas encore signé)
+// Pour Bail (dans GenericSignaturePage.tsx)
+const { resetFormProgress: resetBailProgress } = useBailFormStore()
 const handleAfterUserSigned = () => {
-  localStorage.removeItem('bail-standalone-data')
-  localStorage.removeItem('bail-standalone-progress')
+  resetBailProgress()
   // Redirection ou affichage message "En attente signature locataire"
 }
 
-// Pour État des Lieux (à implémenter dans le composant de signature/succès)
-// Nettoyage après que l'utilisateur a signé (même si l'autre partie n'a pas encore signé)
+// Pour État des Lieux (dans GenericSignaturePage.tsx)
+const { resetFormProgress: resetEtatLieuxProgress } = useEtatLieuxFormStore()
 const handleAfterUserSigned = () => {
-  localStorage.removeItem('etat-lieux-standalone-data')
-  localStorage.removeItem('etat-lieux-standalone-progress')
+  resetEtatLieuxProgress()
   // Redirection ou affichage message "En attente signature"
 }
 ```
 
-### Pattern LocalStorage
+### Stores Zustand
 
-Clés utilisées par document :
-- **Bail** : `bail-standalone-data`, `bail-standalone-progress`
-- **EDL** : `etat-lieux-standalone-data`, `etat-lieux-standalone-progress`
-- **Quittance** : `quittance-standalone-data`, `quittance-standalone-progress`
+Clés localStorage gérées automatiquement par Zustand persist :
+- **Bail** : `bail-form-storage`
+- **État des lieux** : `etat-lieux-form-storage`
+- **Quittance** : `quittance-form-storage`
+
+**JAMAIS** manipuler ces clés directement. Toujours passer par les stores.
 
 ---
 

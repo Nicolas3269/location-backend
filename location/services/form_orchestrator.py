@@ -90,7 +90,9 @@ class FormOrchestrator:
         has_been_renewed = conflict_result["has_been_renewed"]
 
         # 4. Fetch données existantes de la location (SERVICE)
-        existing_data = contextual_prefill.copy()  # Commencer avec données contextuelles
+        existing_data = (
+            contextual_prefill.copy()
+        )  # Commencer avec données contextuelles
         if not is_new and location_id:
             location_data = self.data_fetcher.fetch_location_data(location_id)
             if location_data:
@@ -183,63 +185,6 @@ class FormOrchestrator:
 
         return serializer_class.get_step_config()
 
-    def _step_has_complete_data(
-        self, step_id: str, config: Dict, existing_data: Dict
-    ) -> bool:
-        """
-        Vérifie si une step a ses données complètes.
-        Maintenant que l'ID de la step EST le chemin du field,
-        on vérifie directement si ce field a une valeur.
-        """
-        # L'ID de la step est maintenant le chemin complet du field
-        # Ex: "bien.localisation.adresse", "bailleur.personne", etc.
-        return self._field_has_value(step_id, existing_data)
-
-    def _field_has_value(self, field_path: str, data: Dict) -> bool:
-        """
-        Vérifie si un champ a une valeur dans les données.
-
-        IMPORTANT:
-        - None ou champ manquant = pas de valeur (step à afficher)
-        - [], {}, "" = valeur explicitement vide (step à NE PAS afficher)
-        """
-        parts = field_path.split(".")
-        current = data
-
-        for part in parts:
-            if isinstance(current, dict) and part in current:
-                current = current[part]
-                # Seul None est considéré comme "pas de valeur"
-                # [], {}, "" sont des valeurs explicites (vides mais définies)
-                if current is None:
-                    return False
-            else:
-                # Champ manquant = pas de valeur
-                return False
-
-        return True
-
-    def _set_field_value(self, field_path: str, value: Any, data: Dict) -> None:
-        """
-        Définit une valeur dans les données en créant la structure nécessaire.
-
-        Args:
-            field_path: Chemin du champ (ex: "bien.equipements.annexes_privatives")
-            value: Valeur à définir
-            data: Dictionnaire de données à modifier
-        """
-        parts = field_path.split(".")
-        current = data
-
-        # Naviguer jusqu'au parent du champ final
-        for part in parts[:-1]:
-            if part not in current:
-                current[part] = {}
-            current = current[part]
-
-        # Définir la valeur finale
-        current[parts[-1]] = value
-
     def _get_contextual_prefill(
         self,
         context_mode: str,
@@ -286,12 +231,15 @@ class FormOrchestrator:
                 # Pour les quittances, ajouter locataire_ids (UUIDs des locataires existants)
                 # Cela permet à get_or_create_quittance de récupérer directement les locataires
                 if location.locataires.exists():
-                    data["locataire_ids"] = [str(loc.id) for loc in location.locataires.all()]
+                    data["locataire_ids"] = [
+                        str(loc.id) for loc in location.locataires.all()
+                    ]
 
                 return data
 
         except Exception as e:
             import traceback
+
             print(f"Error extracting contextual prefill: {e}")
             traceback.print_exc()
             return {}
@@ -303,11 +251,7 @@ class FormOrchestrator:
         data = {"bailleur": {}}
 
         bailleur_type = (
-            "physique"
-            if bailleur.personne
-            else "morale"
-            if bailleur.societe
-            else None
+            "physique" if bailleur.personne else "morale" if bailleur.societe else None
         )
         data["bailleur"]["bailleur_type"] = bailleur_type
 
@@ -337,7 +281,9 @@ class FormOrchestrator:
 
         return data
 
-    def _extract_bien_and_bailleur_data(self, bien: Bien, country: str) -> Dict[str, Any]:
+    def _extract_bien_and_bailleur_data(
+        self, bien: Bien, country: str
+    ) -> Dict[str, Any]:
         """Extrait les données du bien ET du bailleur principal."""
         data = {
             "bien": {
@@ -398,8 +344,13 @@ class FormOrchestrator:
         if hasattr(bien, "annexes_privatives") and bien.annexes_privatives is not None:
             data["bien"]["equipements"]["annexes_privatives"] = bien.annexes_privatives
 
-        if hasattr(bien, "annexes_collectives") and bien.annexes_collectives is not None:
-            data["bien"]["equipements"]["annexes_collectives"] = bien.annexes_collectives
+        if (
+            hasattr(bien, "annexes_collectives")
+            and bien.annexes_collectives is not None
+        ):
+            data["bien"]["equipements"]["annexes_collectives"] = (
+                bien.annexes_collectives
+            )
 
         if hasattr(bien, "information") and bien.information is not None:
             data["bien"]["equipements"]["information"] = bien.information
@@ -690,7 +641,7 @@ class FormOrchestrator:
             # Chercher un bail SIGNING ou SIGNED pour cette location
             signing_or_signed_bail = Bail.objects.filter(
                 location=location,
-                status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED]
+                status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED],
             ).first()
 
             return signing_or_signed_bail is not None
@@ -724,7 +675,10 @@ class FormOrchestrator:
         return False
 
     def _get_tenant_documents_requirements(
-        self, location_id: Optional[str], token: Optional[str], request: Optional[Any] = None
+        self,
+        location_id: Optional[str],
+        token: Optional[str],
+        request: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
         Retourne les requirements pour les documents tenant (MRH, Caution).
@@ -737,8 +691,9 @@ class FormOrchestrator:
         Returns:
             Dict avec steps, formData, etc.
         """
-        from bail.models import BailSignatureRequest, Document, DocumentType
         from django.shortcuts import get_object_or_404
+
+        from bail.models import BailSignatureRequest, Document, DocumentType
 
         if not token:
             return {"error": "Token is required for tenant_documents"}
@@ -805,7 +760,9 @@ class FormOrchestrator:
                 "caution_requise": locataire.caution_requise,
                 "tenant_documents": {
                     "attestation_mrh": mrh_files,
-                    "caution_solidaire": caution_files if locataire.caution_requise else [],
+                    "caution_solidaire": caution_files
+                    if locataire.caution_requise
+                    else [],
                 },
             }
 
@@ -819,6 +776,7 @@ class FormOrchestrator:
 
         except Exception as e:
             import logging
+
             logger = logging.getLogger(__name__)
             logger.exception("Error in _get_tenant_documents_requirements")
             return {"error": str(e)}

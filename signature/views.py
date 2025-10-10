@@ -66,9 +66,10 @@ def get_signature_request_generic(request, token, model_class):
             response_data["pdfUrl"] = request.build_absolute_uri(document.pdf.url)
 
         # Générer et envoyer un OTP seulement si demandé explicitement
-        # (via query param send_otp=true ou si aucun OTP n'existe)
+        # (via query param send_otp=true)
+        # Ne PAS envoyer automatiquement si l'OTP est vide
         send_otp_param = request.GET.get("send_otp", "false").lower() == "true"
-        should_send_otp = send_otp_param or not sig_req.otp
+        should_send_otp = send_otp_param
 
         if should_send_otp:
             sig_req.generate_otp()

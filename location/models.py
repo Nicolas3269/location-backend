@@ -5,6 +5,7 @@ Location est l'entité pivot centrale
 
 import uuid
 
+from django.contrib.auth import get_user_model
 from django.db import models
 from simple_history.models import HistoricalRecords
 
@@ -16,6 +17,8 @@ from rent_control.choices import (
     SystemType,
 )
 from rent_control.views import get_rent_control_info
+
+User = get_user_model()
 
 
 class BaseModel(models.Model):
@@ -54,6 +57,16 @@ class DPEClass(models.TextChoices):
 class Personne(BaseModel):
     """Personne physique (propriétaire, signataire, etc.)"""
 
+    # Lien vers le compte utilisateur (créé automatiquement via email)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="personnes",
+        help_text="Compte utilisateur associé (créé automatiquement via email)",
+    )
+
     lastName = models.CharField(max_length=100, db_column="nom")
     firstName = models.CharField(max_length=100, db_column="prenom")
     date_naissance = models.DateField(
@@ -75,6 +88,29 @@ class Personne(BaseModel):
     @property
     def full_name(self):
         return f"{self.firstName} {self.lastName}"
+
+    def save(self, *args, **kwargs):
+        """
+        Crée ou associe automatiquement un User lors de la sauvegarde.
+        Si un User existe avec cet email, il est réutilisé.
+        Sinon, un nouveau User est créé.
+        """
+        # Créer/récupérer le User basé sur l'email
+        if self.email and not self.user:
+            user, created = User.objects.get_or_create(
+                email=self.email,
+                defaults={
+                    "username": self.email,  # Email comme username
+                    "first_name": self.firstName,
+                    "last_name": self.lastName,
+                },
+            )
+            self.user = user
+
+            # Ne PAS update le nom si le user existe déjà
+            # (évite d'écraser avec une faute de frappe)
+
+        super().save(*args, **kwargs)
 
 
 class Societe(BaseModel):

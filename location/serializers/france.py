@@ -214,13 +214,17 @@ PERSON_STEPS = [
         "required_fields": [],  # Validation par business rule
         "fields": {},  # Géré par le serializer BailleurInfoSerializer
         "business_rules": [
-            "bailleurPersonneValidation"
+            "isAuthenticated",  # L'utilisateur doit être authentifié
+            "bailleurPersonneValidation",
         ],  # Validation personne physique
     },
     {
         "id": "bailleur.signataire",
         "condition": "bailleur_is_morale",
         "required_fields": [],  # Géré par serializer
+        "business_rules": [
+            "isAuthenticated",
+        ],
         "fields": {},  # Géré par le serializer
     },
     {
@@ -479,9 +483,7 @@ class BaseLocationSerializer(serializers.Serializer):
     )
 
     # Identifiants pour réutiliser bien/bailleur existants (PrefillFormState)
-    bien_id = serializers.CharField(
-        required=False, allow_blank=True, allow_null=True
-    )
+    bien_id = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     bailleur_id = serializers.CharField(
         required=False, allow_blank=True, allow_null=True
     )

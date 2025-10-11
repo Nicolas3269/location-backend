@@ -5,9 +5,6 @@ Utilitaires pour la nouvelle architecture EtatLieux
 import logging
 from typing import Dict, List
 
-from django.conf import settings
-from django.core.mail import send_mail
-
 from etat_lieux.models import (
     EtatLieux,
     EtatLieuxEquipement,
@@ -126,55 +123,6 @@ def create_etat_lieux_signature_requests(etat_lieux):
     """
 
     create_signature_requests_generic(etat_lieux, EtatLieuxSignatureRequest)
-
-
-def send_etat_lieux_signature_email(signature_request):
-    """
-    Envoie un email de demande de signature pour un état des lieux.
-    Factorisation de la logique d'envoi d'email.
-    """
-
-    person = signature_request.bailleur_signataire or signature_request.locataire
-    etat_lieux = signature_request.etat_lieux
-
-    subject = (
-        f"Signature requise - État des lieux {etat_lieux.get_type_etat_lieux_display()}"
-    )
-
-    # URL de signature (à adapter selon votre frontend)
-    signature_url = (
-        f"{settings.FRONTEND_URL}/etat-lieux/signature/{signature_request.link_token}"
-    )
-
-    message = f"""
-    Bonjour {person.firstName} {person.lastName},
-
-    Vous êtes invité.e à signer l'état des lieux {etat_lieux.get_type_etat_lieux_display()}
-    pour le bien situé à : {etat_lieux.location.bien.adresse}
-
-    Pour procéder à la signature, cliquez sur le lien suivant :
-    {signature_url}
-
-    Cordialement,
-    L'équipe Location
-    """
-
-    try:
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[person.email],
-        )
-        logger.info(
-            f"Email de signature envoyé à {person.email} "
-            f"pour état des lieux {etat_lieux.id}"
-        )
-    except Exception as e:
-        logger.error(
-            f"Erreur lors de l'envoi de l'email de signature à {person.email}: {e}"
-        )
-        raise
 
 
 def create_equipments(etat_lieux: EtatLieux, equipments_data: List[Dict]) -> None:

@@ -1,35 +1,8 @@
 import logging
 
-from django.conf import settings
-from django.core.mail import send_mail as django_send_mail
-
 from bail.models import BailSignatureRequest
 
 logger = logging.getLogger(__name__)
-
-
-def send_mail(subject, message, from_email, recipient_list):
-    django_send_mail(subject, message, from_email, recipient_list)
-
-
-def send_signature_email(signature_request: BailSignatureRequest):
-    person = signature_request.bailleur_signataire or signature_request.locataire
-    link = f"{settings.FRONTEND_URL}/bail/signing/{signature_request.link_token}/"
-    message = f"""
-Bonjour {person.firstName},
-
-Veuillez signer le bail en suivant ce lien : {link}
-
-Merci,
-L'équipe HESTIA
-"""
-    send_mail(
-        subject="Signature de votre bail",
-        message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        # recipient_list=[person.email],
-        recipient_list=["nicolas3269@gmail.com"],
-    )
 
 
 def create_signature_requests(bail):

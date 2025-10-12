@@ -44,6 +44,18 @@ def verify_google_token(token: str) -> Tuple[bool, Optional[str], Optional[str]]
     Vérifie un token Google et retourne (success, email, error_message)
     """
     try:
+        # En mode DEBUG, accepter un token de test spécial pour E2E
+        if settings.DEBUG and token.startswith("E2E_TEST_TOKEN:"):
+            email = token.split(":", 1)[1]  # Format: "E2E_TEST_TOKEN:email@example.com"
+            logger.info(f"🧪 Test token detected for E2E: {email}")
+            return True, {
+                "email": email,
+                "given_name": "Test",
+                "family_name": "E2E",
+                "email_verified": True,
+                "iss": "accounts.google.com"
+            }, None
+
         # Configuration Google Client ID à définir dans settings.py
         GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
         if not GOOGLE_CLIENT_ID:

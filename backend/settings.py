@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django.contrib.gis",  # Add GeoDjango
     "simple_history",
-    "mjml",  # MJML pour emails responsive
     # Apps
     "authentication",
     "location",

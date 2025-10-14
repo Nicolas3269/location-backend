@@ -1,10 +1,8 @@
 """
 Service d'envoi d'emails pour les quittances.
-Utilise MJML pour des emails responsive.
 """
 from django.core.mail import EmailMultiAlternatives
-from django.template.loader import get_template
-from mjml.tools import mjml_render
+from django.template.loader import render_to_string
 
 
 def send_quittance_email(quittance, pdf_url: str):
@@ -35,10 +33,8 @@ def send_quittance_email(quittance, pdf_url: str):
         'pdf_url': pdf_url,
     }
 
-    # Compiler MJML → HTML
-    mjml_template = get_template('email/quittance_email.mjml')
-    mjml_content = mjml_template.render(context)
-    html_content = mjml_render(mjml_content)
+    # Render HTML email template
+    html_content = render_to_string('email/quittance_email.html', context)
 
     # Fallback texte brut
     text_content = f"""

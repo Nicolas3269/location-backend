@@ -39,7 +39,6 @@ num2words = "^0.5.14"
 pillow = "^11.3.0"
 drf-spectacular = "^0.28.0"
 django-simple-history = "^3.10.1"
-django-mjml = "^1.4"
 
 
 [tool.poetry.group.dev.dependencies]

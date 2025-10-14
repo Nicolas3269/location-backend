@@ -1,15 +1,14 @@
 """
-Management command pour tester l'email MJML de quittance.
+Management command pour tester l'email de quittance.
 Usage: python manage.py send_test_email --email test@example.com
 """
 from django.core.management.base import BaseCommand
 from django.core.mail import EmailMultiAlternatives
-from django.template.loader import get_template
-from mjml.tools import mjml_render
+from django.template.loader import render_to_string
 
 
 class Command(BaseCommand):
-    help = 'Envoie un email de test pour la quittance (MJML) vers MailHog'
+    help = 'Envoie un email de test pour la quittance vers MailHog'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -34,14 +33,12 @@ class Command(BaseCommand):
             'pdf_url': 'http://localhost:8003/media/quittances/test.pdf',
         }
 
-        self.stdout.write('📧 Compilation du template MJML...')
+        self.stdout.write('📧 Génération de l\'email HTML...')
 
-        # Compiler MJML → HTML
-        mjml_template = get_template('email/quittance_email.mjml')
-        mjml_content = mjml_template.render(context)
-        html_content = mjml_render(mjml_content)
+        # Render HTML email template
+        html_content = render_to_string('email/quittance_email.html', context)
 
-        self.stdout.write(self.style.SUCCESS('✅ Template MJML compilé'))
+        self.stdout.write(self.style.SUCCESS('✅ Template HTML généré'))
 
         # Fallback texte brut
         text_content = f"""

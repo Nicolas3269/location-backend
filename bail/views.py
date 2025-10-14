@@ -13,7 +13,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from weasyprint import HTML
 
-from backend.pdf_utils import get_pdf_iframe_url, get_static_pdf_iframe_url
+from backend.pdf_utils import (
+    get_logo_pdf_base64_data_uri,
+    get_pdf_iframe_url,
+    get_static_pdf_iframe_url,
+)
 from bail.constants import FORMES_JURIDIQUES
 from bail.generate_bail.mapping import BailMapping
 from bail.models import (
@@ -25,6 +29,7 @@ from bail.models import (
 from bail.utils import (
     create_signature_requests,
 )
+
 # from etat_lieux.utils import get_or_create_pieces_for_bien  # Supprimé - nouvelle architecture
 from location.models import (
     Bien,
@@ -66,7 +71,7 @@ def generate_bail_pdf(request):
         zone_tendue_avec_loyer_encadre = bool(encadrement_data["prix_reference"])
         # Générer le PDF depuis le template HTML
         html = render_to_string(
-            "pdf/bail.html",
+            "pdf/bail/bail.html",
             {
                 "bail": bail,
                 "acte_de_cautionnement": acte_de_cautionnement,
@@ -99,9 +104,13 @@ def generate_bail_pdf(request):
                 "potentiel_permis_de_louer": BailMapping.potentiel_permis_de_louer(
                     bail
                 ),
+                "logo_base64_uri": get_logo_pdf_base64_data_uri(),
             },
         )
-        pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
+        pdf_bytes = HTML(
+            string=html,
+            base_url=request.build_absolute_uri(),
+        ).write_pdf()
 
         # Noms de fichiers
         base_filename = f"bail_{bail.id}_{uuid.uuid4().hex}"
@@ -528,7 +537,9 @@ def get_bail_bien_id(request, bail_id):
             {
                 "success": True,
                 "bail_id": bail_id,
-                "bien_id": bail.location.bien.id if bail.location and bail.location.bien else None,
+                "bien_id": bail.location.bien.id
+                if bail.location and bail.location.bien
+                else None,
             }
         )
     except Exception as e:
@@ -746,8 +757,7 @@ def upload_locataire_document(request):
                 {
                     "success": False,
                     "error": (
-                        "Type invalide. Attendu: attestation_mrh ou "
-                        "caution_solidaire"
+                        "Type invalide. Attendu: attestation_mrh ou caution_solidaire"
                     ),
                 },
                 status=400,
@@ -759,8 +769,7 @@ def upload_locataire_document(request):
         # avant d'uploader le nouveau (comportement "remplacer")
         if document_type == DocumentType.ATTESTATION_MRH:
             old_documents = Document.objects.filter(
-                locataire=locataire,
-                type_document=DocumentType.ATTESTATION_MRH
+                locataire=locataire, type_document=DocumentType.ATTESTATION_MRH
             )
             # Supprimer les fichiers physiques avant de supprimer les entrées BDD
             for old_doc in old_documents:
@@ -801,5 +810,3 @@ def upload_locataire_document(request):
     except Exception as e:
         logger.exception("Erreur lors de l'upload des documents locataire")
         return JsonResponse({"success": False, "error": str(e)}, status=500)
-
-

@@ -1,0 +1,130 @@
+{% extends "base/pdf_base.html" %}
+
+{% block title %}Quittance de loyer - {{ mois|title }} {{ annee }}{% endblock %}
+
+{% block extra_css %}
+/* Optimisation pour tenir sur une page */
+.document-header {
+    margin: -1.5cm -1.5cm 15px -1.5cm; /* Réduction de la marge bottom */
+    padding: 20px; /* Réduction du padding */
+}
+
+.info-grid {
+    margin-bottom: 10px; /* Réduction de l'espacement */
+}
+
+.info-section {
+    padding: 10px; /* Réduction du padding */
+}
+
+.amount-section {
+    margin: 15px 0; /* Réduction des marges */
+    padding: 12px 15px; /* Réduction du padding */
+}
+
+.amount-number {
+    font-size: 14pt; /* Réduction de la taille */
+}
+
+.highlight-box {
+    padding: 15px; /* Réduction du padding */
+    margin: 15px 0; /* Réduction des marges */
+}
+
+.highlight-box p {
+    margin-bottom: 10px; /* Réduction des marges */
+}
+
+.highlight-box ul {
+    margin: 10px 0; /* Réduction des marges */
+}
+
+.signature-section {
+    margin-top: 15px; /* Réduction de la marge */
+    padding: 10px; /* Réduction du padding */
+}
+
+.footer {
+    margin-top: 15px; /* Réduction de la marge */
+    font-size: 8pt; /* Réduction de la taille */
+    padding-top: 10px; /* Réduction du padding */
+}
+
+.footer p {
+    margin-bottom: 5px; /* Réduction des marges */
+}
+{% endblock %}
+
+{% block content %}
+<!-- En-tête -->
+<div class="document-header">
+    <h1>Quittance de Loyer</h1>
+    <div class="subtitle">{{ mois|title }} {{ annee }}</div>
+</div>
+
+<!-- Parties (composant réutilisable) -->
+{% include "pdf/quittance/components/info_parties.html" with bailleur_nom=premier_bailleur.full_name bailleur_adresse=bailleur_adresse locataires=locataires nb_locataires=nb_locataires adresse_bien=adresse_bien bien_etage=location.bien.etage bien_porte=location.bien.porte %}
+
+<!-- Montant -->
+<div class="amount-section">
+    <div class="amount-number">{{ montant_total }} €</div>
+</div>
+
+<!-- Attestation -->
+<div class="highlight-box">
+    <p>
+        {% if bailleur_type == "personne_physique" %}
+            Je soussigné(e) <strong>{{ premier_bailleur.personne.firstName }} {{ premier_bailleur.personne.lastName }}</strong>,
+            propriétaire du logement situé <strong>{{ adresse_bien }}</strong>,
+            reconnais avoir reçu de
+        {% elif bailleur_type == "societe" %}
+            Je soussigné(e) <strong>{{ premier_bailleur.signataire.firstName }} {{ premier_bailleur.signataire.lastName }}</strong>,
+            représentant de la société <strong>{{ premier_bailleur.societe.raison_sociale }}</strong>
+            ({{ premier_bailleur.societe.forme_juridique }}),
+            propriétaire du logement situé <strong>{{ adresse_bien }}</strong>,
+            reconnais avoir reçu de
+        {% endif %}
+        {% if nb_locataires > 1 %}
+            <strong>{% for loc in locataires %}{{ loc.full_name }}{% if not forloop.last %}, {% endif %}{% endfor %}</strong>,
+            locataires dudit logement,
+        {% else %}
+            <strong>{{ locataires.0.full_name }}</strong>,
+            locataire dudit logement,
+        {% endif %}
+        les sommes suivantes au titre du loyer du mois de <strong>{{ mois|lower }} {{ annee }}</strong> :
+    </p>
+
+    <ul>
+        <li>
+            <span style="font-weight: 600;">Loyer hors charges :</span>
+            <strong style="color: #2680eb;">{{ montant_loyer_hc }}€</strong>
+        </li>
+        <li>
+            <span style="font-weight: 600;">Charges récupérables :</span>
+            <strong style="color: #2680eb;">{{ montant_charges }}€</strong>
+        </li>
+        <li style="padding-top: 8px; border-top: 1px solid #e3e5e8;">
+            <span style="font-weight: 600;">Total payé :</span>
+            <strong style="color: #2680eb; font-size: 11pt;">{{ montant_total }}€</strong>
+            <span style="color: #6c6b70; font-size: 10pt;">({{ montant_en_lettres }})</span>
+        </li>
+    </ul>
+
+    <p style="margin: 0;">
+        Le paiement a été effectué le <strong>{{ date_paiement|date:"d/m/Y" }}</strong>.
+    </p>
+</div>
+
+<!-- Signature (composant réutilisable) -->
+{% include "pdf/quittance/components/signature_block.html" with signature_title="Signature du bailleur" signature_date=date_generation signature_image=bailleur_signature signature_name=premier_bailleur.full_name %}
+
+<!-- Footer légal -->
+<div class="footer">
+    <p style="margin: 0 0 5px 0; font-size: 8pt;">
+        Cette quittance annule tous les reçus qui auraient pu être donnés précédemment pour le même terme de loyer.
+    </p>
+    <p style="margin: 0; font-size: 8pt;">
+        <em>Article 21 de la loi n°89-462 du 6 juillet 1989 : "Le bailleur est tenu de transmettre gratuitement une quittance au locataire qui en fait la demande."</em>
+    </p>
+</div>
+{% endblock %}

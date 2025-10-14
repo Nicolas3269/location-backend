@@ -13,7 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from weasyprint import HTML
 
-from backend.pdf_utils import get_static_pdf_iframe_url
+from backend.pdf_utils import get_logo_pdf_base64_data_uri, get_static_pdf_iframe_url
 from etat_lieux.models import (
     EtatLieux,
     EtatLieuxEquipement,
@@ -462,6 +462,7 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
         "locataires": locataires,
         "pieces_enrichies": pieces_enrichies,
         "total_radiateurs": total_radiateurs,
+        "logo_base64_uri": get_logo_pdf_base64_data_uri(),
     }
 
 
@@ -500,8 +501,11 @@ def generate_etat_lieux_pdf(request):
         context = prepare_etat_lieux_data_for_pdf(etat_lieux)
 
         # Générer le HTML et le convertir en PDF
-        html = render_to_string("pdf/etat_lieux.html", context)
-        pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
+        html = render_to_string("pdf/etat_lieux/etat_lieux.html", context)
+        pdf_bytes = HTML(
+            string=html,
+            base_url=request.build_absolute_uri(),
+        ).write_pdf()
 
         # Ajouter les champs de signature et sauvegarder le PDF
         add_signature_fields_to_pdf(pdf_bytes, etat_lieux)

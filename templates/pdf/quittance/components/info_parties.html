@@ -1,0 +1,38 @@
+{# Composant : Affichage Bailleur + Locataire #}
+<div class="info-grid">
+    <div class="info-section">
+        <h3>Bailleur</h3>
+        <div class="info-row">
+            <span class="label">Nom :</span>
+            <span class="value">{{ bailleur_nom }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Adresse :</span>
+            <span class="value">{{ bailleur_adresse }}</span>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h3>Locataire{% if nb_locataires > 1 %}s{% endif %}</h3>
+        <div class="info-row">
+            <span class="label">Nom :</span>
+            <span class="value">
+                {% for locataire in locataires %}
+                    {{ locataire.full_name }}{% if not forloop.last %}<br>{% endif %}
+                {% endfor %}
+            </span>
+        </div>
+        <div class="info-row">
+            <span class="label">Adresse du bien :</span>
+            <span class="value">
+                {{ adresse_bien }}
+                {% if bien_etage or bien_porte %}
+                    <br>
+                    {% if bien_etage %}Étage {{ bien_etage }}{% endif %}
+                    {% if bien_etage and bien_porte %}, {% endif %}
+                    {% if bien_porte %}Porte {{ bien_porte }}{% endif %}
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</div>

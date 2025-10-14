@@ -13,7 +13,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from weasyprint import HTML
 
-from location.models import Bailleur, Locataire
+from backend.pdf_utils import get_logo_pdf_base64_data_uri
+from location.models import Bailleur
 
 from .models import Quittance
 from .signature_utils import generate_text_signature
@@ -54,7 +55,7 @@ def get_or_create_quittance_for_location(location, validated_data):
     Returns:
         quittance_id: L'ID de la quittance existante ou nouvellement créée
     """
-    logger.info(f"=== get_or_create_quittance_for_location ===")
+    logger.info("=== get_or_create_quittance_for_location ===")
     logger.info(f"Location: {location.id}")
     logger.info(f"Validated data keys: {list(validated_data.keys())}")
 
@@ -72,11 +73,17 @@ def get_or_create_quittance_for_location(location, validated_data):
 
     if not mois or not annee or not date_paiement:
         logger.error("Erreur: mois, annee ou date_paiement manquant")
-        raise ValueError("mois, annee et date_paiement sont requis pour générer une quittance")
+        raise ValueError(
+            "mois, annee et date_paiement sont requis pour générer une quittance"
+        )
 
     if loyer_hors_charges is None or charges is None:
-        logger.error(f"Erreur: loyer_hors_charges={loyer_hors_charges}, charges={charges}")
-        raise ValueError("loyer_hors_charges et charges sont requis pour générer une quittance")
+        logger.error(
+            f"Erreur: loyer_hors_charges={loyer_hors_charges}, charges={charges}"
+        )
+        raise ValueError(
+            "loyer_hors_charges et charges sont requis pour générer une quittance"
+        )
 
     # Convertir la date de paiement
     if isinstance(date_paiement, str):
@@ -112,14 +119,18 @@ def get_or_create_quittance_for_location(location, validated_data):
             if locataires_selectionnes.exists():
                 existing_quittance.locataires.set(locataires_selectionnes)
                 updated = True
-                logger.info(f"{locataires_selectionnes.count()} locataire(s) spécifique(s) associé(s) à la quittance")
+                logger.info(
+                    f"{locataires_selectionnes.count()} locataire(s) spécifique(s) associé(s) à la quittance"
+                )
         else:
             # Si aucun locataire_ids fourni, associer TOUS les locataires de la location
             tous_locataires = location.locataires.all()
             if tous_locataires.exists():
                 existing_quittance.locataires.set(tous_locataires)
                 updated = True
-                logger.info(f"TOUS les locataires de la location associés à la quittance ({tous_locataires.count()})")
+                logger.info(
+                    f"TOUS les locataires de la location associés à la quittance ({tous_locataires.count()})"
+                )
 
         if updated:
             existing_quittance.save()
@@ -129,6 +140,7 @@ def get_or_create_quittance_for_location(location, validated_data):
 
     # Créer une nouvelle quittance avec le statut DRAFT par défaut
     from signature.document_status import DocumentStatus
+
     quittance = Quittance.objects.create(
         location=location,
         mois=mois,
@@ -149,12 +161,18 @@ def get_or_create_quittance_for_location(location, validated_data):
     if locataire_ids:
         # Récupérer directement les locataires par leurs UUIDs
         locataires_selectionnes = Locataire.objects.filter(id__in=locataire_ids)
-        logger.info(f"Locataires trouvés en DB: {[str(loc.id) for loc in locataires_selectionnes]}")
+        logger.info(
+            f"Locataires trouvés en DB: {[str(loc.id) for loc in locataires_selectionnes]}"
+        )
 
         if locataires_selectionnes.exists():
             quittance.locataires.set(locataires_selectionnes)
-            locataires_names = ", ".join([f"{loc.firstName} {loc.lastName}" for loc in locataires_selectionnes])
-            logger.info(f"Quittance créée pour {locataires_selectionnes.count()} locataire(s) spécifique(s): {locataires_names}")
+            locataires_names = ", ".join(
+                [f"{loc.firstName} {loc.lastName}" for loc in locataires_selectionnes]
+            )
+            logger.info(
+                f"Quittance créée pour {locataires_selectionnes.count()} locataire(s) spécifique(s): {locataires_names}"
+            )
         else:
             logger.warning(f"Aucun locataire trouvé pour les IDs: {locataire_ids}")
     else:
@@ -162,7 +180,9 @@ def get_or_create_quittance_for_location(location, validated_data):
         tous_locataires = location.locataires.all()
         if tous_locataires.exists():
             quittance.locataires.set(tous_locataires)
-            logger.info(f"Quittance créée pour TOUS les locataires de la location ({tous_locataires.count()})")
+            logger.info(
+                f"Quittance créée pour TOUS les locataires de la location ({tous_locataires.count()})"
+            )
         else:
             logger.warning("Aucun locataire trouvé dans la location")
 
@@ -193,11 +213,13 @@ def generate_quittance_pdf(request):
 
         # Récupérer la quittance avec toutes les relations nécessaires
         try:
-            quittance = Quittance.objects.select_related(
-                "location__bien", "location__mandataire"
-            ).prefetch_related(
-                "location__locataires", "location__bien__bailleurs"
-            ).get(id=quittance_id)
+            quittance = (
+                Quittance.objects.select_related(
+                    "location__bien", "location__mandataire"
+                )
+                .prefetch_related("location__locataires", "location__bien__bailleurs")
+                .get(id=quittance_id)
+            )
             logger.info(f"Quittance trouvée: {quittance.id}")
         except Quittance.DoesNotExist:
             logger.error(f"Quittance introuvable: {quittance_id}")
@@ -211,7 +233,9 @@ def generate_quittance_pdf(request):
         annee = quittance.annee
         date_paiement_obj = quittance.date_paiement
 
-        logger.info(f"Montants de la quittance: loyer={quittance.montant_loyer}, charges={quittance.montant_charges}")
+        logger.info(
+            f"Montants de la quittance: loyer={quittance.montant_loyer}, charges={quittance.montant_charges}"
+        )
 
         # Préparer les données pour le template
         # Récupérer les montants depuis la Quittance (pas depuis RentTerms)
@@ -248,7 +272,9 @@ def generate_quittance_pdf(request):
         logger.info(f"{len(locataires)} locataire(s) pour cette quittance")
 
         if not locataires:
-            logger.error("Aucun locataire associé à cette quittance - données incohérentes")
+            logger.error(
+                "Aucun locataire associé à cette quittance - données incohérentes"
+            )
             return JsonResponse(
                 {
                     "success": False,
@@ -258,13 +284,17 @@ def generate_quittance_pdf(request):
             )
 
         # Déterminer qui signe et le texte approprié
-        logger.info(f"Bailleur personne: {premier_bailleur.personne}, societe: {premier_bailleur.societe}, signataire: {premier_bailleur.signataire}")
+        logger.info(
+            f"Bailleur personne: {premier_bailleur.personne}, societe: {premier_bailleur.societe}, signataire: {premier_bailleur.signataire}"
+        )
         if premier_bailleur.personne:
             # Personne physique
             signataire_full_name = premier_bailleur.personne.full_name
             bailleur_type = "personne_physique"
             bailleur_adresse = premier_bailleur.personne.adresse
-            logger.info(f"Bailleur type: personne_physique, signataire: {signataire_full_name}")
+            logger.info(
+                f"Bailleur type: personne_physique, signataire: {signataire_full_name}"
+            )
         elif premier_bailleur.societe and premier_bailleur.signataire:
             # Société avec signataire
             signataire_full_name = premier_bailleur.signataire.full_name
@@ -272,7 +302,9 @@ def generate_quittance_pdf(request):
             bailleur_adresse = premier_bailleur.societe.adresse
             logger.info(f"Bailleur type: societe, signataire: {signataire_full_name}")
         else:
-            logger.error("Configuration de bailleur invalide - ni personne ni societe+signataire")
+            logger.error(
+                "Configuration de bailleur invalide - ni personne ni societe+signataire"
+            )
             return JsonResponse(
                 {"success": False, "error": "Configuration de bailleur invalide"},
                 status=400,
@@ -309,17 +341,24 @@ def generate_quittance_pdf(request):
             "bailleur_signature": signature_data_url,
             # Informations des locataires
             "locataires": locataires,
-            "locataire_full_name": locataires[0].full_name if locataires else "",  # Pour compatibilité
+            "locataire_full_name": locataires[0].full_name
+            if locataires
+            else "",  # Pour compatibilité
             "nb_locataires": len(locataires),
             # Adresse du bien loué
             "adresse_bien": location.bien.adresse,
+            # Logo
+            "logo_base64_uri": get_logo_pdf_base64_data_uri(),
         }
 
-        # Générer le HTML depuis le template
-        html = render_to_string("pdf/quittance.html", context)
+        # Générer le HTML depuis le template (nouveau template factorisé)
+        html = render_to_string("pdf/quittance/quittance.html", context)
 
         # Générer le PDF
-        pdf_bytes = HTML(string=html, base_url=request.build_absolute_uri()).write_pdf()
+        pdf_bytes = HTML(
+            string=html,
+            base_url=request.build_absolute_uri(),
+        ).write_pdf()
 
         # Noms de fichiers
         base_filename = f"quittance_{quittance.id}_{uuid.uuid4().hex}"
@@ -334,12 +373,15 @@ def generate_quittance_pdf(request):
             # 2. Recharger dans quittance.pdf
             with open(tmp_pdf_path, "rb") as f:
                 quittance.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
-            
+
             # 3. Mettre à jour le statut vers SIGNED car la quittance n'a pas besoin de signature
             from signature.document_status import DocumentStatus
+
             quittance.status = DocumentStatus.SIGNED
             quittance.save(update_fields=["status"])
-            logger.info(f"Quittance {quittance.id} passée en status SIGNED après génération du PDF")
+            logger.info(
+                f"Quittance {quittance.id} passée en status SIGNED après génération du PDF"
+            )
 
         finally:
             # 3. Supprimer le fichier temporaire

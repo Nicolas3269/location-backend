@@ -624,6 +624,24 @@ files = [
 Django = ">=4.2"
 
 [[package]]
+name = "django-mjml"
+version = "1.4"
+description = "Use MJML in Django templates"
+category = "main"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "django_mjml-1.4-py3-none-any.whl", hash = "sha256:09dc440fcec64f3656b17646439336e6c15c5987103dfb6fe23eb1f1bf734d11"},
+    {file = "django_mjml-1.4.tar.gz", hash = "sha256:a805b3721de92a4972bb6bd4a3bffa91579420e48297a55f3ffef6d8e926b0b4"},
+]
+
+[package.dependencies]
+django = ">=2.2,<5.3"
+
+[package.extras]
+requests = ["requests (>=2.24)"]
+
+[[package]]
 name = "django-ratelimit"
 version = "4.1.0"
 description = "Cache-based rate-limiting for Django."
@@ -2940,4 +2958,4 @@ test = ["pytest"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<3.12"
-content-hash = "6c2ed6b0fc6949440f2198c40bf9af8555990574ab090a7c1b0a9866646b15ce"
+content-hash = "e217c7a90c71b3b628edd21e7960c390b3b74016f79dbe3128f64df559de3f9a"

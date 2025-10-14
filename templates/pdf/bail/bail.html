@@ -5,6 +5,23 @@
   <meta charset="UTF-8">
   <title>{{ title_bail }}</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&display=swap');
+
+    @page {
+      size: A4;
+      margin: 1.5cm 1.5cm 2.5cm 1.5cm;
+
+      @bottom-center {
+        content: url({{ logo_base64_uri }}) "  Document généré avec Hestia - Solution de gestion locative, conforme à la loi";
+        font-family: 'Playfair Display', Georgia, serif;
+        font-style: italic;
+        font-size: 10pt;
+        color: #999999;
+        text-align: center;
+        vertical-align: middle;
+      }
+    }
+
     body {
       font-family: Ubuntu, DejaVu Sans, Arial, Helvetica, sans-serif;
       font-size: 12pt;
@@ -644,39 +661,6 @@
       </p>
   </div>
 
-  <div class="section signature-section">
-    <h2>7. Signatures</h2>
-    <div class="signature">
-      <!-- Landlord signature blocks -->
-      <h4 id="landlord-signature-header">
-        {% with count=bail.location.bien.bailleurs.all|length %}
-          Bailleur{% if count > 1 %}s{% endif %}
-        {% endwith %}
-      </h4>
-      <div class="signature-list">
-        {% for bailleur in bail.location.bien.bailleurs.all %}
-        <div class="signature-block">
-          <!-- ID invisible pour PyMuPDF -->
-          <p style="color:white; margin: 0; white-space: nowrap;">ID_SIGNATURE_BAILLEUR_{{ bailleur.signataire.id }}</p>
-        </div>
-        {% endfor %}
-      </div>
-  
-      <!-- Tenant signature blocks -->
-      <h4 id="tenant-signature-header">
-        {% with count=bail.location.locataires.all|length %}
-          Locataire{% if count > 1 %}s{% endif %}
-        {% endwith %}
-      </h4>
-      <div class="signature-list">
-        {% for person in bail.location.locataires.all %}
-        <div class="signature-block">
-          <!-- ID invisible pour PyMuPDF -->
-          <p style="color:white; margin: 0; white-space: nowrap;">ID_SIGNATURE_LOC_{{ person.id }}</p>
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
+  {% include "pdf/bail/components/signature_fields.html" with bailleurs=bail.location.bien.bailleurs.all locataires=bail.location.locataires.all %}
 </body>
 </html>

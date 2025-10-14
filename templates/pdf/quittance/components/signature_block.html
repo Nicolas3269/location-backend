@@ -1,0 +1,21 @@
+{# Composant : Bloc signature réutilisable #}
+<div class="signature-section">
+    <h3 style="margin: 0 0 8px 0;">{{ signature_title|default:"Signature" }}</h3>
+
+    {% if signature_date %}
+    <div style="margin-bottom: 8px;">
+        <span class="label">Le :</span>
+        <span class="value">{{ signature_date|date:"d/m/Y" }}</span>
+    </div>
+    {% endif %}
+
+    <div class="signature-block" style="min-height: 60px; padding: 8px;">
+        <div class="signature-image" style="min-height: 50px;">
+            {% if signature_image %}
+                <img src="{{ signature_image }}" alt="Signature" style="max-height: 50px;" />
+            {% else %}
+                <em style="color: #6c6b70; font-size: 10pt;">Signature à apposer</em>
+            {% endif %}
+        </div>
+    </div>
+</div>

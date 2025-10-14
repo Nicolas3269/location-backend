@@ -1,0 +1,34 @@
+{# Composant : Section signatures pour état des lieux avec IDs invisibles pour Yousign #}
+<div style="page-break-inside: avoid; margin-top: 40px;">
+    <h2 style="color: #2680eb; font-size: 14pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 20px 0;">Signatures</h2>
+
+    <!-- Bailleur signature blocks -->
+    {% if bailleurs %}
+    <h4 style="color: #3e3c41; font-size: 11pt; font-weight: 600; margin: 0 0 15px 0;">
+        Bailleur{% if bailleurs|length > 1 %}s{% endif %}
+    </h4>
+    <div style="margin-bottom: 30px;">
+        {% for bailleur in bailleurs %}
+        <div class="signature-block">
+            <!-- ID invisible pour PyMuPDF -->
+            <p style="color:white; margin: 0; font-size: 1pt; white-space: nowrap;">ID_SIGNATURE_BAILLEUR_{{ bailleur.signataire.id }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Locataire signature blocks -->
+    {% if locataires %}
+    <h4 style="color: #3e3c41; font-size: 11pt; font-weight: 600; margin: 0 0 15px 0;">
+        Locataire{% if locataires|length > 1 %}s{% endif %}
+    </h4>
+    <div>
+        {% for person in locataires %}
+        <div class="signature-block">
+            <!-- ID invisible pour PyMuPDF -->
+            <p style="color:white; margin: 0; font-size: 1pt; white-space: nowrap;">ID_SIGNATURE_LOC_{{ person.id }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

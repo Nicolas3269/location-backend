@@ -1,0 +1,35 @@
+{# Composant : Section signatures pour bail avec IDs invisibles pour Yousign #}
+<div class="section signature-section">
+  <h2>7. Signatures</h2>
+  <div class="signature">
+    <!-- Landlord signature blocks -->
+    <h4 id="landlord-signature-header">
+      {% with count=bailleurs|length %}
+        Bailleur{% if count > 1 %}s{% endif %}
+      {% endwith %}
+    </h4>
+    <div class="signature-list">
+      {% for bailleur in bailleurs %}
+      <div class="signature-block">
+        <!-- ID invisible pour PyMuPDF -->
+        <p style="color:white; margin: 0; white-space: nowrap;">ID_SIGNATURE_BAILLEUR_{{ bailleur.signataire.id }}</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Tenant signature blocks -->
+    <h4 id="tenant-signature-header">
+      {% with count=locataires|length %}
+        Locataire{% if count > 1 %}s{% endif %}
+      {% endwith %}
+    </h4>
+    <div class="signature-list">
+      {% for person in locataires %}
+      <div class="signature-block">
+        <!-- ID invisible pour PyMuPDF -->
+        <p style="color:white; margin: 0; white-space: nowrap;">ID_SIGNATURE_LOC_{{ person.id }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>

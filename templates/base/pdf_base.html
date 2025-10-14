@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Document{% endblock %}</title>
+    <style>
+        /* ===========================
+           RÈGLES GLOBALES (Design Hestia)
+           =========================== */
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&display=swap');
+
+        @page {
+            size: A4;
+            margin: 1.5cm 1.5cm 2.5cm 1.5cm;
+
+            @bottom-center {
+                content: url({{ logo_base64_uri }}) "  Document généré avec Hestia - Solution de gestion locative, conforme à la loi";
+                font-family: 'Playfair Display', Georgia, serif;
+                font-style: italic;
+                font-size: 10pt;
+                color: #999999;
+                text-align: center;
+                vertical-align: middle;
+            }
+        }
+
+        body {
+            font-family: Ubuntu, DejaVu Sans, Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+            color: #3e3c41;
+            background-color: #ffffff;
+            line-height: 1.4;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1, h2, h3 {
+            color: #2680eb;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+
+        h1 { font-size: 22pt; font-weight: 700; }
+        h2 { font-size: 16pt; font-weight: 600; }
+        h3 { font-size: 12pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        p {
+            line-height: 1.5;
+            text-align: justify;
+            margin-bottom: 1em;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+
+        li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        /* ===========================
+           COMPOSANTS RÉUTILISABLES
+           =========================== */
+
+        /* Header bleu */
+        .document-header {
+            background-color: #2680eb;
+            color: white;
+            padding: 25px;
+            margin: -1.5cm -1.5cm 20px -1.5cm;
+            text-align: center;
+        }
+
+        .document-header h1 {
+            color: white;
+            margin: 0;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .document-header .subtitle {
+            font-size: 14pt;
+            margin-top: 10px;
+            font-weight: 400;
+            opacity: 0.95;
+        }
+
+        /* Section info grise */
+        .info-section {
+            background-color: #f5f7f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #e3e5e8;
+        }
+
+        .info-section h3 {
+            margin: 0 0 10px 0;
+            color: #2680eb;
+        }
+
+        /* Grid 2 colonnes */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        /* Ligne clé-valeur */
+        .info-row {
+            margin-bottom: 8px;
+            display: table;
+            width: 100%;
+        }
+
+        .label {
+            font-weight: 600;
+            color: #6c6b70;
+            display: table-cell;
+            width: 90px;
+            padding-right: 10px;
+            vertical-align: top;
+        }
+
+        .value {
+            color: #3e3c41;
+            font-weight: 400;
+            display: table-cell;
+            vertical-align: top;
+        }
+
+        /* Montant en gros (gradient bleu) */
+        .amount-section {
+            background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
+            color: white;
+            border-radius: 6px;
+            padding: 15px 20px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(38, 128, 235, 0.15);
+        }
+
+        .amount-number {
+            font-size: 16pt;
+            font-weight: 600;
+            color: white;
+        }
+
+        .amount-words {
+            font-size: 10pt;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        /* Highlight avec bordure bleue */
+        .highlight-box {
+            background-color: #f9fafb;
+            padding: 20px;
+            border-left: 4px solid #2680eb;
+            border-radius: 4px;
+            margin: 20px 0;
+            border: 1px solid #e3e5e8;
+        }
+
+        /* Section signature */
+        .signature-section {
+            margin-top: 30px;
+            page-break-inside: avoid;
+            background-color: #f5f7f9;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e3e5e8;
+        }
+
+        .signature-block {
+            background-color: white;
+            border: 1px solid #e3e5e8;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            min-height: 80px;
+        }
+
+        .signature-image {
+            padding: 5px 0;
+            margin: 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .signature-image img {
+            max-width: 300px;
+            max-height: 60px;
+            height: auto;
+        }
+
+        .signature-name {
+            font-weight: 600;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e3e5e8;
+        }
+
+        /* Footer légal */
+        .footer {
+            margin-top: 30px;
+            font-size: 10pt;
+            text-align: center;
+            color: #6c6b70;
+            border-top: 1px solid #e3e5e8;
+            padding-top: 15px;
+            font-style: italic;
+        }
+
+        /* Utilitaires */
+        .align-right { text-align: right; }
+        .align-center { text-align: center; }
+        .page-break { page-break-before: always; }
+
+        /* ===========================
+           STYLES SPÉCIFIQUES (override si besoin)
+           =========================== */
+        {% block extra_css %}{% endblock %}
+    </style>
+</head>
+<body>
+    {% block content %}{% endblock %}
+</body>
+</html>

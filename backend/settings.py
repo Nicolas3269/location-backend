@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django.contrib.gis",  # Add GeoDjango
     "simple_history",
+    "mjml",  # MJML pour emails responsive
     # Apps
     "authentication",
     "location",
@@ -89,7 +90,7 @@ ROOT_URLCONF = "backend.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],  # Templates globaux
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -207,19 +208,18 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Permettre de surcharger via variables d'environnement pour les tests
 USE_MAILHOG = os.environ.get("USE_MAILHOG", "").lower() == "true"
 
-if DEBUG:
-    if USE_MAILHOG:
-        # Mode test avec MailHog
-        EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-        EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
-        EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 1025))
-        EMAIL_USE_TLS = False
-        EMAIL_USE_SSL = False
-        DEFAULT_FROM_EMAIL = "HESTIA TEST <noreply@hestia.local>"
-    else:
-        # Mode développement normal - affiche dans la console
-        EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-        DEFAULT_FROM_EMAIL = "HESTIA <noreply@hestia.software>"
+if USE_MAILHOG:
+    # Mode test avec MailHog (prioritaire sur DEBUG)
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.environ.get("EMAIL_HOST", "localhost")
+    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 1025))
+    EMAIL_USE_TLS = False
+    EMAIL_USE_SSL = False
+    DEFAULT_FROM_EMAIL = "HESTIA TEST <noreply@hestia.local>"
+elif DEBUG:
+    # Mode développement normal - affiche dans la console
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    DEFAULT_FROM_EMAIL = "HESTIA <noreply@hestia.software>"
 else:
     # En environnement de production, utiliser Mailgun
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

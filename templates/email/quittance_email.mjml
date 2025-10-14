@@ -1,0 +1,76 @@
+<mjml>
+  <mj-head>
+    <mj-title>Quittance de loyer - {{ period }}</mj-title>
+    <mj-font name="Ubuntu" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap" />
+    <mj-attributes>
+      <mj-all font-family="Ubuntu, Arial, sans-serif" />
+      <mj-text font-size="14px" color="#3e3c41" line-height="1.6" />
+      <mj-section background-color="#ffffff" padding="20px" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f5f7f9">
+    <!-- Header bleu Hestia -->
+    <mj-section background-color="#2680eb" padding="40px 20px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="28px" font-weight="700" letter-spacing="2px">
+          QUITTANCE DE LOYER
+        </mj-text>
+        <mj-text align="center" color="#ffffff" font-size="16px" font-weight="400">
+          {{ period }}
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Message principal -->
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="16px" color="#3e3c41">
+          Bonjour <strong>{{ tenant_name }}</strong>,
+        </mj-text>
+        <mj-text>
+          Votre quittance de loyer pour la période du <strong>{{ start_date }}</strong> au <strong>{{ end_date }}</strong> est maintenant disponible.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- Montant en évidence -->
+    <mj-section background-color="#f9fafb" border-radius="8px" padding="20px">
+      <mj-column>
+        <mj-text align="center" color="#6c6b70" font-size="12px" text-transform="uppercase" letter-spacing="1px">
+          Montant payé
+        </mj-text>
+        <mj-text align="center" color="#2680eb" font-size="32px" font-weight="700">
+          {{ amount }} €
+        </mj-text>
+        <mj-divider border-color="#e3e5e8" border-width="1px" padding="10px 0" />
+        <mj-text align="center" font-size="14px">
+          <span style="color: #6c6b70;">Loyer HC :</span> <strong>{{ base_rent }}€</strong><br>
+          <span style="color: #6c6b70;">Charges :</span> <strong>{{ charges }}€</strong>
+        </mj-text>
+      </mj:column>
+    </mj-section>
+
+    <!-- Bouton téléchargement -->
+    <mj-section>
+      <mj-column>
+        <mj-button background-color="#2680eb" color="#ffffff" font-size="16px" font-weight="600" href="{{ pdf_url }}" border-radius="6px" padding="15px 30px">
+          📄 Télécharger la quittance
+        </mj-button>
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section background-color="#f5f7f9" padding="20px">
+      <mj-column>
+        <mj-text align="center" color="#6c6b70" font-size="12px">
+          Cet email a été généré automatiquement par <strong>Hestia</strong>.<br>
+          Pour toute question, contactez votre bailleur.
+        </mj-text>
+        <mj-text align="center" color="#6c6b70" font-size="11px" font-style="italic">
+          Article 21 de la loi n°89-462 du 6 juillet 1989
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

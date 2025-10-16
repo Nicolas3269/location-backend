@@ -155,6 +155,10 @@ def get_signature_request_generic(request, token, model_class):
             response_data["bail_id"] = bail.id
             response_data["location_id"] = str(bail.location_id)
 
+            # Ajouter le régime juridique du bien pour les assurances
+            if bail.location and bail.location.bien:
+                response_data["regime_juridique"] = bail.location.bien.regime_juridique
+
             # Ajouter la liste des documents du dossier de location
             from .document_list_service import get_bail_documents_list
             response_data["documents_list"] = get_bail_documents_list(bail, request)
@@ -163,6 +167,10 @@ def get_signature_request_generic(request, token, model_class):
             etat_lieux = sig_req.etat_lieux
             response_data["etat_lieux_id"] = etat_lieux.id
             response_data["location_id"] = str(etat_lieux.location_id)
+
+            # Ajouter le régime juridique du bien pour les assurances
+            if etat_lieux.location and etat_lieux.location.bien:
+                response_data["regime_juridique"] = etat_lieux.location.bien.regime_juridique
 
             # Ajouter la liste des documents de l'état des lieux
             from .document_list_service import get_etat_lieux_documents_list

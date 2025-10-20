@@ -67,4 +67,8 @@ RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
 # Run the app with Gunicorn
-CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Workers: 4 pour production Railway (formule: 2 × CPU + 1)
+#   - Gère 2-4 requêtes simultanées (génération PDF CPU-intensive 30-60s)
+#   - TSA interne (Python direct) = zéro risque de deadlock
+# --timeout 120 : Timeout de 2min pour la génération de PDF et l'horodatage TSA
+CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120"]

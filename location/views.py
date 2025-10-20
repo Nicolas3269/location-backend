@@ -1332,7 +1332,7 @@ def cancel_bail(request, bail_id):
             )
 
         # Annuler le bail
-        bail.status = DocumentStatus.CANCELLED
+        bail.status = DocumentStatus.CANCELLED.value
         bail.cancelled_at = timezone.now()
         bail.save()
 
@@ -1401,7 +1401,7 @@ def cancel_etat_lieux(request, etat_lieux_id):
             )
 
         # Annuler l'état des lieux
-        etat_lieux.status = DocumentStatus.CANCELLED
+        etat_lieux.status = DocumentStatus.CANCELLED.value
         etat_lieux.cancelled_at = timezone.now()
         etat_lieux.save()
 
@@ -1469,7 +1469,7 @@ def cancel_quittance(request, quittance_id):
             )
 
         # Pour les quittances, on peut annuler à tout moment (pas de restriction de statut)
-        quittance.status = DocumentStatus.CANCELLED
+        quittance.status = DocumentStatus.CANCELLED.value
         quittance.cancelled_at = timezone.now()
         quittance.save()
 

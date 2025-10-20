@@ -1,0 +1,37 @@
+# OpenSSL configuration for Hestia Server Certificate (self-signed)
+# Used for testing signature flow locally before receiving CertEurope AATL certificate
+#
+# Generate server certificate:
+# openssl genrsa -aes256 -out hestia_server.key 2048 -passout pass:$PASSWORD_CERT_SERVER
+# openssl req -new -x509 -key hestia_server.key -out hestia_server.pem \
+#   -days 365 -config hestia_server.cnf -passin pass:$PASSWORD_CERT_SERVER
+# openssl pkcs12 -export -out hestia_server.pfx -inkey hestia_server.key \
+#   -in hestia_server.pem -password pass:$PASSWORD_CERT_SERVER -passin pass:$PASSWORD_CERT_SERVER
+
+[ req ]
+default_bits = 2048
+prompt = no
+encrypt_key = yes
+default_md = sha256
+distinguished_name = dn
+x509_extensions = v3_req
+
+[ dn ]
+C = FR
+CN = Hestia Server Certificate
+O = HB CONSULTING
+# 0002 + SIREN (France)
+OU = 0002 900207218
+organizationIdentifier = NTRFR-900207218
+
+[ v3_req ]
+# Self-signed server certificate (test only)
+# En production, utiliser le certificat qualifié CertEurope
+basicConstraints = critical,CA:FALSE
+keyUsage = critical,digitalSignature,nonRepudiation
+subjectAltName = @alt_names
+
+[ alt_names ]
+email = contact@hestia.software
+DNS.1 = hestia.software
+

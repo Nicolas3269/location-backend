@@ -251,10 +251,12 @@ def confirm_signature_generic(request, model_class, document_type):
         if signature_data_url:
             from .pdf_processing import process_signature_generic
 
-            process_signature_generic(sig_req, signature_data_url)
-
-        # Marquer comme signé
-        sig_req.mark_as_signed()
+            # process_signature_generic s'occupera de mark_as_signed()
+            # Passer la request pour capturer métadonnées HTTP (IP, user-agent)
+            process_signature_generic(sig_req, signature_data_url, request=request)
+        else:
+            # Si pas de signature fournie, marquer quand même comme signé
+            sig_req.mark_as_signed()
 
         # Récupérer le document
         document = sig_req.get_document()

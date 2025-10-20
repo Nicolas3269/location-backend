@@ -39,12 +39,18 @@ services:
   #   build:
   #     context: .
   #   container_name: hestia-backend
-  #   env_file: .env
+  #   env_file:
+  #     - .env
+  #     - .env.railway  # Certificats encodés (simulation Railway)
   #   ports:
   #     - "8003:8000"
   #   depends_on:
-  #     - redis
-  #     - postgres
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_started
+  #     mailhog:
+  #       condition: service_started
   #   volumes:
   #     - .:/app
 

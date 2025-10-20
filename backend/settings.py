@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "etat_lieux",
     "quittance",
     "signature",
+    "tsa",  # Time Stamping Authority
 ]
 
 MIDDLEWARE = [
@@ -178,7 +179,7 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = "fr-fr"
 USE_L10N = True
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Paris"  # Affichage admin en heure française (stockage UTC)
 
 USE_I18N = True
 
@@ -276,3 +277,22 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # SIRENE API KEY
 SIRENE_API_KEY = os.getenv("SIRENE_API_KEY")
+
+# ============================================================================
+# Certificates Configuration
+# ============================================================================
+
+# Certificate Authority (CA) Hestia - Signs user certificates
+CA_CERT_PATH = str(BASE_DIR / "certificates" / "hestia_certificate_authority.pem")
+CA_KEY_PATH = str(BASE_DIR / "certificates" / "hestia_certificate_authority.key")
+PASSWORD_CERT_CA = os.getenv("PASSWORD_CERT_CA")
+
+# Time Stamping Authority (TSA) Hestia - Timestamps PDF signatures
+TSA_CERT_PATH = str(BASE_DIR / "certificates" / "hestia_tsa.pem")
+TSA_KEY_PATH = str(BASE_DIR / "certificates" / "hestia_tsa.key")
+PASSWORD_CERT_TSA = os.getenv("PASSWORD_CERT_TSA")
+
+# Server Certificate - Main signature certificate
+# Test: hestia_server.pfx (self-signed)
+# Production: hestia_server.pfx (CertEurope qualified certificate)
+PASSWORD_CERT_SERVER = os.getenv("PASSWORD_CERT_SERVER")

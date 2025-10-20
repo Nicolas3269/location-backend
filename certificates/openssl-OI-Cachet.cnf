@@ -1,0 +1,31 @@
+# Sample SSL commands
+# openssl genrsa -out certeurope-seal-2048.key 2048
+# openssl req -new -out certeurope-seal-2048.csr -key certeurope-seal-2048.key -config openssl-OI-Cachet.cnf
+# openssl req -in certeurope-seal-2048.csr -noout -text
+
+oid_section = OIDs
+
+[ req ]
+default_bits = 2048
+prompt = no
+encrypt_key = no
+default_md = sha256
+distinguished_name = dn
+req_extensions = v3_req
+
+[ OIDs ]
+[ dn ]
+C = FR
+CN = Hestia
+O = HB CONSULTING
+# 0002 + SIREN (France)
+OU = 0002 900207218
+organizationIdentifier = NTRFR-900207218
+
+
+[ v3_req ]
+basicConstraints = CA:FALSE
+keyUsage = digitalSignature, nonRepudiation
+subjectAltName = @alt_names
+[ alt_names ]
+email = contact@hestia.software

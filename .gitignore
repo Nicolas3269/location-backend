@@ -1,11 +1,6 @@
-private.key
-cert.pem
-cert.pfx
-cert.pfx.b64
-key.pem
+certificates/backup_important/*
 .env
 .env.production
-venv/
+.env.railway
 __pycache__/
-# Media files (generated PDFs)
-media/
+staticfiles/*

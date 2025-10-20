@@ -1,0 +1,42 @@
+# OpenSSL configuration for Hestia Certificate Authority
+# Used to generate the CA certificate for signing user certificates
+#
+# Generate CA:
+# openssl genrsa -aes256 -out hestia_certificate_authority.key 4096 -passout pass:$PASSWORD_CERT_CA
+# openssl req -new -x509 -key hestia_certificate_authority.key \
+#   -out hestia_certificate_authority.pem -days 3650 \
+#   -config hestia_certificate_authority.cnf -passin pass:$PASSWORD_CERT_CA
+
+[ req ]
+default_bits = 4096
+prompt = no
+encrypt_key = yes
+default_md = sha256
+distinguished_name = dn
+x509_extensions = v3_ca
+
+[ dn ]
+C = FR
+CN = Hestia Certificate Authority
+O = HB CONSULTING
+# 0002 + SIREN (France)
+OU = 0002 900207218
+organizationIdentifier = NTRFR-900207218
+
+[ v3_ca ]
+# CA certificate extensions
+basicConstraints = critical,CA:TRUE,pathlen:0
+keyUsage = critical,keyCertSign,cRLSign,digitalSignature
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+
+# CA peut signer des certificats pour signature électronique
+extendedKeyUsage = emailProtection,timeStamping
+
+[ v3_usr ]
+# User certificate extensions (when CA signs user certs)
+basicConstraints = critical,CA:FALSE
+keyUsage = critical,digitalSignature,nonRepudiation
+extendedKeyUsage = emailProtection
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer

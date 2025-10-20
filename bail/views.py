@@ -124,18 +124,42 @@ def generate_bail_pdf(request):
             # 2. Ajouter champs
             prepare_pdf_with_signature_fields_generic(tmp_pdf_path, bail)
 
-            # 3. Recharger dans bail.pdf
+            # 3. ✅ NOUVEAU : Certifier avec Hestia (certify=True + DocMDP)
+            try:
+                from signature.certification_flow import certify_document_hestia
+
+                certified_pdf_path = tmp_pdf_path.replace('.pdf', '_certified.pdf')
+                certify_document_hestia(
+                    source_path=tmp_pdf_path,
+                    output_path=certified_pdf_path,
+                    document_type='bail'
+                )
+
+                # Utiliser le PDF certifié au lieu du PDF vierge
+                tmp_pdf_path = certified_pdf_path
+                logger.info(f"✅ Bail {bail.id} certifié Hestia avec succès")
+            except FileNotFoundError as e:
+                logger.warning(f"⚠️ Certificat Hestia AATL manquant (mode dev) : {e}")
+                logger.warning(f"⚠️ PDF non certifié, continuons quand même")
+            except ValueError as e:
+                logger.warning(f"⚠️ PASSWORD_CERT_SERVER manquant : {e}")
+                logger.warning(f"⚠️ PDF non certifié, continuons quand même")
+            except Exception as e:
+                logger.error(f"❌ Erreur certification Hestia : {e}")
+                logger.error(f"⚠️ PDF non certifié, continuons quand même")
+
+            # 4. Recharger dans bail.pdf
             with open(tmp_pdf_path, "rb") as f:
                 bail.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
 
         finally:
-            # 4. Supprimer le fichier temporaire
-            try:
-                os.remove(tmp_pdf_path)
-            except Exception as e:
-                logger.warning(
-                    f"Impossible de supprimer le fichier temporaire {tmp_pdf_path}: {e}"
-                )
+            # 5. Supprimer les fichiers temporaires
+            for temp_file in [tmp_pdf_path, tmp_pdf_path.replace('_certified.pdf', '.pdf')]:
+                try:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                except Exception as e:
+                    logger.warning(f"Impossible de supprimer {temp_file}: {e}")
 
         create_signature_requests(bail)
 

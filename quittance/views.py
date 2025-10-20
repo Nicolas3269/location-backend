@@ -377,7 +377,7 @@ def generate_quittance_pdf(request):
             # 3. Mettre à jour le statut vers SIGNED car la quittance n'a pas besoin de signature
             from signature.document_status import DocumentStatus
 
-            quittance.status = DocumentStatus.SIGNED
+            quittance.status = DocumentStatus.SIGNED.value
             quittance.save(update_fields=["status"])
             logger.info(
                 f"Quittance {quittance.id} passée en status SIGNED après génération du PDF"

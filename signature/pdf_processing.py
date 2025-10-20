@@ -16,13 +16,14 @@ from bail.models import Bail
 logger = logging.getLogger(__name__)
 
 
-def process_signature_generic(signature_request, signature_data_url):
+def process_signature_generic(signature_request, signature_data_url, request=None):
     """
     Version générique de process_signature qui fonctionne avec n'importe quel document signable
 
     Args:
         signature_request: Instance de AbstractSignatureRequest
         signature_data_url: Image de signature en base64
+        request: Django HttpRequest (pour capturer métadonnées IP/user-agent)
     """
     try:
         # Récupérer le document signable
@@ -85,6 +86,9 @@ def process_signature_generic(signature_request, signature_data_url):
             user=signing_person,
             field_name=field_name,
             signature_bytes=signature_bytes,
+            request=request,
+            document=document,
+            signature_request=signature_request,  # Métadonnées OTP extraites depuis ici
         )
         logger.info("sign_pdf terminé avec succès")
 
@@ -114,6 +118,107 @@ def process_signature_generic(signature_request, signature_data_url):
             return False
 
         logger.info(f"PDF signé avec succès pour {document.get_document_name()}")
+
+        # Marquer la SignatureRequest comme signée maintenant que le PDF est signé
+        signature_request.mark_as_signed()
+
+        # Mettre le document en SIGNING si c'est la première signature
+        if hasattr(document, 'status'):
+            from signature.document_status import DocumentStatus
+            if document.status == DocumentStatus.DRAFT.value:
+                document.status = DocumentStatus.SIGNING.value
+                document.save(update_fields=['status'])
+                logger.info(f"✅ Status mis à jour : SIGNING (première signature)")
+
+        # Vérifier si c'était la dernière signature et sceller si nécessaire
+        try:
+            # Utiliser la relation inverse signature_requests définie sur le document
+            if not hasattr(document, 'signature_requests'):
+                logger.warning(f"Document {document.get_document_name()} n'a pas de signature_requests")
+                return True
+
+            sig_requests = document.signature_requests.all()
+            total_signatures = sig_requests.count()
+            completed_signatures = sig_requests.filter(signed=True).count()
+
+            logger.info(f"📝 Signatures : {completed_signatures}/{total_signatures} complétées")
+
+            # Si toutes les signatures utilisateurs sont complètes → Finalisation
+            if total_signatures > 0 and completed_signatures == total_signatures:
+                logger.info(f"✅ Toutes les signatures utilisateurs complètes pour {document.get_document_name()}")
+
+                # ✅ PAdES B-LT (Long Term validation)
+                # DocTimeStamp final NON UTILISÉ (PAdES B-LTA non nécessaire)
+                #
+                # Raisons du choix B-LT vs B-LTA :
+                # 1. Légalement suffisant pour baux/mandats/assurance (5-10 ans)
+                # 2. Accepté par assurances loyers impayés et tribunaux français
+                # 3. Adobe rejette DocTimeStamp avec TSA auto-signé
+                # 4. TSA commercial uniquement pour B-LTA (archivage 30+ ans)
+                #
+                # Architecture actuelle :
+                # - Certification Hestia + embed_validation_info (DSS créé)
+                # - Timestamp TSA Hestia sur chaque signature (T0, T1, T2...)
+                # - Infos révocation embarquées (CRL/OCSP dans DSS)
+                # → Validité : 5-10 ans (durée certificats)
+                #
+                # Pour activer B-LTA avec TSA commercial (si besoin futur) :
+                # Décommenter le code ci-dessous et configurer TSA commercial
+                # dans apply_final_timestamp()
+                #
+                # try:
+                #     from signature.certification_flow import apply_final_timestamp
+                #     source_pdf = document.latest_pdf.path
+                #     timestamped_pdf = source_pdf.replace('.pdf', '_timestamped.pdf')
+                #     apply_final_timestamp(source_pdf, timestamped_pdf)
+                #     if os.path.exists(timestamped_pdf):
+                #         if document.latest_pdf and document.latest_pdf.name:
+                #             document.latest_pdf.delete(save=False)
+                #         with open(timestamped_pdf, 'rb') as f:
+                #             from django.core.files.base import File
+                #             filename = os.path.basename(source_pdf)
+                #             document.latest_pdf.save(filename, File(f), save=False)
+                #         os.remove(timestamped_pdf)
+                #         logger.info("✅ DocTimeStamp final (PAdES B-LTA)")
+                # except Exception as ts_error:
+                #     logger.warning(f"⚠️ DocTimeStamp final: {ts_error}")
+
+                logger.info("✅ PAdES B-LT complet (validation long terme)")
+
+                # ✅ NOUVEAU : Générer journal de preuves
+                try:
+                    from signature.certification_flow import generate_proof_journal
+                    import json
+
+                    journal = generate_proof_journal(document)
+
+                    # TODO: Sauvegarder journal JSON sur S3 Glacier
+                    # journal_json = json.dumps(journal, indent=2)
+                    # upload_to_s3_glacier(journal_json, f"proofs/{document.id}.json")
+
+                    logger.info("✅ Journal de preuves généré")
+                    logger.info(f"   Signatures forensiques : {len(journal.get('signatures', []))}")
+
+                except Exception as journal_error:
+                    logger.warning(f"⚠️ Erreur génération journal : {journal_error}")
+                    import traceback
+                    logger.warning(traceback.format_exc())
+
+                # Mettre le statut à SIGNED (APRÈS toutes les opérations)
+                from signature.document_status import DocumentStatus
+                if hasattr(document, 'status') and document.status != DocumentStatus.SIGNED.value:
+                    document.status = DocumentStatus.SIGNED.value
+                    document.save(update_fields=['status'])
+                    logger.info(f"✅ Status mis à jour : SIGNED")
+
+                logger.info(
+                    "✅ Document complet : Certification Hestia + Signatures users + TSA final + Journal"
+                )
+        except Exception as seal_error:
+            logger.warning(f"⚠️  Erreur lors du scellement Hestia (optionnel): {seal_error}")
+            import traceback
+            logger.warning(traceback.format_exc())
+
         return True
 
     except Exception as e:

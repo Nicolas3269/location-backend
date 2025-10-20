@@ -125,8 +125,8 @@ def send_otp_email(signature_request, document_type="document"):
     if hasattr(document, 'status'):
         from signature.document_status import DocumentStatus
         # Si c'est le premier signataire (order = 1), passer en SIGNING
-        if signature_request.order == 1 and document.status == DocumentStatus.DRAFT:
-            document.status = DocumentStatus.SIGNING
+        if signature_request.order == 1 and document.status == DocumentStatus.DRAFT.value:
+            document.status = DocumentStatus.SIGNING.value
             document.save()
             logger.info(f"Document {type(document).__name__} {document.id} passé en status SIGNING lors de l'envoi de l'OTP")
 

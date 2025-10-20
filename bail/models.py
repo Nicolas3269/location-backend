@@ -79,12 +79,12 @@ class Bail(SignableDocumentMixin, BaseModel):
         # Cela sera fait par send_signature_email quand on envoie vraiment l'email
 
         # Passer de SIGNING à SIGNED si toutes les signatures sont complètes
-        if self.status == DocumentStatus.SIGNING:
+        if self.status == DocumentStatus.SIGNING.value:
             if (
                 self.signature_requests.exists()
                 and not self.signature_requests.filter(signed=False).exists()
             ):
-                self.status = DocumentStatus.SIGNED
+                self.status = DocumentStatus.SIGNED.value
 
         if current_status != self.status:
             self.save(update_fields=["status"])

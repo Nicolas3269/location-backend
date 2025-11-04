@@ -3,4 +3,7 @@ certificates/backup_important/*
 .env.production
 .env.railway
 __pycache__/
+# Media files (generated PDFs)
+certificates/backup_important/*
+.env.railway
 staticfiles/*

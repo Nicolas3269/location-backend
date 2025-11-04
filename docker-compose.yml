@@ -35,6 +35,37 @@ services:
     logging:
       driver: "none" # Désactive les logs verbeux de MailHog
 
+  minio:
+    image: minio/minio:latest
+    container_name: hestia-minio
+    ports:
+      - "9000:9000" # API S3
+      - "9001:9001" # Console Web
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  minio-createbucket:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/hestia-media --ignore-existing;
+      /usr/bin/mc anonymous set download myminio/hestia-media;
+      exit 0;
+      "
+
   # hestia:
   #   build:
   #     context: .
@@ -57,3 +88,4 @@ services:
 volumes:
   redis-data:
   postgres-data:
+  minio-data:

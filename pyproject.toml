@@ -39,6 +39,8 @@ num2words = "^0.5.14"
 pillow = "^11.3.0"
 drf-spectacular = "^0.28.0"
 django-simple-history = "^3.10.1"
+django-storages = "^1.14.6"
+boto3 = "^1.40.65"
 
 
 [tool.poetry.group.dev.dependencies]

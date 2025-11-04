@@ -79,13 +79,13 @@ def get_static_pdf_iframe_url(request, pdf_path):
 
     Args:
         request: L'objet request Django
-        pdf_path: Chemin relatif du PDF depuis MEDIA_ROOT (ex: "bails/notice_information.pdf")
+        pdf_path: Chemin relatif du PDF depuis static/pdfs/ (ex: "bails/notice_information.pdf")
 
     Returns:
-        URL complète pour afficher le PDF en iframe
+        URL complète pour afficher le PDF statique en iframe
     """
-    # Construire l'URL vers notre vue PDF iframe
-    pdf_iframe_path = reverse("serve_pdf_iframe", kwargs={"file_path": pdf_path})
+    # Construire l'URL vers notre vue PDF static iframe
+    pdf_iframe_path = reverse("serve_static_pdf_iframe", kwargs={"file_path": pdf_path})
 
     # Construire l'URL absolue
     return request.build_absolute_uri(pdf_iframe_path)

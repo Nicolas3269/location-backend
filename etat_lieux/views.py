@@ -14,6 +14,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from weasyprint import HTML
 
 from backend.pdf_utils import get_logo_pdf_base64_data_uri, get_static_pdf_iframe_url
+from backend.storage_utils import get_local_file_path
 from etat_lieux.models import (
     EtatLieux,
     EtatLieuxEquipement,
@@ -77,29 +78,32 @@ def image_to_base64_data_url(image_field):
     """
     Convertit un ImageField Django en data URL Base64 pour WeasyPrint.
     Évite les timeouts lors de la génération de PDF avec des URLs externes.
+    Compatible avec R2/S3 storage et filesystem local.
     """
-    if not image_field or not hasattr(image_field, "path"):
+    if not image_field or not image_field.name:
         return None
 
     try:
-        # Lire le contenu du fichier
-        with open(image_field.path, "rb") as img_file:
-            img_data = img_file.read()
+        # Utiliser le helper pour gérer R2/local storage
+        with get_local_file_path(image_field) as local_path:
+            # Lire le contenu du fichier
+            with open(local_path, "rb") as img_file:
+                img_data = img_file.read()
 
-        # Déterminer le type MIME
-        content_type, _ = mimetypes.guess_type(image_field.path)
-        if not content_type:
-            content_type = "image/jpeg"  # Fallback
+            # Déterminer le type MIME
+            content_type, _ = mimetypes.guess_type(image_field.name)
+            if not content_type:
+                content_type = "image/jpeg"  # Fallback
 
-        # Encoder en Base64
-        img_base64 = base64.b64encode(img_data).decode("utf-8")
+            # Encoder en Base64
+            img_base64 = base64.b64encode(img_data).decode("utf-8")
 
-        # Retourner la data URL complète
-        return f"data:{content_type};base64,{img_base64}"
+            # Retourner la data URL complète
+            return f"data:{content_type};base64,{img_base64}"
 
     except Exception as e:
         logger.warning(
-            f"Erreur lors de la conversion en Base64 de {image_field.path}: {e}"
+            f"Erreur lors de la conversion en Base64 de {image_field.name}: {e}"
         )
         return None
 
@@ -316,25 +320,27 @@ def add_signature_fields_to_pdf(pdf_bytes, etat_lieux):
         try:
             from signature.certification_flow import certify_document_hestia
 
-            certified_pdf_path = tmp_pdf_path.replace('.pdf', '_certified.pdf')
+            certified_pdf_path = tmp_pdf_path.replace(".pdf", "_certified.pdf")
             certify_document_hestia(
                 source_path=tmp_pdf_path,
                 output_path=certified_pdf_path,
-                document_type='etat_lieux'
+                document_type="etat_lieux",
             )
 
             # Utiliser le PDF certifié au lieu du PDF vierge
             tmp_pdf_path = certified_pdf_path
-            logger.info(f"✅ État des lieux {etat_lieux.id} certifié Hestia avec succès")
+            logger.info(
+                f"✅ État des lieux {etat_lieux.id} certifié Hestia avec succès"
+            )
         except FileNotFoundError as e:
             logger.warning(f"⚠️ Certificat Hestia AATL manquant (mode dev) : {e}")
-            logger.warning(f"⚠️ PDF non certifié, continuons quand même")
+            logger.warning("⚠️ PDF non certifié, continuons quand même")
         except ValueError as e:
             logger.warning(f"⚠️ PASSWORD_CERT_SERVER manquant : {e}")
-            logger.warning(f"⚠️ PDF non certifié, continuons quand même")
+            logger.warning("⚠️ PDF non certifié, continuons quand même")
         except Exception as e:
             logger.error(f"❌ Erreur certification Hestia : {e}")
-            logger.error(f"⚠️ PDF non certifié, continuons quand même")
+            logger.error("⚠️ PDF non certifié, continuons quand même")
 
         # 4. Recharger dans etat_lieux.pdf
         with open(tmp_pdf_path, "rb") as f:
@@ -342,7 +348,7 @@ def add_signature_fields_to_pdf(pdf_bytes, etat_lieux):
 
     finally:
         # 5. Supprimer les fichiers temporaires
-        for temp_file in [tmp_pdf_path, tmp_pdf_path.replace('_certified.pdf', '.pdf')]:
+        for temp_file in [tmp_pdf_path, tmp_pdf_path.replace("_certified.pdf", ".pdf")]:
             try:
                 if os.path.exists(temp_file):
                     os.remove(temp_file)

@@ -121,18 +121,19 @@ def generate_bail_pdf(request):
             with open(tmp_pdf_path, "wb") as f:
                 f.write(pdf_bytes)
 
-            # 2. Ajouter champs
+            # 2. Ajouter les champs de signature
+            # La fonction gère automatiquement le téléchargement depuis R2 si nécessaire
             prepare_pdf_with_signature_fields_generic(tmp_pdf_path, bail)
 
             # 3. ✅ NOUVEAU : Certifier avec Hestia (certify=True + DocMDP)
             try:
                 from signature.certification_flow import certify_document_hestia
 
-                certified_pdf_path = tmp_pdf_path.replace('.pdf', '_certified.pdf')
+                certified_pdf_path = tmp_pdf_path.replace(".pdf", "_certified.pdf")
                 certify_document_hestia(
                     source_path=tmp_pdf_path,
                     output_path=certified_pdf_path,
-                    document_type='bail'
+                    document_type="bail",
                 )
 
                 # Utiliser le PDF certifié au lieu du PDF vierge
@@ -140,13 +141,13 @@ def generate_bail_pdf(request):
                 logger.info(f"✅ Bail {bail.id} certifié Hestia avec succès")
             except FileNotFoundError as e:
                 logger.warning(f"⚠️ Certificat Hestia AATL manquant (mode dev) : {e}")
-                logger.warning(f"⚠️ PDF non certifié, continuons quand même")
+                logger.warning("⚠️ PDF non certifié, continuons quand même")
             except ValueError as e:
                 logger.warning(f"⚠️ PASSWORD_CERT_SERVER manquant : {e}")
-                logger.warning(f"⚠️ PDF non certifié, continuons quand même")
+                logger.warning("⚠️ PDF non certifié, continuons quand même")
             except Exception as e:
                 logger.error(f"❌ Erreur certification Hestia : {e}")
-                logger.error(f"⚠️ PDF non certifié, continuons quand même")
+                logger.error("⚠️ PDF non certifié, continuons quand même")
 
             # 4. Recharger dans bail.pdf
             with open(tmp_pdf_path, "rb") as f:
@@ -154,7 +155,10 @@ def generate_bail_pdf(request):
 
         finally:
             # 5. Supprimer les fichiers temporaires
-            for temp_file in [tmp_pdf_path, tmp_pdf_path.replace('_certified.pdf', '.pdf')]:
+            for temp_file in [
+                tmp_pdf_path,
+                tmp_pdf_path.replace("_certified.pdf", ".pdf"),
+            ]:
                 try:
                     if os.path.exists(temp_file):
                         os.remove(temp_file)
@@ -359,14 +363,13 @@ def delete_document(request, document_id):
                 status=403,
             )
 
-        # Supprimer le fichier du système de fichiers si il existe
-        if document.file and hasattr(document.file, "path"):
+        # Supprimer le fichier du storage (R2 ou local filesystem)
+        if document.file:
             try:
-                if os.path.exists(document.file.path):
-                    os.remove(document.file.path)
+                document.file.delete(save=False)
             except Exception as e:
                 logger.warning(
-                    f"Impossible de supprimer le fichier {document.file.path}: {e}"
+                    f"Impossible de supprimer le fichier {document.file.name}: {e}"
                 )
 
         # Supprimer l'entrée de la base de données

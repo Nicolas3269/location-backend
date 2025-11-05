@@ -10,6 +10,22 @@ if [ -n "$CERTIFICATE_B64" ]; then
   echo "$CERTIFICATE_B64" | base64 -d > /app/certificates/hestia_server.pfx
   if [ -f /app/certificates/hestia_server.pfx ]; then
     echo "   ✅ Fichier créé: hestia_server.pfx ($(stat -c%s /app/certificates/hestia_server.pfx) bytes)"
+
+    # Extraire le certificat PEM depuis le PFX pour ValidationContext
+    if [ -n "$PASSWORD_CERT_SERVER" ]; then
+      echo "   📤 Extraction du certificat PEM depuis PFX..."
+      openssl pkcs12 -in /app/certificates/hestia_server.pfx \
+        -clcerts -nokeys -out /app/certificates/hestia_server.pem \
+        -passin pass:"$PASSWORD_CERT_SERVER" -passout pass: 2>/dev/null
+
+      if [ -f /app/certificates/hestia_server.pem ]; then
+        echo "   ✅ Certificat PEM extrait: hestia_server.pem ($(stat -c%s /app/certificates/hestia_server.pem) bytes)"
+      else
+        echo "   ⚠️  Échec extraction PEM (ValidationContext incomplet)"
+      fi
+    else
+      echo "   ⚠️  PASSWORD_CERT_SERVER manquant, extraction PEM impossible"
+    fi
   else
     echo "   ❌ ERREUR: Fichier hestia_server.pfx non créé!"
   fi

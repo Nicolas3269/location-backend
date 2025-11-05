@@ -1,9 +1,6 @@
-private.key
-cert.pem
-cert.pfx
-cert.pfx.b64
-key.pem
 .env
 .env.production
+.env.railway
 venv/
 __pycache__/
+certificates/

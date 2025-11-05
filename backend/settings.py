@@ -282,7 +282,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL")
 # Google Auth config
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 
-# Logging 1
+# Logging configuration
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -292,6 +292,35 @@ LOGGING = {
     "root": {
         "handlers": ["console"],
         "level": "INFO",
+    },
+    "loggers": {
+        # Réduire la verbosité de WeasyPrint
+        "weasyprint": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "weasyprint.text.fonts": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        # Réduire les logs de fontTools (compiling/writing tables)
+        "fontTools": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "fontTools.ttLib": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "fontTools.subset": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
     },
 }
 

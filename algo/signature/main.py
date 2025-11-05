@@ -250,19 +250,19 @@ def verify_pdf_signature(pdf_path):
 
     Commande complète pour validation :
     poetry run pyhanko sign validate \
-        --trust certificates/hestia_server.pfx \
+        --trust certificates/hestia_server.pem \
         --trust certificates/hestia_certificate_authority.pem \
         --trust certificates/hestia_tsa.pem \
         --pretty-print <pdf_path>
 
     Certificats requis :
-    - hestia_server.pfx : Certificat Hestia AATL (certification)
+    - hestia_server.pem : Certificat Hestia AATL (certification)
     - hestia_certificate_authority.pem : CA Hestia (signatures utilisateurs)
     - hestia_tsa.pem : Certificat TSA (timestamps)
 
     Exemple :
         poetry run pyhanko sign validate \
-            --trust certificates/hestia_server.pfx \
+            --trust certificates/hestia_server.pem \
             --trust certificates/hestia_certificate_authority.pem \
             --trust certificates/hestia_tsa.pem \
             --pretty-print media/signed_documents/bail_xxx.pdf

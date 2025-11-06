@@ -208,6 +208,12 @@ AWS_S3_REGION_NAME = "auto"  # Cloudflare R2 and MinIO use 'auto'
 AWS_S3_SIGNATURE_VERSION = "s3v4"
 AWS_S3_FILE_OVERWRITE = False
 AWS_DEFAULT_ACL = None
+
+# Security: Signed URLs are enabled by default in django-storages
+# - AWS_QUERYSTRING_AUTH = True (default)
+# - AWS_QUERYSTRING_EXPIRE = 3600 seconds (default, 1 hour)
+# file.url automatically returns temporary signed URLs
+
 AWS_S3_OBJECT_PARAMETERS = {
     "CacheControl": "max-age=86400",  # 1 day cache
 }

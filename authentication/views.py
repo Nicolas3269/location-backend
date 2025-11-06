@@ -408,12 +408,12 @@ def get_user_profile_detailed(request):
                             signed=False
                         ).exists()
                         pdf_url = (
-                            request.build_absolute_uri(bail.pdf.url)
+                            bail.pdf.url
                             if bail.pdf
                             else None
                         )
                         latest_pdf_url = (
-                            request.build_absolute_uri(bail.latest_pdf.url)
+                            bail.latest_pdf.url
                             if bail.latest_pdf
                             else None
                         )

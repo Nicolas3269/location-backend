@@ -893,7 +893,7 @@ class FormOrchestrator:
                 {
                     "id": str(doc.id),
                     "name": doc.nom_original,
-                    "url": request.build_absolute_uri(doc.file.url),
+                    "url": doc.file.url,
                     "type": "attestation_mrh",
                 }
                 for doc in mrh_docs
@@ -903,7 +903,7 @@ class FormOrchestrator:
                 {
                     "id": str(doc.id),
                     "name": doc.nom_original,
-                    "url": request.build_absolute_uri(doc.file.url),
+                    "url": doc.file.url,
                     "type": "caution_solidaire",
                 }
                 for doc in caution_docs

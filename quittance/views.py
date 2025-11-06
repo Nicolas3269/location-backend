@@ -396,7 +396,7 @@ def generate_quittance_pdf(request):
             {
                 "success": True,
                 "quittanceId": str(quittance.id),
-                "pdfUrl": request.build_absolute_uri(quittance.pdf.url),
+                "pdfUrl": quittance.pdf.url,
                 "filename": pdf_filename,
                 "bienId": location.bien.id,
                 "context_info": {

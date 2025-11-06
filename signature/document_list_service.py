@@ -5,6 +5,7 @@ Service pour générer la liste des documents à signer
 from typing import Any, Dict, List
 
 from bail.models import Bail, Document, DocumentType
+from bail.views import get_static_pdf_iframe_url
 from etat_lieux.models import EtatLieux
 
 
@@ -14,13 +15,11 @@ def get_bail_documents_list(bail: Bail, request) -> List[Dict[str, Any]]:
 
     Args:
         bail: Instance de Bail
-        request: HttpRequest pour build_absolute_uri
+        request: HttpRequest (optionnel pour S3/MinIO, requis pour fichiers locaux)
 
     Returns:
         Liste de dictionnaires avec name, url, type, required
     """
-    from bail.views import get_static_pdf_iframe_url
-
     documents_list = []
 
     # 1. Contrat de bail (PDF principal)
@@ -28,7 +27,7 @@ def get_bail_documents_list(bail: Bail, request) -> List[Dict[str, Any]]:
         documents_list.append(
             {
                 "name": "Contrat de bail",
-                "url": request.build_absolute_uri(bail.pdf.url),
+                "url": bail.pdf.url,
                 "type": "bail",
                 "required": True,
             }
@@ -54,7 +53,7 @@ def get_bail_documents_list(bail: Bail, request) -> List[Dict[str, Any]]:
         documents_list.append(
             {
                 "name": f"Diagnostic - {doc.nom_original}",
-                "url": request.build_absolute_uri(doc.file.url),
+                "url": doc.file.url,
                 "type": "diagnostic",
                 "required": False,
             }
@@ -68,7 +67,7 @@ def get_bail_documents_list(bail: Bail, request) -> List[Dict[str, Any]]:
         documents_list.append(
             {
                 "name": f"Permis de louer - {doc.nom_original}",
-                "url": request.build_absolute_uri(doc.file.url),
+                "url": doc.file.url,
                 "type": "permis_de_louer",
                 "required": False,
             }
@@ -85,7 +84,7 @@ def get_etat_lieux_documents_list(
 
     Args:
         etat_lieux: Instance de EtatLieux
-        request: HttpRequest pour build_absolute_uri
+        request: HttpRequest (optionnel pour S3/MinIO, requis pour fichiers locaux)
 
     Returns:
         Liste de dictionnaires avec name, url, type, required
@@ -102,21 +101,22 @@ def get_etat_lieux_documents_list(
         documents_list.append(
             {
                 "name": type_label,
-                "url": request.build_absolute_uri(etat_lieux.pdf.url),
+                "url": etat_lieux.pdf.url,
                 "type": "etat_lieux",
                 "required": True,
             }
         )
 
-    # 2. Grille de vétusté (si présente)
-    if hasattr(etat_lieux, "grille_vetuste_pdf") and etat_lieux.grille_vetuste_pdf:
-        documents_list.append(
-            {
-                "name": "Grille de vétusté",
-                "url": request.build_absolute_uri(etat_lieux.grille_vetuste_pdf.url),
-                "type": "grille_vetuste",
-                "required": False,
-            }
-        )
+    # 2. Grille de vétusté (toujours inclure la version statique)
+    # La grille de vétusté est un document statique de référence
+    grille_vetuste_url = get_static_pdf_iframe_url(request, "bails/grille_vetuste.pdf")
+    documents_list.append(
+        {
+            "name": "Grille de vétusté",
+            "url": grille_vetuste_url,
+            "type": "grille_vetuste",
+            "required": False,
+        }
+    )
 
     return documents_list

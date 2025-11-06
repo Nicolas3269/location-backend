@@ -551,7 +551,7 @@ def generate_etat_lieux_pdf(request):
             {
                 "success": True,
                 "etatLieuxId": str(etat_lieux.id),
-                "pdfUrl": request.build_absolute_uri(etat_lieux.pdf.url),
+                "pdfUrl": etat_lieux.pdf.url,
                 "linkTokenFirstSigner": (
                     str(first_sign_req.link_token) if first_sign_req else None
                 ),

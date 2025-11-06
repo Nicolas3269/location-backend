@@ -1013,15 +1013,13 @@ def get_bien_locations(request, bien_id):
                     signed=False
                 ).exists()
 
-                from backend.pdf_utils import get_pdf_iframe_url
-
                 pdf_url = (
-                    get_pdf_iframe_url(request, bail_actif.pdf)
+                    bail_actif.pdf.url
                     if bail_actif.pdf
                     else None
                 )
                 latest_pdf_url = (
-                    get_pdf_iframe_url(request, bail_actif.latest_pdf)
+                    bail_actif.latest_pdf.url
                     if bail_actif.latest_pdf
                     else None
                 )
@@ -1136,8 +1134,6 @@ def get_location_documents(request, location_id):
 
         for bail in baux:
             if bail.pdf or bail.latest_pdf:
-                from backend.pdf_utils import get_pdf_iframe_url
-
                 # Déterminer le statut du bail
                 status = "Signé" if bail.status == DocumentStatus.SIGNED else "En cours"
                 if bail.status == DocumentStatus.DRAFT:
@@ -1151,9 +1147,9 @@ def get_location_documents(request, location_id):
                         "date": bail.date_signature.isoformat()
                         if bail.date_signature
                         else bail.created_at.isoformat(),
-                        "url": get_pdf_iframe_url(request, bail.latest_pdf)
+                        "url": bail.latest_pdf.url
                         if bail.latest_pdf
-                        else get_pdf_iframe_url(request, bail.pdf),
+                        else bail.pdf.url,
                         "status": status,
                     }
                 )
@@ -1167,8 +1163,6 @@ def get_location_documents(request, location_id):
 
         for quittance in quittances:
             if quittance.pdf:
-                from backend.pdf_utils import get_pdf_iframe_url
-
                 documents.append(
                     {
                         "id": f"quittance-{quittance.id}",
@@ -1177,7 +1171,7 @@ def get_location_documents(request, location_id):
                         "date": quittance.date_paiement.isoformat()
                         if quittance.date_paiement
                         else quittance.created_at.isoformat(),
-                        "url": get_pdf_iframe_url(request, quittance.pdf),
+                        "url": quittance.pdf.url,
                         "status": "Émise",
                         "periode": f"{quittance.mois} {quittance.annee}",
                     }
@@ -1192,8 +1186,6 @@ def get_location_documents(request, location_id):
 
         for etat in etats_lieux:
             if etat.pdf or etat.latest_pdf:
-                from backend.pdf_utils import get_pdf_iframe_url
-
                 type_doc = (
                     "etat_lieux_entree"
                     if etat.type_etat_lieux == "entree"
@@ -1227,9 +1219,9 @@ def get_location_documents(request, location_id):
                         "date": etat.date_etat_lieux.isoformat()
                         if etat.date_etat_lieux
                         else etat.created_at.isoformat(),
-                        "url": get_pdf_iframe_url(request, etat.latest_pdf)
+                        "url": etat.latest_pdf.url
                         if etat.latest_pdf
-                        else get_pdf_iframe_url(request, etat.pdf),
+                        else etat.pdf.url,
                         "status": status,
                     }
                 )

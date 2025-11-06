@@ -15,7 +15,6 @@ from weasyprint import HTML
 
 from backend.pdf_utils import (
     get_logo_pdf_base64_data_uri,
-    get_pdf_iframe_url,
     get_static_pdf_iframe_url,
 )
 from bail.constants import FORMES_JURIDIQUES
@@ -173,7 +172,7 @@ def generate_bail_pdf(request):
             {
                 "success": True,
                 "bailId": bail.id,
-                "pdfUrl": request.build_absolute_uri(bail.pdf.url),
+                "pdfUrl": bail.pdf.url,
                 "linkTokenFirstSigner": str(first_sign_req.link_token),
             }
         )
@@ -317,7 +316,7 @@ def upload_document(request):
                 {
                     "id": str(document.id),
                     "name": document.nom_original,
-                    "url": request.build_absolute_uri(document.file.url),
+                    "url": document.file.url,
                     "type": document.get_type_document_display(),
                     "created_at": document.created_at.isoformat(),
                 }
@@ -685,12 +684,8 @@ def get_bien_baux(request, bien_id):
                 signed=False
             ).exists()
 
-            pdf_url = get_pdf_iframe_url(request, bail.pdf) if bail.pdf else None
-            latest_pdf_url = (
-                get_pdf_iframe_url(request, bail.latest_pdf)
-                if bail.latest_pdf
-                else None
-            )
+            pdf_url = bail.pdf.url if bail.pdf else None
+            latest_pdf_url = bail.latest_pdf.url if bail.latest_pdf else None
             created_at = (
                 bail.date_signature.isoformat() if bail.date_signature else None
             )
@@ -844,7 +839,7 @@ def upload_locataire_document(request):
                 {
                     "id": str(document.id),
                     "name": document.nom_original,
-                    "url": request.build_absolute_uri(document.file.url),
+                    "url": document.file.url,
                     "type": document.get_type_document_display(),
                 }
             )

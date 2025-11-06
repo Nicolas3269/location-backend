@@ -63,7 +63,7 @@ def get_signature_request_generic(request, token, model_class):
 
         # Ajouter l'URL du PDF si disponible
         if hasattr(document, "pdf") and document.pdf:
-            response_data["pdfUrl"] = request.build_absolute_uri(document.pdf.url)
+            response_data["pdfUrl"] = document.pdf.url
 
         # Générer et envoyer un OTP seulement si demandé explicitement
         # (via query param send_otp=true)
@@ -122,7 +122,7 @@ def get_signature_request_generic(request, token, model_class):
                 {
                     "id": str(doc.id),
                     "name": doc.nom_original,
-                    "url": request.build_absolute_uri(doc.file.url),
+                    "url": doc.file.url,
                     "type": "Attestation MRH",
                 }
                 for doc in mrh_docs
@@ -133,7 +133,7 @@ def get_signature_request_generic(request, token, model_class):
                 {
                     "id": str(doc.id),
                     "name": doc.nom_original,
-                    "url": request.build_absolute_uri(doc.file.url),
+                    "url": doc.file.url,
                     "type": "Caution solidaire",
                 }
                 for doc in caution_docs
@@ -274,11 +274,9 @@ def confirm_signature_generic(request, model_class, document_type):
 
         # Ajouter l'URL du PDF signé (latest_pdf si disponible, sinon PDF original)
         if hasattr(document, "latest_pdf") and document.latest_pdf:
-            response_data["pdfUrl"] = request.build_absolute_uri(
-                document.latest_pdf.url
-            )
+            response_data["pdfUrl"] = document.latest_pdf.url
         elif hasattr(document, "pdf") and document.pdf:
-            response_data["pdfUrl"] = request.build_absolute_uri(document.pdf.url)
+            response_data["pdfUrl"] = document.pdf.url
 
         # Ajouter le bienId et location_id pour la redirection et le nettoyage localStorage
         if hasattr(document, "location") and document.location:

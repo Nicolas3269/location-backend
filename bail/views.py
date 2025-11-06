@@ -32,6 +32,7 @@ from bail.utils import (
 # from etat_lieux.utils import get_or_create_pieces_for_bien  # Supprimé - nouvelle architecture
 from location.models import (
     Bien,
+    RentTerms,
 )
 from rent_control.utils import get_rent_price_for_bien
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
@@ -68,6 +69,50 @@ def generate_bail_pdf(request):
         # Calculer une seule fois les données d'encadrement des loyers
         encadrement_data = BailMapping.get_encadrement_loyers_data(bail)
         zone_tendue_avec_loyer_encadre = bool(encadrement_data["prix_reference"])
+        # Récupérer les données du dernier loyer si disponibles
+        dernier_montant_loyer = None
+        dernier_loyer_periode_formatted = None
+        display_precedent_loyer = False
+        if hasattr(bail.location, "rent_terms") and bail.location.rent_terms:
+            rent_terms: RentTerms = bail.location.rent_terms
+            dernier_montant_loyer = rent_terms.dernier_montant_loyer
+            dernier_loyer_periode = rent_terms.dernier_loyer_periode
+            display_precedent_loyer = (
+                rent_terms.zone_tendue
+                and not rent_terms.premiere_mise_en_location
+                and rent_terms.locataire_derniers_18_mois
+                and dernier_montant_loyer
+                and dernier_loyer_periode
+            )
+
+            # Formater la période (YYYY-MM -> "Mois Année")
+            if dernier_loyer_periode:
+                from datetime import datetime
+
+                try:
+                    date_obj = datetime.strptime(dernier_loyer_periode, "%Y-%m")
+                    # Formater en français: "janvier 2024", "février 2024", etc.
+                    mois_fr = [
+                        "janvier",
+                        "février",
+                        "mars",
+                        "avril",
+                        "mai",
+                        "juin",
+                        "juillet",
+                        "août",
+                        "septembre",
+                        "octobre",
+                        "novembre",
+                        "décembre",
+                    ]
+                    dernier_loyer_periode_formatted = (
+                        f"{mois_fr[date_obj.month - 1]} {date_obj.year}"
+                    )
+                except ValueError:
+                    # Si le format n'est pas valide, garder la valeur originale
+                    dernier_loyer_periode_formatted = dernier_loyer_periode
+
         # Générer le PDF depuis le template HTML
         html = render_to_string(
             "pdf/bail/bail.html",
@@ -92,6 +137,7 @@ def generate_bail_pdf(request):
                 "information_info": BailMapping.information_info(bail.location.bien),
                 "energy_info": BailMapping.energy_info(bail.location.bien),
                 "indice_irl": INDICE_IRL,
+                "display_precedent_loyer": display_precedent_loyer,
                 "zone_tendue_avec_loyer_encadre": zone_tendue_avec_loyer_encadre,
                 "prix_reference": encadrement_data["prix_reference"],
                 "prix_majore": encadrement_data["prix_majore"],
@@ -99,6 +145,8 @@ def generate_bail_pdf(request):
                 "justificatif_complement_loyer": bail.location.rent_terms.justificatif_complement_loyer
                 if hasattr(bail.location, "rent_terms")
                 else None,
+                "dernier_montant_loyer": dernier_montant_loyer,
+                "dernier_loyer_periode": dernier_loyer_periode_formatted,
                 "is_copropriete": BailMapping.is_copropriete(bail),
                 "potentiel_permis_de_louer": BailMapping.potentiel_permis_de_louer(
                     bail

@@ -437,15 +437,15 @@
   </div>
 
   <div class="article">
-    <h2>Article 9 – Conditions financières</h2>
-    
+    <h2>Article 8 – Conditions financières</h2>
+
     <p><strong>1° Fixation du loyer initial</strong></p>
     <p>
     Le loyer convenu est en conséquence chiffré à la somme de {{bail.location.rent_terms.montant_loyer}} euros par mois, charges en sus. Ce loyer sera payable mensuellement à terme à échoir, par tout moyen, dans les 10 premiers jours de chaque mois. Le premier paiement interviendra le jour de la remise des clés.
     </p>
 
     <p>
-    Au titre du trimestre de référence de l’IRL (Indice de référence des loyers) à la date du présent contrat, l’indice s’élève à {{indice_irl}}. 
+    Au titre du trimestre de référence de l'IRL (Indice de référence des loyers) à la date du présent contrat, l'indice s'élève à {{indice_irl}}.
     </p>
 
     {% if zone_tendue_avec_loyer_encadre %}
@@ -455,7 +455,7 @@
     <p>
       <ul>
         <li>
-          Le loyer du logement objet du présent contrat est soumis au décret fixant annuellement le montant maximum d’évolution des loyers à la relocation.
+          Le loyer du logement objet du présent contrat est soumis au décret fixant annuellement le montant maximum d'évolution des loyers à la relocation.
         </li>
         <li>
           Le loyer du logement objet du présent contrat est soumis au loyer de référence majoré fixé par arrêté préfectoral :
@@ -477,7 +477,24 @@
     </p>
     {% endif %}
 
-    <p><strong>2° Révision du loyer </strong></p>
+    {% if display_precedent_loyer %}
+    <p><strong>2° Dernier loyer appliqué au précédent locataire</strong></p>
+    <p>
+      Conformément aux dispositions de l'article 3, 8° de la loi n°89-462 du 6 juillet 1989 tendant à améliorer les rapports locatifs, le bailleur déclare que :
+    </p>
+    <p>
+      <ul>
+        <li>
+          le montant du dernier loyer appliqué au précédent locataire s'élevait à {{dernier_montant_loyer}} € (hors charges) ;
+        </li>
+        <li>
+          la date de paiement du dernier loyer par le précédent locataire était le {{dernier_loyer_periode}}.
+        </li>
+      </ul>
+    </p>
+    {% endif %}
+
+    <p><strong>{% if display_precedent_loyer %}3{% else %}2{% endif %}° Révision du loyer </strong></p>
     <p>
     Le loyer ci-dessus stipulé pourra être révisé chaque année à la date anniversaire de la prise d'effet du présent contrat, notamment dans le cas de sa reconduction, en fonction de la variation de l'indice de référence des loyers (IRL) publié par l'INSEE, conformément à l’article 17-1 de la loi du 6 juillet 1989. 
     </p>
@@ -485,10 +502,10 @@
     L’augmentation annuelle ne pourra excéder la variation de l’indice sur 12 mois, entre l’indice de référence indiqué ci-dessus et celui publié le plus récemment à la date de révision. 
     </p>
     <p>
-    En cas de non-publication ponctuelle de l’indice, le loyer restera provisoirement inchangé. Dès la publication de l’indice, le bailleur pourra exiger le rappel de loyer rétroactif, dans la limite du délai légal de prescription. 
+    En cas de non-publication ponctuelle de l'indice, le loyer restera provisoirement inchangé. Dès la publication de l'indice, le bailleur pourra exiger le rappel de loyer rétroactif, dans la limite du délai légal de prescription.
     </p>
 
-    <p><strong>3° Charges </strong></p>
+    <p><strong>{% if display_precedent_loyer %}4{% else %}3{% endif %}° Charges </strong></p>
     {% if bail.location.rent_terms.type_charges == "forfaitaires" %}
     <p>
     En application de l’article 25-10 de la loi n°89-462 du 6 juillet 1989, les charges locatives sont récupérées sous la forme d’un forfait mensuel, versé simultanément au loyer, et non révisable rétroactivement. 
@@ -523,7 +540,7 @@
 
   <div class="article">
 
-    <h2>Article 10 - Garantie - Cautionnement</h2>
+    <h2>Article 9 - Garantie - Cautionnement</h2>
     <p><strong>1° Dépôt de garantie</strong></p>
     <p>
       Le locataire a versé au bailleur qui le reconnaît et lui en consent quittance la somme de {{bail.location.rent_terms.depot_garantie}} euros, correspondant à {% if bail.location.bien.meuble %}2 mois{%else%}1 mois{% endif %} de loyer hors charges, à titre de dépôt de garantie, destiné à couvrir l’inexécution éventuelle de ses obligations contractuelles.
@@ -569,7 +586,7 @@
   </div>
 
   <div class="article">
-    <h2>Article 11 – Clause résolutoire</h2>
+    <h2>Article 10 – Clause résolutoire</h2>
 
     <p>
       En application de l’article 24 de la loi n°89-462 du 6 juillet 1989, le présent contrat pourra être résilié de plein droit en cas de : 
@@ -597,9 +614,9 @@
       Si le locataire refuse de libérer les lieux, il suffira pour l’y contraindre d’une ordonnance de référé, exécutoire par provision, nonobstant appel ou opposition. 
     </p>
 
-  
+
     <div class="article">
-    <h2>Article 12 – Indemnité d’occupation en cas de maintien dans les lieux</h2>
+    <h2>Article 11 – Indemnité d'occupation en cas de maintien dans les lieux</h2>
     <p>
       En cas de résiliation du présent contrat, pour quelque cause que ce soit, et si le locataire ou toute personne occupant les lieux ne libère pas les locaux à la date prévue, une indemnité d’occupation sera due de plein droit.
     </p>
@@ -613,7 +630,7 @@
   </div>
 
   <div class="article">
-    <h2>Article 13 – Election du domicile</h2>
+    <h2>Article 12 – Election du domicile</h2>
     <p>
       Pour l'exécution du présent acte et de ses suites, les parties font élection de domicile :</p>
     <p>

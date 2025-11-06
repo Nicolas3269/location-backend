@@ -301,7 +301,7 @@ class Bien(BaseModel):
         blank=True,
         null=True,
         default=None,
-        verbose_name="Identifiant fiscal"
+        verbose_name="Identifiant fiscal",
     )
     regime_juridique = models.CharField(
         max_length=20,
@@ -335,10 +335,17 @@ class Bien(BaseModel):
     )
 
     superficie = models.DecimalField(
-        max_digits=8, decimal_places=2, help_text="En m²", null=True, blank=True, default=None
+        max_digits=8,
+        decimal_places=2,
+        help_text="En m²",
+        null=True,
+        blank=True,
+        default=None,
     )
 
-    meuble = models.BooleanField(null=True, blank=True, default=None, verbose_name="Meublé")
+    meuble = models.BooleanField(
+        null=True, blank=True, default=None, verbose_name="Meublé"
+    )
 
     # Informations DPE (Diagnostic de Performance Énergétique)
     classe_dpe = models.CharField(
@@ -529,12 +536,18 @@ class RentTerms(BaseModel):
         max_digits=10, decimal_places=2, null=True, blank=True, default=None
     )
 
-    # Informations d'encadrement des loyers
+    # Informations réglementaires
     zone_tendue = models.BooleanField(
-        null=True, blank=True, default=None, help_text="Situé en zone d'encadrement des loyers"
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Situé en zone tendue (déséquilibre offre/demande de logements)",
     )
     premiere_mise_en_location = models.BooleanField(
-        null=True, blank=True, default=None, help_text="Première mise en location du bien"
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Première mise en location du bien",
     )
     locataire_derniers_18_mois = models.BooleanField(
         null=True,
@@ -564,6 +577,7 @@ class RentTerms(BaseModel):
         verbose_name="Permis de louer",
         help_text="Indique si un permis de louer est requis pour ce bien",
     )
+    # Information encadrement des loyers
     rent_price_id = models.IntegerField(
         null=True,
         blank=True,

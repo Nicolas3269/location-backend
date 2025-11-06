@@ -78,6 +78,48 @@ from pyhanko_certvalidator import ValidationContext
 logger = logging.getLogger(__name__)
 
 
+def get_client_ip(request) -> str:
+    """
+    Récupère l'IP réelle du client en tenant compte des reverse proxies.
+
+    En production (Railway, nginx, etc.), l'application tourne derrière un proxy
+    qui ajoute les headers X-Forwarded-For et X-Real-IP.
+
+    Args:
+        request: Django HttpRequest
+
+    Returns:
+        str: IP réelle du client
+
+    Note:
+        - X-Forwarded-For peut contenir plusieurs IPs (client, proxy1, proxy2, ...)
+        - On prend la PREMIÈRE IP (client réel)
+        - Fallback sur X-Real-IP puis REMOTE_ADDR
+    """
+    if not request:
+        return "0.0.0.0"
+
+    # 1. X-Forwarded-For (standard de facto)
+    # Format: "client, proxy1, proxy2"
+    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded_for:
+        # Prendre la première IP (client réel)
+        client_ip = x_forwarded_for.split(",")[0].strip()
+        logger.debug(f"IP extraite depuis X-Forwarded-For: {client_ip}")
+        return client_ip
+
+    # 2. X-Real-IP (nginx, certains proxies)
+    x_real_ip = request.META.get("HTTP_X_REAL_IP")
+    if x_real_ip:
+        logger.debug(f"IP extraite depuis X-Real-IP: {x_real_ip}")
+        return x_real_ip
+
+    # 3. Fallback: REMOTE_ADDR (IP directe ou du proxy)
+    remote_addr = request.META.get("REMOTE_ADDR", "0.0.0.0")
+    logger.debug(f"IP extraite depuis REMOTE_ADDR (fallback): {remote_addr}")
+    return remote_addr
+
+
 def get_hestia_validation_context() -> ValidationContext:
     """
     Crée un ValidationContext avec les certificats auto-signés Hestia.
@@ -593,7 +635,7 @@ def sign_user_with_metadata(
     # Ajouter métadonnées HTTP si request disponible
     if request:
         metadata["http"] = {
-            "ip_address": request.META.get("REMOTE_ADDR"),
+            "ip_address": get_client_ip(request),
             "user_agent": request.META.get("HTTP_USER_AGENT"),
             "referer": request.META.get("HTTP_REFERER"),
         }
@@ -626,7 +668,7 @@ def sign_user_with_metadata(
             http_metadata = {}
             if request:
                 http_metadata = {
-                    "ip_address": request.META.get("REMOTE_ADDR", "0.0.0.0"),
+                    "ip_address": get_client_ip(request),
                     "user_agent": request.META.get("HTTP_USER_AGENT", ""),
                     "referer": request.META.get("HTTP_REFERER", ""),
                 }

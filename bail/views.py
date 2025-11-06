@@ -792,6 +792,27 @@ def upload_locataire_document(request):
 
         locataire = get_object_or_404(Locataire, id=locataire_id)
 
+        # Trouver le bail et le bien associés au locataire
+        # (pour remplissage automatique)
+        bail_associe = None
+        bien_associe = None
+
+        # Chercher la location active du locataire
+        location_active = locataire.locations.order_by("-created_at").first()
+        if location_active:
+            # Récupérer le bail le plus récent (SIGNED ou SIGNING prioritaires)
+            bail_associe = (
+                location_active.bails.filter(status__in=["signed", "signing"])
+                .order_by("-created_at")
+                .first()
+            )
+            # Si pas de bail signé/en signature, prendre le plus récent (même DRAFT)
+            if not bail_associe:
+                bail_associe = location_active.bails.order_by("-created_at").first()
+
+            # Récupérer le bien de la location
+            bien_associe = location_active.bien
+
         # Pour attestation_mrh (document unique), supprimer les anciens documents
         # avant d'uploader le nouveau (comportement "remplacer")
         if document_type == DocumentType.ATTESTATION_MRH:
@@ -808,9 +829,11 @@ def upload_locataire_document(request):
         files = request.FILES.getlist("files")
 
         for file in files:
-            # Créer le document
+            # Créer le document avec relations automatiques
             document = Document.objects.create(
                 locataire=locataire,
+                bail=bail_associe,  # ✅ Auto-renseigné depuis la location
+                bien=bien_associe,  # ✅ Auto-renseigné depuis la location
                 type_document=document_type,
                 nom_original=file.name,
                 file=file,

@@ -1,7 +1,10 @@
 .env
 .env.production
 .env.railway
-venv/
+.env.docker
 __pycache__/
+# Media files (generated PDFs)
+staticfiles/*
 certificates/
 !certificates/*.cnf
+!certificates/*.csr

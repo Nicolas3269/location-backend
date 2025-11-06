@@ -1,9 +1,10 @@
-certificates/backup_important/*
 .env
 .env.production
 .env.railway
+.env.docker
 __pycache__/
 # Media files (generated PDFs)
-certificates/backup_important/*
-.env.railway
 staticfiles/*
+certificates/
+!certificates/*.cnf
+!certificates/*.csr

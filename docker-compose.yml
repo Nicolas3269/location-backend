@@ -71,8 +71,9 @@ services:
   #     context: .
   #   container_name: hestia-backend
   #   env_file:
-  #     - .env
-  #     - .env.railway  # Certificats encodés (simulation Railway)
+  #     - .env # Variables de base (local)
+  #     - .env.docker # Override pour Docker (noms de services)
+  #     - .env.railway # Certificats encodés base64 (simulation Railway)
   #   ports:
   #     - "8003:8000"
   #   depends_on:
@@ -82,8 +83,9 @@ services:
   #       condition: service_started
   #     mailhog:
   #       condition: service_started
-  #   volumes:
-  #     - .:/app
+  #     # minio:
+  #     #   condition: service_healthy
+  #   # Pas de volume partagé pour reproduire environnement Railway (ISO prod)
 
 volumes:
   redis-data:

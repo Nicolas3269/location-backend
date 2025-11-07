@@ -189,6 +189,35 @@ class BailleurInfoSerializer(serializers.Serializer):
         return data
 
 
+class MandataireInfoSerializer(serializers.Serializer):
+    """
+    Informations sur le mandataire (agent immobilier).
+    Le mandataire gère la location pour le compte des bailleurs.
+    """
+
+    # Signataire du mandataire (personne physique qui signe pour l'agence)
+    signataire = PersonneSerializer(
+        required=True,
+        help_text=(
+            "Signataire du mandataire "
+            "(personne physique qui va recevoir la signature)"
+        )
+    )
+
+    # Informations de l'agence
+    agence = SocieteSerializer(
+        required=True,
+        help_text="Société de l'agence immobilière"
+    )
+
+    # Numéro de carte professionnelle (CPI)
+    numero_carte_professionnelle = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Numéro de carte professionnelle (CPI) du mandataire"
+    )
+
+
 class LocataireInfoSerializer(PersonneSerializer):
     """Informations d'un locataire"""
 

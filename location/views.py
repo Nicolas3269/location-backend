@@ -11,6 +11,7 @@ from location.models import (
     Bien,
     Locataire,
     Location,
+    Mandataire,
     Personne,
     RentTerms,
     Societe,
@@ -270,7 +271,9 @@ def create_or_get_bailleur(data):
             # Pas de co-bailleurs en mode réutilisation
             return bailleur, []
         except Bailleur.DoesNotExist:
-            logger.warning(f"Bailleur {bailleur_id} non trouvé, création d'un nouveau bailleur")
+            logger.warning(
+                f"Bailleur {bailleur_id} non trouvé, création d'un nouveau bailleur"
+            )
 
     bailleur_type = validated.get("bailleur_type")
     if not bailleur_type:
@@ -342,6 +345,49 @@ def create_or_get_bailleur(data):
     return bailleur, autres_bailleurs
 
 
+def create_mandataire(data):
+    """
+    Crée un mandataire depuis les données du formulaire.
+    Les données sont déjà validées par FranceBailSerializer.
+    Retourne le mandataire créé.
+    """
+    # Les données sont déjà validées, on les utilise directement
+    if "mandataire" not in data:
+        raise ValueError("Données du mandataire requises")
+
+    validated = data["mandataire"]
+
+    # 1. Créer le signataire (personne physique qui signe pour l'agence)
+    signataire_data = validated["signataire"]
+    signataire = Personne.objects.create(
+        lastName=signataire_data["lastName"],
+        firstName=signataire_data["firstName"],
+        email=signataire_data["email"],
+        adresse=signataire_data.get("adresse"),
+    )
+
+    # 2. Créer la société (agence)
+    agence_data = validated["agence"]
+    agence = Societe.objects.create(
+        raison_sociale=agence_data["raison_sociale"],
+        forme_juridique=agence_data["forme_juridique"],
+        siret=agence_data["siret"],
+        adresse=agence_data["adresse"],
+        email=agence_data.get("email") or "",
+    )
+
+    # 3. Créer le mandataire
+
+    mandataire = Mandataire.objects.create(
+        societe=agence,
+        signataire=signataire,
+        numero_carte_professionnelle=validated.get("numero_carte_professionnelle", ""),
+    )
+    logger.info(f"Mandataire créé: {mandataire.id}")
+
+    return mandataire
+
+
 def create_locataires(data):
     """
     Crée les locataires depuis les données du formulaire en utilisant les serializers.
@@ -382,8 +428,7 @@ def create_locataires(data):
 
             # Utiliser get_or_create avec l'UUID fourni
             locataire, created = Locataire.objects.get_or_create(
-                id=frontend_uuid,
-                defaults=locataire_data
+                id=frontend_uuid, defaults=locataire_data
             )
 
             if created:
@@ -755,7 +800,15 @@ def create_new_location(data, serializer_class, location_id=None):
         # Créer un nouveau bien
         bien = create_bien_from_form_data(data, serializer_class, save=True)
 
-    # 2. Créer le bailleur principal et les autres bailleurs
+    # 2. Déterminer le user_role et créer les entités appropriées
+    user_role = data.get("user_role", "proprietaire")
+    mandataire_obj = None
+
+    # Créer le mandataire si nécessaire
+    if user_role == "mandataire":
+        mandataire_obj = create_mandataire(data)
+
+    # Créer les bailleurs (commun aux deux parcours)
     bailleur, autres_bailleurs = create_or_get_bailleur(data)
 
     # Associer les bailleurs au bien
@@ -763,14 +816,22 @@ def create_new_location(data, serializer_class, location_id=None):
     for autre_bailleur in autres_bailleurs:
         bien.bailleurs.add(autre_bailleur)
 
+    logger.info(
+        f"Bailleur principal et {len(autres_bailleurs)} co-bailleur(s) associés"
+    )
+
     # 3. Créer la Location (entité pivot) avec l'ID fourni si disponible
     location_fields = get_location_fields_from_data(data)
     if location_id:
         # Utiliser l'UUID fourni par le frontend (via form-requirements)
-        location = Location.objects.create(id=location_id, bien=bien, **location_fields)
+        location = Location.objects.create(
+            id=location_id, bien=bien, mandataire=mandataire_obj, **location_fields
+        )
     else:
         # Laisser Django générer un UUID
-        location = Location.objects.create(bien=bien, **location_fields)
+        location = Location.objects.create(
+            bien=bien, mandataire=mandataire_obj, **location_fields
+        )
 
     # 4. Créer les locataires
     locataires = create_locataires(data)
@@ -778,7 +839,9 @@ def create_new_location(data, serializer_class, location_id=None):
     # Associer les locataires à la location (utiliser set() pour éviter les doublons)
     if locataires:
         location.locataires.set(locataires)
-        logger.info(f"{len(locataires)} locataire(s) associé(s) à la location {location.id}")
+        logger.info(
+            f"{len(locataires)} locataire(s) associé(s) à la location {location.id}"
+        )
 
     # 6. Créer les conditions financières si fournies
     create_rent_terms(location, data, serializer_class=serializer_class)
@@ -1013,15 +1076,9 @@ def get_bien_locations(request, bien_id):
                     signed=False
                 ).exists()
 
-                pdf_url = (
-                    bail_actif.pdf.url
-                    if bail_actif.pdf
-                    else None
-                )
+                pdf_url = bail_actif.pdf.url if bail_actif.pdf else None
                 latest_pdf_url = (
-                    bail_actif.latest_pdf.url
-                    if bail_actif.latest_pdf
-                    else None
+                    bail_actif.latest_pdf.url if bail_actif.latest_pdf else None
                 )
 
             # Récupérer les montants et le type de charges depuis RentTerms
@@ -1147,9 +1204,7 @@ def get_location_documents(request, location_id):
                         "date": bail.date_signature.isoformat()
                         if bail.date_signature
                         else bail.created_at.isoformat(),
-                        "url": bail.latest_pdf.url
-                        if bail.latest_pdf
-                        else bail.pdf.url,
+                        "url": bail.latest_pdf.url if bail.latest_pdf else bail.pdf.url,
                         "status": status,
                     }
                 )
@@ -1219,9 +1274,7 @@ def get_location_documents(request, location_id):
                         "date": etat.date_etat_lieux.isoformat()
                         if etat.date_etat_lieux
                         else etat.created_at.isoformat(),
-                        "url": etat.latest_pdf.url
-                        if etat.latest_pdf
-                        else etat.pdf.url,
+                        "url": etat.latest_pdf.url if etat.latest_pdf else etat.pdf.url,
                         "status": status,
                     }
                 )

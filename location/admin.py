@@ -345,8 +345,6 @@ class MandataireAdmin(admin.ModelAdmin):
         "get_societe_name",
         "get_signataire_name",
         "numero_carte_professionnelle",
-        "date_debut_mandat",
-        "date_fin_mandat",
     )
     search_fields = (
         "societe__raison_sociale",
@@ -354,7 +352,6 @@ class MandataireAdmin(admin.ModelAdmin):
         "signataire__firstName",
         "numero_carte_professionnelle",
     )
-    list_filter = ("date_debut_mandat", "date_fin_mandat")
 
     fieldsets = (
         (
@@ -367,13 +364,7 @@ class MandataireAdmin(admin.ModelAdmin):
         ),
         (
             "Informations du mandat",
-            {
-                "fields": (
-                    "numero_carte_professionnelle",
-                    "date_debut_mandat",
-                    "date_fin_mandat",
-                )
-            },
+            {"fields": ("numero_carte_professionnelle",)},
         ),
     )
 

@@ -14,6 +14,7 @@ from ..serializers_composed import (
     BienQuittanceSerializer,
     DatesLocationSerializer,
     LocataireInfoSerializer,
+    MandataireInfoSerializer,
     ModalitesFinancieresSerializer,
     ModalitesZoneTendueSerializer,
     PersonneSerializer,
@@ -200,9 +201,40 @@ DPE_STEPS = [
     },
 ]
 
+
+USER_STEPS = [
+    # Discriminant : Propriétaire ou Mandataire ?
+    {
+        "id": "user_role",
+        "required_fields": ["user_role"],
+        "fields": {},  # Choix UI : "proprietaire" ou "mandataire"
+    },
+    # === PARCOURS MANDATAIRE ===
+    {
+        "id": "mandataire.signataire",
+        "condition": "user_role_is_mandataire",
+        "required_fields": [],
+        "fields": {},
+        "business_rules": ["isAuthenticated"],
+    },
+    {
+        "id": "mandataire.agence",
+        "condition": "user_role_is_mandataire",
+        "required_fields": [],
+        "fields": {},
+        "business_rules": ["mandataireAgenceValidation"],
+    },
+    {
+        "id": "mandataire.numero_carte_professionnelle",
+        "condition": "user_role_is_mandataire",
+        "required_fields": ["mandataire.numero_carte_professionnelle"],
+        "fields": {},
+    },
+]
+
 # --- PERSONNES (Bailleur et Locataires) ---
 PERSON_STEPS = [
-    # Bailleur
+    # === BAILLEUR (commun aux deux parcours) ===
     {
         "id": "bailleur.bailleur_type",
         "required_fields": ["bailleur.bailleur_type"],
@@ -210,7 +242,7 @@ PERSON_STEPS = [
     },
     {
         "id": "bailleur.personne",
-        "condition": "bailleur_is_physique",
+        "condition": "user_role_is_proprietaire_and_bailleur_is_physique",
         "required_fields": [],  # Validation par business rule
         "fields": {},  # Géré par le serializer BailleurInfoSerializer
         "business_rules": [
@@ -220,13 +252,29 @@ PERSON_STEPS = [
     },
     {
         "id": "bailleur.signataire",
-        "condition": "bailleur_is_morale",
+        "condition": "user_role_is_proprietaire_and_bailleur_is_morale",
         "required_fields": [],  # Géré par serializer
         "business_rules": [
             "isAuthenticated",
         ],
         "fields": {},  # Géré par le serializer
     },
+    # {
+    #     "id": "bailleur.personne",
+    #     "condition": "user_role_is_mandataire_and_bailleur_is_physique",
+    #     "required_fields": [],  # Validation par business rule
+    #     "fields": {},  # Géré par le serializer BailleurInfoSerializer
+    #     "business_rules": [
+    #         "bailleurPersonneValidation",
+    #     ],  # Validation personne physique
+    # },
+    # {
+    #     "id": "bailleur.signataire",
+    #     "condition": "user_role_is_mandataire_and_bailleur_is_morale",
+    #     "required_fields": [],  # Géré par serializer
+    #     "business_rules": [],
+    #     "fields": {},  # Géré par le serializer
+    # },
     {
         "id": "bailleur.societe",
         "condition": "bailleur_is_morale",
@@ -239,7 +287,7 @@ PERSON_STEPS = [
         "required_fields": [],  # Optionnel
         "fields": {},  # Relation many-to-many
     },
-    # Locataires
+    # === LOCATAIRES (commun aux deux parcours) ===
     {
         "id": "locataires",
         "required_fields": [],  # Validation par business rule
@@ -598,9 +646,17 @@ class FranceBailSerializer(BaseLocationSerializer):
     # Override source avec valeur par défaut
     source = serializers.CharField(default="bail")
 
+    # Discriminant : Propriétaire ou Mandataire ?
+    user_role = serializers.ChoiceField(
+        choices=["proprietaire", "mandataire"],
+        default="proprietaire",
+        help_text="Qui remplit ce formulaire : propriétaire ou mandataire (agent) ?",
+    )
+
     # Champs toujours obligatoires
     bien = BienBailSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
+    mandataire = MandataireInfoSerializer(required=False)
     locataires = serializers.ListField(
         child=LocataireInfoSerializer(), min_length=1, required=True
     )
@@ -641,6 +697,7 @@ class FranceBailSerializer(BaseLocationSerializer):
         BAIL_STEPS.extend(ENERGIE_EAU_CHAUDE_STEPS)
 
         BAIL_STEPS.extend(DPE_STEPS)
+        BAIL_STEPS.extend(USER_STEPS)
         BAIL_STEPS.extend(PERSON_STEPS)
         BAIL_STEPS.extend(PERSON_STEPS_SOLIDAIRES)
         BAIL_STEPS.extend(ZONE_TENDUE_STEPS)
@@ -658,9 +715,17 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
     # Override source avec valeur par défaut
     source = serializers.CharField(default="quittance")
 
+    # Discriminant : Propriétaire ou Mandataire ?
+    user_role = serializers.ChoiceField(
+        choices=["proprietaire", "mandataire"],
+        default="proprietaire",
+        help_text="Qui remplit ce formulaire : propriétaire ou mandataire (agent) ?",
+    )
+
     # Champs obligatoires pour une quittance
     bien = BienQuittanceSerializer(required=True)  # Juste l'adresse
     bailleur = BailleurInfoSerializer(required=True)
+    mandataire = MandataireInfoSerializer(required=False)
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True
     )
@@ -713,6 +778,7 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
         QUITTANCE_STEPS = []
         QUITTANCE_STEPS.extend(ADRESSE_STEPS)
         QUITTANCE_STEPS.extend(TYPE_BIEN_STEPS)
+        QUITTANCE_STEPS.extend(USER_STEPS)
         QUITTANCE_STEPS.extend(PERSON_STEPS)
         QUITTANCE_STEPS.extend(QUITTANCE_LOCATAIRE_SELECTION_STEPS)
         QUITTANCE_STEPS.extend(QUITTANCE_MONTANT_STEPS)
@@ -728,9 +794,17 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
     # Override source avec valeur par défaut
     source = serializers.CharField(default="etat_lieux")
 
+    # Discriminant : Propriétaire ou Mandataire ?
+    user_role = serializers.ChoiceField(
+        choices=["proprietaire", "mandataire"],
+        default="proprietaire",
+        help_text="Qui remplit ce formulaire : propriétaire ou mandataire (agent) ?",
+    )
+
     # Champs obligatoires
     bien = BienEtatLieuxSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
+    mandataire = MandataireInfoSerializer(required=False)
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True
     )
@@ -798,6 +872,7 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         """
         ETAT_LIEUX_STEPS = []
         ETAT_LIEUX_STEPS.extend(ETAT_LIEUX_DEFINITION_STEPS)
+        ETAT_LIEUX_STEPS.extend(USER_STEPS)
         ETAT_LIEUX_STEPS.extend(PERSON_STEPS)
         ETAT_LIEUX_STEPS.extend(ADRESSE_STEPS)
         ETAT_LIEUX_STEPS.extend(TYPE_BIEN_STEPS)

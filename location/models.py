@@ -155,8 +155,6 @@ class Mandataire(BaseModel):
 
     # Infos du mandat
     numero_carte_professionnelle = models.CharField(max_length=50, blank=True)
-    date_debut_mandat = models.DateField()
-    date_fin_mandat = models.DateField(null=True, blank=True, default=None)
 
     class Meta:
         verbose_name = "Mandataire"
@@ -591,6 +589,110 @@ class RentTerms(BaseModel):
         verbose_name="Justification du complément de loyer",
         help_text="Justification du complément de loyer en cas de dépassement du plafond d'encadrement",
     )
+
+    # Honoraires mandataire (si un mandataire gère la location)
+    # Stockage des paramètres sources pour calcul dynamique
+    honoraires_bail_par_m2 = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Honoraires de bail par m²",
+        help_text=(
+            "Tarif des honoraires de bail au m² (€/m²). "
+            "Plafonds légaux : 12€/m² (zone très tendue), 10€/m² (zone tendue), "
+            "8€/m² (zone normale)."
+        ),
+    )
+    honoraires_bail_part_bailleur_pct = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Part bailleur (%)",
+        help_text=(
+            "Pourcentage des honoraires de bail à la charge du bailleur (0-100%). "
+            "La part locataire ne peut excéder 50%."
+        ),
+    )
+    mandataire_fait_edl = models.BooleanField(
+        default=False,
+        verbose_name="Le mandataire réalise l'état des lieux",
+        help_text="Indique si le mandataire est en charge de la réalisation de l'EDL",
+    )
+    honoraires_edl_par_m2 = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Honoraires EDL par m²",
+        help_text="Tarif des honoraires d'état des lieux au m² (€/m²). Maximum 3€/m².",
+    )
+    honoraires_edl_part_bailleur_pct = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Part bailleur EDL (%)",
+        help_text=(
+            "Pourcentage des honoraires EDL à la charge du bailleur (0-100%). "
+            "Répartition libre entre bailleur et locataire."
+        ),
+    )
+
+    @property
+    def honoraires_bail_total(self):
+        """Calcule le montant total des honoraires de bail"""
+        if self.honoraires_bail_par_m2 and self.location.bien.superficie:
+            return round(self.honoraires_bail_par_m2 * self.location.bien.superficie, 2)
+        return None
+
+    @property
+    def honoraires_bail_bailleur(self):
+        """Calcule la part bailleur des honoraires de bail"""
+        if self.honoraires_bail_total and self.honoraires_bail_part_bailleur_pct:
+            montant = (
+                self.honoraires_bail_total
+                * self.honoraires_bail_part_bailleur_pct
+                / 100
+            )
+            return round(montant, 2)
+        return None
+
+    @property
+    def honoraires_bail_locataire(self):
+        """Calcule la part locataire des honoraires de bail"""
+        if self.honoraires_bail_total and self.honoraires_bail_bailleur is not None:
+            return round(self.honoraires_bail_total - self.honoraires_bail_bailleur, 2)
+        return None
+
+    @property
+    def honoraires_edl_total(self):
+        """Calcule le montant total des honoraires EDL"""
+        if self.honoraires_edl_par_m2 and self.location.bien.superficie:
+            return round(self.honoraires_edl_par_m2 * self.location.bien.superficie, 2)
+        return None
+
+    @property
+    def honoraires_edl_bailleur(self):
+        """Calcule la part bailleur des honoraires EDL"""
+        if self.honoraires_edl_total and self.honoraires_edl_part_bailleur_pct:
+            montant = (
+                self.honoraires_edl_total * self.honoraires_edl_part_bailleur_pct / 100
+            )
+            return round(montant, 2)
+        return None
+
+    @property
+    def honoraires_edl_locataire(self):
+        """Calcule la part locataire des honoraires EDL"""
+        if self.honoraires_edl_total and self.honoraires_edl_bailleur is not None:
+            return round(self.honoraires_edl_total - self.honoraires_edl_bailleur, 2)
+        return None
 
     def get_rent_price(self):
         """

@@ -3,50 +3,50 @@ Génère des schemas Zod composables depuis les serializers DRF composés.
 Suit le principe de composition pour une meilleure maintenabilité.
 """
 
+from datetime import datetime
+
 from django.core.management.base import BaseCommand
 from rest_framework import serializers
-from datetime import datetime
-import inspect
 
 
 class Command(BaseCommand):
     help = "Génère des schemas Zod composables depuis les serializers DRF"
-    
+
     def handle(self, *args, **options):
         # Importer les serializers composés
+        # Importer les serializers par pays
+        from location.serializers import (
+            BelgiumBailSerializer,
+            BelgiumEtatLieuxSerializer,
+            BelgiumQuittanceSerializer,
+            FranceBailSerializer,
+            FranceEtatLieuxSerializer,
+            FranceQuittanceSerializer,
+        )
         from location.serializers_composed import (
             # Atomiques
             AdresseSerializer,
-            CaracteristiquesBienSerializer,
-            PerformanceEnergetiqueSerializer,
-            EquipementsSerializer,
-            SystemeEnergieSerializer,
-            EnergieSerializer,
-            RegimeJuridiqueSerializer,
-            ZoneReglementaireSerializer,
-            PersonneSerializer,
-            SocieteSerializer,
             BailleurInfoSerializer,
-            LocataireInfoSerializer,
-            ModalitesFinancieresSerializer,
-            ModalitesZoneTendueSerializer,
-            DatesLocationSerializer,
+            BienBailSerializer,
+            BienEtatLieuxSerializer,
             # Composés
             BienQuittanceSerializer,
-            BienEtatLieuxSerializer,
-            BienBailSerializer,
+            CaracteristiquesBienSerializer,
+            DatesLocationSerializer,
+            EnergieSerializer,
+            EquipementsSerializer,
+            LocataireInfoSerializer,
+            MandataireInfoSerializer,
+            ModalitesFinancieresSerializer,
+            ModalitesZoneTendueSerializer,
+            PerformanceEnergetiqueSerializer,
+            PersonneSerializer,
+            RegimeJuridiqueSerializer,
+            SocieteSerializer,
+            SystemeEnergieSerializer,
+            ZoneReglementaireSerializer,
         )
-        
-        # Importer les serializers par pays
-        from location.serializers import (
-            FranceBailSerializer,
-            FranceQuittanceSerializer,
-            FranceEtatLieuxSerializer,
-            BelgiumBailSerializer,
-            BelgiumQuittanceSerializer,
-            BelgiumEtatLieuxSerializer,
-        )
-        
+
         serializers_atomiques = [
             AdresseSerializer,
             CaracteristiquesBienSerializer,
@@ -59,18 +59,19 @@ class Command(BaseCommand):
             PersonneSerializer,
             SocieteSerializer,
             BailleurInfoSerializer,
+            MandataireInfoSerializer,
             LocataireInfoSerializer,
             ModalitesFinancieresSerializer,
             ModalitesZoneTendueSerializer,
             DatesLocationSerializer,
         ]
-        
+
         serializers_composes = [
             BienQuittanceSerializer,
             BienEtatLieuxSerializer,
             BienBailSerializer,
         ]
-        
+
         # Serializers par pays
         serializers_pays = [
             FranceBailSerializer,
@@ -80,34 +81,34 @@ class Command(BaseCommand):
             BelgiumQuittanceSerializer,
             BelgiumEtatLieuxSerializer,
         ]
-        
+
         # Générer les schemas Zod composables
         zod_content = self.generate_composed_zod_schemas(
-            serializers_atomiques, 
-            serializers_composes,
-            serializers_pays
+            serializers_atomiques, serializers_composes, serializers_pays
         )
-        
+
         output_path = "/home/havardn/location/frontend/src/types/generated/schemas-composed.zod.ts"
         with open(output_path, "w") as f:
             f.write(zod_content)
-        
+
         # Générer un exemple d'utilisation
         example_content = self.generate_usage_examples()
-        example_path = "/home/havardn/location/frontend/src/types/generated/COMPOSED_EXAMPLES.md"
+        example_path = (
+            "/home/havardn/location/frontend/src/types/generated/COMPOSED_EXAMPLES.md"
+        )
         with open(example_path, "w") as f:
             f.write(example_content)
-        
+
         self.stdout.write(
             self.style.SUCCESS(f"✅ Schemas Zod composables générés dans {output_path}")
         )
         self.stdout.write(
             self.style.SUCCESS(f"✅ Exemples d'utilisation générés dans {example_path}")
         )
-    
+
     def generate_composed_zod_schemas(self, atomiques, composes, pays=None):
         """Génère les schemas Zod en respectant la composition."""
-        
+
         lines = [
             "// Auto-generated Composed Zod Schemas from DRF",
             f"// Generated at: {datetime.now().isoformat()}",
@@ -121,66 +122,78 @@ class Command(BaseCommand):
             "// ============================================",
             "",
         ]
-        
+
         # Générer les schemas atomiques
         for serializer_class in atomiques:
             schema_name = self.get_schema_name(serializer_class)
             # Formatter le docstring pour JavaScript
-            doc = serializer_class.__doc__ or f'Schema {schema_name}'
+            doc = serializer_class.__doc__ or f"Schema {schema_name}"
             # Nettoyer et formater le docstring
-            doc_clean = ' '.join(line.strip() for line in doc.split('\n') if line.strip())
+            doc_clean = " ".join(
+                line.strip() for line in doc.split("\n") if line.strip()
+            )
             lines.append(f"// {doc_clean}")
             lines.append(f"export const {schema_name} = z.object({{")
-            
+
             instance = serializer_class()
             for field_name, field in instance.fields.items():
                 zod_type = self.field_to_zod(field, field_name)
                 optional = not field.required
-                
+
                 comment = ""
-                if hasattr(field, 'help_text') and field.help_text:
+                if hasattr(field, "help_text") and field.help_text:
                     comment = f"  // {field.help_text}"
-                
+
                 if optional:
                     lines.append(f"  {field_name}: {zod_type}.optional(),{comment}")
                 else:
                     lines.append(f"  {field_name}: {zod_type},{comment}")
-            
+
             lines.append("});")
             lines.append("")
-        
-        lines.extend([
-            "// ============================================",
-            "// SCHEMAS COMPOSÉS (Compositions)",
-            "// ============================================",
-            "",
-        ])
-        
+
+        lines.extend(
+            [
+                "// ============================================",
+                "// SCHEMAS COMPOSÉS (Compositions)",
+                "// ============================================",
+                "",
+            ]
+        )
+
         # Générer les schemas composés
         for serializer_class in composes:
             schema_name = self.get_schema_name(serializer_class)
             # Formatter le docstring pour JavaScript
-            doc = serializer_class.__doc__ or f'Schema {schema_name}'
+            doc = serializer_class.__doc__ or f"Schema {schema_name}"
             # Nettoyer et formater le docstring
-            doc_clean = ' '.join(line.strip() for line in doc.split('\n') if line.strip())
+            doc_clean = " ".join(
+                line.strip() for line in doc.split("\n") if line.strip()
+            )
             lines.append(f"// {doc_clean}")
-            
+
             # Vérifier si c'est une vraie composition
-            if hasattr(serializer_class, 'Meta') and hasattr(serializer_class.Meta, 'is_composite') and serializer_class.Meta.is_composite:
+            if (
+                hasattr(serializer_class, "Meta")
+                and hasattr(serializer_class.Meta, "is_composite")
+                and serializer_class.Meta.is_composite
+            ):
                 lines.append(f"export const {schema_name} = z.object({{")
-                
+
                 instance = serializer_class()
                 for field_name, field in instance.fields.items():
                     # Si c'est un nested serializer, on utilise son schema
                     if isinstance(field, serializers.Serializer):
                         nested_schema = self.get_schema_name(field.__class__)
                         optional = not field.required
-                        
+
                         if optional:
                             lines.append(f"  {field_name}: {nested_schema}.optional(),")
                         else:
                             lines.append(f"  {field_name}: {nested_schema},")
-                    elif isinstance(field, serializers.ListField) and isinstance(field.child, serializers.Serializer):
+                    elif isinstance(field, serializers.ListField) and isinstance(
+                        field.child, serializers.Serializer
+                    ):
                         # Liste de serializers
                         child_schema = self.get_schema_name(field.child.__class__)
                         lines.append(f"  {field_name}: z.array({child_schema}),")
@@ -188,12 +201,12 @@ class Command(BaseCommand):
                         # Champ normal
                         zod_type = self.field_to_zod(field, field_name)
                         optional = not field.required
-                        
+
                         if optional:
                             lines.append(f"  {field_name}: {zod_type}.optional(),")
                         else:
                             lines.append(f"  {field_name}: {zod_type},")
-                
+
                 lines.append("});")
             else:
                 # Pas une composition, générer normalement
@@ -202,32 +215,36 @@ class Command(BaseCommand):
                 for field_name, field in instance.fields.items():
                     zod_type = self.field_to_zod(field, field_name)
                     optional = not field.required
-                    
+
                     if optional:
                         lines.append(f"  {field_name}: {zod_type}.optional(),")
                     else:
                         lines.append(f"  {field_name}: {zod_type},")
                 lines.append("});")
-            
+
             lines.append("")
-        
+
         # Générer les schemas par pays si fournis
         if pays:
-            lines.extend([
-                "",
-                "// ============================================",
-                "// SCHEMAS PAR PAYS (Règles métier spécifiques)",
-                "// ============================================",
-                "",
-            ])
-            
+            lines.extend(
+                [
+                    "",
+                    "// ============================================",
+                    "// SCHEMAS PAR PAYS (Règles métier spécifiques)",
+                    "// ============================================",
+                    "",
+                ]
+            )
+
             for serializer_class in pays:
                 schema_name = self.get_schema_name(serializer_class)
-                doc = serializer_class.__doc__ or f'Schema {schema_name}'
-                doc_clean = ' '.join(line.strip() for line in doc.split('\n') if line.strip())
+                doc = serializer_class.__doc__ or f"Schema {schema_name}"
+                doc_clean = " ".join(
+                    line.strip() for line in doc.split("\n") if line.strip()
+                )
                 lines.append(f"// {doc_clean}")
                 lines.append(f"export const {schema_name} = z.object({{")
-                
+
                 instance = serializer_class()
                 for field_name, field in instance.fields.items():
                     # Si c'est un champ composé (comme BienBailSerializer)
@@ -238,7 +255,9 @@ class Command(BaseCommand):
                             lines.append(f"  {field_name}: {nested_schema}.optional(),")
                         else:
                             lines.append(f"  {field_name}: {nested_schema},")
-                    elif isinstance(field, serializers.ListField) and isinstance(field.child, serializers.Serializer):
+                    elif isinstance(field, serializers.ListField) and isinstance(
+                        field.child, serializers.Serializer
+                    ):
                         child_schema = self.get_schema_name(field.child.__class__)
                         lines.append(f"  {field_name}: z.array({child_schema}),")
                     else:
@@ -248,225 +267,232 @@ class Command(BaseCommand):
                             lines.append(f"  {field_name}: {zod_type}.optional(),")
                         else:
                             lines.append(f"  {field_name}: {zod_type},")
-                
+
                 lines.append("});")
                 lines.append("")
-        
+
         # Ajouter les types TypeScript
-        lines.extend([
-            "// ============================================",
-            "// TYPES TYPESCRIPT INFÉRÉS",
-            "// ============================================",
-            "",
-        ])
-        
+        lines.extend(
+            [
+                "// ============================================",
+                "// TYPES TYPESCRIPT INFÉRÉS",
+                "// ============================================",
+                "",
+            ]
+        )
+
         all_serializers = atomiques + composes
         if pays:
             all_serializers += pays
-            
+
         for serializer_class in all_serializers:
             schema_name = self.get_schema_name(serializer_class)
-            type_name = schema_name.replace('Schema', '')
+            type_name = schema_name.replace("Schema", "")
             lines.append(f"export type {type_name} = z.infer<typeof {schema_name}>;")
-        
-        lines.extend([
-            "",
-            "// ============================================",
-            "// HELPERS DE COMPOSITION",
-            "// ============================================",
-            "",
-            "/**",
-            " * Merge plusieurs schemas en un seul (flat)",
-            " */",
-            "export function mergeSchemas<T extends z.ZodRawShape[]>(...schemas: T) {",
-            "  const merged: any = {};",
-            "  schemas.forEach(schema => {",
-            "    Object.entries(schema).forEach(([key, value]) => {",
-            "      merged[key] = value;",
-            "    });",
-            "  });",
-            "  return z.object(merged);",
-            "}",
-            "",
-            "/**",
-            " * Schema pour un formulaire de bail complet (flat)",
-            " * Utilise mergeSchemas pour aplatir la structure",
-            " */",
-            "export const BailFormFlatSchema = mergeSchemas(",
-            "  AdresseSchema.shape,",
-            "  CaracteristiquesBienSchema.shape,",
-            "  PerformanceEnergetiqueSchema.shape,",
-            "  EquipementsSchema.shape,",
-            "  EnergieSchema.shape,",
-            "  RegimeJuridiqueSchema.shape,",
-            "  ZoneReglementaireSchema.shape,",
-            "  // Note: Pour bailleur et locataires, on les garde séparés",
-            ").extend({",
-            "  bailleur: BailleurInfoSchema,",
-            "  locataires: z.array(LocataireInfoSchema),",
-            "  modalites_financieres: ModalitesFinancieresSchema,",
-            "  modalites_zone_tendue: ModalitesZoneTendueSchema.optional(),",
-            "  dates: DatesLocationSchema,",
-            "  solidaires: z.boolean().default(false),",
-            "});",
-            "",
-            "// ============================================",
-            "// TRANSFORMERS POUR CONVERSION",
-            "// ============================================",
-            "",
-            "/**",
-            " * Convertit une structure composée en structure plate",
-            " */",
-            "export function flattenComposed(data: FranceBail | FranceQuittance | FranceEtatLieux): any {",
-            "  const flattened: any = {",
-            "    source: data.source,",
-            "    solidaires: data.solidaires,",
-            "  };",
-            "  ",
-            "  // Aplatir bien",
-            "  if (data.bien) {",
-            "    const bien: any = data.bien;",
-            "    Object.assign(flattened, ",
-            "      bien.localisation || {},",
-            "      bien.caracteristiques || {},",
-            "      bien.performance_energetique || {},",
-            "      bien.equipements || {},",
-            "      bien.energie || {},",
-            "      bien.regime || {},",
-            "      bien.zone_reglementaire || {}",
-            "    );",
-            "  }",
-            "  ",
-            "  // Garder les autres comme objets",
-            "  flattened.bailleur = data.bailleur;",
-            "  flattened.locataires = data.locataires;",
-            "  if ('modalites_financieres' in data) flattened.modalites_financieres = data.modalites_financieres;",
-            "  if ('modalites_zone_tendue' in data) flattened.modalites_zone_tendue = data.modalites_zone_tendue;",
-            "  if ('dates' in data) flattened.dates = data.dates;",
-            "  ",
-            "  return flattened;",
-            "}",
-            "",
-            "/**",
-            " * Convertit une structure plate en structure composée",
-            " */",
-            "export function composeFromFlat(data: any): FranceBail {",
-            "  return {",
-            "    source: data.source || 'manual',",
-            "    bien: {",
-            "      localisation: {",
-            "        adresse: data.adresse,",
-            "        latitude: data.latitude,",
-            "        longitude: data.longitude,",
-            "        area_id: data.area_id,",
-            "      },",
-            "      caracteristiques: {",
-            "        superficie: data.superficie,",
-            "        type_bien: data.type_bien,",
-            "        etage: data.etage,",
-            "        porte: data.porte,",
-            "        dernier_etage: data.dernier_etage,",
-            "        meuble: data.meuble,",
-            "        pieces_info: data.pieces_info,",
-            "      },",
-            "      performance_energetique: {",
-            "        classe_dpe: data.classe_dpe,",
-            "        depenses_energetiques: data.depenses_energetiques,",
-            "      },",
-            "      equipements: {",
-            "        annexes_privatives: data.annexes_privatives,",
-            "        annexes_collectives: data.annexes_collectives,",
-            "        information: data.information,",
-            "      },",
-            "      energie: {",
-            "        chauffage: data.chauffage,",
-            "        eau_chaude: data.eau_chaude,",
-            "      },",
-            "      regime: {",
-            "        regime_juridique: data.regime_juridique,",
-            "        identifiant_fiscal: data.identifiant_fiscal,",
-            "        periode_construction: data.periode_construction,",
-            "      },",
-            "      zone_reglementaire: {",
-            "        zone_tendue: data.zone_tendue,",
-            "        permis_de_louer: data.permis_de_louer,",
-            "      },",
-            "    },",
-            "    bailleur: data.bailleur,",
-            "    locataires: data.locataires,",
-            "    modalites_financieres: data.modalites_financieres,",
-            "    modalites_zone_tendue: data.modalites_zone_tendue,",
-            "    dates: data.dates,",
-            "    solidaires: data.solidaires,",
-            "  };",
-            "}",
-            "",
-        ])
-        
+
+        lines.extend(
+            [
+                "",
+                "// ============================================",
+                "// HELPERS DE COMPOSITION",
+                "// ============================================",
+                "",
+                "/**",
+                " * Merge plusieurs schemas en un seul (flat)",
+                " */",
+                "export function mergeSchemas<T extends z.ZodRawShape[]>(...schemas: T) {",
+                "  const merged: any = {};",
+                "  schemas.forEach(schema => {",
+                "    Object.entries(schema).forEach(([key, value]) => {",
+                "      merged[key] = value;",
+                "    });",
+                "  });",
+                "  return z.object(merged);",
+                "}",
+                "",
+                "/**",
+                " * Schema pour un formulaire de bail complet (flat)",
+                " * Utilise mergeSchemas pour aplatir la structure",
+                " */",
+                "export const BailFormFlatSchema = mergeSchemas(",
+                "  AdresseSchema.shape,",
+                "  CaracteristiquesBienSchema.shape,",
+                "  PerformanceEnergetiqueSchema.shape,",
+                "  EquipementsSchema.shape,",
+                "  EnergieSchema.shape,",
+                "  RegimeJuridiqueSchema.shape,",
+                "  ZoneReglementaireSchema.shape,",
+                "  // Note: Pour bailleur et locataires, on les garde séparés",
+                ").extend({",
+                "  bailleur: BailleurInfoSchema,",
+                "  locataires: z.array(LocataireInfoSchema),",
+                "  modalites_financieres: ModalitesFinancieresSchema,",
+                "  modalites_zone_tendue: ModalitesZoneTendueSchema.optional(),",
+                "  dates: DatesLocationSchema,",
+                "  solidaires: z.boolean().default(false),",
+                "});",
+                "",
+                "// ============================================",
+                "// TRANSFORMERS POUR CONVERSION",
+                "// ============================================",
+                "",
+                "/**",
+                " * Convertit une structure composée en structure plate",
+                " */",
+                "export function flattenComposed(data: FranceBail | FranceQuittance | FranceEtatLieux): any {",
+                "  const flattened: any = {",
+                "    source: data.source,",
+                "    solidaires: data.solidaires,",
+                "  };",
+                "  ",
+                "  // Aplatir bien",
+                "  if (data.bien) {",
+                "    const bien: any = data.bien;",
+                "    Object.assign(flattened, ",
+                "      bien.localisation || {},",
+                "      bien.caracteristiques || {},",
+                "      bien.performance_energetique || {},",
+                "      bien.equipements || {},",
+                "      bien.energie || {},",
+                "      bien.regime || {},",
+                "      bien.zone_reglementaire || {}",
+                "    );",
+                "  }",
+                "  ",
+                "  // Garder les autres comme objets",
+                "  flattened.bailleur = data.bailleur;",
+                "  flattened.locataires = data.locataires;",
+                "  if ('modalites_financieres' in data) flattened.modalites_financieres = data.modalites_financieres;",
+                "  if ('modalites_zone_tendue' in data) flattened.modalites_zone_tendue = data.modalites_zone_tendue;",
+                "  if ('dates' in data) flattened.dates = data.dates;",
+                "  ",
+                "  return flattened;",
+                "}",
+                "",
+                "/**",
+                " * Convertit une structure plate en structure composée",
+                " */",
+                "export function composeFromFlat(data: any): FranceBail {",
+                "  return {",
+                "    source: data.source || 'manual',",
+                "    bien: {",
+                "      localisation: {",
+                "        adresse: data.adresse,",
+                "        latitude: data.latitude,",
+                "        longitude: data.longitude,",
+                "        area_id: data.area_id,",
+                "      },",
+                "      caracteristiques: {",
+                "        superficie: data.superficie,",
+                "        type_bien: data.type_bien,",
+                "        etage: data.etage,",
+                "        porte: data.porte,",
+                "        dernier_etage: data.dernier_etage,",
+                "        meuble: data.meuble,",
+                "        pieces_info: data.pieces_info,",
+                "      },",
+                "      performance_energetique: {",
+                "        classe_dpe: data.classe_dpe,",
+                "        depenses_energetiques: data.depenses_energetiques,",
+                "      },",
+                "      equipements: {",
+                "        annexes_privatives: data.annexes_privatives,",
+                "        annexes_collectives: data.annexes_collectives,",
+                "        information: data.information,",
+                "      },",
+                "      energie: {",
+                "        chauffage: data.chauffage,",
+                "        eau_chaude: data.eau_chaude,",
+                "      },",
+                "      regime: {",
+                "        regime_juridique: data.regime_juridique,",
+                "        identifiant_fiscal: data.identifiant_fiscal,",
+                "        periode_construction: data.periode_construction,",
+                "      },",
+                "      zone_reglementaire: {",
+                "        zone_tendue: data.zone_tendue,",
+                "        permis_de_louer: data.permis_de_louer,",
+                "      },",
+                "    },",
+                "    bailleur: data.bailleur,",
+                "    locataires: data.locataires,",
+                "    modalites_financieres: data.modalites_financieres,",
+                "    modalites_zone_tendue: data.modalites_zone_tendue,",
+                "    dates: data.dates,",
+                "    solidaires: data.solidaires,",
+                "  };",
+                "}",
+                "",
+            ]
+        )
+
         return "\n".join(lines)
-    
+
     def get_schema_name(self, serializer_class):
         """Génère le nom du schema Zod depuis le nom du serializer."""
         name = serializer_class.__name__
         # Enlever 'Serializer' et ajouter 'Schema'
-        if name.endswith('Serializer'):
+        if name.endswith("Serializer"):
             name = name[:-10]
-        return name + 'Schema'
-    
+        return name + "Schema"
+
     def field_to_zod(self, field, field_name=None):
         """Convertit un champ DRF en validation Zod."""
-        
+
         # CharField
         if isinstance(field, serializers.CharField):
             validators = []
-            if hasattr(field, 'max_length') and field.max_length:
+            if hasattr(field, "max_length") and field.max_length:
                 validators.append(f".max({field.max_length})")
-            if field.required and not getattr(field, 'allow_blank', False):
+            if field.required and not getattr(field, "allow_blank", False):
                 validators.append(".min(1, 'Requis')")
-            
+
             # Validations spécifiques par nom
-            if field_name == 'siret':
+            if field_name == "siret":
                 return "z.string().length(14, 'SIRET: 14 chiffres').regex(/^\\d{14}$/)"
-            elif field_name == 'email':
+            elif field_name == "email":
                 return "z.string().email('Email invalide')"
-            elif 'telephone' in (field_name or '').lower() or 'phone' in (field_name or '').lower():
+            elif (
+                "telephone" in (field_name or "").lower()
+                or "phone" in (field_name or "").lower()
+            ):
                 return "z.string().regex(/^[+\\d\\s()-]*$/)"
-            
-            return "z.string()" + ''.join(validators)
-        
+
+            return "z.string()" + "".join(validators)
+
         # EmailField
         if isinstance(field, serializers.EmailField):
             return "z.string().email('Email invalide')"
-        
+
         # DecimalField
         if isinstance(field, serializers.DecimalField):
             validators = []
-            if hasattr(field, 'max_digits') and hasattr(field, 'decimal_places'):
-                validators.append(f".positive()")
-                if hasattr(field, 'max_value') and field.max_value is not None:
+            if hasattr(field, "max_digits") and hasattr(field, "decimal_places"):
+                validators.append(".positive()")
+                if hasattr(field, "max_value") and field.max_value is not None:
                     validators.append(f".max({field.max_value})")
-            return "z.number()" + ''.join(validators)
-        
+            return "z.number()" + "".join(validators)
+
         # IntegerField
         if isinstance(field, serializers.IntegerField):
             validators = []
-            if hasattr(field, 'min_value') and field.min_value is not None:
+            if hasattr(field, "min_value") and field.min_value is not None:
                 validators.append(f".min({field.min_value})")
-            if hasattr(field, 'max_value') and field.max_value is not None:
+            if hasattr(field, "max_value") and field.max_value is not None:
                 validators.append(f".max({field.max_value})")
-            return "z.number().int()" + ''.join(validators)
-        
+            return "z.number().int()" + "".join(validators)
+
         # BooleanField
         if isinstance(field, serializers.BooleanField):
             return "z.boolean()"
-        
+
         # DateField
         if isinstance(field, serializers.DateField):
             return "z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/, 'Format: YYYY-MM-DD')"
-        
+
         # ChoiceField
         if isinstance(field, serializers.ChoiceField):
-            if hasattr(field, 'choices'):
+            if hasattr(field, "choices"):
                 choices = field.choices
                 if isinstance(choices, list) and len(choices) > 0:
                     # Si c'est une liste de tuples (value, label)
@@ -478,7 +504,7 @@ class Command(BaseCommand):
                 elif isinstance(choices, dict):
                     values = [f"'{k}'" for k in choices.keys()]
                     return f"z.enum([{', '.join(values)}])"
-        
+
         # ListField
         if isinstance(field, serializers.ListField):
             child_type = "z.any()"
@@ -487,39 +513,39 @@ class Command(BaseCommand):
                     child_type = self.get_schema_name(field.child.__class__)
                 else:
                     child_type = self.field_to_zod(field.child)
-            
+
             validators = []
-            if hasattr(field, 'min_length') and field.min_length is not None:
+            if hasattr(field, "min_length") and field.min_length is not None:
                 validators.append(f".min({field.min_length})")
-            if hasattr(field, 'max_length') and field.max_length is not None:
+            if hasattr(field, "max_length") and field.max_length is not None:
                 validators.append(f".max({field.max_length})")
-            
-            return f"z.array({child_type})" + ''.join(validators)
-        
+
+            return f"z.array({child_type})" + "".join(validators)
+
         # DictField
         if isinstance(field, serializers.DictField):
             return "z.record(z.string(), z.any())"
-        
+
         # HiddenField
         if isinstance(field, serializers.HiddenField):
             default = field.default
             if isinstance(default, str):
                 return f"z.literal('{default}')"
             return f"z.literal({default})"
-        
+
         # UUIDField
         if isinstance(field, serializers.UUIDField):
             return "z.string().uuid()"
-        
+
         # Nested Serializer
         if isinstance(field, serializers.Serializer):
             return self.get_schema_name(field.__class__)
-        
+
         return "z.any()"
-    
+
     def generate_usage_examples(self):
         """Génère des exemples d'utilisation."""
-        
+
         return """# 📚 Exemples d'utilisation des Schemas Composés
 
 ## 🏗️ Architecture de Composition

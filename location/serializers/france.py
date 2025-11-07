@@ -240,6 +240,7 @@ PERSON_STEPS = [
         "required_fields": ["bailleur.bailleur_type"],
         "fields": {},  # Pas de mapping direct, c'est un choix UI
     },
+    # === PARCOURS PROPRIÉTAIRE ===
     {
         "id": "bailleur.personne",
         "condition": "user_role_is_proprietaire_and_bailleur_is_physique",
@@ -259,22 +260,24 @@ PERSON_STEPS = [
         ],
         "fields": {},  # Géré par le serializer
     },
-    # {
-    #     "id": "bailleur.personne",
-    #     "condition": "user_role_is_mandataire_and_bailleur_is_physique",
-    #     "required_fields": [],  # Validation par business rule
-    #     "fields": {},  # Géré par le serializer BailleurInfoSerializer
-    #     "business_rules": [
-    #         "bailleurPersonneValidation",
-    #     ],  # Validation personne physique
-    # },
-    # {
-    #     "id": "bailleur.signataire",
-    #     "condition": "user_role_is_mandataire_and_bailleur_is_morale",
-    #     "required_fields": [],  # Géré par serializer
-    #     "business_rules": [],
-    #     "fields": {},  # Géré par le serializer
-    # },
+    # === PARCOURS MANDATAIRE ===
+    # Steps séparés pour avoir des questions différentes et pas de isAuthenticated
+    {
+        "id": "mandataire.bailleur.personne",
+        "condition": "user_role_is_mandataire_and_bailleur_is_physique",
+        "required_fields": [],  # Validation par business rule
+        "fields": {},  # Géré par le serializer BailleurInfoSerializer
+        "business_rules": [
+            "bailleurPersonneValidation",
+        ],  # Validation personne physique (pas isAuthenticated)
+    },
+    {
+        "id": "mandataire.bailleur.signataire",
+        "condition": "user_role_is_mandataire_and_bailleur_is_morale",
+        "required_fields": [],  # Géré par serializer
+        "business_rules": [],  # Pas de validation auth
+        "fields": {},  # Géré par le serializer
+    },
     {
         "id": "bailleur.societe",
         "condition": "bailleur_is_morale",

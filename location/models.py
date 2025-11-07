@@ -73,7 +73,7 @@ class Personne(BaseModel):
         null=True, blank=True, default=None
     )  # Optionnel pour certains cas
     email = models.EmailField()
-    adresse = models.TextField()
+    adresse = models.TextField(blank=True, null=True, default=None)
 
     # Informations bancaires (pour les propriétaires)
     iban = models.CharField(max_length=34, blank=True, null=True, default=None)

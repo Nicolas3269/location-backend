@@ -146,6 +146,21 @@
       Dénommé{% if bail.location.locataires.all|length > 1 %}s{% endif %} ci-après « le locataire » ;
     </p>
 
+    {% if bail.location.mandataire %}
+    <p>
+      <ul>
+        <li>
+          La <strong>personne morale</strong> {{ bail.location.mandataire.societe.raison_sociale }} ({{ bail.location.mandataire.societe.forme_juridique }}), dont le SIRET est {{ bail.location.mandataire.societe.siret }},
+          domiciliée au {{ bail.location.mandataire.societe.adresse }}, représentée pour la signature par
+          {{ bail.location.mandataire.signataire.firstName }} {{ bail.location.mandataire.signataire.lastName }} ({{ bail.location.mandataire.signataire.email }})
+        </li>
+      </ul>
+    </p>
+    <p class="align-right">
+      Dénommé ci-après « le mandataire » ;
+    </p>
+    {% endif %}
+
     <p class="section-title">2° Déclaration des parties</p>
     <p>
       Le bailleur et le locataire déclarent, chacun en ce qui le concerne :
@@ -644,6 +659,124 @@
       </ul>
       </p>
   </div>
+
+  {% if bail.location.mandataire %}
+  <div class="article">
+    <h2>Article 13 – Honoraires du mandataire</h2>
+
+    <p>
+      Conformément à l'article 5 de la loi n°89-464 du 6 juillet 1989, les honoraires dus au titre de la mise en location du logement sont encadrés par la loi.
+    </p>
+
+    <p>
+      Le présent bail est rédigé par le professionnel mandaté par le bailleur, agissant en qualité d'intermédiaire autorisé à prêter son concours à la mise en location du logement.
+    </p>
+
+    <p class="section-title">1. Nature des prestations concernées</p>
+    <p>
+      Les honoraires de location comprennent les prestations suivantes :
+    </p>
+    <p>
+      <ul>
+        <li>la visite du logement par le locataire potentiel ;</li>
+        <li>la constitution de son dossier ;</li>
+        <li>la rédaction du contrat de location ;</li>
+        <li>le cas échéant : la réalisation de l'état des lieux d'entrée.</li>
+      </ul>
+    </p>
+
+    <p class="section-title">2. Répartition et plafonds légaux</p>
+    <p>
+      Les honoraires facturés au locataire :
+    </p>
+    <p>
+      <ul>
+        <li>ne peuvent excéder ceux facturés au bailleur ;</li>
+        <li>et demeurent inférieurs ou égaux aux plafonds fixés par décret, à savoir :
+          <ul>
+            <li><strong>12 € TTC/m²</strong> en zone <strong>très tendue</strong>,</li>
+            <li><strong>10 € TTC/m²</strong> en zone <strong>tendue</strong>,</li>
+            <li><strong>8 € TTC/m²</strong> ailleurs,</li>
+            <li>et <strong>3 € TTC/m²</strong> pour l'état des lieux d'entrée.</li>
+          </ul>
+        </li>
+      </ul>
+    </p>
+    <p>
+      Ces plafonds sont révisables chaque année selon les conditions prévues par décret.
+    </p>
+
+    <p class="section-title">3. Mandataire ou intermédiaire professionnel</p>
+    <p>
+      Le présent bail a été établi par <strong>{{ bail.location.mandataire.societe.raison_sociale }}</strong>,
+      titulaire de la carte professionnelle n°<strong>{{ bail.location.mandataire.numero_carte_professionnelle|default:"[à compléter]" }}</strong>,
+      agissant en qualité de mandataire du bailleur dans le cadre d'un mandat de location conforme à la loi n°70-9 du 2 janvier 1970, appelée loi Hoguet.
+    </p>
+    <p>
+      Les honoraires dus au titre de cette prestation sont perçus par l'agence précitée, conformément au mandat et dans le respect des plafonds légaux.
+    </p>
+
+    <p class="section-title">4. Montant des honoraires appliqués</p>
+    <p>
+      Les parties reconnaissent avoir été informées préalablement du montant des honoraires de location et de leur répartition, conformément à la réglementation.
+    </p>
+    <p>
+      Le montant TTC des honoraires applicables au présent bail est arrêté comme suit :
+    </p>
+
+    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+      <thead>
+        <tr style="background-color: #f0f0f0;">
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;"><strong>Prestation</strong></th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Montant total TTC</strong></th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Part bailleur</strong></th>
+          <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Part locataire</strong></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 8px;">Visite du logement, constitution du dossier et rédaction du bail</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
+        </tr>
+        <tr>
+          <td style="border: 1px solid #ddd; padding: 8px;">État des lieux d'entrée</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
+          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>
+      Les honoraires relatifs à la mise en location sont <strong>dus à la signature du présent bail</strong>,
+      et le cas échéant, ceux relatifs à l'état des lieux <strong>à la réalisation de la prestation</strong>.
+    </p>
+
+    <p>
+      Le présent contrat a été généré via la plateforme Hestia.
+      Hestia n'intervient pas en qualité d'intermédiaire ou de mandataire et ne perçoit aucun honoraire de location.
+      L'intégralité des honoraires mentionnés ci-dessus relève du professionnel signataire, titulaire d'une carte professionnelle délivrée conformément à la loi Hoguet.
+    </p>
+  </div>
+  {% else %}
+  <div class="article">
+    <h2>Article 13 – Absence d'intermédiaire professionnel</h2>
+
+    <p>
+      Le présent contrat a été établi directement entre le bailleur et le locataire, sans intervention d'un professionnel soumis à la loi n°70-9 du 2 janvier 1970, appelée loi Hoguet.
+    </p>
+
+    <p>
+      Aucun honoraire de location n'est dû par le locataire ni par le bailleur à un intermédiaire au titre de la rédaction du présent bail ou de la mise en location.
+    </p>
+
+    <p>
+      Le bailleur et le locataire reconnaissent avoir librement convenu des conditions du présent contrat.
+    </p>
+  </div>
+  {% endif %}
 
   <div class="article">
     <h2>ANNEXES</h2>

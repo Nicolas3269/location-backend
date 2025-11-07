@@ -230,6 +230,36 @@ USER_STEPS = [
         "required_fields": ["mandataire.numero_carte_professionnelle"],
         "fields": {},
     },
+    {
+        "id": "honoraires_mandataire.bail",
+        "condition": "user_role_is_mandataire",
+        "required_fields": [
+            "honoraires_mandataire.bail.tarif_par_m2",
+            "honoraires_mandataire.bail.part_bailleur_pct",
+        ],
+        "fields": {
+            "honoraires_mandataire.bail.tarif_par_m2": (
+                RentTerms.honoraires_bail_par_m2
+            ),
+            "honoraires_mandataire.bail.part_bailleur_pct": (
+                RentTerms.honoraires_bail_part_bailleur_pct
+            ),
+        },
+    },
+    {
+        "id": "honoraires_mandataire.edl",
+        "condition": "user_role_is_mandataire",
+        "required_fields": ["honoraires_mandataire.edl.mandataire_fait_edl"],
+        "fields": {
+            "honoraires_mandataire.edl.mandataire_fait_edl": (
+                RentTerms.mandataire_fait_edl
+            ),
+            "honoraires_mandataire.edl.tarif_par_m2": (RentTerms.honoraires_edl_par_m2),
+            "honoraires_mandataire.edl.part_bailleur_pct": (
+                RentTerms.honoraires_edl_part_bailleur_pct
+            ),
+        },
+    },
 ]
 
 # --- PERSONNES (Bailleur et Locataires) ---

@@ -113,6 +113,9 @@ def generate_bail_pdf(request):
                     # Si le format n'est pas valide, garder la valeur originale
                     dernier_loyer_periode_formatted = dernier_loyer_periode
 
+        # Calculer les honoraires du mandataire
+        honoraires_data = BailMapping.get_honoraires_mandataire_data(bail)
+
         # Générer le PDF depuis le template HTML
         html = render_to_string(
             "pdf/bail/bail.html",
@@ -152,6 +155,7 @@ def generate_bail_pdf(request):
                     bail
                 ),
                 "logo_base64_uri": get_logo_pdf_base64_data_uri(),
+                "honoraires_mandataire": honoraires_data,
             },
         )
         pdf_bytes = HTML(

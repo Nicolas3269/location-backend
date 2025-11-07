@@ -278,3 +278,51 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
         if hasattr(bail.location, "rent_terms"):
             return bail.location.rent_terms.permis_de_louer
         return False
+
+    @staticmethod
+    def get_honoraires_mandataire_data(bail: Bail):
+        """
+        Retourne les honoraires du mandataire (bail + EDL)
+        en utilisant les properties de RentTerms.
+        Retourne un dict avec les données formatées pour le template PDF.
+        """
+        result = {}
+
+        if not bail.location.mandataire or not hasattr(bail.location, "rent_terms"):
+            return result
+
+        rent_terms: RentTerms = bail.location.rent_terms
+        superficie = float(bail.location.bien.superficie or 0)
+
+        # Honoraires de bail (utilise les properties de RentTerms)
+        if rent_terms.honoraires_bail_total is not None:
+            part_bailleur_pct = float(rent_terms.honoraires_bail_part_bailleur_pct)
+            result["bail"] = {
+                "tarif_par_m2": float(rent_terms.honoraires_bail_par_m2),
+                "superficie": superficie,
+                "montant_total": rent_terms.honoraires_bail_total,
+                "part_bailleur_pct": part_bailleur_pct,
+                "montant_bailleur": rent_terms.honoraires_bail_bailleur,
+                "part_locataire_pct": 100 - part_bailleur_pct,
+                "montant_locataire": rent_terms.honoraires_bail_locataire,
+            }
+
+        # Honoraires EDL si le mandataire le fait (utilise les properties)
+        if (
+            rent_terms.mandataire_fait_edl
+            and rent_terms.honoraires_edl_total is not None
+        ):
+            part_bailleur_edl_pct = float(
+                rent_terms.honoraires_edl_part_bailleur_pct
+            )
+            result["edl"] = {
+                "tarif_par_m2": float(rent_terms.honoraires_edl_par_m2),
+                "superficie": superficie,
+                "montant_total": rent_terms.honoraires_edl_total,
+                "part_bailleur_pct": part_bailleur_edl_pct,
+                "montant_bailleur": rent_terms.honoraires_edl_bailleur,
+                "part_locataire_pct": 100 - part_bailleur_edl_pct,
+                "montant_locataire": rent_terms.honoraires_edl_locataire,
+            }
+
+        return result

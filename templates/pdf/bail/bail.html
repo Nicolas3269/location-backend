@@ -724,30 +724,42 @@
       Le montant TTC des honoraires applicables au présent bail est arrêté comme suit :
     </p>
 
-    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-      <thead>
-        <tr style="background-color: #f0f0f0;">
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;"><strong>Prestation</strong></th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Montant total TTC</strong></th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Part bailleur</strong></th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Part locataire</strong></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td style="border: 1px solid #ddd; padding: 8px;">Visite du logement, constitution du dossier et rédaction du bail</td>
-          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
-          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
-          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
-        </tr>
-        <tr>
-          <td style="border: 1px solid #ddd; padding: 8px;">État des lieux d'entrée</td>
-          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
-          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
-          <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">[à compléter] €</td>
-        </tr>
-      </tbody>
-    </table>
+    {% if honoraires_mandataire.bail %}
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+          <tr style="background-color: #f0f0f0;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;"><strong>Prestation</strong></th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Montant total TTC</strong></th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Part bailleur ({{ honoraires_mandataire.bail.part_bailleur_pct }}%)</strong></th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Part locataire ({{ honoraires_mandataire.bail.part_locataire_pct }}%)</strong></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">
+              Visite du logement, constitution du dossier et rédaction du bail
+              ({{ honoraires_mandataire.bail.superficie }} m² × {{ honoraires_mandataire.bail.tarif_par_m2 }} €/m²)
+            </td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_total }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_bailleur }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_locataire }} € TTC</td>
+          </tr>
+          {% if honoraires_mandataire.edl %}
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">
+              État des lieux d'entrée
+              ({{ honoraires_mandataire.edl.superficie }} m² × {{ honoraires_mandataire.edl.tarif_par_m2 }} €/m²)
+            </td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_total }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_bailleur }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_locataire }} € TTC</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    {% else %}
+      <p style="font-style: italic; color: #6c6b70;">Les montants des honoraires n'ont pas été renseignés.</p>
+    {% endif %}
 
     <p>
       Les honoraires relatifs à la mise en location sont <strong>dus à la signature du présent bail</strong>,

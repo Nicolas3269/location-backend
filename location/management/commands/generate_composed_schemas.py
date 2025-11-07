@@ -35,6 +35,9 @@ class Command(BaseCommand):
             DatesLocationSerializer,
             EnergieSerializer,
             EquipementsSerializer,
+            HonorairesBailSerializer,
+            HonorairesEDLSerializer,
+            HonorairesMandataireSerializer,
             LocataireInfoSerializer,
             MandataireInfoSerializer,
             ModalitesFinancieresSerializer,
@@ -63,6 +66,9 @@ class Command(BaseCommand):
             LocataireInfoSerializer,
             ModalitesFinancieresSerializer,
             ModalitesZoneTendueSerializer,
+            HonorairesBailSerializer,
+            HonorairesEDLSerializer,
+            HonorairesMandataireSerializer,
             DatesLocationSerializer,
         ]
 

@@ -267,6 +267,36 @@ class ModalitesZoneTendueSerializer(serializers.Serializer):
     )
 
 
+class HonorairesBailSerializer(serializers.Serializer):
+    """Honoraires de bail du mandataire"""
+
+    tarif_par_m2 = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    part_bailleur_pct = serializers.DecimalField(
+        max_digits=5, decimal_places=2, required=False, allow_null=True
+    )
+
+
+class HonorairesEDLSerializer(serializers.Serializer):
+    """Honoraires d'état des lieux du mandataire"""
+
+    mandataire_fait_edl = serializers.BooleanField(required=False, default=False)
+    tarif_par_m2 = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    part_bailleur_pct = serializers.DecimalField(
+        max_digits=5, decimal_places=2, required=False, allow_null=True
+    )
+
+
+class HonorairesMandataireSerializer(serializers.Serializer):
+    """Honoraires du mandataire (bail + EDL)"""
+
+    bail = HonorairesBailSerializer(required=False)
+    edl = HonorairesEDLSerializer(required=False)
+
+
 class DatesLocationSerializer(serializers.Serializer):
     """Dates de la location"""
 

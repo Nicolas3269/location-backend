@@ -13,6 +13,7 @@ from ..serializers_composed import (
     BienEtatLieuxSerializer,
     BienQuittanceSerializer,
     DatesLocationSerializer,
+    HonorairesMandataireSerializer,
     LocataireInfoSerializer,
     MandataireInfoSerializer,
     ModalitesFinancieresSerializer,
@@ -690,6 +691,7 @@ class FranceBailSerializer(BaseLocationSerializer):
     bien = BienBailSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
     mandataire = MandataireInfoSerializer(required=False)
+    honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
         child=LocataireInfoSerializer(), min_length=1, required=True
     )
@@ -759,6 +761,7 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
     bien = BienQuittanceSerializer(required=True)  # Juste l'adresse
     bailleur = BailleurInfoSerializer(required=True)
     mandataire = MandataireInfoSerializer(required=False)
+    honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True
     )
@@ -838,6 +841,7 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
     bien = BienEtatLieuxSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
     mandataire = MandataireInfoSerializer(required=False)
+    honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True
     )

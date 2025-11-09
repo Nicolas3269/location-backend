@@ -248,13 +248,23 @@ USER_STEPS = [
         },
     },
     {
-        "id": "honoraires_mandataire.edl",
+        "id": "honoraires_mandataire.edl.question",
         "condition": "user_role_is_mandataire",
         "required_fields": ["honoraires_mandataire.edl.mandataire_fait_edl"],
         "fields": {
             "honoraires_mandataire.edl.mandataire_fait_edl": (
                 RentTerms.mandataire_fait_edl
             ),
+        },
+    },
+    {
+        "id": "honoraires_mandataire.edl.tarifs",
+        "condition": "user_role_is_mandataire_and_mandataire_fait_edl",
+        "required_fields": [
+            "honoraires_mandataire.edl.tarif_par_m2",
+            "honoraires_mandataire.edl.part_bailleur_pct",
+        ],
+        "fields": {
             "honoraires_mandataire.edl.tarif_par_m2": (RentTerms.honoraires_edl_par_m2),
             "honoraires_mandataire.edl.part_bailleur_pct": (
                 RentTerms.honoraires_edl_part_bailleur_pct

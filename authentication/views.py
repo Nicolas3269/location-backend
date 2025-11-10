@@ -316,6 +316,7 @@ def get_user_profile(request):
     profile_data["roles"]["is_mandataire"] = user_has_mandataire_role(user.email)
 
     # Vérifier si l'utilisateur est un bailleur (pas de comptage)
+
     bailleurs = Bailleur.objects.filter(
         models.Q(personne__email=user.email) | models.Q(signataire__email=user.email)
     ).distinct()
@@ -323,6 +324,7 @@ def get_user_profile(request):
     profile_data["roles"]["is_bailleur"] = bailleurs.exists()
 
     # Vérifier si l'utilisateur est un locataire (pas de comptage)
+
     locataires = Locataire.objects.filter(email=user.email)
     profile_data["roles"]["is_locataire"] = locataires.exists()
 

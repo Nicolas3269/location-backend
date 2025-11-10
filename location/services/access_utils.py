@@ -1,9 +1,13 @@
 """
 Utilitaires pour la vérification des droits d'accès aux locations et biens.
 """
+from typing import TYPE_CHECKING
 
 from bail.models import Bail
-from location.models import Bien, Location
+from location.models import Bailleur, Bien, Location, Mandataire
+
+if TYPE_CHECKING:
+    from django.db.models import QuerySet
 
 
 def user_has_location_access(location: Location, user_email: str) -> bool:
@@ -75,3 +79,84 @@ def user_has_bien_access(
                 return True
 
     return False
+
+
+# =====================================================
+# Helpers pour les mandataires
+# =====================================================
+
+
+def get_user_mandataires(user_email: str) -> "QuerySet[Mandataire]":
+    """
+    Retourne tous les mandataires d'un utilisateur.
+
+    Un signataire peut gérer plusieurs agences/mandataires.
+
+    Args:
+        user_email: Email de l'utilisateur
+
+    Returns:
+        QuerySet de Mandataire
+    """
+    return Mandataire.objects.filter(signataire__email=user_email)
+
+
+def user_has_mandataire_role(user_email: str) -> bool:
+    """
+    Vérifie si un utilisateur a le rôle mandataire.
+
+    Args:
+        user_email: Email de l'utilisateur
+
+    Returns:
+        True si l'utilisateur est mandataire, False sinon
+    """
+    return get_user_mandataires(user_email).exists()
+
+
+def user_has_bailleur_access_via_mandataire(
+    bailleur: Bailleur, user_email: str
+) -> bool:
+    """
+    Vérifie si un mandataire a accès à un bailleur spécifique.
+
+    Un mandataire a accès à un bailleur s'il gère au moins un bien de ce bailleur.
+
+    Args:
+        bailleur: Instance de Bailleur
+        user_email: Email de l'utilisateur mandataire
+
+    Returns:
+        True si le mandataire gère ce bailleur, False sinon
+    """
+    mandataires = get_user_mandataires(user_email)
+
+    if not mandataires.exists():
+        return False
+
+    # Vérifier que ces mandataires gèrent au moins un bien de ce bailleur
+    return Bien.objects.filter(
+        bailleurs=bailleur, locations__mandataire__in=mandataires
+    ).exists()
+
+
+def user_has_bien_access_via_mandataire(bien: Bien, user_email: str) -> bool:
+    """
+    Vérifie si un mandataire a accès à un bien spécifique.
+
+    Un mandataire a accès à un bien s'il gère au moins une location de ce bien.
+
+    Args:
+        bien: Instance de Bien
+        user_email: Email de l'utilisateur mandataire
+
+    Returns:
+        True si le mandataire gère ce bien, False sinon
+    """
+    mandataires = get_user_mandataires(user_email)
+
+    if not mandataires.exists():
+        return False
+
+    # Vérifier que ces mandataires gèrent ce bien (via une location)
+    return Location.objects.filter(bien=bien, mandataire__in=mandataires).exists()

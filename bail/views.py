@@ -28,6 +28,7 @@ from bail.models import (
 from bail.utils import (
     create_signature_requests,
 )
+from signature.document_types import SignableDocumentType
 
 # from etat_lieux.utils import get_or_create_pieces_for_bien  # Supprimé - nouvelle architecture
 from location.models import (
@@ -184,7 +185,7 @@ def generate_bail_pdf(request):
                 certify_document_hestia(
                     source_path=tmp_pdf_path,
                     output_path=certified_pdf_path,
-                    document_type="bail",
+                    document_type=SignableDocumentType.BAIL.value,
                 )
 
                 # Utiliser le PDF certifié au lieu du PDF vierge
@@ -248,7 +249,7 @@ def get_signature_request(request, token):
 @permission_classes([IsAuthenticated])
 def confirm_signature_bail(request):
     """Vue pour confirmer une signature de bail"""
-    return confirm_signature_generic(request, BailSignatureRequest, "bail")
+    return confirm_signature_generic(request, BailSignatureRequest, SignableDocumentType.BAIL.value)
 
 
 @api_view(["POST"])
@@ -794,7 +795,7 @@ def resend_otp_bail(request):
     """
     Renvoie un OTP pour la signature de bail
     """
-    return resend_otp_generic(request, BailSignatureRequest, "bail")
+    return resend_otp_generic(request, BailSignatureRequest, SignableDocumentType.BAIL.value)
 
 
 @api_view(["POST"])

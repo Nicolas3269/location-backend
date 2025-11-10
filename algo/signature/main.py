@@ -27,7 +27,9 @@ def get_signature_field_name(person: Personne):
 def get_named_dest_coordinates(pdf_path, person: Personne, target_type=None):
     field_name = get_signature_field_name(person)
 
-    if target_type == "bailleur":
+    if target_type == "mandataire":
+        target_marker = f"ID_SIGNATURE_MANDATAIRE_{person.id}"
+    elif target_type == "bailleur":
         target_marker = f"ID_SIGNATURE_BAILLEUR_{person.id}"
     elif target_type == "locataire":
         target_marker = f"ID_SIGNATURE_LOC_{person.id}"

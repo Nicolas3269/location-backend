@@ -39,10 +39,8 @@ def process_signature_generic(signature_request, signature_data_url, request=Non
             )
             return False
 
-        # Récupérer la personne qui signe
-        signing_person = (
-            signature_request.bailleur_signataire or signature_request.locataire
-        )
+        # Récupérer la personne qui signe (utilise la propriété signer qui gère mandataire)
+        signing_person = signature_request.signer
         logger.info(f"Personne qui signe: {signing_person}")
 
         # Vérifier que le document a un PDF
@@ -272,6 +270,7 @@ def prepare_pdf_with_signature_fields_generic(pdf_field, document):
             )
 
         # Récupérer tous les signataires
+        mandataire = location.mandataire
         bailleurs = location.bien.bailleurs.all()
         bailleur_signataires = [
             bailleur.signataire for bailleur in bailleurs if bailleur.signataire
@@ -296,6 +295,26 @@ def prepare_pdf_with_signature_fields_generic(pdf_field, document):
 
         with context_manager as pdf_path:
             all_fields = []
+
+            # Ajouter le champ pour le mandataire (si présent) - EN PREMIER
+            if mandataire and mandataire.signataire:
+                person = mandataire.signataire
+                page, rect, field_name = get_named_dest_coordinates(
+                    pdf_path, person, "mandataire"
+                )
+                if rect is None:
+                    logger.warning(
+                        f"Aucun champ de signature trouvé pour le mandataire {person.email}"
+                    )
+                else:
+                    all_fields.append(
+                        {
+                            "field_name": field_name,
+                            "rect": rect,
+                            "person": person,
+                            "page": page,
+                        }
+                    )
 
             # Ajouter les champs pour les bailleurs signataires
             for person in bailleur_signataires:

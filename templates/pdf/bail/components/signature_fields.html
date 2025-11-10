@@ -2,6 +2,19 @@
 <div class="section signature-section">
   <h2>7. Signatures</h2>
   <div class="signature">
+    <!-- Mandataire signature block (si présent) -->
+    {% if mandataire %}
+    <h4 id="mandataire-signature-header">
+      Mandataire
+    </h4>
+    <div class="signature-list">
+      <div class="signature-block">
+        <!-- ID invisible pour PyMuPDF -->
+        <p style="color:white; margin: 0; white-space: nowrap;">ID_SIGNATURE_MANDATAIRE_{{ mandataire.signataire.id }}</p>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Landlord signature blocks -->
     <h4 id="landlord-signature-header">
       {% with count=bailleurs|length %}

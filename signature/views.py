@@ -9,9 +9,12 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
 from authentication.utils import get_tokens_for_user, set_refresh_token_cookie
+from signature.models import AbstractSignatureRequest
 
+# Envoyer l'OTP par email
 from .services import (
     get_next_signer,
+    send_otp_email,
     send_signature_email,
     verify_signature_order,
 )
@@ -29,7 +32,9 @@ def get_signature_request_generic(request, token, model_class):
         model_class: Classe du modèle de signature
     """
     try:
-        sig_req = get_object_or_404(model_class, link_token=token)
+        sig_req: AbstractSignatureRequest = get_object_or_404(
+            model_class, link_token=token
+        )
 
         if sig_req.signed:
             return JsonResponse(
@@ -74,18 +79,11 @@ def get_signature_request_generic(request, token, model_class):
         if should_send_otp:
             sig_req.generate_otp()
 
-            # Préparer les données de réponse
-            person = sig_req.bailleur_signataire or sig_req.locataire
-            signer_email = sig_req.get_signataire_email()
-
-            # Envoyer l'OTP par email
-            from .services import send_otp_email
-
-            document_type = "bail" if hasattr(sig_req, "bail") else "etat_lieux"
+            document_type = sig_req.get_document_type()
             send_otp_email(sig_req, document_type)
 
-        # Préparer les données du signataire
-        person = sig_req.bailleur_signataire or sig_req.locataire
+        # Préparer les données du signataire (utilise la propriété signer qui gère mandataire)
+        person = sig_req.signer
         signer_email = sig_req.get_signataire_email()
 
         # Préparer la réponse dans le nouveau format unifié
@@ -161,6 +159,7 @@ def get_signature_request_generic(request, token, model_class):
 
             # Ajouter la liste des documents du dossier de location
             from .document_list_service import get_bail_documents_list
+
             response_data["documents_list"] = get_bail_documents_list(bail, request)
 
         elif hasattr(sig_req, "etat_lieux"):
@@ -170,11 +169,16 @@ def get_signature_request_generic(request, token, model_class):
 
             # Ajouter le régime juridique du bien pour les assurances
             if etat_lieux.location and etat_lieux.location.bien:
-                response_data["regime_juridique"] = etat_lieux.location.bien.regime_juridique
+                response_data["regime_juridique"] = (
+                    etat_lieux.location.bien.regime_juridique
+                )
 
             # Ajouter la liste des documents de l'état des lieux
             from .document_list_service import get_etat_lieux_documents_list
-            response_data["documents_list"] = get_etat_lieux_documents_list(etat_lieux, request)
+
+            response_data["documents_list"] = get_etat_lieux_documents_list(
+                etat_lieux, request
+            )
 
         # Tenter d'authentifier automatiquement l'utilisateur
         User = get_user_model()

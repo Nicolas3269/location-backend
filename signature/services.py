@@ -276,7 +276,23 @@ def create_signature_requests_generic(document, signature_request_model):
 
     order = 1
 
-    # Créer les demandes pour les bailleurs signataires
+    # Si un mandataire est présent, il signe en premier
+    if location.mandataire:
+        signature_request_model.objects.create(
+            **{
+                document_field_name: document,
+                "mandataire": location.mandataire,
+                "order": order,
+                "otp": "",
+            }
+        )
+        order += 1
+        logger.info(
+            f"Mandataire ajouté en premier signataire (order={order-1}) pour "
+            f"{type(document).__name__} {document.id}"
+        )
+
+    # Créer les demandes pour les bailleurs signataires (après le mandataire si présent)
     for signataire in bailleur_signataires:
         if signataire:
             signature_request_model.objects.create(
@@ -289,7 +305,7 @@ def create_signature_requests_generic(document, signature_request_model):
             )
             order += 1
 
-    # Créer les demandes pour les locataires
+    # Créer les demandes pour les locataires (en dernier)
     for locataire in locataires:
         signature_request_model.objects.create(
             **{

@@ -3,14 +3,13 @@ Nouveau modèle EtatLieux refactorisé
 À renommer en models.py après validation
 """
 
-import uuid
-
 from django.db import models
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
-from location.models import BaseModel, Locataire, Location, Personne
+from location.models import BaseModel, Locataire, Location, Mandataire, Personne
 from signature.document_status import DocumentStatus
+from signature.document_types import SignableDocumentType
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
 
@@ -64,7 +63,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         default=None,
         null=True,
         blank=True,
-        help_text="Commentaires généraux sur l'état des lieux"
+        help_text="Commentaires généraux sur l'état des lieux",
     )
 
     # Annulation
@@ -96,7 +95,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["location", "type_etat_lieux"],
-                condition=models.Q(status__in=['SIGNING', 'SIGNED']),
+                condition=models.Q(status__in=["SIGNING", "SIGNED"]),
                 name="unique_signing_or_signed_edl_per_location_and_type",
             )
         ]
@@ -279,7 +278,7 @@ class EtatLieuxEquipement(BaseModel):
     quantity = models.IntegerField(
         null=True,
         blank=True,
-        help_text="Quantité de l'équipement (pour les équipements comptables)"
+        help_text="Quantité de l'équipement (pour les équipements comptables)",
     )
 
     # Données additionnelles (date_entretien, etc.)
@@ -343,6 +342,14 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
     )
 
     # Override les champs related_name pour éviter les conflits avec bail
+    mandataire = models.ForeignKey(
+        Mandataire,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="etat_lieux_signature_requests",
+        help_text="Mandataire qui signe pour le compte du bailleur",
+    )
     bailleur_signataire = models.ForeignKey(
         Personne,
         on_delete=models.CASCADE,
@@ -361,6 +368,11 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
     class Meta:
         verbose_name = "Demande signature état des lieux"
         verbose_name_plural = "Demandes signature état des lieux"
+        unique_together = [
+            ("etat_lieux", "bailleur_signataire"),
+            ("etat_lieux", "locataire"),
+            ("etat_lieux", "mandataire"),
+        ]
         ordering = ["order"]
 
     def get_document_name(self):
@@ -383,6 +395,10 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
             .order_by("order")
             .first()
         )
+
+    def get_document_type(self):
+        """Retourne le type de document"""
+        return SignableDocumentType.ETAT_LIEUX.value
 
     def mark_as_signed(self):
         """Marque la demande comme signée et met à jour le statut du document"""

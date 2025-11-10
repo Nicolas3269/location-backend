@@ -2,6 +2,19 @@
 <div style="page-break-inside: avoid; margin-top: 40px;">
     <h2 style="color: #2680eb; font-size: 14pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 20px 0;">Signatures</h2>
 
+    <!-- Mandataire signature block (si présent) -->
+    {% if mandataire %}
+    <h4 style="color: #3e3c41; font-size: 11pt; font-weight: 600; margin: 0 0 15px 0;">
+        Mandataire
+    </h4>
+    <div style="margin-bottom: 30px;">
+        <div class="signature-block">
+            <!-- ID invisible pour PyMuPDF -->
+            <p style="color:white; margin: 0; font-size: 1pt; white-space: nowrap;">ID_SIGNATURE_MANDATAIRE_{{ mandataire.signataire.id }}</p>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Bailleur signature blocks -->
     {% if bailleurs %}
     <h4 style="color: #3e3c41; font-size: 11pt; font-weight: 600; margin: 0 0 15px 0;">

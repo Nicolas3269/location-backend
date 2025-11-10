@@ -8,8 +8,9 @@ from django.db import models
 from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
-from location.models import BaseModel, Bien, Locataire, Location, Personne
+from location.models import BaseModel, Bien, Locataire, Location, Mandataire, Personne
 from signature.document_status import DocumentStatus
+from signature.document_types import SignableDocumentType
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
 
@@ -180,6 +181,14 @@ class BailSignatureRequest(AbstractSignatureRequest):
     )
 
     # Override les champs pour spécifier les related_name différents d'EtatLieux
+    mandataire = models.ForeignKey(
+        Mandataire,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="bail_signature_requests",
+        help_text="Mandataire qui signe pour le compte du bailleur",
+    )
     bailleur_signataire = models.ForeignKey(
         Personne,
         null=True,
@@ -199,7 +208,11 @@ class BailSignatureRequest(AbstractSignatureRequest):
     )
 
     class Meta:
-        unique_together = [("bail", "bailleur_signataire"), ("bail", "locataire")]
+        unique_together = [
+            ("bail", "bailleur_signataire"),
+            ("bail", "locataire"),
+            ("bail", "mandataire"),
+        ]
         ordering = ["order"]
 
     def get_document_name(self):
@@ -221,6 +234,10 @@ class BailSignatureRequest(AbstractSignatureRequest):
             .order_by("order")
             .first()
         )
+
+    def get_document_type(self):
+        """Retourne le type de document"""
+        return SignableDocumentType.BAIL.value
 
     def mark_as_signed(self):
         """Marque la demande comme signée et met à jour le statut du document"""

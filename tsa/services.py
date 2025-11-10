@@ -104,9 +104,13 @@ def generate_timestamp_token(tsa_request_data: bytes) -> bytes:
     # pour qu'il soit complètement fermé quand OpenSSL l'ouvre
     serial_fd, serial_file_path = tempfile.mkstemp(suffix='.txt', text=True)
     try:
-        # Écrire le serial en hexadécimal (minimum 2 chiffres)
-        # OpenSSL exige au moins 2 chiffres hex (format ASN.1 INTEGER)
-        serial_hex = f"{next_serial:02X}\n"
+        # Écrire le serial en hexadécimal
+        # IMPORTANT: OpenSSL exige un nombre PAIR de caractères hex (format ASN.1 INTEGER)
+        # Exemple: 256 = "100" (3 chars) est invalide, doit être "0100" (4 chars)
+        hex_str = f"{next_serial:X}"
+        if len(hex_str) % 2 == 1:
+            hex_str = "0" + hex_str  # Ajouter un zéro devant si impair
+        serial_hex = hex_str + "\n"
         os.write(serial_fd, serial_hex.encode())
     finally:
         os.close(serial_fd)  # Fermer complètement le file descriptor
@@ -174,6 +178,30 @@ def generate_timestamp_token(tsa_request_data: bytes) -> bytes:
                 tsa_response_data = f.read()
 
             logger.info(f"✅ Token TSA généré : {len(tsa_response_data)} bytes")
+
+            # Vérifier que la réponse TSA contient un timestamp valide
+            # (pas juste une erreur ASN.1 de 55 bytes)
+            try:
+                from asn1crypto.tsp import TimeStampResp
+                tsa_response = TimeStampResp.load(tsa_response_data)
+
+                # Vérifier le statut de la réponse
+                status = tsa_response['status']['status'].native
+                if status != 'granted' and status != 'granted_with_mods':
+                    error_msg = f"TSA request failed with status: {status}"
+                    if tsa_response['status']['status_string']:
+                        error_msg += f" - {tsa_response['status']['status_string'].native}"
+                    raise TsaError(error_msg)
+
+                # Vérifier que le token existe
+                if not tsa_response['time_stamp_token']:
+                    raise TsaError("TSA response missing time_stamp_token")
+
+                logger.info(f"✅ Timestamp TSA validé (status: {status})")
+
+            except Exception as parse_error:
+                raise TsaError(f"Invalid TSA response: {str(parse_error)}")
+
             return tsa_response_data
 
         except subprocess.TimeoutExpired:

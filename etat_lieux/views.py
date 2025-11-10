@@ -25,6 +25,7 @@ from etat_lieux.utils import (
     create_etat_lieux_signature_requests,
 )
 from location.models import Bailleur, Bien, Locataire, Location
+from signature.document_types import SignableDocumentType
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
     confirm_signature_generic,
@@ -324,7 +325,7 @@ def add_signature_fields_to_pdf(pdf_bytes, etat_lieux):
             certify_document_hestia(
                 source_path=tmp_pdf_path,
                 output_path=certified_pdf_path,
-                document_type="etat_lieux",
+                document_type=SignableDocumentType.ETAT_LIEUX.value,
             )
 
             # Utiliser le PDF certifié au lieu du PDF vierge
@@ -488,6 +489,7 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
         "etat_lieux": etat_lieux,
         "now": timezone.now(),
         "location": location,
+        "mandataire": location.mandataire,
         "bailleurs": bailleurs,
         "locataires": locataires,
         "pieces_enrichies": pieces_enrichies,
@@ -585,7 +587,9 @@ def confirm_signature_etat_lieux(request):
     """
     Confirme la signature d'un état des lieux
     """
-    return confirm_signature_generic(request, EtatLieuxSignatureRequest, "etat_lieux")
+    return confirm_signature_generic(
+        request, EtatLieuxSignatureRequest, SignableDocumentType.ETAT_LIEUX.value
+    )
 
 
 @api_view(["POST"])
@@ -594,4 +598,6 @@ def resend_otp_etat_lieux(request):
     """
     Renvoie un OTP pour la signature d'état des lieux
     """
-    return resend_otp_generic(request, EtatLieuxSignatureRequest, "etat_lieux")
+    return resend_otp_generic(
+        request, EtatLieuxSignatureRequest, SignableDocumentType.ETAT_LIEUX.value
+    )

@@ -28,14 +28,15 @@ from bail.models import (
 from bail.utils import (
     create_signature_requests,
 )
-from signature.document_types import SignableDocumentType
 
 # from etat_lieux.utils import get_or_create_pieces_for_bien  # Supprimé - nouvelle architecture
 from location.models import (
     Bien,
     RentTerms,
 )
+from location.services.access_utils import user_has_bien_access
 from rent_control.utils import get_rent_price_for_bien
+from signature.document_types import SignableDocumentType
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
     confirm_signature_generic,
@@ -249,7 +250,9 @@ def get_signature_request(request, token):
 @permission_classes([IsAuthenticated])
 def confirm_signature_bail(request):
     """Vue pour confirmer une signature de bail"""
-    return confirm_signature_generic(request, BailSignatureRequest, SignableDocumentType.BAIL.value)
+    return confirm_signature_generic(
+        request, BailSignatureRequest, SignableDocumentType.BAIL.value
+    )
 
 
 @api_view(["POST"])
@@ -640,26 +643,9 @@ def get_bien_detail(request, bien_id):
         bien = get_object_or_404(Bien, id=bien_id)
 
         # Vérifier que l'utilisateur a accès à ce bien
-        # L'utilisateur doit être le signataire d'un des bailleurs du bien
-        # ou être un locataire d'un bail sur ce bien
-        user_bails = Bail.objects.filter(location__bien=bien)
-        has_access = False
-
-        # Récupérer l'email de l'utilisateur connecté
+        # L'utilisateur doit être bailleur ou locataire d'un bail sur ce bien
         user_email = request.user.email
-
-        # Vérifier si l'utilisateur est signataire d'un des bailleurs
-        for bailleur in bien.bailleurs.all():
-            if bailleur.signataire and bailleur.signataire.email == user_email:
-                has_access = True
-                break
-
-        # Si pas encore d'accès, vérifier si l'utilisateur est locataire
-        if not has_access:
-            for bail in user_bails:
-                if bail.location.locataires.filter(email=user_email).exists():
-                    has_access = True
-                    break
+        has_access = user_has_bien_access(bien, user_email, check_locataires=True)
 
         if not has_access:
             return JsonResponse(
@@ -702,13 +688,7 @@ def get_bien_baux(request, bien_id):
 
         # Vérifier que l'utilisateur a accès à ce bien
         user_email = request.user.email
-        has_access = False
-
-        # Vérifier si l'utilisateur est signataire d'un des bailleurs
-        for bailleur in bien.bailleurs.all():
-            if bailleur.signataire and bailleur.signataire.email == user_email:
-                has_access = True
-                break
+        has_access = user_has_bien_access(bien, user_email)
 
         if not has_access:
             return JsonResponse(
@@ -795,7 +775,9 @@ def resend_otp_bail(request):
     """
     Renvoie un OTP pour la signature de bail
     """
-    return resend_otp_generic(request, BailSignatureRequest, SignableDocumentType.BAIL.value)
+    return resend_otp_generic(
+        request, BailSignatureRequest, SignableDocumentType.BAIL.value
+    )
 
 
 @api_view(["POST"])

@@ -22,7 +22,7 @@ from authentication.utils import (
     verify_google_token,
     verify_otp_only_and_generate_token,
 )
-from location.models import Bailleur, Locataire, Personne
+from location.models import Bailleur, Locataire, Mandataire, Personne
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -311,12 +311,23 @@ def get_user_profile_detailed(request):
             "username": user.username,
         },
         "roles": {
+            "is_mandataire": False,
             "is_bailleur": False,
             "is_locataire": False,
         },
         "biens": [],
         "locations": [],
     }
+
+    # Vérifier si l'utilisateur est un mandataire
+    try:
+        is_mandataire = Mandataire.objects.filter(signataire__email=user.email).exists()
+        profile_data["roles"]["is_mandataire"] = is_mandataire
+    except Exception as e:
+        error_msg = (
+            f"Erreur lors de la vérification du rôle mandataire pour {user.email}"
+        )
+        logger.warning(f"{error_msg}: {e}")
 
     # Vérifier si l'utilisateur est un bailleur (propriétaire ou signataire)
     try:
@@ -388,10 +399,14 @@ def get_user_profile_detailed(request):
                 # Les locataires sont liés aux locations via ManyToMany
                 for location in Location.objects.filter(locataires=locataire):
                     # Récupérer le bail actif de cette location s'il existe (SIGNING ou SIGNED)
-                    bail = Bail.objects.filter(
-                        location=location,
-                        status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED]
-                    ).order_by('-created_at').first()
+                    bail = (
+                        Bail.objects.filter(
+                            location=location,
+                            status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED],
+                        )
+                        .order_by("-created_at")
+                        .first()
+                    )
 
                     date_fin = (
                         location.date_fin.isoformat() if location.date_fin else None
@@ -407,15 +422,9 @@ def get_user_profile_detailed(request):
                         signatures_completes = not bail.signature_requests.filter(
                             signed=False
                         ).exists()
-                        pdf_url = (
-                            bail.pdf.url
-                            if bail.pdf
-                            else None
-                        )
+                        pdf_url = bail.pdf.url if bail.pdf else None
                         latest_pdf_url = (
-                            bail.latest_pdf.url
-                            if bail.latest_pdf
-                            else None
+                            bail.latest_pdf.url if bail.latest_pdf else None
                         )
                         status = bail.status
 

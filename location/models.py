@@ -49,6 +49,12 @@ class DPEClass(models.TextChoices):
     NA = "NA", "Non soumis à DPE"
 
 
+class BailleurType(models.TextChoices):
+    """Types de bailleur"""
+    PHYSIQUE = "physique", "Personne physique"
+    MORALE = "morale", "Personne morale"
+
+
 # ==============================
 # NOUVEAUX MODÈLES POUR BAILLEUR
 # ==============================
@@ -213,12 +219,12 @@ class Bailleur(BaseModel):
 
     @property
     def bailleur_type(self):
-        """Retourne le type de bailleur (personne ou société)"""
+        """Retourne le type de bailleur (physique ou morale)"""
         if self.personne:
-            return "personne"
+            return BailleurType.PHYSIQUE
         elif self.societe:
-            return "societe"
-        return "inconnu"
+            return BailleurType.MORALE
+        raise ValueError(f"Bailleur {self.id} invalide: doit avoir personne ou société")
 
     @property
     def full_name(self):
@@ -227,7 +233,7 @@ class Bailleur(BaseModel):
             return self.personne.full_name
         elif self.societe:
             return self.societe.full_name
-        return "Bailleur inconnu"
+        raise ValueError(f"Bailleur {self.id} invalide: doit avoir personne ou société")
 
     @property
     def adresse(self):
@@ -237,6 +243,17 @@ class Bailleur(BaseModel):
         elif self.societe:
             return self.societe.adresse
         return "Adresse inconnue"
+
+    @property
+    def email(self):
+        """Retourne l'email du bailleur (personne ou signataire)."""
+        if self.personne:
+            return self.personne.email
+        elif self.societe and self.signataire:
+            return self.signataire.email
+        raise ValueError(
+            f"Bailleur {self.id} invalide: doit avoir personne ou signataire"
+        )
 
     def save(self, *args, **kwargs):
         """Automatiser la logique du signataire selon le type de bailleur."""

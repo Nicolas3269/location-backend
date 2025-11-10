@@ -14,6 +14,11 @@ from .views import (
     cancel_etat_lieux,
     cancel_quittance,
 )
+from .views_mandataire import (
+    get_mandataire_bailleurs,
+    get_mandataire_bailleur_detail,
+    get_mandataire_bien_detail,
+)
 
 app_name = "location"
 
@@ -63,5 +68,21 @@ urlpatterns = [
         "quittances/<uuid:quittance_id>/cancel/",
         cancel_quittance,
         name="cancel_quittance",
+    ),
+    # Endpoints mandataire
+    path(
+        "mandataire/bailleurs/",
+        get_mandataire_bailleurs,
+        name="get_mandataire_bailleurs",
+    ),
+    path(
+        "mandataire/bailleurs/<uuid:bailleur_id>/",
+        get_mandataire_bailleur_detail,
+        name="get_mandataire_bailleur_detail",
+    ),
+    path(
+        "mandataire/biens/<uuid:bien_id>/",
+        get_mandataire_bien_detail,
+        name="get_mandataire_bien_detail",
     ),
 ]

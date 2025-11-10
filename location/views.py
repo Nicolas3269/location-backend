@@ -2,12 +2,16 @@ import json
 import logging
 
 from django.http import JsonResponse
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
+from bail.models import Bail
 from bail.utils import create_bien_from_form_data
+from etat_lieux.models import EtatLieux
 from location.models import (
     Bailleur,
+    BailleurType,
     Bien,
     Locataire,
     Location,
@@ -21,6 +25,11 @@ from location.serializers_composed import (
     CreateEtatLieuxSerializer,
     CreateQuittanceSerializer,
 )
+from location.services.access_utils import (
+    user_has_bien_access,
+    user_has_location_access,
+)
+from quittance.models import Quittance
 from quittance.views import get_or_create_quittance_for_location
 from rent_control.choices import ChargeType
 from signature.document_status import DocumentStatus
@@ -60,13 +69,13 @@ def get_locataire_locations(request):
                     bailleur_data = {
                         "first_name": bailleur.personne.firstName,
                         "last_name": bailleur.personne.lastName,
-                        "email": bailleur.personne.email,
+                        "email": bailleur.email,
                     }
                 elif bailleur.societe:
                     bailleur_data = {
                         "first_name": bailleur.societe.raison_sociale,
                         "last_name": "",
-                        "email": bailleur.societe.email,
+                        "email": bailleur.email,
                     }
 
             # Récupérer les conditions financières
@@ -148,20 +157,7 @@ def get_location_detail(request, location_id):
 
         # Vérifier que l'utilisateur a accès à cette location
         user_email = request.user.email
-        has_access = False
-
-        # Vérifier si l'utilisateur est signataire d'un des bailleurs du bien
-        for bailleur in location.bien.bailleurs.all():
-            if bailleur.signataire and bailleur.signataire.email == user_email:
-                has_access = True
-                break
-
-        # Vérifier si l'utilisateur est un des locataires
-        if not has_access:
-            for locataire in location.locataires.all():
-                if locataire.email == user_email:
-                    has_access = True
-                    break
+        has_access = user_has_location_access(location, user_email)
 
         if not has_access:
             return JsonResponse(
@@ -176,13 +172,13 @@ def get_location_detail(request, location_id):
                 bailleur_data = {
                     "first_name": bailleur.personne.firstName,
                     "last_name": bailleur.personne.lastName,
-                    "email": bailleur.personne.email,
+                    "email": bailleur.email,
                 }
             elif bailleur.societe:
                 bailleur_data = {
                     "first_name": bailleur.societe.raison_sociale,
                     "last_name": "",
-                    "email": bailleur.societe.email,
+                    "email": bailleur.email,
                 }
 
         # Récupérer les conditions financières
@@ -279,7 +275,7 @@ def create_or_get_bailleur(data):
     if not bailleur_type:
         raise ValueError("Type de bailleur requis")
 
-    if bailleur_type == "morale":
+    if bailleur_type == BailleurType.MORALE.value:
         # Créer la société depuis les données validées
         societe_data = validated["societe"]
         societe = Societe.objects.create(
@@ -1024,13 +1020,7 @@ def get_bien_locations(request, bien_id):
 
         # Vérifier que l'utilisateur a accès à ce bien
         user_email = request.user.email
-        has_access = False
-
-        # Vérifier si l'utilisateur est signataire d'un des bailleurs
-        for bailleur in bien.bailleurs.all():
-            if bailleur.signataire and bailleur.signataire.email == user_email:
-                has_access = True
-                break
+        has_access = user_has_bien_access(bien, user_email)
 
         if not has_access:
             return JsonResponse(
@@ -1162,20 +1152,7 @@ def get_location_documents(request, location_id):
 
         # Vérifier que l'utilisateur a accès à cette location
         user_email = request.user.email
-        has_access = False
-
-        # Vérifier si l'utilisateur est signataire d'un des bailleurs du bien
-        for bailleur in location.bien.bailleurs.all():
-            if bailleur.signataire and bailleur.signataire.email == user_email:
-                has_access = True
-                break
-
-        # Vérifier si l'utilisateur est un des locataires
-        if not has_access:
-            for locataire in location.locataires.all():
-                if locataire.email == user_email:
-                    has_access = True
-                    break
+        has_access = user_has_location_access(location, user_email)
 
         if not has_access:
             return JsonResponse(
@@ -1346,21 +1323,13 @@ def cancel_bail(request, bail_id):
         - location_id: UUID de la location (pour créer nouveau bail)
         - message: Message de confirmation
     """
-    from django.utils import timezone
-
-    from bail.models import Bail
 
     try:
         bail = Bail.objects.get(id=bail_id)
 
         # Vérifier que l'utilisateur est propriétaire du bien
         user_email = request.user.email
-        has_access = False
-
-        for bailleur in bail.location.bien.bailleurs.all():
-            if bailleur.signataire and bailleur.signataire.email == user_email:
-                has_access = True
-                break
+        has_access = user_has_bien_access(bail.location.bien, user_email)
 
         if not has_access:
             return JsonResponse(
@@ -1414,21 +1383,13 @@ def cancel_etat_lieux(request, etat_lieux_id):
         - type_etat_lieux: Type de l'EDL annulé ('entree' ou 'sortie')
         - message: Message de confirmation
     """
-    from django.utils import timezone
-
-    from etat_lieux.models import EtatLieux
 
     try:
         etat_lieux = EtatLieux.objects.get(id=etat_lieux_id)
 
         # Vérifier que l'utilisateur est propriétaire du bien
         user_email = request.user.email
-        has_access = False
-
-        for bailleur in etat_lieux.location.bien.bailleurs.all():
-            if bailleur.signataire and bailleur.signataire.email == user_email:
-                has_access = True
-                break
+        has_access = user_has_bien_access(etat_lieux.location.bien, user_email)
 
         if not has_access:
             return JsonResponse(
@@ -1488,24 +1449,13 @@ def cancel_quittance(request, quittance_id):
         - location_id: UUID de la location
         - message: Message de confirmation
     """
-    from django.utils import timezone
-
-    from quittance.models import Quittance
 
     try:
         quittance = Quittance.objects.get(id=quittance_id)
 
         # Vérifier que l'utilisateur est propriétaire du bien
         user_email = request.user.email
-        has_access = False
-
-        for bailleur in quittance.location.bien.bailleurs.all():
-            if bailleur.signataire and bailleur.signataire.email == user_email:
-                has_access = True
-                break
-            elif bailleur.personne and bailleur.personne.email == user_email:
-                has_access = True
-                break
+        has_access = user_has_bien_access(quittance.location.bien, user_email)
 
         if not has_access:
             return JsonResponse(

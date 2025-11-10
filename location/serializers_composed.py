@@ -5,6 +5,8 @@ Chaque serializer représente un domaine métier atomique.
 
 from rest_framework import serializers
 
+from location.models import BailleurType
+
 # ============================================
 # SERIALIZERS ATOMIQUES DE BASE
 # ============================================
@@ -125,7 +127,7 @@ class BailleurInfoSerializer(serializers.Serializer):
     """Informations du bailleur (physique ou morale)"""
 
     bailleur_type = serializers.ChoiceField(
-        choices=["physique", "morale"], default="physique"
+        choices=BailleurType.choices, default=BailleurType.PHYSIQUE.value
     )
     personne = PersonneSerializer(required=False, allow_null=True)
     societe = SocieteSerializer(required=False, allow_null=True)
@@ -134,32 +136,32 @@ class BailleurInfoSerializer(serializers.Serializer):
 
     def to_internal_value(self, data):
         """Nettoyer les données avant la validation"""
-        # Récupérer le type de bailleur
-        bailleur_type = data.get("bailleur_type", "physique")
-        
+        # Récupérer le type de bailleur (string)
+        bailleur_type = data.get("bailleur_type", BailleurType.PHYSIQUE.value)
+
         # Créer une copie des données pour ne pas modifier l'original
         cleaned_data = dict(data)
-        
+
         # Nettoyer les champs non pertinents selon le type
-        if bailleur_type == "physique":
+        if bailleur_type == BailleurType.PHYSIQUE.value:
             # Pour personne physique, supprimer les champs société
             cleaned_data.pop("societe", None)
             cleaned_data.pop("signataire", None)
-        elif bailleur_type == "morale":
+        elif bailleur_type == BailleurType.MORALE.value:
             # Pour personne morale, supprimer le champ personne s'il n'est pas utilisé comme signataire
             if "personne" in cleaned_data and "signataire" not in cleaned_data:
                 # Conserver personne pour transformation en signataire
                 pass
             elif "personne" in cleaned_data:
                 cleaned_data.pop("personne", None)
-        
+
         return super().to_internal_value(cleaned_data)
 
     def validate(self, data):
         """Validation : physique avec personne (adresse obligatoire), morale avec société et signataire"""
-        bailleur_type = data.get("bailleur_type", "physique")
+        bailleur_type = data.get("bailleur_type", BailleurType.PHYSIQUE.value)
 
-        if bailleur_type == "physique":
+        if bailleur_type == BailleurType.PHYSIQUE.value:
             if not data.get("personne"):
                 raise serializers.ValidationError(
                     "Les informations de la personne sont requises pour un bailleur physique"
@@ -174,7 +176,7 @@ class BailleurInfoSerializer(serializers.Serializer):
             data.pop("societe", None)
             data.pop("signataire", None)
 
-        elif bailleur_type == "morale":
+        elif bailleur_type == BailleurType.MORALE.value:
             if not data.get("societe"):
                 raise serializers.ValidationError(
                     "Les informations de la société sont requises pour un bailleur moral"

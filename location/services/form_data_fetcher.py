@@ -7,7 +7,8 @@ et les transformer en dictionnaire utilisable par le frontend.
 
 from typing import Any, Dict, Optional
 
-from location.models import Bien, Location, RentTerms
+from location.models import Bailleur, Bien, Location, RentTerms
+from location.services.bailleur_utils import serialize_bailleur
 from rent_control.views import check_zone_status_via_ban, get_rent_control_info
 
 
@@ -282,9 +283,7 @@ class FormDataFetcher:
             # Calculer données réglementaires GPS (évoluent avec le temps)
             if bien.latitude and bien.longitude:
                 # Zone tendue et permis de louer (via API BAN)
-                zone_status = check_zone_status_via_ban(
-                    bien.latitude, bien.longitude
-                )
+                zone_status = check_zone_status_via_ban(bien.latitude, bien.longitude)
                 if zone_status:
                     data["zone_reglementaire"]["zone_tendue"] = zone_status.get(
                         "is_zone_tendue", False
@@ -324,15 +323,22 @@ class FormDataFetcher:
         if hasattr(bien, "regime_juridique"):
             data["regime"] = {
                 "regime_juridique": bien.regime_juridique or "monopropriete",
-                "periode_construction": bien.periode_construction if hasattr(bien, "periode_construction") else None,
-                "identifiant_fiscal": bien.identifiant_fiscal if hasattr(bien, "identifiant_fiscal") else None,
+                "periode_construction": bien.periode_construction
+                if hasattr(bien, "periode_construction")
+                else None,
+                "identifiant_fiscal": bien.identifiant_fiscal
+                if hasattr(bien, "identifiant_fiscal")
+                else None,
             }
 
         # Équipements
         if hasattr(bien, "annexes_privatives") and bien.annexes_privatives is not None:
             data["equipements"]["annexes_privatives"] = bien.annexes_privatives
 
-        if hasattr(bien, "annexes_collectives") and bien.annexes_collectives is not None:
+        if (
+            hasattr(bien, "annexes_collectives")
+            and bien.annexes_collectives is not None
+        ):
             data["equipements"]["annexes_collectives"] = bien.annexes_collectives
 
         if hasattr(bien, "information") and bien.information is not None:
@@ -353,45 +359,7 @@ class FormDataFetcher:
 
         return data
 
-    def _extract_bailleur_data(self, bailleur) -> Dict[str, Any]:
+    def _extract_bailleur_data(self, bailleur: Bailleur) -> Dict[str, Any]:
         """Extrait les données d'un Bailleur."""
-        data = {}
 
-        if not bailleur:
-            return data
-
-        # Mapper "personne" vers "physique" pour cohérence avec le frontend
-        bailleur_type = (
-            "physique"
-            if bailleur.personne
-            else "morale"
-            if bailleur.societe
-            else None
-        )
-        data["bailleur_type"] = bailleur_type
-
-        if bailleur_type == "physique" and bailleur.personne:
-            personne = bailleur.personne
-            data["personne"] = {
-                "lastName": personne.lastName,
-                "firstName": personne.firstName,
-                "email": personne.email,
-                "adresse": personne.adresse,
-            }
-        elif bailleur_type == "morale" and bailleur.societe:
-            societe = bailleur.societe
-            data["societe"] = {
-                "raison_sociale": societe.raison_sociale,
-                "siret": societe.siret,
-                "forme_juridique": societe.forme_juridique,
-                "adresse": societe.adresse,
-                "email": societe.email,
-            }
-            if bailleur.signataire:
-                data["signataire"] = {
-                    "lastName": bailleur.signataire.lastName,
-                    "firstName": bailleur.signataire.firstName,
-                    "email": bailleur.signataire.email,
-                }
-
-        return data
+        return serialize_bailleur(bailleur)

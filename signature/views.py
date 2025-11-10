@@ -96,7 +96,9 @@ def get_signature_request_generic(request, token, model_class):
                     "last_name": person.lastName if person else "",
                 },
                 "otp_sent": should_send_otp,
-                "is_tenant": bool(sig_req.locataire),  # Indiquer si c'est un locataire
+                "is_tenant": bool(sig_req.locataire),
+                "is_mandataire": bool(sig_req.mandataire),
+                "is_bailleur": bool(sig_req.bailleur_signataire),
             }
         )
 

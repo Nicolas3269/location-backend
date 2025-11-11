@@ -10,6 +10,45 @@ if TYPE_CHECKING:
     from django.db.models import QuerySet
 
 
+def get_user_role_for_location(location: Location, user_email: str) -> dict[str, bool]:
+    """
+    Retourne les rôles d'un utilisateur pour une location donnée.
+
+    Args:
+        location: Instance de Location
+        user_email: Email de l'utilisateur à vérifier
+
+    Returns:
+        Dict avec is_mandataire, is_bailleur, is_locataire
+    """
+    user_email_lower = user_email.lower()
+
+    # Vérifier si l'utilisateur est mandataire pour cette location
+    is_mandataire = (
+        location.mandataire
+        and location.mandataire.signataire
+        and location.mandataire.signataire.email.lower() == user_email_lower
+    )
+
+    # Vérifier si l'utilisateur est bailleur
+    is_bailleur = any(
+        bailleur.signataire and bailleur.signataire.email.lower() == user_email_lower
+        for bailleur in location.bien.bailleurs.all()
+    )
+
+    # Vérifier si l'utilisateur est un des locataires
+    is_locataire = any(
+        locataire.email.lower() == user_email_lower
+        for locataire in location.locataires.all()
+    )
+
+    return {
+        "is_mandataire": is_mandataire,
+        "is_bailleur": is_bailleur,
+        "is_locataire": is_locataire,
+    }
+
+
 def user_has_location_access(location: Location, user_email: str) -> bool:
     """
     Vérifie si un utilisateur a accès à une location.
@@ -26,22 +65,8 @@ def user_has_location_access(location: Location, user_email: str) -> bool:
     Returns:
         True si l'utilisateur a accès, False sinon
     """
-    # Vérifier si l'utilisateur est mandataire pour cette location
-    if location.mandataire and location.mandataire.signataire:
-        if location.mandataire.signataire.email == user_email:
-            return True
-
-    # Vérifier si l'utilisateur est bailleur
-    for bailleur in location.bien.bailleurs.all():
-        if bailleur.email == user_email:
-            return True
-
-    # Vérifier si l'utilisateur est un des locataires
-    for locataire in location.locataires.all():
-        if locataire.email == user_email:
-            return True
-
-    return False
+    roles = get_user_role_for_location(location, user_email)
+    return any(roles.values())
 
 
 def user_has_bien_access(

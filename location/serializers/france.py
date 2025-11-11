@@ -202,7 +202,6 @@ DPE_STEPS = [
     },
 ]
 
-
 USER_STEPS = [
     # Discriminant : Propriétaire ou Mandataire ?
     {
@@ -231,6 +230,9 @@ USER_STEPS = [
         "required_fields": ["mandataire.numero_carte_professionnelle"],
         "fields": {},
     },
+]
+MANDATAIRE_BAIL_HONORAIRES_STEPS = [
+    # --- HONORAIRES BAIL MANDATAIRE ---
     {
         "id": "honoraires_mandataire.bail",
         "condition": "user_role_is_mandataire",
@@ -247,6 +249,10 @@ USER_STEPS = [
             ),
         },
     },
+]
+
+MANDATAIRE_EDL_HONORAIRES_STEPS = [
+    # --- HONORAIRES EDL MANDATAIRE ---
     {
         "id": "honoraires_mandataire.edl.question",
         "condition": "user_role_is_mandataire",
@@ -272,6 +278,7 @@ USER_STEPS = [
         },
     },
 ]
+
 
 # --- PERSONNES (Bailleur et Locataires) ---
 PERSON_STEPS = [
@@ -743,6 +750,8 @@ class FranceBailSerializer(BaseLocationSerializer):
 
         BAIL_STEPS.extend(DPE_STEPS)
         BAIL_STEPS.extend(USER_STEPS)
+        BAIL_STEPS.extend(MANDATAIRE_BAIL_HONORAIRES_STEPS)
+        BAIL_STEPS.extend(MANDATAIRE_EDL_HONORAIRES_STEPS)
         BAIL_STEPS.extend(PERSON_STEPS)
         BAIL_STEPS.extend(PERSON_STEPS_SOLIDAIRES)
         BAIL_STEPS.extend(ZONE_TENDUE_STEPS)
@@ -919,9 +928,11 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         """
         ETAT_LIEUX_STEPS = []
         ETAT_LIEUX_STEPS.extend(ETAT_LIEUX_DEFINITION_STEPS)
-        ETAT_LIEUX_STEPS.extend(USER_STEPS)
-        ETAT_LIEUX_STEPS.extend(PERSON_STEPS)
         ETAT_LIEUX_STEPS.extend(ADRESSE_STEPS)
+        ETAT_LIEUX_STEPS.extend(SUPERFICIE_STEPS)
+        ETAT_LIEUX_STEPS.extend(USER_STEPS)
+        ETAT_LIEUX_STEPS.extend(MANDATAIRE_EDL_HONORAIRES_STEPS)
+        ETAT_LIEUX_STEPS.extend(PERSON_STEPS)
         ETAT_LIEUX_STEPS.extend(TYPE_BIEN_STEPS)
 
         # Équipements - seulement privatives pour état des lieux

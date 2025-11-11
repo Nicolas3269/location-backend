@@ -16,6 +16,9 @@ from weasyprint import HTML
 from backend.pdf_utils import get_logo_pdf_base64_data_uri
 from location.models import Bailleur
 
+# Déterminer le rôle de l'utilisateur pour la redirection (fonction factorisée)
+from location.services.access_utils import get_user_role_for_location
+
 from .models import Quittance
 from .signature_utils import generate_text_signature
 
@@ -392,21 +395,30 @@ def generate_quittance_pdf(request):
                     f"Impossible de supprimer le fichier temporaire {tmp_pdf_path}: {e}"
                 )
 
-        return JsonResponse(
-            {
-                "success": True,
-                "quittanceId": str(quittance.id),
-                "pdfUrl": quittance.pdf.url,
-                "filename": pdf_filename,
-                "bienId": location.bien.id,
-                "context_info": {
-                    "bailleur": f"{signataire_full_name}",
-                    "locataire": ", ".join([loc.full_name for loc in locataires]),
-                    "periode": f"{mois} {annee}",
-                    "montant": f"{montant_total}€",
-                },
-            }
-        )
+        # Récupérer le bailleurId pour la redirection mandataire
+        bailleur = location.bien.bailleurs.first()
+        response_data = {
+            "success": True,
+            "quittanceId": str(quittance.id),
+            "pdfUrl": quittance.pdf.url,
+            "filename": pdf_filename,
+            "bienId": location.bien.id,
+            "context_info": {
+                "bailleur": f"{signataire_full_name}",
+                "locataire": ", ".join([loc.full_name for loc in locataires]),
+                "periode": f"{mois} {annee}",
+                "montant": f"{montant_total}€",
+            },
+        }
+
+        # Ajouter bailleurId pour la redirection mandataire vers /mon-compte/mes-mandats/{bailleurId}/biens/{bienId}
+        if bailleur:
+            response_data["bailleurId"] = str(bailleur.id)
+
+        user_roles = get_user_role_for_location(location, request.user.email)
+        response_data.update(user_roles)
+
+        return JsonResponse(response_data)
 
     except Exception as e:
         logger.exception("Erreur lors de la génération de la quittance")

@@ -290,6 +290,13 @@ def confirm_signature_generic(request, model_class, document_type):
             if hasattr(document.location, "bien"):
                 response_data["bienId"] = document.location.bien.id
 
+                # Pour le mandataire : ajouter le bailleurId pour la redirection
+                # vers /mon-compte/mes-mandats/{bailleurId}/biens/{bienId}
+                # Le bailleur est lié au bien (ManyToMany), on prend le premier
+                bailleur = document.location.bien.bailleurs.first()
+                if bailleur:
+                    response_data["bailleurId"] = str(bailleur.id)
+
         return JsonResponse(response_data)
 
     except Exception as e:

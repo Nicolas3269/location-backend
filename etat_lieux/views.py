@@ -543,7 +543,7 @@ def generate_etat_lieux_pdf(request):
         add_signature_fields_to_pdf(pdf_bytes, etat_lieux)
 
         # Créer les demandes de signature
-        create_etat_lieux_signature_requests(etat_lieux)
+        create_etat_lieux_signature_requests(etat_lieux, user=request.user)
 
         # Récupérer le token du premier signataire
         first_sign_req = etat_lieux.signature_requests.order_by("order").first()

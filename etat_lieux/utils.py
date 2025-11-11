@@ -116,13 +116,17 @@ class StateEquipmentUtils:
         }
 
 
-def create_etat_lieux_signature_requests(etat_lieux):
+def create_etat_lieux_signature_requests(etat_lieux, user=None):
     """
     Crée les demandes de signature pour un état des lieux.
     Utilise la fonction générique pour factoriser le code.
+
+    Args:
+        etat_lieux: Instance d'EtatLieux
+        user: User qui a créé le document (sera le premier signataire)
     """
 
-    create_signature_requests_generic(etat_lieux, EtatLieuxSignatureRequest)
+    create_signature_requests_generic(etat_lieux, EtatLieuxSignatureRequest, user=user)
 
 
 def create_equipments(etat_lieux: EtatLieux, equipments_data: List[Dict]) -> None:

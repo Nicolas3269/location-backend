@@ -218,7 +218,7 @@ def generate_bail_pdf(request):
                 except Exception as e:
                     logger.warning(f"Impossible de supprimer {temp_file}: {e}")
 
-        create_signature_requests(bail)
+        create_signature_requests(bail, user=request.user)
 
         first_sign_req = bail.signature_requests.order_by("order").first()
 

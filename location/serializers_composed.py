@@ -107,9 +107,9 @@ class PersonneSerializer(serializers.Serializer):
     firstName = serializers.CharField(max_length=100)
     email = serializers.EmailField()
     date_naissance = serializers.DateField(required=False, allow_null=True)
-    telephone = serializers.CharField(max_length=20, required=False, allow_blank=True)
-    adresse = serializers.CharField(required=False, allow_blank=True)
-    iban = serializers.CharField(max_length=34, required=False, allow_blank=True)
+    telephone = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
+    adresse = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    iban = serializers.CharField(max_length=34, required=False, allow_blank=True, allow_null=True)
 
 
 class SocieteSerializer(serializers.Serializer):

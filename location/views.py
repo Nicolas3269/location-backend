@@ -9,10 +9,12 @@ from rest_framework.permissions import IsAuthenticated
 from bail.models import Bail
 from bail.utils import create_bien_from_form_data
 from etat_lieux.models import EtatLieux
+from location.constants import UserRole
 from location.models import (
     Bailleur,
     BailleurType,
     Bien,
+    HonoraireMandataire,
     Locataire,
     Location,
     Mandataire,
@@ -29,6 +31,7 @@ from location.services.access_utils import (
     user_has_bien_access,
     user_has_location_access,
 )
+from location.services.document_utils import determine_mandataire_doit_signer
 from quittance.models import Quittance
 from quittance.views import get_or_create_quittance_for_location
 from rent_control.choices import ChargeType
@@ -384,6 +387,86 @@ def create_mandataire(data):
     return mandataire
 
 
+def create_or_update_honoraires_mandataire(location, data):
+    """
+    Crée ou met à jour les honoraires mandataire pour une location.
+    Système temporel : ferme les honoraires précédents avant d'en créer de nouveaux.
+
+    Args:
+        location: Instance de Location
+        data: Données validées du formulaire contenant 'honoraires_mandataire'
+
+    Returns:
+        HonoraireMandataire créé ou None
+    """
+    if "honoraires_mandataire" not in data:
+        logger.info("Pas d'honoraires mandataire dans les données")
+        return None
+
+    honoraires_data = data["honoraires_mandataire"]
+
+    # Extraire les données bail
+    bail_data = honoraires_data.get("bail", {})
+    tarif_bail = bail_data.get("tarif_par_m2")
+    part_bailleur_bail = bail_data.get("part_bailleur_pct")
+
+    # Extraire les données EDL
+    edl_data = honoraires_data.get("edl", {})
+    mandataire_fait_edl = edl_data.get("mandataire_fait_edl", False)
+    tarif_edl = edl_data.get("tarif_par_m2")
+    part_bailleur_edl = edl_data.get("part_bailleur_pct")
+
+    # Vérifier s'il y a des données à sauvegarder
+    has_bail_data = tarif_bail is not None or part_bailleur_bail is not None
+    has_edl_data = (
+        mandataire_fait_edl or tarif_edl is not None or part_bailleur_edl is not None
+    )
+
+    if not has_bail_data and not has_edl_data:
+        logger.info("Pas de données honoraires mandataire à sauvegarder")
+        return None
+
+    # 1. Terminer les honoraires actifs précédents (date_fin = None)
+    today = timezone.now().date()
+    previous_honoraires = HonoraireMandataire.objects.filter(
+        location=location,
+        date_fin__isnull=True,  # Honoraires actifs (sans date de fin)
+    )
+
+    if previous_honoraires.exists():
+        # Fermer les honoraires précédents avec date_fin = aujourd'hui
+        # (le nouveau commence aujourd'hui, l'ancien se termine aujourd'hui)
+        # Respecte la contrainte date_fin >= date_debut
+        count = 0
+        for honoraire in previous_honoraires:
+            honoraire.date_fin = today
+            honoraire.save(update_fields=["date_fin", "updated_at"])
+            count += 1
+        logger.info(
+            f"{count} honoraire(s) précédent(s) terminé(s) "
+            f"pour location {location.id} (date_fin={today})"
+        )
+
+    # 2. Créer les nouveaux honoraires mandataire
+    honoraire = HonoraireMandataire.objects.create(
+        location=location,
+        date_debut=today,
+        date_fin=None,  # Illimité par défaut
+        # Honoraires bail
+        honoraires_bail_par_m2=tarif_bail,
+        honoraires_bail_part_bailleur_pct=part_bailleur_bail,
+        # Honoraires EDL
+        mandataire_fait_edl=mandataire_fait_edl,
+        honoraires_edl_par_m2=tarif_edl,
+        honoraires_edl_part_bailleur_pct=part_bailleur_edl,
+        raison_changement="Création initiale",
+    )
+
+    logger.info(f"HonoraireMandataire créé pour location {location.id}: {honoraire.id}")
+
+    return honoraire
+
+
 def create_locataires(data):
     """
     Crée les locataires depuis les données du formulaire en utilisant les serializers.
@@ -688,9 +771,14 @@ def get_or_create_etat_lieux_for_location(location, validated_data, request):
     return str(etat_lieux.id)
 
 
-def get_or_create_bail_for_location(location):
+def get_or_create_bail_for_location(location, user_role=None, validated_data=None):
     """
     Récupère ou crée un bail pour une location.
+
+    Args:
+        location: Instance de Location
+        user_role: Rôle de l'utilisateur (UserRole.BAILLEUR ou UserRole.MANDATAIRE)
+        validated_data: Données validées du formulaire (optionnel)
 
     Returns:
         bail_id: L'ID du bail existant ou nouvellement créé
@@ -702,16 +790,32 @@ def get_or_create_bail_for_location(location):
         location=location, status=DocumentStatus.DRAFT
     ).first()
 
+    # Déterminer si le mandataire doit signer
+    mandataire_doit_signer = determine_mandataire_doit_signer(user_role, validated_data)
+
     if existing_bail:
-        logger.info(f"Bail DRAFT existant trouvé: {existing_bail.id}")
+        # Mettre à jour le champ mandataire_doit_signer si nécessaire
+        if existing_bail.mandataire_doit_signer != mandataire_doit_signer:
+            existing_bail.mandataire_doit_signer = mandataire_doit_signer
+            existing_bail.save(update_fields=["mandataire_doit_signer", "updated_at"])
+            logger.info(
+                f"Bail DRAFT {existing_bail.id} mis à jour "
+                f"(mandataire_doit_signer={mandataire_doit_signer})"
+            )
+        else:
+            logger.info(f"Bail DRAFT existant trouvé: {existing_bail.id}")
         return existing_bail.id
 
     # Créer un nouveau bail
     bail = Bail.objects.create(
         location=location,
         status=DocumentStatus.DRAFT,
+        mandataire_doit_signer=mandataire_doit_signer,
     )
-    logger.info(f"Bail créé automatiquement: {bail.id}")
+    logger.info(
+        f"Bail créé automatiquement: {bail.id} "
+        f"(mandataire_doit_signer={mandataire_doit_signer})"
+    )
     return bail.id
 
 
@@ -797,11 +901,11 @@ def create_new_location(data, serializer_class, location_id=None):
         bien = create_bien_from_form_data(data, serializer_class, save=True)
 
     # 2. Déterminer le user_role et créer les entités appropriées
-    user_role = data.get("user_role", "proprietaire")
+    user_role = data.get("user_role", UserRole.BAILLEUR)
     mandataire_obj = None
 
     # Créer le mandataire si nécessaire
-    if user_role == "mandataire":
+    if user_role == UserRole.MANDATAIRE:
         mandataire_obj = create_mandataire(data)
 
     # Créer les bailleurs (commun aux deux parcours)
@@ -842,6 +946,10 @@ def create_new_location(data, serializer_class, location_id=None):
     # 6. Créer les conditions financières si fournies
     create_rent_terms(location, data, serializer_class=serializer_class)
 
+    # 7. Créer les honoraires mandataire si user_role == MANDATAIRE
+    if user_role == UserRole.MANDATAIRE:
+        create_or_update_honoraires_mandataire(location, data)
+
     logger.info(f"Location créée avec succès: {location.id}")
     return location, bien
 
@@ -872,7 +980,23 @@ def update_existing_location(location, data, serializer_class):
             f"{len(locataires)} locataire(s) associé(s) à la location {location.id}"
         )
 
-    # 4. Mettre à jour ou créer les conditions financières (incluant dépôt de garantie)
+    # 4. Gérer le mandataire si user_role == MANDATAIRE
+    user_role = data.get("user_role")
+    if user_role not in [UserRole.BAILLEUR, UserRole.MANDATAIRE]:
+        raise ValueError(f"Rôle utilisateur inconnu: {user_role}")
+    if user_role == UserRole.MANDATAIRE:
+        # Seulement créer un mandataire si la location n'en a pas déjà un
+        if not location.mandataire and "mandataire" in data:
+            mandataire_obj = create_mandataire(data)
+            location.mandataire = mandataire_obj
+            location.save(update_fields=["mandataire", "updated_at"])
+            logger.info(f"Mandataire créé et associé à la location {location.id}")
+
+        # Créer/mettre à jour les honoraires mandataire si présents
+        if "honoraires_mandataire" in data:
+            create_or_update_honoraires_mandataire(location, data)
+
+    # 5. Mettre à jour ou créer les conditions financières (incluant dépôt de garantie)
     update_rent_terms(location, data, serializer_class=serializer_class)
 
     return location, location.bien
@@ -966,10 +1090,13 @@ def create_or_update_location(request):
                 location, validated_data, serializer_class
             )
 
-        # Si la source est 'bail', créer un bail (seulement s'il n'existe pas déjà)
-        bail_id = (
-            get_or_create_bail_for_location(location) if source == "bail" else None
-        )
+        # Si la source est 'bail', créer un bail
+        user_role = validated_data.get("user_role")
+        bail_id = None
+        if source == "bail":
+            bail_id = get_or_create_bail_for_location(
+                location, user_role, validated_data
+            )
 
         # Si la source est 'etat_lieux', créer un état des lieux (avec photos si présentes)
         etat_lieux_id = None

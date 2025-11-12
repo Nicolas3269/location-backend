@@ -15,6 +15,7 @@ from weasyprint import HTML
 
 from backend.pdf_utils import get_logo_pdf_base64_data_uri, get_static_pdf_iframe_url
 from backend.storage_utils import get_local_file_path
+from etat_lieux.mapping import EtatDesLieuxMapping
 from etat_lieux.models import (
     EtatLieux,
     EtatLieuxEquipement,
@@ -485,6 +486,11 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
         location.locataires.all() if location.locataires else []
     )
 
+    # Calculer les honoraires mandataire pour le PDF
+    honoraires_mandataire = EtatDesLieuxMapping.get_honoraires_mandataire_data(
+        etat_lieux
+    )
+
     return {
         "etat_lieux": etat_lieux,
         "now": timezone.now(),
@@ -494,6 +500,7 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
         "locataires": locataires,
         "pieces_enrichies": pieces_enrichies,
         "total_radiateurs": total_radiateurs,
+        "honoraires_mandataire": honoraires_mandataire,
         "logo_base64_uri": get_logo_pdf_base64_data_uri(),
     }
 

@@ -5,11 +5,17 @@ Nouveau modèle Bail refactorisé
 
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
-from location.models import BaseModel, Bien, Locataire, Location, Mandataire, Personne
-from signature.document_status import DocumentStatus
+from location.models import (
+    BaseModel,
+    Bien,
+    DocumentAvecMandataireMixin,
+    Locataire,
+    Location,
+    Mandataire,
+    Personne,
+)
 from signature.document_types import SignableDocumentType
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
@@ -18,16 +24,11 @@ from signature.models_base import SignableDocumentMixin
 # (on garde les existants)
 
 
-class Bail(SignableDocumentMixin, BaseModel):
+class Bail(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
     """Contrat de bail (ex-Bail)"""
 
     location = models.ForeignKey(
         Location, on_delete=models.CASCADE, related_name="bails"
-    )
-
-    # Statut
-    status = models.CharField(
-        max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.DRAFT
     )
 
     # Annulation
@@ -58,9 +59,6 @@ class Bail(SignableDocumentMixin, BaseModel):
         verbose_name="Grille de vétusté PDF",
     )
 
-    # Dates importantes
-    date_signature = models.DateField(default=timezone.now)
-
     # Travaux et réparations
     travaux_bailleur = models.TextField(blank=True)
     travaux_locataire = models.TextField(blank=True)
@@ -71,31 +69,20 @@ class Bail(SignableDocumentMixin, BaseModel):
     # Historique automatique
     history = HistoricalRecords()
 
-    # Méthodes héritées de l'ancien Bail
-    def check_and_update_status(self):
-        """Met à jour automatiquement le statut selon les signatures"""
-        current_status = self.status
-
-        # Ne pas passer automatiquement de DRAFT à SIGNING
-        # Cela sera fait par send_signature_email quand on envoie vraiment l'email
-
-        # Passer de SIGNING à SIGNED si toutes les signatures sont complètes
-        if self.status == DocumentStatus.SIGNING.value:
-            if (
-                self.signature_requests.exists()
-                and not self.signature_requests.filter(signed=False).exists()
-            ):
-                self.status = DocumentStatus.SIGNED.value
-
-        if current_status != self.status:
-            self.save(update_fields=["status"])
-
     # Méthodes de SignableDocumentMixin
     def get_document_name(self):
         return "Bail"
 
     def get_file_prefix(self):
         return "bail"
+
+    # Méthode de DocumentAvecMandataireMixin
+    def get_reference_date_for_honoraires(self):
+        """
+        Date de référence pour les honoraires (fallback si pas encore signé).
+        Pour un bail : date de création du brouillon.
+        """
+        return self.created_at.date()
 
     def __str__(self):
         return f"Bail {self.location.bien} - ({self.location.date_debut})"

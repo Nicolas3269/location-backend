@@ -146,7 +146,7 @@
       Dénommé{% if bail.location.locataires.all|length > 1 %}s{% endif %} ci-après « le locataire » ;
     </p>
 
-    {% if bail.location.mandataire %}
+    {% if bail.location.mandataire and bail.mandataire_doit_signer %}
     <p>
       <ul>
         <li>
@@ -660,7 +660,7 @@
       </p>
   </div>
 
-  {% if bail.location.mandataire %}
+  {% if bail.location.mandataire and bail.mandataire_doit_signer %}
   <div class="article">
     <h2>Article 13 – Honoraires du mandataire</h2>
 
@@ -738,21 +738,21 @@
           <tr>
             <td style="border: 1px solid #ddd; padding: 8px;">
               Visite du logement, constitution du dossier et rédaction du bail
-              ({{ honoraires_mandataire.bail.superficie }} m² × {{ honoraires_mandataire.bail.tarif_par_m2 }} €/m²)
+              ({{ honoraires_mandataire.bail.superficie|floatformat:2 }} m² × {{ honoraires_mandataire.bail.tarif_par_m2|floatformat:2 }} €/m²)
             </td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_total }} € TTC</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_bailleur }} € TTC</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_locataire }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_total|floatformat:2 }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_bailleur|floatformat:2 }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_locataire|floatformat:2 }} € TTC</td>
           </tr>
           {% if honoraires_mandataire.edl %}
           <tr>
             <td style="border: 1px solid #ddd; padding: 8px;">
               État des lieux d'entrée
-              ({{ honoraires_mandataire.edl.superficie }} m² × {{ honoraires_mandataire.edl.tarif_par_m2 }} €/m²)
+              ({{ honoraires_mandataire.edl.superficie|floatformat:2 }} m² × {{ honoraires_mandataire.edl.tarif_par_m2|floatformat:2 }} €/m²)
             </td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_total }} € TTC</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_bailleur }} € TTC</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_locataire }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_total|floatformat:2 }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_bailleur|floatformat:2 }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_locataire|floatformat:2 }} € TTC</td>
           </tr>
           {% endif %}
         </tbody>
@@ -823,6 +823,10 @@
       </p>
   </div>
 
-  {% include "pdf/bail/components/signature_fields.html" with mandataire=bail.location.mandataire bailleurs=bail.location.bien.bailleurs.all locataires=bail.location.locataires.all %}
+  {% if bail.mandataire_doit_signer %}
+    {% include "pdf/bail/components/signature_fields.html" with mandataire=bail.location.mandataire bailleurs=bail.location.bien.bailleurs.all locataires=bail.location.locataires.all %}
+  {% else %}
+    {% include "pdf/bail/components/signature_fields.html" with mandataire=None bailleurs=bail.location.bien.bailleurs.all locataires=bail.location.locataires.all %}
+  {% endif %}
 </body>
 </html>

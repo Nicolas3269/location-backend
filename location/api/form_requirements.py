@@ -14,6 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..services import FormOrchestrator
+from ..services.user_role_detector import get_user_role_for_context
 from ..types.form_state import (
     CreateFormState,
     EditFormState,
@@ -240,6 +241,38 @@ def get_form_requirements_authenticated(request, form_type):
     else:
         form_state = CreateFormState()
 
+    # Déterminer le user_role basé sur les paramètres de la requête
+    # AVANT d'appeler l'orchestrateur (plus propre et direct)
+    user_role_location_id = None
+    user_role_bien_id = None
+    user_role_bailleur_id = None
+
+    # Cas 1: location_id fourni directement (edit/renew)
+    if location_id:
+        user_role_location_id = location_id
+
+    # Cas 2: context_mode et context_source_id (extend/prefill)
+    elif context_mode and context_source_id:
+        if context_mode in ["from_location", "location_actuelle", "location_ancienne"]:
+            user_role_location_id = context_source_id
+        elif context_mode == "from_bien":
+            user_role_bien_id = context_source_id
+        elif context_mode == "from_bailleur":
+            user_role_bailleur_id = context_source_id
+        elif context_mode == "location_nouvelle":
+            # Pour location_nouvelle, on assume que source peut être
+            # location/bien/bailleur. On passe context_source_id comme
+            # location_id par défaut
+            user_role_location_id = context_source_id
+
+    # Déterminer le user_role
+    user_role = get_user_role_for_context(
+        user=request.user,
+        location_id=user_role_location_id,
+        bien_id=user_role_bien_id,
+        bailleur_id=user_role_bailleur_id,
+    )
+
     # Utiliser l'orchestrateur avec ExtendFormState
     orchestrator = FormOrchestrator()
 
@@ -260,6 +293,12 @@ def get_form_requirements_authenticated(request, form_type):
                 if "not found" in requirements["error"].lower()
                 else status.HTTP_400_BAD_REQUEST,
             )
+
+        # Injecter user_role dans formData si déterminé
+        if user_role:
+            if "formData" not in requirements:
+                requirements["formData"] = {}
+            requirements["formData"]["user_role"] = user_role
 
         return Response(requirements, status=status.HTTP_200_OK)
 

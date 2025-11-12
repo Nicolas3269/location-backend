@@ -283,11 +283,21 @@ def create_signature_requests_generic(document, signature_request_model, user=No
     order = 1
     user_email = user.email.lower() if user else None
 
+    # Vérifier si le mandataire doit signer ce document
+    mandataire_doit_signer = (
+        hasattr(document, 'mandataire_doit_signer') and
+        document.mandataire_doit_signer and
+        location.mandataire
+    )
+
     # ÉTAPE 1: Le user créateur signe en premier (si fourni)
     if user and user_email:
         # Identifier le type de signataire du user
         # Vérifier si c'est le mandataire
-        if location.mandataire and location.mandataire.signataire.email.lower() == user_email:
+        if (
+            mandataire_doit_signer and
+            location.mandataire.signataire.email.lower() == user_email
+        ):
             signature_request_model.objects.create(
                 **{
                     document_field_name: document,
@@ -335,7 +345,7 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             )
 
     # ÉTAPE 2: Mandataire (si pas déjà ajouté comme user créateur)
-    if location.mandataire:
+    if mandataire_doit_signer:
         mandataire_email = location.mandataire.signataire.email.lower()
         if not (user_email and mandataire_email == user_email):
             signature_request_model.objects.create(

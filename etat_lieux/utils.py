@@ -13,6 +13,7 @@ from etat_lieux.models import (
     EtatLieuxSignatureRequest,
 )
 from location.models import Location
+from location.services.document_utils import determine_mandataire_doit_signer
 from signature.services import create_signature_requests_generic
 
 logger = logging.getLogger(__name__)
@@ -352,6 +353,11 @@ def create_etat_lieux_from_form_data(
     location = Location.objects.get(id=location_id)
     type_etat_lieux = form_data.get("type_etat_lieux")
 
+    # Déterminer si le mandataire doit signer
+
+    user_role = form_data.get("user_role")
+    mandataire_doit_signer = determine_mandataire_doit_signer(user_role, form_data)
+
     # Créer l'état des lieux
     etat_lieux = EtatLieux.objects.create(
         location=location,
@@ -360,6 +366,7 @@ def create_etat_lieux_from_form_data(
         nombre_cles=form_data.get("nombre_cles"),
         compteurs=form_data.get("compteurs"),
         commentaires_generaux=form_data.get("commentaires_generaux"),
+        mandataire_doit_signer=mandataire_doit_signer,
     )
 
     # Initialiser les variables
@@ -428,7 +435,9 @@ def create_etat_lieux_from_form_data(
                 continue
 
             # Utiliser le label fourni par le frontend, sinon fallback sur le type formaté
-            equipment_name = annexe_label if annexe_label else annexe_type.replace("_", " ").title()
+            equipment_name = (
+                annexe_label if annexe_label else annexe_type.replace("_", " ").title()
+            )
 
             equipments.append(
                 {

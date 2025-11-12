@@ -489,6 +489,10 @@
                 <span class="info-value" style="font-size: 10pt;">{{ etat_lieux.location.bien.get_type_bien_display }}</span>
             </div>
             <div>
+                <span class="info-label">Superficie :</span>
+                <span class="info-value" style="font-size: 10pt;">{{ etat_lieux.location.bien.superficie }} m²</span>
+            </div>
+            <div>
                 <span class="info-label">Meublé :</span>
                 <span class="info-value" style="font-size: 10pt;">{% if etat_lieux.location.bien.meuble %}Oui{% else %}Non{% endif %}</span>
             </div>
@@ -575,6 +579,72 @@
                 {% endif %}
             </div>
             {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Mandataire -->
+        {% if mandataire and etat_lieux.mandataire_doit_signer %}
+        <div class="info-section" style="padding: 20px;">
+            <h2 style="margin-bottom: 20px;">Mandataire</h2>
+            <div style="font-size: 10pt; line-height: 1.8;">
+                <div style="margin-bottom: 10px;">
+                    <strong style="color: #2680eb;">Agence immobilière</strong>
+                </div>
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 180px;">Raison sociale :</span>
+                    <span class="info-value">{{ mandataire.societe.raison_sociale }} ({{ mandataire.societe.forme_juridique }})</span>
+                </div>
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 180px;">SIRET :</span>
+                    <span class="info-value">{{ mandataire.societe.siret }}</span>
+                </div>
+                {% if mandataire.numero_carte_professionnelle %}
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 180px;">Carte professionnelle :</span>
+                    <span class="info-value">{{ mandataire.numero_carte_professionnelle }}</span>
+                </div>
+                {% endif %}
+                <div style="margin-bottom: 8px; padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 180px;">Adresse :</span>
+                    <span class="info-value">{{ mandataire.societe.adresse|default:"" }}</span>
+                </div>
+                <div style="padding-left: 20px;">
+                    <span class="info-label" style="display: inline-block; min-width: 180px;">Représentée par :</span>
+                    <span class="info-value">{{ mandataire.signataire.firstName }} {{ mandataire.signataire.lastName }}
+                    {% if mandataire.signataire.email %} ({{ mandataire.signataire.email }}){% endif %}</span>
+                </div>
+
+                <!-- Honoraires EDL -->
+                {% if honoraires_mandataire.edl %}
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e3e5e8;">
+                    <div style="margin-bottom: 12px;">
+                        <strong style="color: #2680eb; font-size: 11pt;">Honoraires état des lieux</strong>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 10px;">
+                        <div style="padding: 12px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e3e5e8;">
+                            <div style="margin-bottom: 8px; padding-left: 20px;">
+                                <span class="info-label" style="display: inline-block; min-width: 120px;">Tarif au m² :</span>
+                                <span class="info-value" style="font-weight: 600;">{{ honoraires_mandataire.edl.tarif_par_m2|floatformat:2 }} € TTC/m²</span>
+                            </div>
+                            <div style="padding-left: 20px;">
+                                <span class="info-label" style="display: inline-block; min-width: 120px;">Montant total :</span>
+                                <span class="info-value" style="font-weight: 600; color: #2680eb;">{{ honoraires_mandataire.edl.montant_total|floatformat:2 }} € TTC</span>
+                            </div>
+                        </div>
+                        <div style="padding: 12px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e3e5e8;">
+                            <div style="margin-bottom: 8px; padding-left: 20px;">
+                                <span class="info-label" style="display: inline-block; min-width: 120px;">Part bailleur :</span>
+                                <span class="info-value" style="font-weight: 600;">{{ honoraires_mandataire.edl.montant_bailleur|floatformat:2 }} € ({{ honoraires_mandataire.edl.part_bailleur_pct|floatformat:2 }}%)</span>
+                            </div>
+                            <div style="padding-left: 20px;">
+                                <span class="info-label" style="display: inline-block; min-width: 120px;">Part locataire :</span>
+                                <span class="info-value" style="font-weight: 600;">{{ honoraires_mandataire.edl.montant_locataire|floatformat:2 }} €</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
         {% endif %}
     </div>
@@ -1033,6 +1103,10 @@
     {% endif %}
 
     <!-- Section signatures -->
-    {% include "pdf/etat_lieux/components/signature_fields.html" with mandataire=mandataire bailleurs=bailleurs locataires=locataires %}
+    {% if etat_lieux.mandataire_doit_signer %}
+      {% include "pdf/etat_lieux/components/signature_fields.html" with mandataire=mandataire bailleurs=bailleurs locataires=locataires %}
+    {% else %}
+      {% include "pdf/etat_lieux/components/signature_fields.html" with mandataire=None bailleurs=bailleurs locataires=locataires %}
+    {% endif %}
 </body>
 </html>

@@ -8,7 +8,7 @@ et les transformer en dictionnaire utilisable par le frontend.
 from typing import Any, Dict, Optional
 
 from location.models import Bailleur, Bien, Location, RentTerms
-from location.services.bailleur_utils import serialize_bailleur
+from location.services.bailleur_utils import serialize_bailleur, serialize_mandataire
 from rent_control.views import check_zone_status_via_ban, get_rent_control_info
 
 
@@ -26,7 +26,17 @@ class FormDataFetcher:
             Dict avec toutes les données extraites ou None si location inexistante
         """
         try:
-            location = Location.objects.get(id=location_id)
+            location = Location.objects.select_related(
+                "bien",
+                "mandataire__signataire",
+                "mandataire__societe",
+                "rent_terms",
+            ).prefetch_related(
+                "bien__bailleurs__personne",
+                "bien__bailleurs__societe",
+                "bien__bailleurs__signataire",
+                "locataires",
+            ).get(id=location_id)
             return self._extract_location_data(location)
         except Location.DoesNotExist:
             return None
@@ -207,6 +217,10 @@ class FormDataFetcher:
                     data["bailleur"]["co_bailleurs"] = co_bailleurs_list
             else:
                 data["bailleur"]["co_bailleurs"] = []
+
+        # Mandataire
+        if location.mandataire:
+            data["mandataire"] = serialize_mandataire(location.mandataire)
 
         # Locataires
         if location.locataires.exists():

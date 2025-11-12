@@ -66,8 +66,9 @@ class BailAdmin(admin.ModelAdmin):
         "location__locataires__lastName",
         "location__locataires__firstName",
     )
-    date_hierarchy = "date_signature"
+    date_hierarchy = "created_at"
     inlines = [DocumentInline, BailSignatureRequestInline]
+    readonly_fields = ("date_signature_display", "est_signe_display")
 
     fieldsets = (
         ("Location associée", {"fields": ("location",)}),
@@ -83,7 +84,7 @@ class BailAdmin(admin.ModelAdmin):
         ),
         (
             "Dates importantes",
-            {"fields": ("date_signature",)},
+            {"fields": ("date_signature_display", "est_signe_display")},
         ),
         (
             "Documents PDF",
@@ -184,6 +185,22 @@ class BailAdmin(admin.ModelAdmin):
 
     display_documents_status.short_description = "Documents"
     display_documents_status.allow_tags = True
+
+    def date_signature_display(self, obj):
+        """Affiche la date de signature complète (property calculée)"""
+        if obj.date_signature:
+            return obj.date_signature.strftime("%d/%m/%Y %H:%M")
+        return "Non signé"
+
+    date_signature_display.short_description = "Date signature complète"
+
+    def est_signe_display(self, obj):
+        """Affiche si le bail est complètement signé (property calculée)"""
+        if obj.est_signe:
+            return format_html('<span style="color: green;">✓ Signé</span>')
+        return format_html('<span style="color: orange;">⏳ En attente</span>')
+
+    est_signe_display.short_description = "État signature"
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "location":

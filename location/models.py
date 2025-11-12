@@ -170,6 +170,272 @@ class Mandataire(BaseModel):
         return f"{self.societe.raison_sociale} (Mandataire)"
 
 
+class DocumentAvecMandataireMixin(models.Model):
+    """
+    Mixin pour les documents pouvant être signés par un mandataire.
+    Fournit :
+    - Champ mandataire_doit_signer
+    - Properties pour accéder aux honoraires mandataire (honoraires_mandataire, honoraires_*)
+    - Méthode abstraite get_reference_date_for_honoraires() (à implémenter)
+
+    Note: Properties est_signe, date_signature, latest_signature_timestamp
+    sont fournies par SignableDocumentMixin (base pour tous documents signables).
+
+    Usage:
+        class Bail(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
+            def get_reference_date_for_honoraires(self):
+                return self.created_at.date()
+    """
+
+    # Champ de base : le mandataire doit-il signer ce document ?
+    mandataire_doit_signer = models.BooleanField(
+        default=False,
+        verbose_name="Le mandataire signe ce document",
+        help_text=(
+            "Si True : le mandataire est signataire juridique du document "
+            "et sera inclus dans les demandes de signature"
+        ),
+    )
+
+    class Meta:
+        abstract = True
+
+    def get_reference_date_for_honoraires(self):
+        """
+        Retourne la date de référence pour récupérer les honoraires.
+        À implémenter dans chaque document concret.
+
+        Exemples:
+        - Bail: self.created_at.date()
+        - EtatLieux: self.date_etat_lieux
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} must implement get_reference_date_for_honoraires()"
+        )
+
+    @property
+    def honoraires_mandataire(self):
+        """
+        Récupère les honoraires mandataire en vigueur.
+        Utilise date_signature si disponible (document signé),
+        sinon fallback sur get_reference_date_for_honoraires().
+        """
+        # Utiliser date_signature si disponible (document signé)
+        if self.date_signature:
+            reference_date = self.date_signature.date()
+        else:
+            # Fallback sur date de référence spécifique au document
+            reference_date = self.get_reference_date_for_honoraires()
+
+        return HonoraireMandataire.get_at_date(self.location, reference_date)
+
+    @property
+    def a_honoraires_mandataire(self):
+        """Y a-t-il des honoraires mandataire pour ce document ?"""
+        return self.honoraires_mandataire is not None
+
+    def _get_honoraire_field(self, field_name):
+        """Helper pour récupérer un champ des honoraires mandataire."""
+        if not self.a_honoraires_mandataire:
+            return None
+        return getattr(self.honoraires_mandataire, field_name, None)
+
+    @property
+    def honoraires_bail_par_m2(self):
+        """Tarif honoraires bail au m²"""
+        return self._get_honoraire_field("honoraires_bail_par_m2")
+
+    @property
+    def honoraires_bail_part_bailleur_pct(self):
+        """Part bailleur des honoraires bail (%)"""
+        return self._get_honoraire_field("honoraires_bail_part_bailleur_pct")
+
+    @property
+    def honoraires_edl_par_m2(self):
+        """Tarif honoraires EDL au m²"""
+        return self._get_honoraire_field("honoraires_edl_par_m2")
+
+    @property
+    def honoraires_edl_part_bailleur_pct(self):
+        """Part bailleur des honoraires EDL (%)"""
+        return self._get_honoraire_field("honoraires_edl_part_bailleur_pct")
+
+
+class HonoraireMandataire(BaseModel):
+    """
+    Tarifs du mandataire pour une location donnée.
+    Permet de gérer l'historique des changements de tarifs.
+
+    IMMUTABLE : Ne jamais modifier un enregistrement existant.
+    Pour changer les tarifs, créer un nouvel enregistrement avec une nouvelle date_debut
+    et fermer l'ancien en mettant date_fin.
+    """
+    location = models.ForeignKey(
+        'Location',  # Forward reference car Location défini après
+        on_delete=models.CASCADE,
+        related_name="honoraires_mandataire_history"
+    )
+
+    # Période de validité
+    date_debut = models.DateField(
+        db_index=True,
+        verbose_name="Date de début de validité",
+        help_text="Date à partir de laquelle ces tarifs s'appliquent"
+    )
+    date_fin = models.DateField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="Date de fin de validité",
+        help_text="Laissez vide si tarifs actuellement en vigueur"
+    )
+
+    # Honoraires BAIL
+    honoraires_bail_par_m2 = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Honoraires bail par m²",
+        help_text=(
+            "Tarif des honoraires de bail au m² (€/m²). "
+            "Plafonds légaux : 12€/m² (zone très tendue), "
+            "10€/m² (zone tendue), 8€/m² (zone normale)."
+        )
+    )
+    honoraires_bail_part_bailleur_pct = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Part bailleur bail (%)",
+        help_text=(
+            "Pourcentage des honoraires de bail à la charge du bailleur "
+            "(0-100%). La part locataire ne peut excéder 50%."
+        )
+    )
+
+    # Honoraires ÉTAT DES LIEUX
+    mandataire_fait_edl = models.BooleanField(
+        default=False,
+        verbose_name="Le mandataire fait les EDL",
+        help_text="Indique si le mandataire réalise les états des lieux"
+    )
+    honoraires_edl_par_m2 = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Honoraires EDL par m²",
+        help_text=(
+            "Tarif des honoraires d'état des lieux au m² (€/m²). "
+            "Maximum 3€/m²."
+        )
+    )
+    honoraires_edl_part_bailleur_pct = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Part bailleur EDL (%)",
+        help_text=(
+            "Pourcentage des honoraires EDL à la charge du bailleur "
+            "(0-100%). Répartition libre entre bailleur et locataire."
+        )
+    )
+
+    # Métadonnées
+    raison_changement = models.TextField(
+        blank=True,
+        verbose_name="Raison du changement",
+        help_text="Pourquoi ces tarifs ont changé (optionnel)"
+    )
+
+    class Meta:
+        db_table = "location_honoraires_mandataire"
+        ordering = ["-date_debut"]
+        verbose_name = "Honoraires mandataire"
+        verbose_name_plural = "Honoraires mandataire"
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(date_fin__isnull=True) |
+                    models.Q(date_fin__gte=models.F('date_debut'))
+                ),
+                name="date_fin_after_date_debut"
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=['location', 'date_debut', 'date_fin'],
+                name='honoraires_location_dates_idx'
+            ),
+        ]
+
+    def __str__(self):
+        debut = self.date_debut
+        return f"Honoraires mandataire pour {self.location} - À partir du {debut}"
+
+    def delete(self, *args, **kwargs):
+        """
+        Empêche la suppression si cet enregistrement est utilisé par
+        des documents. Utilise une approche plus performante que count().
+        """
+        from django.core.exceptions import ProtectedError
+
+        # Vérifier si utilisé (existe() plus rapide que count())
+        if hasattr(self, 'bails') and self.bails.exists():
+            msg = (
+                f"Cannot delete HonoraireMandataire {self.id}: "
+                f"used by bail documents"
+            )
+            raise ProtectedError(msg, [self])
+
+        if hasattr(self, 'etats_lieux') and self.etats_lieux.exists():
+            msg = (
+                f"Cannot delete HonoraireMandataire {self.id}: "
+                f"used by etat des lieux documents"
+            )
+            raise ProtectedError(msg, [self])
+
+        super().delete(*args, **kwargs)
+
+    @classmethod
+    def get_at_date(cls, location, target_date):
+        """
+        Récupère les honoraires en vigueur à une date donnée.
+
+        Args:
+            location: Instance de Location
+            target_date: date ou datetime
+
+        Returns:
+            HonoraireMandataire ou None
+        """
+        from datetime import datetime
+
+        # Convertir datetime en date si nécessaire
+        if isinstance(target_date, datetime):
+            target_date = target_date.date()
+
+        return cls.objects.filter(
+            location=location,
+            date_debut__lte=target_date
+        ).filter(
+            models.Q(date_fin__isnull=True) | models.Q(date_fin__gte=target_date)
+        ).order_by('-date_debut').first()
+
+    @classmethod
+    def get_current(cls, location):
+        """Récupère les honoraires actuellement en vigueur"""
+        from datetime import date
+        return cls.get_at_date(location, date.today())
+
+
 class Bailleur(BaseModel):
     """Bailleur (propriétaire ou société propriétaire)"""
 
@@ -606,110 +872,6 @@ class RentTerms(BaseModel):
         verbose_name="Justification du complément de loyer",
         help_text="Justification du complément de loyer en cas de dépassement du plafond d'encadrement",
     )
-
-    # Honoraires mandataire (si un mandataire gère la location)
-    # Stockage des paramètres sources pour calcul dynamique
-    honoraires_bail_par_m2 = models.DecimalField(
-        max_digits=6,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name="Honoraires de bail par m²",
-        help_text=(
-            "Tarif des honoraires de bail au m² (€/m²). "
-            "Plafonds légaux : 12€/m² (zone très tendue), 10€/m² (zone tendue), "
-            "8€/m² (zone normale)."
-        ),
-    )
-    honoraires_bail_part_bailleur_pct = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name="Part bailleur (%)",
-        help_text=(
-            "Pourcentage des honoraires de bail à la charge du bailleur (0-100%). "
-            "La part locataire ne peut excéder 50%."
-        ),
-    )
-    mandataire_fait_edl = models.BooleanField(
-        default=False,
-        verbose_name="Le mandataire réalise l'état des lieux",
-        help_text="Indique si le mandataire est en charge de la réalisation de l'EDL",
-    )
-    honoraires_edl_par_m2 = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name="Honoraires EDL par m²",
-        help_text="Tarif des honoraires d'état des lieux au m² (€/m²). Maximum 3€/m².",
-    )
-    honoraires_edl_part_bailleur_pct = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name="Part bailleur EDL (%)",
-        help_text=(
-            "Pourcentage des honoraires EDL à la charge du bailleur (0-100%). "
-            "Répartition libre entre bailleur et locataire."
-        ),
-    )
-
-    @property
-    def honoraires_bail_total(self):
-        """Calcule le montant total des honoraires de bail"""
-        if self.honoraires_bail_par_m2 and self.location.bien.superficie:
-            return round(self.honoraires_bail_par_m2 * self.location.bien.superficie, 2)
-        return None
-
-    @property
-    def honoraires_bail_bailleur(self):
-        """Calcule la part bailleur des honoraires de bail"""
-        if self.honoraires_bail_total and self.honoraires_bail_part_bailleur_pct:
-            montant = (
-                self.honoraires_bail_total
-                * self.honoraires_bail_part_bailleur_pct
-                / 100
-            )
-            return round(montant, 2)
-        return None
-
-    @property
-    def honoraires_bail_locataire(self):
-        """Calcule la part locataire des honoraires de bail"""
-        if self.honoraires_bail_total and self.honoraires_bail_bailleur is not None:
-            return round(self.honoraires_bail_total - self.honoraires_bail_bailleur, 2)
-        return None
-
-    @property
-    def honoraires_edl_total(self):
-        """Calcule le montant total des honoraires EDL"""
-        if self.honoraires_edl_par_m2 and self.location.bien.superficie:
-            return round(self.honoraires_edl_par_m2 * self.location.bien.superficie, 2)
-        return None
-
-    @property
-    def honoraires_edl_bailleur(self):
-        """Calcule la part bailleur des honoraires EDL"""
-        if self.honoraires_edl_total and self.honoraires_edl_part_bailleur_pct:
-            montant = (
-                self.honoraires_edl_total * self.honoraires_edl_part_bailleur_pct / 100
-            )
-            return round(montant, 2)
-        return None
-
-    @property
-    def honoraires_edl_locataire(self):
-        """Calcule la part locataire des honoraires EDL"""
-        if self.honoraires_edl_total and self.honoraires_edl_bailleur is not None:
-            return round(self.honoraires_edl_total - self.honoraires_edl_bailleur, 2)
-        return None
 
     def get_rent_price(self):
         """

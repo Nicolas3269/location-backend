@@ -2,6 +2,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from bail.models import Bail
 from location.models import Bien, RentTerms
+from location.utils.honoraires import get_honoraires_mandataire_for_location
 from rent_control.choices import PropertyType, RegimeJuridique, SystemType
 
 
@@ -283,46 +284,16 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
     def get_honoraires_mandataire_data(bail: Bail):
         """
         Retourne les honoraires du mandataire (bail + EDL)
-        en utilisant les properties de RentTerms.
+        en lisant depuis HonoraireMandataire (système temporel).
         Retourne un dict avec les données formatées pour le template PDF.
+
+        Optimisation: Ne calcule les honoraires que si mandataire_doit_signer=True.
         """
-        result = {}
-
-        if not bail.location.mandataire or not hasattr(bail.location, "rent_terms"):
-            return result
-
-        rent_terms: RentTerms = bail.location.rent_terms
-        superficie = float(bail.location.bien.superficie or 0)
-
-        # Honoraires de bail (utilise les properties de RentTerms)
-        if rent_terms.honoraires_bail_total is not None:
-            part_bailleur_pct = float(rent_terms.honoraires_bail_part_bailleur_pct)
-            result["bail"] = {
-                "tarif_par_m2": float(rent_terms.honoraires_bail_par_m2),
-                "superficie": superficie,
-                "montant_total": rent_terms.honoraires_bail_total,
-                "part_bailleur_pct": part_bailleur_pct,
-                "montant_bailleur": rent_terms.honoraires_bail_bailleur,
-                "part_locataire_pct": 100 - part_bailleur_pct,
-                "montant_locataire": rent_terms.honoraires_bail_locataire,
-            }
-
-        # Honoraires EDL si le mandataire le fait (utilise les properties)
-        if (
-            rent_terms.mandataire_fait_edl
-            and rent_terms.honoraires_edl_total is not None
-        ):
-            part_bailleur_edl_pct = float(
-                rent_terms.honoraires_edl_part_bailleur_pct
-            )
-            result["edl"] = {
-                "tarif_par_m2": float(rent_terms.honoraires_edl_par_m2),
-                "superficie": superficie,
-                "montant_total": rent_terms.honoraires_edl_total,
-                "part_bailleur_pct": part_bailleur_edl_pct,
-                "montant_bailleur": rent_terms.honoraires_edl_bailleur,
-                "part_locataire_pct": 100 - part_bailleur_edl_pct,
-                "montant_locataire": rent_terms.honoraires_edl_locataire,
-            }
-
-        return result
+        # Récupérer bail + EDL (avec vérification mandataire_doit_signer)
+        return get_honoraires_mandataire_for_location(
+            bail.location,
+            include_bail=True,
+            include_edl=True,
+            check_doit_signer=True,
+            document=bail,
+        )

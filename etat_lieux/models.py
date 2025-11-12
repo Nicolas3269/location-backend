@@ -4,11 +4,16 @@ Nouveau modèle EtatLieux refactorisé
 """
 
 from django.db import models
-from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
-from location.models import BaseModel, Locataire, Location, Mandataire, Personne
-from signature.document_status import DocumentStatus
+from location.models import (
+    BaseModel,
+    DocumentAvecMandataireMixin,
+    Locataire,
+    Location,
+    Mandataire,
+    Personne,
+)
 from signature.document_types import SignableDocumentType
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
@@ -38,7 +43,7 @@ class EtatLieuxType(models.TextChoices):
     SORTIE = "sortie", "État des lieux de sortie"
 
 
-class EtatLieux(SignableDocumentMixin, BaseModel):
+class EtatLieux(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
     """État des lieux"""
 
     location = models.ForeignKey(
@@ -47,13 +52,8 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
 
     type_etat_lieux = models.CharField(max_length=10, choices=EtatLieuxType.choices)
 
-    # Statut du document
-    status = models.CharField(
-        max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.DRAFT
-    )
-
     # Date de l'état des lieux
-    date_etat_lieux = models.DateField(default=timezone.now)
+    date_etat_lieux = models.DateField()
     # Inventaire (garde en JSON car structure simple)
     nombre_cles = models.JSONField(default=dict)
     compteurs = models.JSONField(default=None, null=True, blank=True)
@@ -113,25 +113,13 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         """Retourne le préfixe pour les noms de fichiers"""
         return "etat_lieux"
 
-    def check_and_update_status(self):
-        """Met à jour automatiquement le statut selon les signatures"""
-        from signature.document_status import DocumentStatus
-
-        current_status = self.status
-
-        # Ne pas passer automatiquement de DRAFT à SIGNING
-        # Cela sera fait par send_signature_email quand on envoie vraiment l'email
-
-        # Passer de SIGNING à SIGNED si toutes les signatures sont complètes
-        if self.status == DocumentStatus.SIGNING.value:
-            if (
-                self.signature_requests.exists()
-                and not self.signature_requests.filter(signed=False).exists()
-            ):
-                self.status = DocumentStatus.SIGNED.value
-
-        if current_status != self.status:
-            self.save(update_fields=["status"])
+    # Méthode de DocumentAvecMandataireMixin
+    def get_reference_date_for_honoraires(self):
+        """
+        Date de référence pour les honoraires (fallback si pas encore signé).
+        Pour un EDL : date effective de l'état des lieux.
+        """
+        return self.date_etat_lieux
 
     def _format_equipment_data(self, equipment, include_date_entretien=False):
         """Méthode commune pour formater les données d'un équipement"""

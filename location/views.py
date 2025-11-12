@@ -31,7 +31,10 @@ from location.services.access_utils import (
     user_has_bien_access,
     user_has_location_access,
 )
-from location.services.document_utils import determine_mandataire_doit_signer
+from location.services.document_utils import (
+    determine_mandataire_doit_signer,
+    determine_mandataire_fait_edl,
+)
 from quittance.models import Quittance
 from quittance.views import get_or_create_quittance_for_location
 from rent_control.choices import ChargeType
@@ -387,7 +390,7 @@ def create_mandataire(data):
     return mandataire
 
 
-def create_or_update_honoraires_mandataire(location, data):
+def create_or_update_honoraires_mandataire(location, data, document_type):
     """
     Crée ou met à jour les honoraires mandataire pour une location.
     Système temporel : ferme les honoraires précédents avant d'en créer de nouveaux.
@@ -395,6 +398,7 @@ def create_or_update_honoraires_mandataire(location, data):
     Args:
         location: Instance de Location
         data: Données validées du formulaire contenant 'honoraires_mandataire'
+        document_type: Type de document (SignableDocumentType)
 
     Returns:
         HonoraireMandataire créé ou None
@@ -412,7 +416,13 @@ def create_or_update_honoraires_mandataire(location, data):
 
     # Extraire les données EDL
     edl_data = honoraires_data.get("edl", {})
-    mandataire_fait_edl = edl_data.get("mandataire_fait_edl", False)
+
+    # Déterminer mandataire_fait_edl automatiquement selon le type de document
+    user_role = data.get("user_role")
+    mandataire_fait_edl = determine_mandataire_fait_edl(
+        user_role, data, document_type=document_type
+    )
+
     tarif_edl = edl_data.get("tarif_par_m2")
     part_bailleur_edl = edl_data.get("part_bailleur_pct")
 
@@ -869,14 +879,15 @@ def update_location_fields(location, data, location_id=None):
     return location
 
 
-def create_new_location(data, serializer_class, location_id=None):
+def create_new_location(data, serializer_class, location_id, document_type):
     """
     Crée une nouvelle location complète avec toutes les entités associées.
 
     Args:
         data: Données validées du formulaire
         serializer_class: Classe de serializer à utiliser
-        location_id: UUID spécifique à utiliser pour la location (optionnel)
+        location_id: UUID spécifique à utiliser pour la location
+        document_type: Type de document (SignableDocumentType)
     """
     # 1. Créer OU récupérer le bien existant
     # bien_id est au niveau racine (pas dans bien.bien_id)
@@ -948,16 +959,24 @@ def create_new_location(data, serializer_class, location_id=None):
 
     # 7. Créer les honoraires mandataire si user_role == MANDATAIRE
     if user_role == UserRole.MANDATAIRE:
-        create_or_update_honoraires_mandataire(location, data)
+        create_or_update_honoraires_mandataire(
+            location, data, document_type=document_type
+        )
 
     logger.info(f"Location créée avec succès: {location.id}")
     return location, bien
 
 
-def update_existing_location(location, data, serializer_class):
+def update_existing_location(location, data, serializer_class, document_type):
     """
     Met à jour une location existante avec de nouvelles données.
     Complète les données manquantes du bien, de la location et met à jour les conditions financières.
+
+    Args:
+        location: Instance de Location existante
+        data: Données validées du formulaire
+        serializer_class: Classe de serializer à utiliser
+        document_type: Type de document (SignableDocumentType)
     """
     # 1. Mettre à jour le Bien avec les champs manquants (en respectant les verrouillages)
     update_bien_fields(
@@ -994,7 +1013,9 @@ def update_existing_location(location, data, serializer_class):
 
         # Créer/mettre à jour les honoraires mandataire si présents
         if "honoraires_mandataire" in data:
-            create_or_update_honoraires_mandataire(location, data)
+            create_or_update_honoraires_mandataire(
+                location, data, document_type=document_type
+            )
 
     # 5. Mettre à jour ou créer les conditions financières (incluant dépôt de garantie)
     update_rent_terms(location, data, serializer_class=serializer_class)
@@ -1083,11 +1104,14 @@ def create_or_update_location(request):
         if not location:
             # Si on a un location_id spécifique, créer avec cet ID
             location, bien = create_new_location(
-                validated_data, serializer_class, location_id=location_id
+                validated_data,
+                serializer_class,
+                location_id=location_id,
+                document_type=source,
             )
         else:
             location, bien = update_existing_location(
-                location, validated_data, serializer_class
+                location, validated_data, serializer_class, document_type=source
             )
 
         # Si la source est 'bail', créer un bail

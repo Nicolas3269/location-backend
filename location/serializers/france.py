@@ -264,9 +264,6 @@ MANDATAIRE_BAIL_HONORAIRES_STEPS = [
             ),
         },
     },
-]
-
-MANDATAIRE_EDL_HONORAIRES_STEPS = [
     # --- HONORAIRES EDL MANDATAIRE ---
     {
         "id": "honoraires_mandataire.edl.question",
@@ -279,6 +276,9 @@ MANDATAIRE_EDL_HONORAIRES_STEPS = [
             ),
         },
     },
+]
+
+MANDATAIRE_EDL_HONORAIRES_STEPS = [
     {
         "id": "honoraires_mandataire.edl.tarifs",
         "always_unlocked": True,

@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import models
 from simple_history.models import HistoricalRecords
 
+from backend.pdf_utils import get_static_pdf_iframe_url
 from location.models import (
     BaseModel,
     Bien,
@@ -43,21 +44,9 @@ class Bail(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
     observations = models.TextField(blank=True)
 
     # PDFs spécifiques au bail
-    notice_information_pdf = models.FileField(
-        upload_to="bail_pdfs/", null=True, blank=True
-    )
-    dpe_pdf = models.FileField(
-        upload_to="bail_pdfs/",
-        null=True,
-        blank=True,
-        verbose_name="Diagnostic de Performance Énergétique PDF",
-    )
-    grille_vetuste_pdf = models.FileField(
-        upload_to="bail_pdfs/",
-        null=True,
-        blank=True,
-        verbose_name="Grille de vétusté PDF",
-    )
+    # Note: notice_information et grille_vetuste sont des documents statiques
+    # accessibles via get_notice_information_url() - pas de champ FileField
+    # Note: Les diagnostics (DPE, etc.) sont gérés via le modèle Document
 
     # Travaux et réparations
     travaux_bailleur = models.TextField(blank=True)
@@ -84,6 +73,20 @@ class Bail(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
         """
         return self.created_at.date()
 
+    def get_notice_information_url(self, request):
+        """
+        Retourne l'URL de la notice d'information (document statique).
+        Factorise la logique au lieu d'utiliser le champ notice_information_pdf.
+
+        Args:
+            request: L'objet request Django pour construire l'URL absolue
+
+        Returns:
+            str: URL complète de la notice d'information statique
+        """
+
+        return get_static_pdf_iframe_url(request, "bails/notice_information.pdf")
+
     def __str__(self):
         return f"Bail {self.location.bien} - ({self.location.date_debut})"
 
@@ -107,7 +110,7 @@ class DocumentType(models.TextChoices):
     BAIL = "bail", "Contrat de bail"
     GRILLE_VETUSTE = "grille_vetuste", "Grille de vétusté"
     NOTICE_INFORMATION = "notice_information", "Notice d'information"
-    DIAGNOSTIC = "diagnostic", "Diagnostic"
+    DIAGNOSTIC = "diagnostic", "Diagnostics techniques"
     PERMIS_DE_LOUER = "permis_de_louer", "Permis de louer"
     ATTESTATION_MRH = "attestation_mrh", "Attestation MRH"
     CAUTION_SOLIDAIRE = "caution_solidaire", "Caution solidaire"

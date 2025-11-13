@@ -6,6 +6,7 @@ Nouveau modèle EtatLieux refactorisé
 from django.db import models
 from simple_history.models import HistoricalRecords
 
+from backend.pdf_utils import get_static_pdf_iframe_url
 from location.models import (
     BaseModel,
     DocumentAvecMandataireMixin,
@@ -75,13 +76,8 @@ class EtatLieux(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
     # Les équipements sont maintenant gérés via le modèle EtatLieuxEquipement
     # (anciennement stockés dans des JSONField)
 
-    # PDF spécifique EDL
-    grille_vetuste_pdf = models.FileField(
-        upload_to="etat_lieux_pdfs/",
-        null=True,
-        blank=True,
-        verbose_name="Grille de vétusté PDF",
-    )
+    # Note: grille_vetuste est un document statique accessible via
+    # get_grille_vetuste_url() - pas de champ FileField
 
     # Note: Les détails des pièces sont dans EtatLieuxPieceDetail
     # Note: Les photos sont dans EtatLieuxPhoto
@@ -120,6 +116,20 @@ class EtatLieux(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
         Pour un EDL : date effective de l'état des lieux.
         """
         return self.date_etat_lieux
+
+    def get_grille_vetuste_url(self, request):
+        """
+        Retourne l'URL de la grille de vétusté (document statique).
+        Factorise la logique au lieu d'utiliser le champ grille_vetuste_pdf.
+
+        Args:
+            request: L'objet request Django pour construire l'URL absolue
+
+        Returns:
+            str: URL complète de la grille de vétusté statique
+        """
+
+        return get_static_pdf_iframe_url(request, "bails/grille_vetuste.pdf")
 
     def _format_equipment_data(self, equipment, include_date_entretien=False):
         """Méthode commune pour formater les données d'un équipement"""

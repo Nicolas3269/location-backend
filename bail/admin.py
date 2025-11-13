@@ -68,7 +68,11 @@ class BailAdmin(admin.ModelAdmin):
     )
     date_hierarchy = "created_at"
     inlines = [DocumentInline, BailSignatureRequestInline]
-    readonly_fields = ("date_signature_display", "est_signe_display")
+    readonly_fields = (
+        "date_signature_display",
+        "est_signe_display",
+        "notice_information_link",
+    )
 
     fieldsets = (
         ("Location associée", {"fields": ("location",)}),
@@ -92,9 +96,11 @@ class BailAdmin(admin.ModelAdmin):
                 "fields": (
                     "pdf",
                     "latest_pdf",
-                    "notice_information_pdf",
-                    "dpe_pdf",
-                    "grille_vetuste_pdf",
+                    "notice_information_link",
+                ),
+                "description": (
+                    "Notice d'information est un document statique. "
+                    "Les diagnostics sont gérés via les Documents annexes."
                 ),
             },
         ),
@@ -171,12 +177,8 @@ class BailAdmin(admin.ModelAdmin):
         docs = []
         if obj.pdf:
             docs.append('<span style="color: green;">📄 Bail</span>')
-        if obj.grille_vetuste_pdf:
-            docs.append('<span style="color: green;">📋 Grille vétusté</span>')
-        if obj.notice_information_pdf:
-            docs.append('<span style="color: green;">📋 Notice info</span>')
-        if obj.dpe_pdf:
-            docs.append('<span style="color: green;">📋 DPE</span>')
+        # Notice est toujours disponible (statique)
+        docs.append('<span style="color: green;">📋 Notice info</span>')
 
         if not docs:
             return '<span style="color: gray;">Aucun document</span>'
@@ -201,6 +203,20 @@ class BailAdmin(admin.ModelAdmin):
         return format_html('<span style="color: orange;">⏳ En attente</span>')
 
     est_signe_display.short_description = "État signature"
+
+    def notice_information_link(self, obj):
+        """Affiche un lien vers la notice d'information (document statique)"""
+        # On a besoin de la request pour construire l'URL absolue
+        # Mais dans l'admin, on n'a pas accès à la request dans les méthodes
+        # On va utiliser une URL relative
+        from django.urls import reverse
+
+        url = reverse("serve_static_pdf_iframe", kwargs={"file_path": "bails/notice_information.pdf"})
+        return format_html(
+            '<a href="{}" target="_blank">📋 Notice d\'information (statique)</a>', url
+        )
+
+    notice_information_link.short_description = "Notice d'information"
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "location":

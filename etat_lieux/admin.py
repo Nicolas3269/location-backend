@@ -62,7 +62,14 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         "location__locataires__firstName",
     )
 
-    readonly_fields = ("id", "created_at", "updated_at", "pdf_link", "latest_pdf_link")
+    readonly_fields = (
+        "id",
+        "created_at",
+        "updated_at",
+        "pdf_link",
+        "latest_pdf_link",
+        "grille_vetuste_link",
+    )
 
     fieldsets = (
         (None, {"fields": ("id", "location", "type_etat_lieux", "date_etat_lieux")}),
@@ -76,8 +83,18 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         (
             "PDF",
             {
-                "fields": ("pdf", "pdf_link", "latest_pdf", "latest_pdf_link", "grille_vetuste_pdf"),
-                "classes": ("collapse",)
+                "fields": (
+                    "pdf",
+                    "pdf_link",
+                    "latest_pdf",
+                    "latest_pdf_link",
+                    "grille_vetuste_link",
+                ),
+                "classes": ("collapse",),
+                "description": (
+                    "La grille de vétusté est toujours disponible "
+                    "(document statique)"
+                ),
             }
         ),
         (
@@ -122,6 +139,17 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         return "Pas de PDF signé"
 
     latest_pdf_link.short_description = "PDF Signé"
+
+    def grille_vetuste_link(self, obj):
+        """Affiche un lien vers la grille de vétusté (document statique)"""
+        from django.urls import reverse
+
+        url = reverse("serve_static_pdf_iframe", kwargs={"file_path": "bails/grille_vetuste.pdf"})
+        return format_html(
+            '<a href="{}" target="_blank">📋 Grille de vétusté (statique)</a>', url
+        )
+
+    grille_vetuste_link.short_description = "Grille de vétusté"
 
 
 @admin.register(EtatLieuxPiece)

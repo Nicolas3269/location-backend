@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
-from bail.models import Bail
+from bail.models import Bail, Document, DocumentType
 from bail.utils import create_bien_from_form_data
 from etat_lieux.models import EtatLieux
 from location.constants import UserRole
@@ -1296,9 +1296,9 @@ def get_bien_locations(request, bien_id):
 def get_location_documents(request, location_id):
     """
     Récupère tous les documents associés à une location spécifique:
-    - Bail(s)
+    - Bail(s) avec leurs annexes (diagnostics, permis de louer, MRH, caution)
     - Quittances
-    - États des lieux (entrée et sortie)
+    - États des lieux (entrée et sortie) avec leurs photos
     """
     try:
         # Récupérer la location
@@ -1316,8 +1316,6 @@ def get_location_documents(request, location_id):
         documents = []
 
         # 1. Récupérer les baux associés à cette location
-        from bail.models import Bail
-
         baux = Bail.objects.filter(location=location).order_by("-created_at")
 
         for bail in baux:
@@ -1327,22 +1325,121 @@ def get_location_documents(request, location_id):
                 if bail.status == DocumentStatus.DRAFT:
                     status = "Brouillon"
 
+                # Date du bail pour les annexes
+                bail_date = (
+                    bail.date_signature.isoformat()
+                    if bail.date_signature
+                    else bail.created_at.isoformat()
+                )
+
+                # 1. Ajouter le bail principal
+                locataires_names = ", ".join(
+                    [
+                        f"{loc.firstName} {loc.lastName}"
+                        for loc in location.locataires.all()
+                    ]
+                )
                 documents.append(
                     {
                         "id": f"bail-{bail.id}",
                         "type": "bail",
-                        "nom": f"Bail - {', '.join([f'{l.firstName} {l.lastName}' for l in location.locataires.all()])}",
-                        "date": bail.date_signature.isoformat()
-                        if bail.date_signature
-                        else bail.created_at.isoformat(),
+                        "nom": f"Bail - {locataires_names}",
+                        "date": bail_date,
                         "url": bail.latest_pdf.url if bail.latest_pdf else bail.pdf.url,
                         "status": status,
                     }
                 )
 
-        # 2. Récupérer les quittances
-        from quittance.models import Quittance
+                # 2. Ajouter les annexes seulement si le bail est SIGNING ou SIGNED
+                if bail.status in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
+                    # Notice d'information (toujours statique, via méthode du modèle)
+                    documents.append(
+                        {
+                            "id": f"notice-{bail.id}",
+                            "type": "annexe_bail",
+                            "nom": "Notice d'information",
+                            "date": bail_date,
+                            "url": bail.get_notice_information_url(request),
+                            "status": "Annexe - Bail",
+                        }
+                    )
 
+                    # Documents annexes du bail (diagnostics, permis de louer)
+                    documents_bail = (
+                        Document.objects.filter(bail=bail)
+                        .exclude(
+                            type_document__in=[
+                                DocumentType.ATTESTATION_MRH,
+                                DocumentType.CAUTION_SOLIDAIRE,
+                            ]
+                        )
+                        .order_by("type_document")
+                    )
+
+                    # Compter les diagnostics techniques pour la numérotation
+                    diagnostic_count = documents_bail.filter(
+                        type_document=DocumentType.DIAGNOSTIC
+                    ).count()
+                    diagnostic_index = 1
+
+                    for doc in documents_bail:
+                        doc_nom = doc.get_type_document_display()
+
+                        # Si diagnostics techniques et plusieurs, ajouter numérotation
+                        if (
+                            doc.type_document == DocumentType.DIAGNOSTIC
+                            and diagnostic_count > 1
+                        ):
+                            doc_nom = f"{doc_nom} - {diagnostic_index}"
+                            diagnostic_index += 1
+
+                        documents.append(
+                            {
+                                "id": f"doc-{doc.id}",
+                                "type": "annexe_bail",
+                                "nom": doc_nom,
+                                "date": bail_date,
+                                "url": doc.file.url,
+                                "status": "Annexe - Bail",
+                            }
+                        )
+
+                    # Documents des locataires (MRH, caution)
+                    for locataire in location.locataires.all():
+                        documents_locataire = Document.objects.filter(
+                            locataire=locataire,
+                            type_document__in=[
+                                DocumentType.ATTESTATION_MRH,
+                                DocumentType.CAUTION_SOLIDAIRE,
+                            ],
+                        ).order_by("type_document")
+                        for doc in documents_locataire:
+                            # Nom avec prénom/nom du locataire
+                            doc_nom = (
+                                f"{doc.get_type_document_display()} - "
+                                f"{locataire.firstName} {locataire.lastName}"
+                            )
+
+                            # Type et statut selon le type de document
+                            if doc.type_document == DocumentType.ATTESTATION_MRH:
+                                doc_type = "assurance_bail"
+                                doc_status = "Assurance"
+                            else:  # CAUTION_SOLIDAIRE
+                                doc_type = "caution_bail"
+                                doc_status = "Caution - Bail"
+
+                            documents.append(
+                                {
+                                    "id": f"loc-doc-{doc.id}",
+                                    "type": doc_type,
+                                    "nom": doc_nom,
+                                    "date": bail_date,
+                                    "url": doc.file.url,
+                                    "status": doc_status,
+                                }
+                            )
+
+        # 2. Récupérer les quittances
         quittances = Quittance.objects.filter(location=location).order_by(
             "-annee", "-mois"
         )
@@ -1364,8 +1461,6 @@ def get_location_documents(request, location_id):
                 )
 
         # 3. Récupérer les états des lieux
-        from etat_lieux.models import EtatLieux
-
         etats_lieux = EtatLieux.objects.filter(location=location).order_by(
             "-date_etat_lieux"
         )
@@ -1397,18 +1492,43 @@ def get_location_documents(request, location_id):
                 else:
                     status = "En cours"
 
+                # Date de l'EDL pour les annexes
+                edl_date = (
+                    etat.date_etat_lieux.isoformat()
+                    if etat.date_etat_lieux
+                    else etat.created_at.isoformat()
+                )
+
+                # 1. Ajouter l'EDL principal
                 documents.append(
                     {
                         "id": f"etat-{etat.id}",
                         "type": type_doc,
                         "nom": nom,
-                        "date": etat.date_etat_lieux.isoformat()
-                        if etat.date_etat_lieux
-                        else etat.created_at.isoformat(),
+                        "date": edl_date,
                         "url": etat.latest_pdf.url if etat.latest_pdf else etat.pdf.url,
                         "status": status,
                     }
                 )
+
+                # 2. Ajouter les annexes seulement si l'EDL est SIGNING ou SIGNED
+                if etat.status in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
+                    # Type d'EDL pour le statut de l'annexe
+                    edl_type_status = (
+                        "Entrée" if etat.type_etat_lieux == "entree" else "Sortie"
+                    )
+
+                    # Grille de vétusté (toujours statique, via méthode du modèle)
+                    documents.append(
+                        {
+                            "id": f"grille-edl-{etat.id}",
+                            "type": "annexe_edl",
+                            "nom": "Grille de vétusté",
+                            "date": edl_date,
+                            "url": etat.get_grille_vetuste_url(request),
+                            "status": f"Annexe - EDL {edl_type_status}",
+                        }
+                    )
 
         # Informations sur la location
         location_info = {

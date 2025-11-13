@@ -101,6 +101,14 @@
       min-height: 182px; /* correspond à la hauteur du tampon */
       border-bottom: 1px dotted #999;
     }
+
+    .highlight-box {
+      background-color: #f0f7ff;
+      border-left: 4px solid #2680eb;
+      padding: 12px 16px;
+      margin: 1em 0;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -705,6 +713,23 @@
     <p>
       Ces plafonds sont révisables chaque année selon les conditions prévues par décret.
     </p>
+
+    {% if bail.location.rent_terms.zone_tres_tendue %}
+    <p class="highlight-box">
+      <strong>Zone applicable :</strong> Le bien est situé en <strong>zone très tendue (Zone A bis)</strong>.
+      Le plafond légal applicable est de <strong>12 € TTC/m²</strong>.
+    </p>
+    {% elif bail.location.rent_terms.zone_tendue %}
+    <p class="highlight-box">
+      <strong>Zone applicable :</strong> Le bien est situé en <strong>zone tendue</strong>.
+      Le plafond légal applicable est de <strong>10 € TTC/m²</strong>.
+    </p>
+    {% else %}
+    <p class="highlight-box">
+      <strong>Zone applicable :</strong> Le bien n'est pas situé en zone tendue.
+      Le plafond légal applicable est de <strong>8 € TTC/m²</strong>.
+    </p>
+    {% endif %}
 
     <p class="section-title">3. Mandataire ou intermédiaire professionnel</p>
     <p>

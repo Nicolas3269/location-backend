@@ -18,7 +18,13 @@ from algo.encadrement_loyer.montpellier.main import (
 )
 from rent_control.choices import Region
 from rent_control.management.commands.constants import DEFAULT_YEAR
-from rent_control.models import PermisDeLouer, RentControlArea, RentPrice, ZoneTendue
+from rent_control.models import (
+    PermisDeLouer,
+    RentControlArea,
+    RentPrice,
+    ZoneTendue,
+    ZoneTresTendue,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +89,12 @@ def check_zone_status_via_ban(lat, lng):
                     Q(code_insee=citycode) | Q(communes__iexact=city)
                 ).exists()
 
+                # Vérifier si cette ville est dans les zones très tendues (Zone A bis)
+                # Recherche par nom de commune (comparaison exacte, insensible à la casse)
+                zone_tres_tendue_exists = ZoneTresTendue.objects.filter(
+                    Q(commune__iexact=city)
+                ).exists()
+
                 # Vérifier si cette ville nécessite un permis de louer
                 # Recherche par nom de ville (comparaison exacte, insensible à la casse)
                 permis_louer_exists = PermisDeLouer.objects.filter(
@@ -91,6 +103,7 @@ def check_zone_status_via_ban(lat, lng):
 
                 return {
                     "is_zone_tendue": zone_tendue_exists,
+                    "is_zone_tres_tendue": zone_tres_tendue_exists,
                     "is_permis_de_louer": permis_louer_exists,
                     "citycode": citycode,
                     "city": city,
@@ -99,6 +112,7 @@ def check_zone_status_via_ban(lat, lng):
 
         return {
             "is_zone_tendue": False,
+            "is_zone_tres_tendue": False,
             "is_permis_de_louer": False,
             "error": "Aucune commune trouvée pour ces coordonnées",
         }
@@ -107,6 +121,7 @@ def check_zone_status_via_ban(lat, lng):
         logger.error(f"Erreur lors de l'appel à l'API BAN: {str(e)}")
         return {
             "is_zone_tendue": False,
+            "is_zone_tres_tendue": False,
             "is_permis_de_louer": False,
             "error": f"Erreur API BAN: {str(e)}",
         }
@@ -114,6 +129,7 @@ def check_zone_status_via_ban(lat, lng):
         logger.error(f"Erreur lors de la vérification zone tendue/permis: {str(e)}")
         return {
             "is_zone_tendue": False,
+            "is_zone_tres_tendue": False,
             "is_permis_de_louer": False,
             "error": f"Erreur: {str(e)}",
         }
@@ -198,18 +214,14 @@ def check_zone(request):
             ban_result = check_zone_status_via_ban(lat, lng)
 
             is_zone_tendue = ban_result["is_zone_tendue"]
+            is_zone_tres_tendue = ban_result["is_zone_tres_tendue"]
             is_permis_de_louer = ban_result["is_permis_de_louer"]
-
-            if is_zone_tendue:
-                message = "⚠️ Cette adresse est dans une zone critique."
-            else:
-                message = "✅ Cette adresse est sûre."
 
             return JsonResponse(
                 {
                     "zoneTendue": is_zone_tendue,
+                    "zoneTresTendue": is_zone_tres_tendue,
                     "permisDeLouer": is_permis_de_louer,
-                    "message": message,
                     "options": options,
                     "areaId": area.id if area else None,
                 }

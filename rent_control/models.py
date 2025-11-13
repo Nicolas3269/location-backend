@@ -85,6 +85,34 @@ class ZoneTendue(models.Model):
         return f"{self.communes} ({self.code_insee})"
 
 
+class ZoneTresTendue(models.Model):
+    """
+    Zone très tendue (Zone A bis) selon l'arrêté du 1er août 2014
+    Annexe à l'arrêté du 1er août 2014 pris en application de l'article R. 304-1 du CCH
+    """
+
+    departement_code = models.CharField(
+        max_length=3,
+        null=False,
+        verbose_name="Code département",
+    )
+    departement_nom = models.CharField(
+        max_length=100, null=False, verbose_name="Département"
+    )
+    commune = models.CharField(max_length=255, null=False, verbose_name="Commune")
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["departement_code", "commune"]),
+            models.Index(fields=["commune"]),
+        ]
+        verbose_name = "Zone très tendue (A bis)"
+        verbose_name_plural = "Zones très tendues (A bis)"
+
+    def __str__(self):
+        return f"{self.commune} ({self.departement_code}) - {self.departement_nom}"
+
+
 class PermisDeLouer(models.Model):
     """Permis de louer par ville"""
 

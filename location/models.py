@@ -824,6 +824,12 @@ class RentTerms(BaseModel):
         default=None,
         help_text="Situé en zone tendue (déséquilibre offre/demande de logements)",
     )
+    zone_tres_tendue = models.BooleanField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Situé en zone très tendue (Zone A bis - arrêté du 1er août 2014)",
+    )
     premiere_mise_en_location = models.BooleanField(
         null=True,
         blank=True,

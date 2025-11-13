@@ -250,20 +250,15 @@ def verify_pdf_signature(pdf_path):
     """
     Valide les signatures d'un PDF avec PyHanko.
 
-    Commande complète pour validation :
-    poetry run pyhanko sign validate \
-        --trust certificates/hestia_server.pem \
-        --trust certificates/hestia_certificate_authority.pem \
-        --trust certificates/hestia_tsa.pem \
-        --pretty-print <pdf_path>
-
     Certificats requis :
-    - hestia_server.pem : Certificat Hestia AATL (certification)
+    - certeurope-seal-2028.pem : Certificat Hestia AATL (certification)
+    - hestia_server.pem : Certificat Hestia Local (certification)
     - hestia_certificate_authority.pem : CA Hestia (signatures utilisateurs)
     - hestia_tsa.pem : Certificat TSA (timestamps)
 
     Exemple :
         poetry run pyhanko sign validate \
+            --trust certificates/certeurope-seal-2028.pem \
             --trust certificates/hestia_server.pem \
             --trust certificates/hestia_certificate_authority.pem \
             --trust certificates/hestia_tsa.pem \

@@ -134,9 +134,15 @@ class EtatLieux(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
     def _format_equipment_data(self, equipment, include_date_entretien=False):
         """Méthode commune pour formater les données d'un équipement"""
         from etat_lieux.utils import StateEquipmentUtils
+        from etat_lieux.views import image_to_base64_data_url
 
-        # Récupérer les photos de l'équipement
-        photos = [photo.image.url for photo in equipment.photos.all() if photo.image]
+        # Récupérer les photos de l'équipement et convertir en Base64 pour WeasyPrint
+        photos = []
+        for photo in equipment.photos.all():
+            if photo.image:
+                photo_data_url = image_to_base64_data_url(photo.image)
+                if photo_data_url:
+                    photos.append(photo_data_url)
 
         formatted = {
             "uuid": str(equipment.id),
@@ -301,9 +307,14 @@ class EtatLieuxPhoto(BaseModel):
     """Photos associées aux équipements d'état des lieux"""
 
     # Relation directe avec l'équipement
+    # SET_NULL permet de conserver les photos temporairement lors du submit final
+    # (évite la perte lors de la recréation des équipements)
+    # Un job de nettoyage supprimera les photos orphelines > 7 jours
     equipment = models.ForeignKey(
         EtatLieuxEquipement,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="photos",
         help_text="Équipement associé",
     )
@@ -329,7 +340,13 @@ class EtatLieuxPhoto(BaseModel):
         db_table = "etat_lieux_photo"
 
     def __str__(self):
-        return f"Photo {self.equipment.equipment_name} - {self.equipment.etat_lieux}"
+        if self.equipment:
+            return (
+                f"Photo {self.equipment.equipment_name} - "
+                f"{self.equipment.etat_lieux}"
+            )
+        else:
+            return f"Photo standalone {self.nom_original} (ID: {self.id})"
 
 
 class EtatLieuxSignatureRequest(AbstractSignatureRequest):

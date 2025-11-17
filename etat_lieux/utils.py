@@ -200,17 +200,28 @@ def save_equipment_photos(
 
     Args:
         etat_lieux: L'état des lieux
-        uploaded_photos: Dictionnaire des fichiers uploadés {key: file}
-        photo_references: Liste des références de photos
+        uploaded_photos: Dictionnaire des fichiers uploadés {key: file} (DEPRECATED)
+        photo_references: Liste des références de photos avec photo_id
         equipment_id_map: Mapping des clés composites vers les vrais UUIDs
+
+    Note: Depuis l'upload immédiat, toutes les photos utilisent photo_id.
+          Le paramètre uploaded_photos est gardé pour compatibilité
+          mais n'est plus utilisé.
     """
-    if not uploaded_photos:
+    if not photo_references:
+        logger.info("Aucune photo_reference reçue")
         return []
+
+    logger.info(
+        f"Traitement de {len(photo_references)} photo_references "
+        f"pour EDL {etat_lieux.id}"
+    )
 
     saved_photos = []
 
     # Récupérer tous les équipements de cet état des lieux
     equipments_by_id = {str(eq.id): eq for eq in etat_lieux.equipements.all()}
+    logger.info(f"Équipements disponibles : {list(equipments_by_id.keys())}")
 
     # Créer aussi un mapping par clé composite pour compatibilité
     equipments_by_composite_key = {}
@@ -222,8 +233,13 @@ def save_equipment_photos(
 
     for photo_ref in photo_references:
         equipment_id = photo_ref.get("equipment_id")
-        photo_key = photo_ref.get("photo_key")
         photo_index = photo_ref.get("photo_index")
+        photo_id = photo_ref.get("photo_id")  # ✅ UUID de photo uploadée
+
+        logger.info(
+            f"Traitement photo_ref: equipment_id={equipment_id}, "
+            f"photo_index={photo_index}, photo_id={photo_id}"
+        )
 
         # Essayer d'abord avec l'ID direct
         equipment = equipments_by_id.get(equipment_id)
@@ -237,36 +253,47 @@ def save_equipment_photos(
         if not equipment:
             equipment = equipments_by_composite_key.get(equipment_id)
 
-        uploaded_file = uploaded_photos.get(photo_key)
-
-        if equipment and uploaded_file:
-            photo = EtatLieuxPhoto.objects.create(
-                equipment=equipment,
-                photo_index=photo_index,
-                image=uploaded_file,
-                nom_original=uploaded_file.name,
+        if not equipment:
+            logger.warning(
+                f"Photo ignorée - équipement {equipment_id} non trouvé. "
+                f"IDs disponibles: {list(equipments_by_id.keys())[:5]}..."
             )
+            continue
 
-            saved_photos.append(
-                {
-                    "id": str(photo.id),
-                    "equipment_id": str(equipment.id),
-                    "photo_index": photo_index,
-                    "url": photo.image.url,
-                    "original_name": photo.nom_original,
-                }
-            )
+        logger.info(f"Équipement trouvé : {equipment.equipment_name} ({equipment.id})")
 
-            logger.info(
-                f"Photo sauvegardée pour équipement {equipment.equipment_name} "
-                f"({equipment.equipment_key})"
-            )
+        # ✅ CAS 1 : Photo existante (uploadée via /upload-photo/)
+        if photo_id:
+            try:
+                photo = EtatLieuxPhoto.objects.get(id=photo_id)
+                # Attacher au nouvel équipement
+                photo.equipment = equipment
+                photo.photo_index = photo_index
+                photo.save()
+
+                saved_photos.append(
+                    {
+                        "id": str(photo.id),
+                        "equipment_id": str(equipment.id),
+                        "photo_index": photo_index,
+                        "url": photo.image.url,
+                        "original_name": photo.nom_original,
+                    }
+                )
+
+                logger.info(
+                    f"Photo {photo_id} attachée à "
+                    f"équipement {equipment.equipment_name}"
+                )
+            except EtatLieuxPhoto.DoesNotExist:
+                logger.warning(
+                    f"Photo {photo_id} non trouvée, ignorée"
+                )
+        # Note: Toutes les photos sont uploadées via /upload-photo/ avant submit
+        # Donc photo_id est toujours présent, pas de photo_key
         else:
             logger.warning(
-                f"Photo non sauvegardée - equipment_id: {equipment_id}, "
-                f"equipment trouvé: {equipment is not None}, "
-                f"photo key: {photo_key}, "
-                f"photo dans uploads: {photo_key in uploaded_photos}"
+                f"Photo sans photo_id pour équipement {equipment_id} - ignorée"
             )
 
     logger.info(
@@ -418,30 +445,32 @@ def create_etat_lieux_from_form_data(
 
         equipments.append(equipment_data)
 
-    # 3. Traiter les annexes privatives (liste d'objets)
-    annexes_privatives = form_data.get("annexes_privatives_equipements", [])
+    # 3. Traiter les annexes privatives (dict avec UUID comme clés)
+    annexes_privatives = form_data.get("annexes_privatives_equipements", {})
 
-    if isinstance(annexes_privatives, list):
-        for annexe_data in annexes_privatives:
-            if not annexe_data:
+    if isinstance(annexes_privatives, dict):
+        logger.info(f"Annexes privatives: {len(annexes_privatives)} annexe(s)")
+
+        # Format dict: {uuid: {type, state, comment, photos, ...}}
+        for annexe_uuid, annexe_data in annexes_privatives.items():
+            if not annexe_data or not isinstance(annexe_data, dict):
                 continue
 
-            annexe_id = annexe_data.get("id")
             annexe_type = annexe_data.get("type")
             annexe_label = annexe_data.get("label")
 
-            if not annexe_id or not annexe_type:
-                logger.warning("Annexe sans ID ou type ignorée")
+            if not annexe_type:
+                logger.warning(f"Annexe {annexe_uuid} sans type ignorée")
                 continue
 
-            # Utiliser le label fourni par le frontend, sinon fallback sur le type formaté
+            # Utiliser le label fourni, sinon fallback sur le type formaté
             equipment_name = (
                 annexe_label if annexe_label else annexe_type.replace("_", " ").title()
             )
 
             equipments.append(
                 {
-                    "id": annexe_id,
+                    "id": annexe_uuid,  # ✅ UUID de la clé dict
                     "equipment_type": "annexe",
                     "equipment_key": annexe_type,
                     "equipment_name": equipment_name,
@@ -450,6 +479,11 @@ def create_etat_lieux_from_form_data(
                     "data": {},
                 }
             )
+    else:
+        logger.warning(
+            f"annexes_privatives_equipements format invalide: "
+            f"{type(annexes_privatives).__name__}, attendu: dict"
+        )
 
     # 4. Créer tous les équipements (rooms + chauffage + annexes)
     logger.info(f"Création de {len(equipments)} équipements")

@@ -213,6 +213,7 @@ AWS_DEFAULT_ACL = None
 # - AWS_QUERYSTRING_AUTH = True (default)
 # - AWS_QUERYSTRING_EXPIRE = 3600 seconds (default, 1 hour)
 # file.url automatically returns temporary signed URLs
+AWS_QUERYSTRING_EXPIRE = 604800  # 7 days (7 * 24 * 3600 seconds)
 
 AWS_S3_OBJECT_PARAMETERS = {
     "CacheControl": "max-age=86400",  # 1 day cache

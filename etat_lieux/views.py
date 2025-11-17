@@ -219,6 +219,7 @@ def extract_form_data_and_photos(request):
 
 def update_or_create_etat_lieux(location_id, form_data, uploaded_photos, user):
     from django.db import transaction
+    from signature.document_status import DocumentStatus
 
     etat_lieux_type = form_data.get("type_etat_lieux")
 
@@ -228,66 +229,63 @@ def update_or_create_etat_lieux(location_id, form_data, uploaded_photos, user):
 
     # Utiliser une transaction atomique pour éviter les race conditions
     with transaction.atomic():
-        anciens_etats_lieux = EtatLieux.objects.filter(
-            location_id=location_id, type_etat_lieux=etat_lieux_type
-        )
+        # ✅ Détacher les photos AVANT toute suppression (grâce à SET_NULL)
+        # Cela permet de conserver les photos uploadées via /upload-photo/
+        from etat_lieux.models import EtatLieuxPhoto
+        existing_draft = EtatLieux.objects.filter(
+            location_id=location_id,
+            type_etat_lieux=etat_lieux_type,
+            status=DocumentStatus.DRAFT,
+        ).first()
 
-        if anciens_etats_lieux.exists():
-            count = anciens_etats_lieux.count()
+        if existing_draft:
             logger.info(
-                f"Suppression de {count} ancien(s) état(s) des lieux "
-                f"de type '{etat_lieux_type}' pour la location {location_id}"
+                f"DRAFT existant trouvé : {existing_draft.id}, "
+                f"détachement des photos avant suppression"
             )
 
-            for ancien_etat_lieux in anciens_etats_lieux:
-                # Supprimer le fichier PDF associé avant de supprimer l'objet
-                if ancien_etat_lieux.pdf:
-                    try:
-                        ancien_etat_lieux.pdf.delete(save=False)
-                    except Exception as e:
-                        logger.warning(
-                            f"Impossible de supprimer le PDF de l'état des lieux "
-                            f"{ancien_etat_lieux.id}: {e}"
-                        )
+            # ✅ Détacher toutes les photos (equipment=None)
+            orphaned_count = EtatLieuxPhoto.objects.filter(
+                equipment__etat_lieux=existing_draft
+            ).update(equipment=None)
 
-                # Supprimer l'état des lieux (CASCADE supprimera automatiquement:
-                # - Les pièces (EtatLieuxPiece)
-                # - Les équipements (EtatLieuxEquipement)
-                # - Les demandes de signature
-                # - Les photos associées
-                ancien_etat_lieux.delete()
-                logger.info(
-                    f"État des lieux {ancien_etat_lieux.id} supprimé avec toutes ses dépendances"
-                )
-        else:
             logger.info(
-                f"Aucun ancien état des lieux trouvé pour location {location_id}"
+                f"{orphaned_count} photos détachées et conservées en orphelines"
             )
 
-        # Vérifier qu'il n'y a plus d'état des lieux pour cette location avant de créer
-        verification = EtatLieux.objects.filter(
-            location_id=location_id, type_etat_lieux=etat_lieux_type
-        ).exists()
-        if verification:
-            logger.error("ERREUR: Un état des lieux existe encore après suppression!")
+            # Supprimer le PDF
+            if existing_draft.pdf:
+                try:
+                    existing_draft.pdf.delete(save=False)
+                except Exception as e:
+                    logger.warning(f"Impossible de supprimer le PDF: {e}")
 
+            # Supprimer le DRAFT (pièces/équipements en CASCADE, photos préservées)
+            existing_draft.delete()
+            logger.info(f"DRAFT {existing_draft.id} supprimé")
+
+        # Créer le nouvel état des lieux
         etat_lieux, equipment_id_map = create_etat_lieux_from_form_data(
             form_data, location_id
         )
 
     # Sauvegarder les photos si présentes
-    if uploaded_photos:
-        # Ne PAS supprimer toutes les photos du bien !
-        # Les photos sont liées aux pièces, pas aux états des lieux
-        # Chaque état des lieux peut avoir ses propres photos
-        logger.info(f"Traitement de {len(uploaded_photos)} photos uploadées")
+    photo_references = form_data.get("photo_references", [])
+    if photo_references or uploaded_photos:
+        # Note: Avec l'upload immédiat, uploaded_photos est vide
+        # Les photos sont dans photo_references
+        logger.info(
+            f"Traitement photos - "
+            f"uploaded_photos: {len(uploaded_photos)}, "
+            f"photo_references: {len(photo_references)}"
+        )
 
         from etat_lieux.utils import save_equipment_photos
 
         save_equipment_photos(
             etat_lieux,
             uploaded_photos,
-            form_data.get("photo_references", []),
+            photo_references,
             equipment_id_map,
         )
 
@@ -608,3 +606,168 @@ def resend_otp_etat_lieux(request):
     return resend_otp_generic(
         request, EtatLieuxSignatureRequest, SignableDocumentType.ETAT_LIEUX.value
     )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_etat_lieux_photo(request):
+    """
+    Upload immédiat d'une photo standalone.
+    La photo sera attachée à l'équipement au submit final via photo_id.
+
+    Zustand persiste les photos avec leur URL R2, donc aucun problème au refresh.
+
+    Body (multipart/form-data):
+        - photo_id: UUID généré par le frontend
+        - photo: Fichier image
+
+    Returns:
+        {
+            "success": true,
+            "photo_id": "...",
+            "url": "...",
+            "nom_original": "..."
+        }
+    """
+    from etat_lieux.models import EtatLieuxPhoto
+
+    try:
+        # Validation des paramètres
+        photo_file = request.FILES.get("photo")
+        photo_id = request.POST.get("photo_id")
+
+        if not photo_file:
+            return JsonResponse(
+                {"success": False, "error": "photo requise"}, status=400
+            )
+
+        if not photo_id:
+            return JsonResponse(
+                {"success": False, "error": "photo_id requis"}, status=400
+            )
+
+        # Valider photo_id (doit être un UUID)
+        try:
+            photo_uuid = uuid.UUID(photo_id)
+        except (ValueError, AttributeError, TypeError):
+            return JsonResponse(
+                {"success": False, "error": "photo_id doit être un UUID valide"},
+                status=400,
+            )
+
+        # ✅ Créer photo standalone (sera attachée au submit final)
+        photo = EtatLieuxPhoto.objects.create(
+            id=photo_uuid,
+            equipment=None,  # Sera attaché au submit final via photo_id
+            photo_index=0,   # Temporaire, sera mis à jour au submit
+            image=photo_file,
+            nom_original=photo_file.name,
+        )
+
+        logger.info(
+            f"Photo standalone créée : {photo.id} par {request.user.email}"
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "photo_id": str(photo.id),
+                "url": photo.image.url,
+                "nom_original": photo.nom_original,
+            }
+        )
+
+    except Exception as e:
+        logger.exception("Erreur lors de l'upload de la photo EDL")
+        return JsonResponse(
+            {"success": False, "error": f"Erreur lors de l'upload: {str(e)}"},
+            status=500,
+        )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_etat_lieux_photo(request, photo_id):
+    """
+    Supprime une photo d'état des lieux.
+    Utilisé pour corriger une erreur d'upload.
+
+    Returns:
+        {"success": true}
+    """
+    from location.services.access_utils import user_has_location_access
+    from etat_lieux.models import EtatLieuxPhoto
+    from signature.document_status import DocumentStatus
+
+    try:
+        # Récupérer la photo
+        try:
+            photo = EtatLieuxPhoto.objects.get(id=photo_id)
+        except EtatLieuxPhoto.DoesNotExist:
+            return JsonResponse(
+                {"success": False, "error": f"Photo {photo_id} non trouvée"},
+                status=404,
+            )
+
+        user_email = request.user.email
+
+        # CAS 1: Photo standalone (equipment=None)
+        # → Suppression directe, pas de vérifications (Location n'existe pas encore)
+        if photo.equipment is None:
+            logger.info(f"Suppression photo standalone {photo_id} par {user_email}")
+
+        # CAS 2: Photo attachée à un équipement (equipment != None)
+        # → Vérifier DRAFT status + accès Location
+        else:
+            etat_lieux = photo.equipment.etat_lieux
+
+            # Vérifier que c'est un DRAFT
+            # (on ne peut pas modifier SIGNING/SIGNED)
+            if etat_lieux.status != DocumentStatus.DRAFT:
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": (
+                            "Impossible de supprimer une photo "
+                            "d'un document non-DRAFT"
+                        ),
+                    },
+                    status=403,
+                )
+
+            # Vérifier accès à la location
+            location = etat_lieux.location
+            if not user_has_location_access(location, user_email):
+                return JsonResponse(
+                    {
+                        "success": False,
+                        "error": "Accès non autorisé à cette location",
+                    },
+                    status=403,
+                )
+
+            logger.info(
+                f"Suppression photo attachée {photo_id} "
+                f"(EDL {etat_lieux.id}) par {user_email}"
+            )
+
+        # Supprimer le fichier image (R2/MinIO)
+        if photo.image:
+            try:
+                photo.image.delete(save=False)
+            except Exception as e:
+                logger.warning(
+                    f"Impossible de supprimer le fichier image {photo.image.name}: {e}"
+                )
+
+        # Supprimer l'objet photo
+        photo.delete()
+
+        return JsonResponse({"success": True})
+
+    except Exception as e:
+        logger.exception(f"Erreur lors de la suppression de la photo {photo_id}")
+        return JsonResponse(
+            {"success": False, "error": f"Erreur lors de la suppression: {str(e)}"},
+            status=500,
+        )

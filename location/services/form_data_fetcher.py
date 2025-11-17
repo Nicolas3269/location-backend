@@ -26,17 +26,21 @@ class FormDataFetcher:
             Dict avec toutes les données extraites ou None si location inexistante
         """
         try:
-            location = Location.objects.select_related(
-                "bien",
-                "mandataire__signataire",
-                "mandataire__societe",
-                "rent_terms",
-            ).prefetch_related(
-                "bien__bailleurs__personne",
-                "bien__bailleurs__societe",
-                "bien__bailleurs__signataire",
-                "locataires",
-            ).get(id=location_id)
+            location = (
+                Location.objects.select_related(
+                    "bien",
+                    "mandataire__signataire",
+                    "mandataire__societe",
+                    "rent_terms",
+                )
+                .prefetch_related(
+                    "bien__bailleurs__personne",
+                    "bien__bailleurs__societe",
+                    "bien__bailleurs__signataire",
+                    "locataires",
+                )
+                .get(id=location_id)
+            )
             return self._extract_location_data(location)
         except Location.DoesNotExist:
             return None
@@ -311,8 +315,8 @@ class FormDataFetcher:
                     data["zone_reglementaire"]["zone_tres_tendue"] = zone_status.get(
                         "is_zone_tres_tendue", False
                     )
-                    data["zone_reglementaire"]["zone_tendue_touristique"] = zone_status.get(
-                        "is_zone_tendue_touristique", False
+                    data["zone_reglementaire"]["zone_tendue_touristique"] = (
+                        zone_status.get("is_zone_tendue_touristique", False)
                     )
                     data["zone_reglementaire"]["permis_de_louer"] = zone_status.get(
                         "is_permis_de_louer", False

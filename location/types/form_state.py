@@ -48,8 +48,10 @@ class ExtendFormState:
     - Quittance pour locataire actuel (bail signé) → Lock bien/bailleur/locataires
     - Nouveau bail pour locataire actuel (pas de bail signé) → Pas de lock
     - EDL depuis bail signé → Lock bien/bailleur/locataires
+    - Reprendre EDL DRAFT → Charge location + données EDL (pièces, équipements)
+    - Reprendre Bail DRAFT → Charge location + données Bail
     """
-    source_type: Literal['location']  # Seulement location (a des docs avec statut)
+    source_type: Literal['location', 'draft_bail', 'draft_edl']
     source_id: UUID
     lock_fields: list[str]  # Champs à lock SI source a docs SIGNED/SIGNING
     kind: Literal['extend'] = 'extend'

@@ -245,17 +245,19 @@ class FormDataFetcher:
             ]
             data["solidaires"] = location.solidaires
 
-        # Modalités financières
-        if rent_terms and (rent_terms.montant_loyer or rent_terms.montant_charges):
+        # Modalités financières (toujours inclure si rent_terms existe)
+        if rent_terms:
             data["modalites_financieres"] = {}
             if rent_terms.montant_loyer:
                 data["modalites_financieres"]["loyer_hors_charges"] = float(
                     rent_terms.montant_loyer
                 )
             if rent_terms.montant_charges:
-                data["modalites_financieres"]["charges_mensuelles"] = float(
+                data["modalites_financieres"]["charges"] = float(
                     rent_terms.montant_charges
                 )
+            if hasattr(rent_terms, "type_charges") and rent_terms.type_charges:
+                data["modalites_financieres"]["type_charges"] = rent_terms.type_charges
 
             # Zone tendue - modalités spécifiques
             if rent_terms.zone_tendue:
@@ -273,6 +275,14 @@ class FormDataFetcher:
                         float(rent_terms.dernier_montant_loyer)
                         if rent_terms.dernier_montant_loyer
                         else None
+                    )
+                if hasattr(rent_terms, "dernier_loyer_periode"):
+                    data["modalites_zone_tendue"]["dernier_loyer_periode"] = (
+                        rent_terms.dernier_loyer_periode
+                    )
+                if hasattr(rent_terms, "justificatif_complement_loyer"):
+                    data["modalites_zone_tendue"]["justificatif_complement_loyer"] = (
+                        rent_terms.justificatif_complement_loyer
                     )
 
         # Dates
@@ -393,3 +403,253 @@ class FormDataFetcher:
         """Extrait les données d'un Bailleur."""
 
         return serialize_bailleur(bailleur)
+
+    def fetch_bailleur_data(self, bailleur_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Récupère les données d'un Bailleur pour pré-remplir un formulaire.
+
+        Args:
+            bailleur_id: UUID du bailleur
+
+        Returns:
+            Dict avec les données du bailleur ou None si inexistant
+        """
+        try:
+            bailleur = Bailleur.objects.get(id=bailleur_id)
+            return {"bailleur": self._extract_bailleur_data(bailleur)}
+        except Bailleur.DoesNotExist:
+            return None
+
+    def fetch_draft_bail_data(self, bail_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Récupère les données d'un Bail DRAFT pour reprendre l'édition.
+
+        Args:
+            bail_id: UUID du bail
+
+        Returns:
+            Dict avec toutes les données du bail DRAFT
+        """
+        try:
+            from bail.models import Bail
+
+            bail = (
+                Bail.objects.select_related(
+                    "location__bien",
+                    "location__mandataire__signataire",
+                    "location__mandataire__societe",
+                    "location__rent_terms",
+                )
+                .prefetch_related(
+                    "location__bien__bailleurs__personne",
+                    "location__bien__bailleurs__societe",
+                    "location__bien__bailleurs__signataire",
+                    "location__locataires",
+                )
+                .get(id=bail_id)
+            )
+
+            # Récupérer les données de la location
+            if bail.location:
+                data = self._extract_location_data(bail.location)
+
+                # Ajouter les données spécifiques du bail DRAFT
+                # duree_mois est dans le modèle Bail
+                if bail.duree_mois:
+                    if "dates" not in data:
+                        data["dates"] = {}
+                    data["dates"]["duree_mois"] = bail.duree_mois
+
+                # Retourner les données ET le location_id (évite requête dupliquée)
+                return data, str(bail.location_id)
+            return None
+
+        except Exception as e:
+            import logging
+
+            logging.error(f"Error in fetch_draft_bail_data: {e}", exc_info=True)
+            return None
+
+    def fetch_draft_edl_data(self, etat_lieux_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Récupère les données d'un État des Lieux DRAFT pour reprendre l'édition.
+
+        Args:
+            etat_lieux_id: UUID de l'état des lieux
+
+        Returns:
+            Dict avec toutes les données de l'EDL DRAFT (location + pièces + équipements)
+        """
+        try:
+            from etat_lieux.models import EtatLieux
+
+            edl = (
+                EtatLieux.objects.select_related(
+                    "location__bien",
+                    "location__mandataire__signataire",
+                    "location__mandataire__societe",
+                    "location__rent_terms",
+                )
+                .prefetch_related(
+                    "location__bien__bailleurs__personne",
+                    "location__bien__bailleurs__societe",
+                    "location__bien__bailleurs__signataire",
+                    "location__locataires",
+                    "pieces__equipements__photos",  # Charger pièces + équipements + photos
+                )
+                .get(id=etat_lieux_id)
+            )
+
+            # Récupérer les données de la location
+            if edl.location:
+                data = self._extract_location_data(edl.location)
+
+                # Ajouter les données spécifiques de l'EDL
+                data["type_etat_lieux"] = edl.type_etat_lieux
+                data["date_etat_lieux"] = edl.date_etat_lieux.isoformat()
+
+                # Nombre de clés
+                if edl.nombre_cles:
+                    data["nombre_cles"] = edl.nombre_cles
+
+                # Compteurs
+                if edl.compteurs:
+                    data["compteurs"] = edl.compteurs
+
+                # Commentaires généraux
+                if edl.commentaires_generaux:
+                    data["commentaires_generaux"] = edl.commentaires_generaux
+
+                # Charger les pièces avec leurs équipements
+                pieces_data = []
+                for piece in edl.pieces.all():
+                    piece_data = {
+                        "id": str(piece.id),
+                        "name": piece.nom,  # Frontend attend "name"
+                        "type": piece.type_piece,  # Frontend attend "type"
+                        "equipments": [],  # Frontend attend "equipments"
+                        # Liste des equipment_key sélectionnés
+                        "selected_equipment_keys": [],
+                    }
+
+                    # Charger les équipements de la pièce
+                    for equipement in piece.equipements.all():
+                        equipement_data = {
+                            "id": str(equipement.id),
+                            "equipment_type": equipement.equipment_type,
+                            "equipment_key": equipement.equipment_key,
+                            "equipment_name": equipement.equipment_name,
+                            "piece_id": str(piece.id),
+                            "state": equipement.state,
+                            "comment": equipement.comment or "",
+                            "photos": [],
+                        }
+                        # Ajouter quantity si présent
+                        if (
+                            hasattr(equipement, "quantity")
+                            and equipement.quantity is not None
+                        ):
+                            equipement_data["quantity"] = equipement.quantity
+
+                        # Charger les photos
+                        for photo in equipement.photos.all():
+                            photo_data = {
+                                "id": str(photo.id),
+                                "url": photo.image.url,
+                                "name": photo.nom_original,  # Frontend attend "name"
+                            }
+                            equipement_data["photos"].append(photo_data)
+
+                        piece_data["equipments"].append(equipement_data)
+                        # Ajouter l'equipment_key à la liste des sélectionnés
+                        piece_data["selected_equipment_keys"].append(
+                            equipement.equipment_key
+                        )
+
+                    pieces_data.append(piece_data)
+
+                # Le serializer s'attend à "rooms" pas "pieces"
+                data["rooms"] = pieces_data
+                # Alias pour le step "description_pieces"
+                # (pour que _step_has_value le détecte)
+                data["description_pieces"] = pieces_data
+
+                # Charger les équipements de chauffage (niveau global)
+                from etat_lieux.models import EquipmentType
+
+                equipements_chauffage = []
+                chauffage_query = edl.equipements.filter(
+                    equipment_type=EquipmentType.CHAUFFAGE
+                )
+                for equipement in chauffage_query:
+                    equipement_data = {
+                        "id": str(equipement.id),
+                        "equipment_type": equipement.equipment_type,
+                        "equipment_key": equipement.equipment_key,
+                        "equipment_name": equipement.equipment_name,
+                        "marque": getattr(equipement, "marque", None),
+                        "numero_serie": getattr(equipement, "numero_serie", None),
+                        "date_entretien": getattr(equipement, "date_entretien", None),
+                        "state": equipement.state,
+                        "comment": equipement.comment or "",
+                        "photos": [],
+                    }
+                    # Charger les photos
+                    for photo in equipement.photos.all():
+                        photo_data = {
+                            "id": str(photo.id),
+                            "url": photo.image.url,
+                            "name": photo.nom_original,
+                        }
+                        equipement_data["photos"].append(photo_data)
+                    equipements_chauffage.append(equipement_data)
+                if equipements_chauffage:
+                    data["equipements_chauffage"] = equipements_chauffage
+
+                # Charger les annexes privatives (niveau global)
+                # Le step attend le chemin: bien.equipements.annexes_privatives_equipements
+                # Format: {uuid: {id, type, label, state, comment, photos}}
+                annexes_privatives_equipements = {}
+                for equipement in edl.equipements.filter(
+                    equipment_type=EquipmentType.ANNEXE
+                ):
+                    annexes_privatives_equipements[str(equipement.id)] = {
+                        "id": str(equipement.id),
+                        "type": equipement.equipment_key,
+                        "label": equipement.equipment_name,
+                        "state": equipement.state,
+                        "comment": equipement.comment or "",
+                        "photos": [
+                            {
+                                "id": str(photo.id),
+                                "url": photo.image.url,
+                                "name": photo.nom_original,
+                            }
+                            for photo in equipement.photos.all()
+                        ],
+                    }
+                if annexes_privatives_equipements:
+                    # Mettre au bon endroit dans l'arborescence
+                    if "bien" not in data:
+                        data["bien"] = {}
+                    if "equipements" not in data["bien"]:
+                        data["bien"]["equipements"] = {}
+                    bien_equipements = data["bien"]["equipements"]
+                    bien_equipements["annexes_privatives_equipements"] = (
+                        annexes_privatives_equipements
+                    )
+                    # Alias au niveau racine pour le formulaire
+                    data["annexes_privatives_equipements"] = (
+                        annexes_privatives_equipements
+                    )
+
+                # Retourner les données ET le location_id (évite requête dupliquée)
+                return data, str(edl.location_id)
+            return None
+
+        except Exception as e:
+            import traceback
+
+            print(f"Error in fetch_draft_edl_data: {e}")
+            traceback.print_exc()
+            return None

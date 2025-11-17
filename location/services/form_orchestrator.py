@@ -121,12 +121,28 @@ class FormOrchestrator:
         elif isinstance(form_state, ExtendFormState) and form_state.kind == "extend":
             # Mode Extend: Location Actuelle/Ancienne - RÉUTILISER la location existante
             source_id = str(form_state.source_id)
-            source_data = self.data_fetcher.fetch_location_data(source_id) or {}
-            source_location_id = source_id  # Pour check lock
+
+            # Si source_type est draft_edl ou draft_bail, charger les données du document
+            if form_state.source_type == "draft_edl":
+                result = self.data_fetcher.fetch_draft_edl_data(source_id)
+                if result is None:
+                    return {"error": "État des lieux not found"}
+                source_data, final_location_id = result
+                source_location_id = final_location_id
+            elif form_state.source_type == "draft_bail":
+                result = self.data_fetcher.fetch_draft_bail_data(source_id)
+                if result is None:
+                    return {"error": "Bail not found"}
+                source_data, final_location_id = result
+                source_location_id = final_location_id
+            else:
+                # source_type = "location" (cas normal)
+                source_data = self.data_fetcher.fetch_location_data(source_id) or {}
+                source_location_id = source_id
+                final_location_id = source_id
 
             # Copier TOUTES les données
             existing_data = source_data
-            final_location_id = source_id  # ✅ RÉUTILISER le même location_id
             is_new = False  # ✅ Pas une nouvelle location, c'est une location existante
             has_been_renewed = False
 
@@ -189,6 +205,9 @@ class FormOrchestrator:
                     if self._step_has_value(step_id, existing_data):
                         locked_steps.add(step_id)
 
+        # Pour les drafts (EditFormState), ne rien locker
+        # Le formulaire est simplement pré-rempli avec les données existantes
+
         # 5. Filtrer et enrichir les steps (SERVICE)
         steps = self.step_filter.filter_steps(
             step_config, existing_data, locked_steps, serializer_class
@@ -212,7 +231,8 @@ class FormOrchestrator:
         # Pour les états des lieux en mode ExtendFormState, filtrer les types disponibles
         if form_type == "etat_lieux" and isinstance(form_state, ExtendFormState):
             try:
-                location = Location.objects.get(id=form_state.source_id)
+                # Utiliser final_location_id car source_id peut être un draft_edl_id
+                location = Location.objects.get(id=final_location_id)
                 available_types = self._get_available_etat_lieux_types(location)
 
                 # Modifier le step type_etat_lieux pour n'afficher que les types disponibles

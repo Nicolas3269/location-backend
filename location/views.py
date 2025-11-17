@@ -28,6 +28,7 @@ from location.serializers_composed import (
     CreateQuittanceSerializer,
 )
 from location.services.access_utils import (
+    get_user_role_for_location,
     user_has_bien_access,
     user_has_location_access,
 )
@@ -636,7 +637,9 @@ def _extract_rent_terms_data(data, location, serializer_class):
         if "zone_tres_tendue" not in rent_terms_data:
             rent_terms_data["zone_tres_tendue"] = ban_result.get("is_zone_tres_tendue")
         if "zone_tendue_touristique" not in rent_terms_data:
-            rent_terms_data["zone_tendue_touristique"] = ban_result.get("is_zone_tendue_touristique")
+            rent_terms_data["zone_tendue_touristique"] = ban_result.get(
+                "is_zone_tendue_touristique"
+            )
         if "permis_de_louer" not in rent_terms_data:
             rent_terms_data["permis_de_louer"] = ban_result.get("is_permis_de_louer")
 
@@ -1339,12 +1342,21 @@ def get_location_documents(request, location_id):
                 {"error": "Vous n'avez pas accès à cette location"}, status=403
             )
 
+        # Déterminer le rôle de l'utilisateur pour filtrer les brouillons
+
+        user_roles = get_user_role_for_location(location, user_email)
+        is_locataire = user_roles.get("is_locataire", False)
+
         documents = []
 
         # 1. Récupérer les baux associés à cette location
         baux = Bail.objects.filter(location=location).order_by("-created_at")
 
         for bail in baux:
+            # Filtrer les brouillons pour les locataires
+            if is_locataire and bail.status == DocumentStatus.DRAFT:
+                continue
+
             # Utiliser le label de l'enum directement (source unique de vérité)
             status = bail.get_status_display()
 
@@ -1357,10 +1369,7 @@ def get_location_documents(request, location_id):
 
             # 1. Ajouter le bail principal
             locataires_names = ", ".join(
-                [
-                    f"{loc.firstName} {loc.lastName}"
-                    for loc in location.locataires.all()
-                ]
+                [f"{loc.firstName} {loc.lastName}" for loc in location.locataires.all()]
             )
 
             # URL du PDF (None si DRAFT sans PDF)
@@ -1378,7 +1387,8 @@ def get_location_documents(request, location_id):
                     "date": bail_date,
                     "url": pdf_url,
                     "status": status,
-                    "location_id": str(location.id),  # Pour reprendre le DRAFT
+                    "location_id": str(location.id),
+                    "bail_id": str(bail.id),  # Pour reprendre le DRAFT
                 }
             )
 
@@ -1498,14 +1508,16 @@ def get_location_documents(request, location_id):
         )
 
         for etat in etats_lieux:
+            # Filtrer les brouillons pour les locataires
+            if is_locataire and etat.status == DocumentStatus.DRAFT:
+                continue
+
             type_doc = (
                 "etat_lieux_entree"
                 if etat.type_etat_lieux == "entree"
                 else "etat_lieux_sortie"
             )
-            type_label = (
-                "d'entrée" if etat.type_etat_lieux == "entree" else "de sortie"
-            )
+            type_label = "d'entrée" if etat.type_etat_lieux == "entree" else "de sortie"
             nom = f"État des lieux {type_label}"
 
             # Utiliser le label de l'enum directement (source unique de vérité)

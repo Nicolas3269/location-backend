@@ -113,6 +113,38 @@ class ZoneTresTendue(models.Model):
         return f"{self.commune} ({self.departement_code}) - {self.departement_nom}"
 
 
+class ZoneTendueTouristique(models.Model):
+    """
+    Zone tendue touristique selon la réglementation sur les meublés de tourisme
+    Communes où s'applique la règle des 120 jours maximum pour les locations touristiques
+    """
+
+    departement_code = models.CharField(
+        max_length=3,
+        null=False,
+        verbose_name="Code département",
+    )
+    commune = models.CharField(max_length=255, null=False, verbose_name="Commune")
+    code_insee = models.CharField(
+        max_length=10,
+        null=False,
+        db_index=True,
+        verbose_name="Code INSEE",
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["code_insee"]),
+            models.Index(fields=["departement_code", "commune"]),
+            models.Index(fields=["commune"]),
+        ]
+        verbose_name = "Zone tendue touristique"
+        verbose_name_plural = "Zones tendues touristiques"
+
+    def __str__(self):
+        return f"{self.commune} ({self.code_insee}) - Dép. {self.departement_code}"
+
+
 class PermisDeLouer(models.Model):
     """Permis de louer par ville"""
 

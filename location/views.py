@@ -591,7 +591,7 @@ def get_location_fields_from_data(data):
 def _extract_rent_terms_data(data, location, serializer_class):
     """
     Extrait et prépare les données pour RentTerms en utilisant les mappings.
-    Calcule automatiquement zone_tendue, zone_tres_tendue et permis_de_louer si non fournis.
+    Calcule automatiquement zone_tendue, zone_tres_tendue, zone_tendue_touristique et permis_de_louer si non fournis.
     """
     # Utiliser le mapping automatique pour extraire TOUTES les données RentTerms
     # Cela inclut rent_price_id (mappé depuis bien.localisation.area_id)
@@ -604,12 +604,13 @@ def _extract_rent_terms_data(data, location, serializer_class):
             "justificatif_complement_loyer"
         ]
 
-    # Si zone_tendue, zone_tres_tendue ou permis_de_louer ne sont pas dans les données extraites,
+    # Si zone_tendue, zone_tres_tendue, zone_tendue_touristique ou permis_de_louer ne sont pas dans les données extraites,
     # les calculer depuis les coordonnées GPS
     if (
         (
             "zone_tendue" not in rent_terms_data
             or "zone_tres_tendue" not in rent_terms_data
+            or "zone_tendue_touristique" not in rent_terms_data
             or "permis_de_louer" not in rent_terms_data
         )
         and location.bien.latitude
@@ -626,6 +627,8 @@ def _extract_rent_terms_data(data, location, serializer_class):
             rent_terms_data["zone_tendue"] = ban_result.get("is_zone_tendue")
         if "zone_tres_tendue" not in rent_terms_data:
             rent_terms_data["zone_tres_tendue"] = ban_result.get("is_zone_tres_tendue")
+        if "zone_tendue_touristique" not in rent_terms_data:
+            rent_terms_data["zone_tendue_touristique"] = ban_result.get("is_zone_tendue_touristique")
         if "permis_de_louer" not in rent_terms_data:
             rent_terms_data["permis_de_louer"] = ban_result.get("is_permis_de_louer")
 

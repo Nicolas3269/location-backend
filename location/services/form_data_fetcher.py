@@ -157,6 +157,9 @@ class FormDataFetcher:
                 data["bien"]["zone_reglementaire"]["zone_tres_tendue"] = (
                     rent_terms.zone_tres_tendue
                 )
+                data["bien"]["zone_reglementaire"]["zone_tendue_touristique"] = (
+                    rent_terms.zone_tendue_touristique
+                )
 
             # Équipements
             if (
@@ -307,6 +310,9 @@ class FormDataFetcher:
                     )
                     data["zone_reglementaire"]["zone_tres_tendue"] = zone_status.get(
                         "is_zone_tres_tendue", False
+                    )
+                    data["zone_reglementaire"]["zone_tendue_touristique"] = zone_status.get(
+                        "is_zone_tendue_touristique", False
                     )
                     data["zone_reglementaire"]["permis_de_louer"] = zone_status.get(
                         "is_permis_de_louer", False

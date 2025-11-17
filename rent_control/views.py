@@ -23,6 +23,7 @@ from rent_control.models import (
     RentControlArea,
     RentPrice,
     ZoneTendue,
+    ZoneTendueTouristique,
     ZoneTresTendue,
 )
 
@@ -95,6 +96,12 @@ def check_zone_status_via_ban(lat, lng):
                     Q(commune__iexact=city)
                 ).exists()
 
+                # Vérifier si cette ville est dans les zones tendues touristiques
+                # Recherche par code INSEE OU par nom de commune
+                zone_tendue_touristique_exists = ZoneTendueTouristique.objects.filter(
+                    Q(code_insee=citycode) | Q(commune__iexact=city)
+                ).exists()
+
                 # Vérifier si cette ville nécessite un permis de louer
                 # Recherche par nom de ville (comparaison exacte, insensible à la casse)
                 permis_louer_exists = PermisDeLouer.objects.filter(
@@ -104,6 +111,7 @@ def check_zone_status_via_ban(lat, lng):
                 return {
                     "is_zone_tendue": zone_tendue_exists,
                     "is_zone_tres_tendue": zone_tres_tendue_exists,
+                    "is_zone_tendue_touristique": zone_tendue_touristique_exists,
                     "is_permis_de_louer": permis_louer_exists,
                     "citycode": citycode,
                     "city": city,
@@ -113,6 +121,7 @@ def check_zone_status_via_ban(lat, lng):
         return {
             "is_zone_tendue": False,
             "is_zone_tres_tendue": False,
+            "is_zone_tendue_touristique": False,
             "is_permis_de_louer": False,
             "error": "Aucune commune trouvée pour ces coordonnées",
         }
@@ -122,6 +131,7 @@ def check_zone_status_via_ban(lat, lng):
         return {
             "is_zone_tendue": False,
             "is_zone_tres_tendue": False,
+            "is_zone_tendue_touristique": False,
             "is_permis_de_louer": False,
             "error": f"Erreur API BAN: {str(e)}",
         }
@@ -130,6 +140,7 @@ def check_zone_status_via_ban(lat, lng):
         return {
             "is_zone_tendue": False,
             "is_zone_tres_tendue": False,
+            "is_zone_tendue_touristique": False,
             "is_permis_de_louer": False,
             "error": f"Erreur: {str(e)}",
         }
@@ -215,12 +226,14 @@ def check_zone(request):
 
             is_zone_tendue = ban_result["is_zone_tendue"]
             is_zone_tres_tendue = ban_result["is_zone_tres_tendue"]
+            is_zone_tendue_touristique = ban_result["is_zone_tendue_touristique"]
             is_permis_de_louer = ban_result["is_permis_de_louer"]
 
             return JsonResponse(
                 {
                     "zoneTendue": is_zone_tendue,
                     "zoneTresTendue": is_zone_tres_tendue,
+                    "zoneTendueTouristique": is_zone_tendue_touristique,
                     "permisDeLouer": is_permis_de_louer,
                     "options": options,
                     "areaId": area.id if area else None,

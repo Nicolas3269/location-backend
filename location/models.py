@@ -830,6 +830,12 @@ class RentTerms(BaseModel):
         default=None,
         help_text="Situé en zone très tendue (Zone A bis - arrêté du 1er août 2014)",
     )
+    zone_tendue_touristique = models.BooleanField(
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Situé en zone tendue touristique (réglementation meublés de tourisme - 120 jours maximum)",
+    )
     premiere_mise_en_location = models.BooleanField(
         null=True,
         blank=True,

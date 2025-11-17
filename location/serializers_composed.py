@@ -92,6 +92,7 @@ class ZoneReglementaireSerializer(serializers.Serializer):
 
     zone_tendue = serializers.BooleanField(required=False, allow_null=True)
     zone_tres_tendue = serializers.BooleanField(required=False, allow_null=True)
+    zone_tendue_touristique = serializers.BooleanField(required=False, allow_null=True)
     permis_de_louer = serializers.BooleanField(required=False, allow_null=True)
 
 

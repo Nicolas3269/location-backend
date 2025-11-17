@@ -1005,6 +1005,17 @@ def update_existing_location(location, data, serializer_class, document_type):
             f"{len(locataires)} locataire(s) associé(s) à la location {location.id}"
         )
 
+    # 3bis. Créer et associer les bailleurs/co-bailleurs si fournis
+    bailleur_data = data.get("bailleur")
+    if bailleur_data:
+        bailleur, autres_bailleurs = create_or_get_bailleur(data)
+        # Remplacer complètement les bailleurs (évite les doublons)
+        bailleurs_list = [bailleur] + autres_bailleurs
+        location.bien.bailleurs.set(bailleurs_list)
+        logger.info(
+            f"Bailleur principal et {len(autres_bailleurs)} co-bailleur(s) associé(s) au bien {location.bien.id}"
+        )
+
     # 4. Gérer le mandataire si user_role == MANDATAIRE
     user_role = data.get("user_role")
     if user_role not in [UserRole.BAILLEUR, UserRole.MANDATAIRE]:

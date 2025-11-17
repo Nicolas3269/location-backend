@@ -719,7 +719,7 @@
       <strong>Zone applicable :</strong> Le bien est situé en <strong>zone très tendue (Zone A bis)</strong>.
       Le plafond légal applicable est de <strong>12 € TTC/m²</strong>.
     </p>
-    {% elif bail.location.rent_terms.zone_tendue %}
+    {% elif bail.location.rent_terms.zone_tendue or bail.location.rent_terms.zone_tendue_touristique %}
     <p class="highlight-box">
       <strong>Zone applicable :</strong> Le bien est situé en <strong>zone tendue</strong>.
       Le plafond légal applicable est de <strong>10 € TTC/m²</strong>.

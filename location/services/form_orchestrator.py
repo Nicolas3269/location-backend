@@ -112,7 +112,9 @@ class FormOrchestrator:
                     "error": "Cannot edit signed document. Use RenewFormState to create a new version."
                 }
 
-            existing_data = self.data_fetcher.fetch_location_data(location_id) or {}
+            existing_data = (
+                self.data_fetcher.fetch_location_data(location_id, user) or {}
+            )
             final_location_id = location_id
             is_new = False
             has_been_renewed = False
@@ -124,20 +126,22 @@ class FormOrchestrator:
 
             # Si source_type est draft_edl ou draft_bail, charger les données du document
             if form_state.source_type == "draft_edl":
-                result = self.data_fetcher.fetch_draft_edl_data(source_id)
+                result = self.data_fetcher.fetch_draft_edl_data(source_id, user)
                 if result is None:
                     return {"error": "État des lieux not found"}
                 source_data, final_location_id = result
                 source_location_id = final_location_id
             elif form_state.source_type == "draft_bail":
-                result = self.data_fetcher.fetch_draft_bail_data(source_id)
+                result = self.data_fetcher.fetch_draft_bail_data(source_id, user)
                 if result is None:
                     return {"error": "Bail not found"}
                 source_data, final_location_id = result
                 source_location_id = final_location_id
             else:
                 # source_type = "location" (cas normal)
-                source_data = self.data_fetcher.fetch_location_data(source_id) or {}
+                source_data = (
+                    self.data_fetcher.fetch_location_data(source_id, user) or {}
+                )
                 source_location_id = source_id
                 final_location_id = source_id
 
@@ -151,9 +155,13 @@ class FormOrchestrator:
             source_id = str(form_state.source_id)
 
             if form_state.source_type == "location":
-                source_data = self.data_fetcher.fetch_location_data(source_id) or {}
+                source_data = (
+                    self.data_fetcher.fetch_location_data(source_id, user) or {}
+                )
             elif form_state.source_type == "bien":
-                source_data = self.data_fetcher.fetch_bien_data(source_id) or {}
+                source_data = (
+                    self.data_fetcher.fetch_bien_data(source_id, user) or {}
+                )
             elif form_state.source_type == "bailleur":
                 source_data = self.data_fetcher.fetch_bailleur_data(source_id) or {}
             else:
@@ -170,7 +178,8 @@ class FormOrchestrator:
             # Renouvellement (document signé → nouveau location_id)
             previous_location_id = str(form_state.previous_location_id)
             existing_data = (
-                self.data_fetcher.fetch_location_data(previous_location_id) or {}
+                self.data_fetcher.fetch_location_data(previous_location_id, user)
+                or {}
             )
             final_location_id = str(uuid.uuid4())
             is_new = True

@@ -15,12 +15,16 @@ from rent_control.views import check_zone_status_via_ban, get_rent_control_info
 class FormDataFetcher:
     """Récupère les données depuis la BDD pour pré-remplir un formulaire."""
 
-    def fetch_location_data(self, location_id: str) -> Optional[Dict[str, Any]]:
+    def fetch_location_data(
+        self, location_id: str, user: Optional[Any] = None
+    ) -> Optional[Dict[str, Any]]:
         """
         Récupère toutes les données d'une Location existante.
 
         Args:
             location_id: UUID de la location
+            user: Utilisateur connecté (optionnel).
+                  Si fourni, son bailleur sera mis en premier.
 
         Returns:
             Dict avec toutes les données extraites ou None si location inexistante
@@ -41,16 +45,20 @@ class FormDataFetcher:
                 )
                 .get(id=location_id)
             )
-            return self._extract_location_data(location)
+            return self._extract_location_data(location, user)
         except Location.DoesNotExist:
             return None
 
-    def fetch_bien_data(self, bien_id: str) -> Optional[Dict[str, Any]]:
+    def fetch_bien_data(
+        self, bien_id: str, user: Optional[Any] = None
+    ) -> Optional[Dict[str, Any]]:
         """
         Récupère les données d'un Bien pour pré-remplir un formulaire.
 
         Args:
             bien_id: UUID du bien
+            user: Utilisateur connecté (optionnel).
+                  Si fourni, son bailleur sera mis en premier.
 
         Returns:
             Dict avec les données du bien ou None si inexistant
@@ -58,7 +66,11 @@ class FormDataFetcher:
         try:
             # Note: bailleurs est une relation ManyToMany, pas ForeignKey
             # donc on ne peut pas utiliser select_related
-            bien = Bien.objects.prefetch_related("bailleurs").get(id=bien_id)
+            bien = Bien.objects.prefetch_related(
+                "bailleurs__personne",
+                "bailleurs__societe",
+                "bailleurs__signataire",
+            ).get(id=bien_id)
 
             data = {}
 
@@ -66,20 +78,24 @@ class FormDataFetcher:
             if bien:
                 data["bien"] = self._extract_bien_data(bien)
 
-            # Données du bailleur
-            if bien.bailleurs.exists():
-                bailleur = bien.bailleurs.first()
-                if bailleur:
-                    data["bailleur"] = self._extract_bailleur_data(bailleur)
+            # Données du bailleur (+ co-bailleurs)
+            data["bailleur"] = self._extract_bailleurs_data(bien.bailleurs, user)
 
             return data
         except Bien.DoesNotExist:
             return None
 
-    def _extract_location_data(self, location: Location) -> Dict[str, Any]:
+    def _extract_location_data(
+        self, location: Location, user: Optional[Any] = None
+    ) -> Dict[str, Any]:
         """
         Extrait les données d'une Location pour pré-remplissage.
         Format aligné avec les serializers.
+
+        Args:
+            location: Location à extraire
+            user: Utilisateur connecté (optionnel).
+                  Si fourni, son bailleur sera mis en premier.
 
         Note: Cette fonction fait du mapping inverse (modèle -> formulaire).
         Les field mappings du serializer sont dans l'autre sens (formulaire -> modèle),
@@ -204,29 +220,11 @@ class FormDataFetcher:
                     eau_chaude_data["energie"] = bien.eau_chaude_energie
                 data["bien"]["energie"]["eau_chaude"] = eau_chaude_data
 
-        # Données du bailleur
-        if location.bien and location.bien.bailleurs.exists():
-            bailleur = location.bien.bailleurs.first()
-            data["bailleur"] = self._extract_bailleur_data(bailleur)
-
-            # Extraire les co-bailleurs
-            all_bailleurs = list(location.bien.bailleurs.all())
-            if len(all_bailleurs) > 1:
-                co_bailleurs_list = []
-                for co_bailleur in all_bailleurs[1:]:
-                    if co_bailleur.personne:
-                        co_bailleurs_list.append(
-                            {
-                                "lastName": co_bailleur.personne.lastName,
-                                "firstName": co_bailleur.personne.firstName,
-                                "email": co_bailleur.personne.email,
-                                "adresse": co_bailleur.personne.adresse,
-                            }
-                        )
-                if co_bailleurs_list:
-                    data["bailleur"]["co_bailleurs"] = co_bailleurs_list
-            else:
-                data["bailleur"]["co_bailleurs"] = []
+        # Données du bailleur (+ co-bailleurs)
+        if location.bien:
+            data["bailleur"] = self._extract_bailleurs_data(
+                location.bien.bailleurs, user
+            )
 
         # Mandataire
         if location.mandataire:
@@ -404,6 +402,67 @@ class FormDataFetcher:
 
         return serialize_bailleur(bailleur)
 
+    def _extract_bailleurs_data(
+        self, bailleurs, user: Optional[Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Extrait les données du bailleur principal et des co-bailleurs.
+
+        Args:
+            bailleurs: QuerySet de bailleurs (ManyToMany depuis Bien)
+            user: Utilisateur connecté (optionnel).
+                  Si fourni, son bailleur sera mis en premier.
+
+        Returns:
+            Dict avec bailleur principal et co_bailleurs
+        """
+        if not bailleurs.exists():
+            return {}
+
+        # Trouver le bailleur correspondant au user connecté
+        bailleur = None
+        if user and hasattr(user, "email"):
+            user_email = user.email
+            for b in bailleurs.all():
+                if b.email == user_email:
+                    bailleur = b
+                    break
+
+        # Si pas trouvé ou pas de user, prendre le premier
+        if not bailleur:
+            bailleur = bailleurs.first()
+
+        # Extraire les données du bailleur principal
+        data = self._extract_bailleur_data(bailleur)
+
+        # Co-bailleurs = tous SAUF celui en position principale
+        # Format attendu : PersonneSerializer (simple)
+        co_bailleurs = bailleurs.exclude(id=bailleur.id)
+        if co_bailleurs.exists():
+            co_bailleurs_list = []
+            for co_bailleur in co_bailleurs:
+                # Extraire les données de la personne (physique ou signataire)
+                if co_bailleur.personne:
+                    co_bailleurs_list.append({
+                        "lastName": co_bailleur.personne.lastName,
+                        "firstName": co_bailleur.personne.firstName,
+                        "email": co_bailleur.personne.email,
+                        "adresse": co_bailleur.personne.adresse,
+                    })
+                elif co_bailleur.societe and co_bailleur.signataire:
+                    # Pour société, utiliser le signataire
+                    co_bailleurs_list.append({
+                        "lastName": co_bailleur.signataire.lastName,
+                        "firstName": co_bailleur.signataire.firstName,
+                        "email": co_bailleur.signataire.email,
+                        "adresse": co_bailleur.signataire.adresse,
+                    })
+            data["co_bailleurs"] = co_bailleurs_list
+        else:
+            data["co_bailleurs"] = []
+
+        return data
+
     def fetch_bailleur_data(self, bailleur_id: str) -> Optional[Dict[str, Any]]:
         """
         Récupère les données d'un Bailleur pour pré-remplir un formulaire.
@@ -420,12 +479,16 @@ class FormDataFetcher:
         except Bailleur.DoesNotExist:
             return None
 
-    def fetch_draft_bail_data(self, bail_id: str) -> Optional[Dict[str, Any]]:
+    def fetch_draft_bail_data(
+        self, bail_id: str, user: Optional[Any] = None
+    ) -> Optional[Dict[str, Any]]:
         """
         Récupère les données d'un Bail DRAFT pour reprendre l'édition.
 
         Args:
             bail_id: UUID du bail
+            user: Utilisateur connecté (optionnel).
+                  Si fourni, son bailleur sera mis en premier.
 
         Returns:
             Dict avec toutes les données du bail DRAFT
@@ -451,7 +514,7 @@ class FormDataFetcher:
 
             # Récupérer les données de la location
             if bail.location:
-                data = self._extract_location_data(bail.location)
+                data = self._extract_location_data(bail.location, user)
 
                 # Ajouter les données spécifiques du bail DRAFT
                 # duree_mois est dans le modèle Bail
@@ -470,12 +533,16 @@ class FormDataFetcher:
             logging.error(f"Error in fetch_draft_bail_data: {e}", exc_info=True)
             return None
 
-    def fetch_draft_edl_data(self, etat_lieux_id: str) -> Optional[Dict[str, Any]]:
+    def fetch_draft_edl_data(
+        self, etat_lieux_id: str, user: Optional[Any] = None
+    ) -> Optional[Dict[str, Any]]:
         """
         Récupère les données d'un État des Lieux DRAFT pour reprendre l'édition.
 
         Args:
             etat_lieux_id: UUID de l'état des lieux
+            user: Utilisateur connecté (optionnel).
+                  Si fourni, son bailleur sera mis en premier.
 
         Returns:
             Dict avec toutes les données de l'EDL DRAFT (location + pièces + équipements)
@@ -502,7 +569,7 @@ class FormDataFetcher:
 
             # Récupérer les données de la location
             if edl.location:
-                data = self._extract_location_data(edl.location)
+                data = self._extract_location_data(edl.location, user)
 
                 # Ajouter les données spécifiques de l'EDL
                 data["type_etat_lieux"] = edl.type_etat_lieux

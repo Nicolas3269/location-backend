@@ -145,7 +145,8 @@ def user_has_bailleur_access_via_mandataire(
     """
     Vérifie si un mandataire a accès à un bailleur spécifique.
 
-    Un mandataire a accès à un bailleur s'il gère au moins un bien de ce bailleur.
+    Un mandataire a accès à un bailleur s'il gère au moins une location
+    pour un bien appartenant à ce bailleur.
 
     Args:
         bailleur: Instance de Bailleur
@@ -159,9 +160,11 @@ def user_has_bailleur_access_via_mandataire(
     if not mandataires.exists():
         return False
 
-    # Vérifier que ces mandataires gèrent au moins un bien de ce bailleur
-    return Bien.objects.filter(
-        bailleurs=bailleur, locations__mandataire__in=mandataires
+    # Vérifier qu'il existe au moins une location gérée par ce mandataire
+    # pour un bien appartenant à ce bailleur
+    return Location.objects.filter(
+        mandataire__in=mandataires,
+        bien__bailleurs=bailleur
     ).exists()
 
 

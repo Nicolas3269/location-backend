@@ -1,6 +1,7 @@
 from django.urls import path
 
 from etat_lieux.views import (
+    cancel_signature_etat_lieux,
     confirm_signature_etat_lieux,
     delete_etat_lieux_photo,
     generate_etat_lieux_pdf,
@@ -50,6 +51,11 @@ urlpatterns = [
         "confirm-signature/",
         confirm_signature_etat_lieux,
         name="confirm_signature_etat_lieux",
+    ),
+    path(
+        "cancel-signature/<uuid:etat_lieux_id>/",
+        cancel_signature_etat_lieux,
+        name="cancel_signature_etat_lieux",
     ),
     path(
         "resend-otp/",

@@ -29,6 +29,7 @@ from location.models import Bailleur, Bien, Locataire, Location
 from signature.document_types import SignableDocumentType
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
+    cancel_signature_generic,
     confirm_signature_generic,
     get_signature_request_generic,
     resend_otp_generic,
@@ -595,6 +596,13 @@ def confirm_signature_etat_lieux(request):
     return confirm_signature_generic(
         request, EtatLieuxSignatureRequest, SignableDocumentType.ETAT_LIEUX.value
     )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cancel_signature_etat_lieux(request, etat_lieux_id):
+    """Vue pour annuler une signature d'état des lieux en cours"""
+    return cancel_signature_generic(request, etat_lieux_id, EtatLieux)
 
 
 @api_view(["POST"])

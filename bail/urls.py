@@ -1,6 +1,7 @@
 from django.urls import path
 
 from bail.views import (
+    cancel_signature_bail,
     confirm_signature_bail,
     delete_document,
     generate_bail_pdf,
@@ -32,6 +33,11 @@ urlpatterns = [
     path("get-company-data/", get_company_data, name="get_company_data"),
     path("documents/<uuid:document_id>/", delete_document, name="delete_document"),
     path("confirm-signature/", confirm_signature_bail, name="confirm_signature_bail"),
+    path(
+        "cancel-signature/<uuid:bail_id>/",
+        cancel_signature_bail,
+        name="cancel_signature_bail",
+    ),
     path(
         "get-signature-request/<uuid:token>/",
         get_signature_request,

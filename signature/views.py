@@ -9,7 +9,11 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
 from authentication.utils import get_tokens_for_user, set_refresh_token_cookie
+from location.models import Location
+from location.services.access_utils import get_user_role_for_location
+from signature.document_status import DocumentStatus
 from signature.models import AbstractSignatureRequest
+from signature.models_base import SignableDocumentMixin
 
 # Envoyer l'OTP par email
 from .services import (
@@ -369,3 +373,98 @@ def resend_otp_generic(request, model_class, document_type):
 # - Les vues upload_document et delete_document existantes
 # - L'endpoint standard /location/forms/tenant_documents/requirements/?token=xxx
 #   géré par FormOrchestrator._get_tenant_documents_requirements()
+
+
+def cancel_signature_generic(request, document_id, document_model):
+    """
+    Vue générique pour annuler une signature en cours.
+
+    Permissions: Bailleur ou Mandataire uniquement.
+
+    Actions:
+    - Supprime toutes les signature requests liées au document
+    - Supprime le latest_pdf
+    - Passe le statut du document à DRAFT
+
+    Args:
+        request: HttpRequest
+        document_id: UUID du document
+        document_model: Classe du modèle de document (Bail ou EtatLieux)
+    """
+    try:
+        # Récupérer le document
+        document: SignableDocumentMixin = get_object_or_404(
+            document_model, id=document_id
+        )
+
+        # Vérifier que le document est bien en cours de signature
+        if document.status != DocumentStatus.SIGNING:
+            return JsonResponse(
+                {
+                    "error": f"Ce document n'est pas en cours de signature (statut actuel: {document.status})"
+                },
+                status=400,
+            )
+
+        # Vérifier les permissions: le user doit être bailleur ou mandataire
+        user = request.user
+        if not user.is_authenticated:
+            return JsonResponse(
+                {"error": "Authentification requise"},
+                status=401,
+            )
+
+        # Vérifier que l'utilisateur est bien le bailleur ou le mandataire
+
+        location: Location = document.location
+        user_roles = get_user_role_for_location(location, user.email)
+
+        is_bailleur = user_roles.get("is_bailleur", False)
+        is_mandataire = user_roles.get("is_mandataire", False)
+
+        if not (is_bailleur or is_mandataire):
+            return JsonResponse(
+                {"error": "Vous n'avez pas les droits pour annuler cette signature"},
+                status=403,
+            )
+
+        # Supprimer toutes les signature requests liées au document
+        # Via la relation inverse (related_name="signature_requests")
+        signature_requests = document.signature_requests.all()
+
+        deleted_count = signature_requests.count()
+        signature_requests.delete()
+
+        # Supprimer le latest_pdf si existant
+        if document.latest_pdf:
+            try:
+                # Supprimer le fichier physique
+                document.latest_pdf.delete(save=False)
+            except Exception as e:
+                logger.warning(f"Erreur lors de la suppression du PDF: {e}")
+
+        # Passer le statut à DRAFT
+        document.status = DocumentStatus.DRAFT
+        document.latest_pdf = None
+        document.save()
+
+        logger.info(
+            f"Signature annulée pour {document_model.__name__} {document_id} "
+            f"par {user.email}. {deleted_count} signature request(s) supprimée(s)."
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "La signature a été annulée avec succès",
+                "document_id": str(document_id),
+                "deleted_signature_requests": deleted_count,
+            }
+        )
+
+    except Exception as e:
+        logger.exception(f"Erreur lors de l'annulation de la signature: {e}")
+        return JsonResponse(
+            {"error": str(e)},
+            status=500,
+        )

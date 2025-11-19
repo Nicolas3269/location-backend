@@ -39,6 +39,7 @@ from rent_control.utils import get_rent_price_for_bien
 from signature.document_types import SignableDocumentType
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
+    cancel_signature_generic,
     confirm_signature_generic,
     get_signature_request_generic,
     resend_otp_generic,
@@ -253,6 +254,13 @@ def confirm_signature_bail(request):
     return confirm_signature_generic(
         request, BailSignatureRequest, SignableDocumentType.BAIL.value
     )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cancel_signature_bail(request, bail_id):
+    """Vue pour annuler une signature de bail en cours"""
+    return cancel_signature_generic(request, bail_id, Bail)
 
 
 @api_view(["POST"])

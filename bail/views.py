@@ -34,6 +34,7 @@ from location.models import (
     Bien,
     RentTerms,
 )
+from location.serializers.composed import BienRentPriceSerializer
 from location.services.access_utils import user_has_bien_access
 from rent_control.utils import get_rent_price_for_bien
 from signature.document_types import SignableDocumentType
@@ -458,8 +459,6 @@ def get_rent_prices(request):
     selon les caractéristiques minimales du bien
     """
     try:
-        from location.serializers_composed import BienRentPriceSerializer
-
         data = request.data
 
         # Utiliser le serializer minimal pour valider et extraire les données

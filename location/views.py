@@ -22,10 +22,14 @@ from location.models import (
     RentTerms,
     Societe,
 )
-from location.serializers_composed import (
-    CreateBailSerializer,
-    CreateEtatLieuxSerializer,
-    CreateQuittanceSerializer,
+from location.serializers.france import (
+    FranceBailSerializer as CreateBailSerializer,
+)
+from location.serializers.france import (
+    FranceEtatLieuxSerializer as CreateEtatLieuxSerializer,
+)
+from location.serializers.france import (
+    FranceQuittanceSerializer as CreateQuittanceSerializer,
 )
 from location.services.access_utils import (
     get_user_role_for_location,
@@ -211,7 +215,6 @@ def get_location_detail(request, location_id):
             pass
 
         # Déterminer le statut - récupérer le bail actif (SIGNING ou SIGNED, ou le plus récent DRAFT)
-        from bail.models import Bail
 
         bail_actif = (
             Bail.objects.filter(

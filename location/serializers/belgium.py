@@ -5,7 +5,7 @@ Définit les règles métier et validations pour les formulaires belges.
 
 from rest_framework import serializers
 
-from ..serializers_composed import (
+from .composed import (
     BailleurInfoSerializer,
     BienBailSerializer,
     BienEtatLieuxSerializer,

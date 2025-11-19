@@ -23,7 +23,7 @@ class Command(BaseCommand):
             FranceEtatLieuxSerializer,
             FranceQuittanceSerializer,
         )
-        from location.serializers_composed import (
+        from location.serializers.composed import (
             # Atomiques
             AdresseSerializer,
             BailleurInfoSerializer,

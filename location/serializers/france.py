@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from location.models import Bien, HonoraireMandataire, Location, RentTerms
 
-from ..serializers_composed import (
+from .composed import (
     BailleurInfoSerializer,
     BienBailSerializer,
     BienEtatLieuxSerializer,

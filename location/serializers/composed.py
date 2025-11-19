@@ -414,21 +414,9 @@ class BienBailSerializer(serializers.Serializer):
 
 
 # ============================================
-# SERIALIZERS POUR CRÉATION VIA /location/create-or-update/
+# NOTE: Les serializers de création (CreateBailSerializer, etc.)
+# sont maintenant importés directement depuis france.py dans views.py
+# pour éviter l'import circulaire.
 # ============================================
-
-# Import des serializers spécifiques par pays
-from location.serializers.france import (
-    FranceBailSerializer,
-    FranceQuittanceSerializer,
-    FranceEtatLieuxSerializer,
-    FranceTenantDocumentsSerializer,
-)
-
-# Alias pour utilisation dans views.py
-CreateBailSerializer = FranceBailSerializer
-CreateQuittanceSerializer = FranceQuittanceSerializer
-CreateEtatLieuxSerializer = FranceEtatLieuxSerializer
-CreateTenantDocumentsSerializer = FranceTenantDocumentsSerializer
 
 

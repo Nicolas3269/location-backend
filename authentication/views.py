@@ -23,7 +23,7 @@ from authentication.utils import (
     verify_otp_only_and_generate_token,
 )
 from bail.models import Bail
-from location.models import Bailleur, Bien, Locataire, Location
+from location.models import Bailleur, Bien, Locataire, Location, Mandataire
 from location.services.access_utils import (
     get_user_mandataires,
     user_has_mandataire_role,
@@ -312,21 +312,47 @@ def get_user_profile(request):
         },
     }
 
-    # Vérifier si l'utilisateur est un mandataire (pas de comptage)
-    profile_data["roles"]["is_mandataire"] = user_has_mandataire_role(user.email)
+    # Vérifier si l'utilisateur est un mandataire
+    mandataires = Mandataire.objects.filter(signataire__email=user.email).select_related('signataire')
+    profile_data["roles"]["is_mandataire"] = mandataires.exists()
 
-    # Vérifier si l'utilisateur est un bailleur (pas de comptage)
+    # Si mandataire et User.first_name vide, utiliser données du signataire
+    if mandataires.exists() and not user.first_name:
+        mandataire = mandataires.first()
+        if mandataire.signataire:
+            profile_data["first_name"] = mandataire.signataire.firstName
+            profile_data["last_name"] = mandataire.signataire.lastName
 
+    # Vérifier si l'utilisateur est un bailleur
     bailleurs = Bailleur.objects.filter(
         models.Q(personne__email=user.email) | models.Q(signataire__email=user.email)
-    ).distinct()
+    ).select_related('personne', 'signataire').distinct()
 
     profile_data["roles"]["is_bailleur"] = bailleurs.exists()
 
-    # Vérifier si l'utilisateur est un locataire (pas de comptage)
+    # Si bailleur et User.first_name vide, utiliser données bailleur
+    if bailleurs.exists() and not user.first_name:
+        from location.models import BailleurType
 
+        bailleur = bailleurs.first()
+        if bailleur.bailleur_type == BailleurType.PHYSIQUE and bailleur.personne:
+            # Bailleur personne physique
+            profile_data["first_name"] = bailleur.personne.firstName
+            profile_data["last_name"] = bailleur.personne.lastName
+        elif bailleur.bailleur_type == BailleurType.MORALE and bailleur.signataire:
+            # Bailleur société → utiliser le signataire
+            profile_data["first_name"] = bailleur.signataire.firstName
+            profile_data["last_name"] = bailleur.signataire.lastName
+
+    # Vérifier si l'utilisateur est un locataire
     locataires = Locataire.objects.filter(email=user.email)
     profile_data["roles"]["is_locataire"] = locataires.exists()
+
+    # Si locataire et User.first_name vide, utiliser données locataire
+    if locataires.exists() and not user.first_name:
+        locataire = locataires.first()
+        profile_data["first_name"] = locataire.firstName
+        profile_data["last_name"] = locataire.lastName
 
     return JsonResponse({"success": True, **profile_data})
 

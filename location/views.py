@@ -31,6 +31,10 @@ from location.serializers.france import (
 from location.serializers.france import (
     FranceQuittanceSerializer as CreateQuittanceSerializer,
 )
+from location.serializers.helpers import (
+    serialize_bailleur_to_dict,
+    serialize_locataire_to_dict,
+)
 from location.services.access_utils import (
     get_user_role_for_location,
     user_has_bien_access,
@@ -74,20 +78,7 @@ def get_locataire_locations(request):
         for location in locations:
             # Récupérer le bailleur principal
             bailleur = location.bien.bailleurs.first()
-            bailleur_data = {}
-            if bailleur:
-                if bailleur.personne:
-                    bailleur_data = {
-                        "first_name": bailleur.personne.firstName,
-                        "last_name": bailleur.personne.lastName,
-                        "email": bailleur.email,
-                    }
-                elif bailleur.societe:
-                    bailleur_data = {
-                        "first_name": bailleur.societe.raison_sociale,
-                        "last_name": "",
-                        "email": bailleur.email,
-                    }
+            bailleur_data = serialize_bailleur_to_dict(bailleur) if bailleur else {}
 
             # Récupérer les conditions financières
             montant_loyer = 0
@@ -181,20 +172,7 @@ def get_location_detail(request, location_id):
 
         # Récupérer le bailleur principal
         bailleur = location.bien.bailleurs.first()
-        bailleur_data = {}
-        if bailleur:
-            if bailleur.personne:
-                bailleur_data = {
-                    "first_name": bailleur.personne.firstName,
-                    "last_name": bailleur.personne.lastName,
-                    "email": bailleur.email,
-                }
-            elif bailleur.societe:
-                bailleur_data = {
-                    "first_name": bailleur.societe.raison_sociale,
-                    "last_name": "",
-                    "email": bailleur.email,
-                }
+        bailleur_data = serialize_bailleur_to_dict(bailleur) if bailleur else {}
 
         # Récupérer les conditions financières
         montant_loyer = 0
@@ -1216,11 +1194,7 @@ def get_bien_locations(request, bien_id):
         for location in locations:
             # Récupérer les locataires
             locataires = [
-                {
-                    "lastName": locataire.lastName,
-                    "firstName": locataire.firstName,
-                    "email": locataire.email,
-                }
+                serialize_locataire_to_dict(locataire)
                 for locataire in location.locataires.all()
             ]
 
@@ -1334,7 +1308,16 @@ def get_location_documents(request, location_id):
     """
     try:
         # Récupérer la location
-        location = Location.objects.get(id=location_id)
+        location = (
+            Location.objects.select_related("bien", "rent_terms")
+            .prefetch_related(
+                "bien__bailleurs__personne",
+                "bien__bailleurs__societe",
+                "bien__bailleurs__signataire",
+                "locataires",
+            )
+            .get(id=location_id)
+        )
 
         # Vérifier que l'utilisateur a accès à cette location
         user_email = request.user.email
@@ -1582,11 +1565,7 @@ def get_location_documents(request, location_id):
                 "type": location.bien.get_type_bien_display(),
             },
             "locataires": [
-                {
-                    "lastName": locataire.lastName,
-                    "firstName": locataire.firstName,
-                    "email": locataire.email,
-                }
+                serialize_locataire_to_dict(locataire)
                 for locataire in location.locataires.all()
             ],
             "date_debut": location.date_debut.isoformat()

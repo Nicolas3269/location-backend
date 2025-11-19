@@ -731,7 +731,7 @@ class FranceBailSerializer(BaseLocationSerializer):
     # Champs toujours obligatoires
     bien = BienBailSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
-    mandataire = MandataireInfoSerializer(required=False)
+    mandataire = MandataireInfoSerializer(required=False, allow_null=True)
     honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
         child=LocataireInfoSerializer(), min_length=1, required=True
@@ -809,7 +809,7 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
     # Champs obligatoires pour une quittance
     bien = BienQuittanceSerializer(required=True)  # Juste l'adresse
     bailleur = BailleurInfoSerializer(required=True)
-    mandataire = MandataireInfoSerializer(required=False)
+    mandataire = MandataireInfoSerializer(required=False, allow_null=True)
     honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True
@@ -894,7 +894,7 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
     # Champs obligatoires
     bien = BienEtatLieuxSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
-    mandataire = MandataireInfoSerializer(required=False)
+    mandataire = MandataireInfoSerializer(required=False, allow_null=True)
     honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True

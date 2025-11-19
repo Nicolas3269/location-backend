@@ -207,9 +207,14 @@ def extract_bailleurs_with_priority(
     # Co-bailleurs = tous SAUF celui en position principale
     co_bailleurs = bailleurs_queryset.exclude(id=bailleur_principal.id)
     if co_bailleurs.exists():
-        # Utiliser serialize_bailleur_to_dict pour chaque co-bailleur (cohérence)
+        # IMPORTANT : Retourner juste les personne (format WRITE = PersonneSerializer)
+        # TODO: À terme, supporter co_bailleurs avec bailleur_type (personnes morales)
+        # Pour cela, il faudra changer WRITE serializer : co_bailleurs = ListField(child=BailleurInfoSerializer())
         data["co_bailleurs"] = [
-            serialize_bailleur_to_dict(co_bailleur) for co_bailleur in co_bailleurs
+            serialize_personne_to_dict(co_bailleur.personne)
+            for co_bailleur in co_bailleurs
+            if co_bailleur.bailleur_type == BailleurType.PHYSIQUE
+            and co_bailleur.personne
         ]
     else:
         data["co_bailleurs"] = []
@@ -234,6 +239,7 @@ def restructure_bien_to_nested_format(
     Returns:
         Dict avec structure nested:
         {
+            "id": "...",  # UUID du bien (préservé depuis bien_data)
             "localisation": {...},
             "caracteristiques": {...},
             "performance_energetique": {...},
@@ -244,6 +250,7 @@ def restructure_bien_to_nested_format(
         }
 
     Notes:
+        - id (UUID) est préservé au root level pour navigation frontend
         - area_id est toujours calculé depuis GPS (si coords disponibles)
         - zone_reglementaire vient soit de override (Location existante),
           soit de GPS (nouveau bail depuis bien)
@@ -282,7 +289,9 @@ def restructure_bien_to_nested_format(
             }
 
     # Structure nested (UNE SEULE FOIS !)
+    # IMPORTANT : Conserver les champs de metadata au root level (id, created_at, etc.)
     return {
+        "id": bien_data.get("id"),  # CRITIQUE : UUID nécessaire pour navigation frontend
         "localisation": {
             "adresse": bien_data.get("adresse"),
             "latitude": bien_data.get("latitude"),

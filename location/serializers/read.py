@@ -171,10 +171,17 @@ class LocationReadSerializer(LocationBaseSerializer):
 
     def to_representation(self, instance: Location) -> Dict[str, Any]:
         """
-        Transforme la sortie pour matcher le format attendu par le frontend.
-        Structure nested: bien.localisation.adresse, bien.caracteristiques.superficie, etc.
+        Transforme la sortie pour matcher le format PREFILL = format WRITE des formulaires.
+        Structure nested identique aux serializers WRITE (FranceBailSerializer, etc.).
+        Cette structure est la SOURCE DE VÉRITÉ pour tous les formulaires.
         """
         data = super().to_representation(instance)
+
+        # Nettoyer mandataire : ne pas inclure si vide ou None
+        if "mandataire" in data and (
+            not data["mandataire"] or data["mandataire"] == {}
+        ):
+            del data["mandataire"]
 
         # Restructurer "bien" en structure nested
         if "bien" in data and data["bien"]:
@@ -194,7 +201,7 @@ class LocationReadSerializer(LocationBaseSerializer):
                 zone_reglementaire_override=zone_override,
             )
 
-        # Restructurer "rent_terms" en "modalites_financieres"
+        # Restructurer "rent_terms" en "modalites_financieres" (format WRITE)
         if "rent_terms" in data and data["rent_terms"]:
             rt = data["rent_terms"]
 
@@ -225,12 +232,10 @@ class LocationReadSerializer(LocationBaseSerializer):
                     ),
                 }
 
-            # Note: zone_reglementaire est déjà définie dans restructure_bien_to_nested_format()
-
-            # Supprimer rent_terms de la racine
+            # Supprimer rent_terms de la racine (format DB, pas format WRITE)
             del data["rent_terms"]
 
-        # Dates - regrouper dans un objet "dates"
+        # Dates - regrouper dans un objet "dates" (format WRITE)
         if data.get("date_debut") or data.get("date_fin"):
             data["dates"] = {}
             if data.get("date_debut"):

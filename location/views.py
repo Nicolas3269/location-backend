@@ -31,10 +31,6 @@ from location.serializers.france import (
 from location.serializers.france import (
     FranceQuittanceSerializer as CreateQuittanceSerializer,
 )
-from location.serializers.helpers import (
-    serialize_bailleur_to_dict,
-    serialize_locataire_to_dict,
-)
 from location.services.access_utils import (
     get_user_role_for_location,
     user_has_bien_access,
@@ -46,7 +42,6 @@ from location.services.document_utils import (
 )
 from quittance.models import Quittance
 from quittance.views import get_or_create_quittance_for_location
-from rent_control.choices import ChargeType
 from signature.document_status import DocumentStatus
 
 logger = logging.getLogger(__name__)
@@ -74,35 +69,19 @@ def get_locataire_locations(request):
             .order_by("-created_at")
         )
 
+        # Utiliser LocationReadSerializer pour chaque location
+        from location.serializers.read import LocationReadSerializer
+        from bail.models import Bail
+
         locations_data = []
         for location in locations:
-            # Récupérer le bailleur principal
-            bailleur = location.bien.bailleurs.first()
-            bailleur_data = serialize_bailleur_to_dict(bailleur) if bailleur else {}
+            # Sérialiser avec LocationReadSerializer
+            serializer = LocationReadSerializer(
+                location, context={"user": request.user}
+            )
+            location_data = serializer.data
 
-            # Récupérer les conditions financières
-            montant_loyer = 0
-            montant_charges = 0
-            depot_garantie = 0
-            try:
-                rent_terms = location.rent_terms
-                montant_loyer = (
-                    float(rent_terms.montant_loyer) if rent_terms.montant_loyer else 0
-                )
-                montant_charges = (
-                    float(rent_terms.montant_charges)
-                    if rent_terms.montant_charges
-                    else 0
-                )
-                depot_garantie = (
-                    float(rent_terms.depot_garantie) if rent_terms.depot_garantie else 0
-                )
-            except RentTerms.DoesNotExist:
-                pass
-
-            # Déterminer le statut - récupérer le bail actif (SIGNING ou SIGNED, ou le plus récent DRAFT)
-            from bail.models import Bail
-
+            # Ajouter le status
             bail_actif = (
                 Bail.objects.filter(
                     location=location,
@@ -111,37 +90,14 @@ def get_locataire_locations(request):
                 .order_by("-created_at")
                 .first()
             ) or Bail.objects.filter(location=location).order_by("-created_at").first()
-            status = (
+
+            location_data["status"] = (
                 bail_actif.get_status_display()
                 if bail_actif
                 else DocumentStatus.DRAFT.label
             )
 
-            locations_data.append(
-                {
-                    "id": str(location.id),
-                    "date_debut": location.date_debut.isoformat()
-                    if location.date_debut
-                    else None,
-                    "date_fin": location.date_fin.isoformat()
-                    if location.date_fin
-                    else None,
-                    "montant_loyer": montant_loyer,
-                    "montant_charges": montant_charges,
-                    "depot_garantie": depot_garantie,
-                    "status": status,
-                    "bien": {
-                        "id": location.bien.id,
-                        "adresse": location.bien.adresse,
-                        "type": location.bien.type_bien or "Appartement",
-                        "superficie": float(location.bien.superficie)
-                        if location.bien.superficie
-                        else 0,
-                        "meuble": location.bien.meuble or False,
-                    },
-                    "bailleur": bailleur_data,
-                }
-            )
+            locations_data.append(location_data)
 
         return JsonResponse({"success": True, "locations": locations_data})
 
@@ -159,7 +115,15 @@ def get_location_detail(request, location_id):
     Récupère les détails d'une location spécifique
     """
     try:
-        location = Location.objects.get(id=location_id)
+        location = (
+            Location.objects.select_related("bien", "rent_terms")
+            .prefetch_related(
+                "bien__bailleurs__personne",
+                "bien__bailleurs__societe",
+                "bien__bailleurs__signataire",
+            )
+            .get(id=location_id)
+        )
 
         # Vérifier que l'utilisateur a accès à cette location
         user_email = request.user.email
@@ -170,30 +134,13 @@ def get_location_detail(request, location_id):
                 {"error": "Vous n'avez pas accès à cette location"}, status=403
             )
 
-        # Récupérer le bailleur principal
-        bailleur = location.bien.bailleurs.first()
-        bailleur_data = serialize_bailleur_to_dict(bailleur) if bailleur else {}
+        # Utiliser LocationReadSerializer pour la structure complète
+        from location.serializers.read import LocationReadSerializer
 
-        # Récupérer les conditions financières
-        montant_loyer = 0
-        montant_charges = 0
-        depot_garantie = 0
-        try:
-            rent_terms = location.rent_terms
-            montant_loyer = (
-                float(rent_terms.montant_loyer) if rent_terms.montant_loyer else 0
-            )
-            montant_charges = (
-                float(rent_terms.montant_charges) if rent_terms.montant_charges else 0
-            )
-            depot_garantie = (
-                float(rent_terms.depot_garantie) if rent_terms.depot_garantie else 0
-            )
-        except RentTerms.DoesNotExist:
-            pass
+        serializer = LocationReadSerializer(location, context={"user": request.user})
+        location_data = serializer.data
 
-        # Déterminer le statut - récupérer le bail actif (SIGNING ou SIGNED, ou le plus récent DRAFT)
-
+        # Ajouter le status (calculé depuis baux)
         bail_actif = (
             Bail.objects.filter(
                 location=location,
@@ -202,33 +149,12 @@ def get_location_detail(request, location_id):
             .order_by("-created_at")
             .first()
         ) or Bail.objects.filter(location=location).order_by("-created_at").first()
-        status = (
+
+        location_data["status"] = (
             bail_actif.get_status_display()
             if bail_actif
             else DocumentStatus.DRAFT.label
         )
-
-        location_data = {
-            "id": str(location.id),
-            "date_debut": location.date_debut.isoformat()
-            if location.date_debut
-            else None,
-            "date_fin": location.date_fin.isoformat() if location.date_fin else None,
-            "montant_loyer": montant_loyer,
-            "montant_charges": montant_charges,
-            "depot_garantie": depot_garantie,
-            "status": status,
-            "bien": {
-                "id": location.bien.id,
-                "adresse": location.bien.adresse,
-                "type": location.bien.type_bien or "Appartement",
-                "superficie": float(location.bien.superficie)
-                if location.bien.superficie
-                else 0,
-                "meuble": location.bien.meuble or False,
-            },
-            "bailleur": bailleur_data,
-        }
 
         return JsonResponse({"success": True, "location": location_data})
 
@@ -1172,11 +1098,16 @@ def create_or_update_location(request):
 @permission_classes([IsAuthenticated])
 def get_bien_locations(request, bien_id):
     """
-    Récupère toutes les locations d'un bien spécifique avec leurs baux associés
+    Récupère toutes les locations d'un bien spécifique avec leurs baux associés.
+    Retourne format PREFILL/WRITE nested (source de vérité).
     """
     try:
-        # Récupérer le bien
-        bien = Bien.objects.get(id=bien_id)
+        # Récupérer le bien avec prefetch pour optimiser
+        bien = (
+            Bien.objects.select_related()
+            .prefetch_related("bailleurs__personne", "bailleurs__societe")
+            .get(id=bien_id)
+        )
 
         # Vérifier que l'utilisateur a accès à ce bien
         user_email = request.user.email
@@ -1187,20 +1118,35 @@ def get_bien_locations(request, bien_id):
                 {"error": "Vous n'avez pas accès à ce bien"}, status=403
             )
 
-        # Récupérer toutes les locations du bien
-        locations = Location.objects.filter(bien=bien).order_by("-created_at")
+        # Sérialiser le bien avec BienReadSerializer + structure nested
+        from location.serializers.read import BienReadSerializer
+        from location.serializers.helpers import restructure_bien_to_nested_format
+
+        bien_serializer = BienReadSerializer(bien)
+        bien_data = restructure_bien_to_nested_format(
+            bien_serializer.data, calculate_zone_from_gps=False
+        )
+
+        # Récupérer toutes les locations du bien avec prefetch
+        locations = (
+            Location.objects.filter(bien=bien)
+            .select_related("rent_terms")
+            .prefetch_related("locataires")
+            .order_by("-created_at")
+        )
 
         locations_data = []
         for location in locations:
-            # Récupérer les locataires
-            locataires = [
-                serialize_locataire_to_dict(locataire)
-                for locataire in location.locataires.all()
-            ]
-
-            # Récupérer les baux associés à cette location
+            # Utiliser LocationReadSerializer pour la structure nested
+            from location.serializers.read import LocationReadSerializer
             from bail.models import Bail
 
+            serializer = LocationReadSerializer(
+                location, context={"user": request.user}
+            )
+            location_data = serializer.data
+
+            # Récupérer les baux associés à cette location
             baux = Bail.objects.filter(location=location).order_by("-created_at")
 
             # Récupérer le bail actif (SIGNING ou SIGNED, ou le plus récent)
@@ -1217,70 +1163,38 @@ def get_bien_locations(request, bien_id):
                 if bail_actif
                 else DocumentStatus.DRAFT.label
             )
-            signatures_completes = True
-            pdf_url = None
-            latest_pdf_url = None
+
+            # Ajouter les champs supplémentaires spécifiques aux baux
+            location_data["status"] = status
+            location_data["nombre_baux"] = baux.count()
+            location_data["bail_actif_id"] = (
+                str(bail_actif.id) if bail_actif else None
+            )
 
             if bail_actif:
-                signatures_completes = not bail_actif.signature_requests.filter(
+                signatures_incompletes = bail_actif.signature_requests.filter(
                     signed=False
                 ).exists()
-
-                pdf_url = bail_actif.pdf.url if bail_actif.pdf else None
-                latest_pdf_url = (
+                location_data["signatures_completes"] = not signatures_incompletes
+                location_data["pdf_url"] = (
+                    bail_actif.pdf.url if bail_actif.pdf else None
+                )
+                location_data["latest_pdf_url"] = (
                     bail_actif.latest_pdf.url if bail_actif.latest_pdf else None
                 )
-
-            # Récupérer les montants et le type de charges depuis RentTerms
-            montant_loyer = 0
-            montant_charges = 0
-            depot_garantie = 0
-            type_charges = ChargeType.FORFAITAIRES.value  # Valeur par défaut
-            if hasattr(location, "rent_terms"):
-                montant_loyer = float(location.rent_terms.montant_loyer or 0)
-                montant_charges = float(location.rent_terms.montant_charges or 0)
-                depot_garantie = float(location.rent_terms.depot_garantie or 0)
-                type_charges = (
-                    location.rent_terms.type_charges or ChargeType.FORFAITAIRES.value
-                )
-
-            location_data = {
-                "id": str(location.id),
-                "date_debut": location.date_debut.isoformat()
-                if location.date_debut
-                else None,
-                "date_fin": location.date_fin.isoformat()
-                if location.date_fin
-                else None,
-                "montant_loyer": montant_loyer,
-                "montant_charges": montant_charges,
-                "type_charges": type_charges,
-                "depot_garantie": depot_garantie,
-                "status": status,
-                "locataires": locataires,
-                "nombre_baux": baux.count(),
-                "bail_actif_id": bail_actif.id if bail_actif else None,
-                "signatures_completes": signatures_completes,
-                "pdf_url": pdf_url,
-                "latest_pdf_url": latest_pdf_url,
-                "created_at": location.created_at.isoformat()
-                if location.created_at
-                else None,
-                "created_from": location.created_from,
-            }
+            else:
+                location_data["signatures_completes"] = True
+                location_data["pdf_url"] = None
+                location_data["latest_pdf_url"] = None
 
             locations_data.append(location_data)
 
         return JsonResponse(
             {
                 "success": True,
-                "bien": {
-                    "id": bien.id,
-                    "adresse": bien.adresse,
-                    "type": bien.get_type_bien_display(),
-                    "superficie": float(bien.superficie) if bien.superficie else None,
-                    "meuble": bien.meuble,
-                },
+                # Structure nested (localisation, caracteristiques, etc.)
+                "bien": bien_data,
+                # Structure nested (dates, modalites_financieres, etc.)
                 "locations": locations_data,
                 "count": len(locations_data),
             }
@@ -1556,36 +1470,16 @@ def get_location_documents(request, location_id):
                     }
                 )
 
-        # Informations sur la location
-        location_info = {
-            "id": str(location.id),
-            "bien": {
-                "id": location.bien.id,
-                "adresse": location.bien.adresse,
-                "type": location.bien.get_type_bien_display(),
-            },
-            "locataires": [
-                serialize_locataire_to_dict(locataire)
-                for locataire in location.locataires.all()
-            ],
-            "date_debut": location.date_debut.isoformat()
-            if location.date_debut
-            else None,
-            "date_fin": location.date_fin.isoformat() if location.date_fin else None,
-        }
+        # Utiliser LocationReadSerializer pour la structure PREFILL/WRITE nested
+        from location.serializers.read import LocationReadSerializer
 
-        # Ajouter les informations financières si disponibles
-        if hasattr(location, "rent_terms"):
-            location_info["montant_loyer"] = float(
-                location.rent_terms.montant_loyer or 0
-            )
-            location_info["montant_charges"] = float(
-                location.rent_terms.montant_charges or 0
-            )
+        serializer = LocationReadSerializer(location, context={"user": request.user})
+        location_info = serializer.data
 
         return JsonResponse(
             {
                 "success": True,
+                # Structure nested (dates, modalites_financieres, etc.)
                 "location": location_info,
                 "documents": documents,
                 "count": len(documents),

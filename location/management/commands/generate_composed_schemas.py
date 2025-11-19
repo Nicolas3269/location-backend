@@ -49,6 +49,14 @@ class Command(BaseCommand):
             SystemeEnergieSerializer,
             ZoneReglementaireSerializer,
         )
+        # Importer les serializers READ
+        from location.serializers.read import (
+            LocationReadSerializer,
+            BienReadSerializer,
+            BailleurReadSerializer,
+            MandataireReadSerializer,
+            RentTermsReadSerializer,
+        )
 
         serializers_atomiques = [
             AdresseSerializer,
@@ -88,9 +96,18 @@ class Command(BaseCommand):
             BelgiumEtatLieuxSerializer,
         ]
 
+        # Serializers READ (pour les réponses API)
+        serializers_read = [
+            RentTermsReadSerializer,
+            BailleurReadSerializer,
+            MandataireReadSerializer,
+            BienReadSerializer,
+            LocationReadSerializer,
+        ]
+
         # Générer les schemas Zod composables
         zod_content = self.generate_composed_zod_schemas(
-            serializers_atomiques, serializers_composes, serializers_pays
+            serializers_atomiques, serializers_composes, serializers_pays, serializers_read
         )
 
         output_path = "/home/havardn/location/frontend/src/types/generated/schemas-composed.zod.ts"
@@ -112,7 +129,7 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"✅ Exemples d'utilisation générés dans {example_path}")
         )
 
-    def generate_composed_zod_schemas(self, atomiques, composes, pays=None):
+    def generate_composed_zod_schemas(self, atomiques, composes, pays=None, read_serializers=None):
         """Génère les schemas Zod en respectant la composition."""
 
         lines = [
@@ -277,6 +294,53 @@ class Command(BaseCommand):
                 lines.append("});")
                 lines.append("")
 
+        # Générer les schemas READ si fournis
+        if read_serializers:
+            lines.extend(
+                [
+                    "",
+                    "// ============================================",
+                    "// SCHEMAS READ (Réponses API)",
+                    "// ============================================",
+                    "",
+                ]
+            )
+
+            for serializer_class in read_serializers:
+                schema_name = self.get_schema_name(serializer_class)
+                doc = serializer_class.__doc__ or f"Schema {schema_name}"
+                doc_clean = " ".join(
+                    line.strip() for line in doc.split("\n") if line.strip()
+                )
+                lines.append(f"// {doc_clean}")
+                lines.append(f"export const {schema_name} = z.object({{")
+
+                instance = serializer_class()
+                for field_name, field in instance.fields.items():
+                    # Si c'est un champ composé (comme BienReadSerializer)
+                    if isinstance(field, serializers.Serializer):
+                        nested_schema = self.get_schema_name(field.__class__)
+                        optional = not field.required
+                        if optional:
+                            lines.append(f"  {field_name}: {nested_schema}.optional(),")
+                        else:
+                            lines.append(f"  {field_name}: {nested_schema},")
+                    elif isinstance(field, serializers.ListField) and isinstance(
+                        field.child, serializers.Serializer
+                    ):
+                        child_schema = self.get_schema_name(field.child.__class__)
+                        lines.append(f"  {field_name}: z.array({child_schema}),")
+                    else:
+                        zod_type = self.field_to_zod(field, field_name)
+                        optional = not field.required
+                        if optional:
+                            lines.append(f"  {field_name}: {zod_type}.optional(),")
+                        else:
+                            lines.append(f"  {field_name}: {zod_type},")
+
+                lines.append("});")
+                lines.append("")
+
         # Ajouter les types TypeScript
         lines.extend(
             [
@@ -290,6 +354,8 @@ class Command(BaseCommand):
         all_serializers = atomiques + composes
         if pays:
             all_serializers += pays
+        if read_serializers:
+            all_serializers += read_serializers
 
         for serializer_class in all_serializers:
             schema_name = self.get_schema_name(serializer_class)

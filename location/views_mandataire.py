@@ -149,10 +149,10 @@ def get_mandataire_bailleur_detail(request, bailleur_id):
 @permission_classes([IsAuthenticated])
 def get_mandataire_bien_detail(request, bien_id):
     """
-    Récupère les détails d'un bien géré par le mandataire.
+    Récupère les détails d'un bien géré par le mandataire en format PREFILL/WRITE nested.
 
-    Retourne les mêmes données que l'endpoint bailleur, mais avec vérification
-    que le mandataire connecté gère bien ce bien.
+    Retourne bien + locations en structure nested (source de vérité).
+    Vérifie que le mandataire connecté gère bien ce bien.
     """
     user_email = request.user.email
 
@@ -170,15 +170,12 @@ def get_mandataire_bien_detail(request, bien_id):
     if not user_has_bien_access_via_mandataire(bien, user_email):
         raise ValueError("Vous n'avez pas accès à ce bien")
 
-    # Utiliser le helper de sérialisation pour tout centraliser
-    data = serialize_bien_with_locations(bien)
-
-    # Adapter le format pour la compatibilité (type au lieu de type_bien)
-    data["bien"]["type"] = data["bien"].pop("type_bien")
+    # Utiliser le helper de sérialisation (retourne format nested)
+    data = serialize_bien_with_locations(bien, user=request.user)
 
     return Response(
         {
             "success": True,
-            **data,
+            **data,  # bien et locations en format nested
         }
     )

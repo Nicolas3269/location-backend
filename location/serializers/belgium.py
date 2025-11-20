@@ -29,6 +29,12 @@ class BelgiumBailSerializer(serializers.Serializer):
     # Champs toujours obligatoires
     bien = BienBailSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
+    co_bailleurs = serializers.ListField(
+        child=BailleurInfoSerializer(),
+        required=False,
+        default=list,
+        help_text="Co-bailleurs (même niveau que bailleur principal)",
+    )
     locataires = serializers.ListField(
         child=LocataireInfoSerializer(), min_length=1, required=True
     )
@@ -90,6 +96,12 @@ class BelgiumQuittanceSerializer(serializers.Serializer):
     # Champs obligatoires pour une quittance
     bien = BienQuittanceSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
+    co_bailleurs = serializers.ListField(
+        child=BailleurInfoSerializer(),
+        required=False,
+        default=list,
+        help_text="Co-bailleurs (même niveau que bailleur principal)",
+    )
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True
     )
@@ -119,6 +131,12 @@ class BelgiumEtatLieuxSerializer(serializers.Serializer):
     # Champs obligatoires
     bien = BienEtatLieuxSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
+    co_bailleurs = serializers.ListField(
+        child=BailleurInfoSerializer(),
+        required=False,
+        default=list,
+        help_text="Co-bailleurs (même niveau que bailleur principal)",
+    )
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True
     )

@@ -130,6 +130,7 @@ class LocationReadSerializer(LocationBaseSerializer):
     # Relations (read_only)
     bien = BienReadSerializer(read_only=True)
     bailleur = serializers.SerializerMethodField()
+    co_bailleurs = serializers.SerializerMethodField()  # ✅ Ajouté au même niveau
     locataires = serializers.SerializerMethodField()  # Géré manuellement
     mandataire = MandataireReadSerializer(read_only=True)
     rent_terms = RentTermsReadSerializer(read_only=True)
@@ -144,6 +145,7 @@ class LocationReadSerializer(LocationBaseSerializer):
             "id",
             "bien",
             "bailleur",
+            "co_bailleurs",  # ✅ Ajouté
             "locataires",
             "mandataire",
             "rent_terms",
@@ -153,12 +155,19 @@ class LocationReadSerializer(LocationBaseSerializer):
 
     def get_bailleur(self, obj: Location) -> Dict[str, Any]:
         """
-        Réorganise les bailleurs : user connecté en premier.
-        Format: {principal fields + co_bailleurs: [...]}
+        Retourne le bailleur principal (user connecté prioritaire).
         """
-
         user = self.context.get("user")
-        return extract_bailleurs_with_priority(obj.bien.bailleurs.all(), user)
+        data = extract_bailleurs_with_priority(obj.bien.bailleurs.all(), user)
+        return data.get("bailleur", {})  # ✅ Retourne seulement le principal
+
+    def get_co_bailleurs(self, obj: Location) -> list[Dict[str, Any]]:
+        """
+        Retourne les co-bailleurs (tous sauf le principal).
+        """
+        user = self.context.get("user")
+        data = extract_bailleurs_with_priority(obj.bien.bailleurs.all(), user)
+        return data.get("co_bailleurs", [])  # ✅ Retourne la liste des co-bailleurs
 
     def get_locataires(self, obj: Location) -> list[Dict[str, Any]]:
         """

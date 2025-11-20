@@ -117,6 +117,7 @@ class PersonneSerializer(serializers.Serializer):
 class SocieteSerializer(serializers.Serializer):
     """Serializer pour une société"""
 
+    id = serializers.UUIDField(required=False, allow_null=True, help_text="UUID de la société (pour réutilisation)")
     raison_sociale = serializers.CharField(max_length=200)
     siret = serializers.CharField(max_length=14, min_length=14)
     forme_juridique = serializers.CharField(max_length=100)
@@ -126,15 +127,17 @@ class SocieteSerializer(serializers.Serializer):
 
 
 class BailleurInfoSerializer(serializers.Serializer):
-    """Informations du bailleur (physique ou morale)"""
+    """Informations du bailleur principal (physique ou morale)"""
 
+    id = serializers.UUIDField(required=False, allow_null=True, help_text="UUID du bailleur (pour réutilisation)")
     bailleur_type = serializers.ChoiceField(
         choices=BailleurType.choices, default=BailleurType.PHYSIQUE.value
     )
     personne = PersonneSerializer(required=False, allow_null=True)
     societe = SocieteSerializer(required=False, allow_null=True)
     signataire = PersonneSerializer(required=False, allow_null=True)
-    co_bailleurs = serializers.ListField(child=PersonneSerializer(), required=False)
+    # Note: co_bailleurs définis au niveau du serializer principal
+    # (FranceBailSerializer, etc.)
 
     def to_internal_value(self, data):
         """Nettoyer les données avant la validation"""

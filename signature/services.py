@@ -274,7 +274,8 @@ def create_signature_requests_generic(document, signature_request_model, user=No
     # Déduire la location depuis le document
     location = document.location
 
-    bailleurs = location.bien.bailleurs.all()
+    # IMPORTANT: Ordre déterministe (premier créé = principal)
+    bailleurs = location.bien.bailleurs.order_by('created_at')
     bailleur_signataires = [
         bailleur.signataire for bailleur in bailleurs if bailleur.signataire
     ]

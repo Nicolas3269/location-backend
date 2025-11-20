@@ -167,99 +167,310 @@ def get_location_detail(request, location_id):
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
-def create_or_get_bailleur(data):
+def _update_personne_if_changed(personne: Personne, personne_data: dict) -> bool:
     """
-    Crée ou récupère un bailleur depuis les données du formulaire.
-    Les données sont déjà validées par FranceBailSerializer/FranceQuittanceSerializer/FranceEtatLieuxSerializer.
-    Retourne le bailleur créé et les autres bailleurs si présents.
+    Met à jour une Personne si les données ont changé.
+    Compatible avec django-simple-history pour historisation automatique.
+
+    Returns:
+        True si des changements ont été effectués, False sinon
     """
-    # Les données sont déjà validées, on les utilise directement
-    if "bailleur" not in data:
-        raise ValueError("Données du bailleur requises")
+    changed = False
+    fields_to_check = ['lastName', 'firstName', 'email', 'adresse', 'iban']
 
-    validated = data["bailleur"]
+    for field in fields_to_check:
+        new_value = personne_data.get(field, "")
+        current_value = getattr(personne, field, "")
+        if new_value != current_value:
+            setattr(personne, field, new_value)
+            changed = True
+            logger.debug(f"  {field}: '{current_value}' → '{new_value}'")
 
-    # Vérifier si on doit réutiliser un bailleur existant
-    # (PrefillFormState depuis bailleur OU depuis bien)
-    bailleur_id = data.get("bailleur_id")  # Au niveau racine
+    if changed:
+        personne.save()
+    return changed
+
+
+def _update_societe_if_changed(societe: Societe, societe_data: dict) -> bool:
+    """
+    Met à jour une Société si les données ont changé.
+    Compatible avec django-simple-history pour historisation automatique.
+
+    Returns:
+        True si des changements ont été effectués, False sinon
+    """
+    changed = False
+    fields_to_check = [
+        'raison_sociale', 'forme_juridique', 'siret', 'adresse', 'email'
+    ]
+
+    for field in fields_to_check:
+        new_value = societe_data.get(field, "")
+        current_value = getattr(societe, field, "")
+        if new_value != current_value:
+            setattr(societe, field, new_value)
+            changed = True
+            logger.debug(f"  {field}: '{current_value}' → '{new_value}'")
+
+    if changed:
+        societe.save()
+    return changed
+
+
+def _create_or_get_personne(personne_data: dict, include_iban: bool = True) -> Personne:
+    """
+    Crée ou récupère une Personne par ID.
+
+    Args:
+        personne_data: Dict avec id (optionnel), lastName, firstName,
+                       email, adresse, iban
+        include_iban: Si True, inclut le champ IBAN (pour bailleur).
+                      Si False, l'exclut (pour signataire).
+
+    Returns:
+        Instance de Personne (réutilisée ou créée)
+    """
+    personne_id = personne_data.get("id")
+
+    # Préparer les données communes
+    create_data = {
+        "lastName": personne_data["lastName"],
+        "firstName": personne_data["firstName"],
+        "email": personne_data["email"],
+        "adresse": personne_data.get("adresse", ""),
+    }
+
+    # Ajouter IBAN seulement si demandé
+    if include_iban:
+        create_data["iban"] = personne_data.get("iban", "")
+
+    if personne_id:
+        try:
+            personne = Personne.objects.get(id=personne_id)
+            logger.info(f"✅ Personne existante réutilisée: {personne_id}")
+            return personne
+        except Personne.DoesNotExist:
+            logger.warning(f"⚠️ Personne {personne_id} introuvable, création...")
+
+    personne = Personne.objects.create(**create_data)
+    logger.info(f"✨ Personne créée: {personne.id}")
+    return personne
+
+
+def _create_or_get_societe(societe_data: dict) -> Societe:
+    """
+    Crée ou récupère une Société par ID.
+
+    Args:
+        societe_data: Dict avec id (optionnel), raison_sociale,
+                      forme_juridique, siret, adresse, email
+
+    Returns:
+        Instance de Societe (réutilisée ou créée)
+    """
+    societe_id = societe_data.get("id")
+
+    create_data = {
+        "raison_sociale": societe_data["raison_sociale"],
+        "forme_juridique": societe_data["forme_juridique"],
+        "siret": societe_data["siret"],
+        "adresse": societe_data["adresse"],
+        "email": societe_data.get("email", ""),
+    }
+
+    if societe_id:
+        try:
+            societe = Societe.objects.get(id=societe_id)
+            logger.info(f"✅ Société existante réutilisée: {societe_id}")
+            return societe
+        except Societe.DoesNotExist:
+            logger.warning(f"⚠️ Société {societe_id} introuvable, création...")
+
+    societe = Societe.objects.create(**create_data)
+    logger.info(f"✨ Société créée: {societe.id}")
+    return societe
+
+
+def _create_or_get_signataire(signataire_data: dict) -> Personne:
+    """
+    Crée ou récupère un signataire (Personne sans IBAN) par ID.
+
+    Args:
+        signataire_data: Dict avec id (optionnel), lastName, firstName,
+                         email, adresse
+
+    Returns:
+        Instance de Personne (réutilisée ou créée)
+    """
+    return _create_or_get_personne(signataire_data, include_iban=False)
+
+
+def _create_or_get_single_bailleur(bailleur_data: dict) -> Bailleur:
+    """
+    Helper: Crée ou récupère un bailleur unique depuis ses données.
+    Met à jour le bailleur existant si les données ont changé.
+    Gère le changement de type (PHYSIQUE ↔ MORALE).
+
+    Args:
+        bailleur_data: Dict avec id (optionnel), bailleur_type,
+                       personne/societe/signataire
+
+    Returns:
+        Instance de Bailleur (réutilisée/mise à jour ou créée)
+    """
+    # 1. Vérifier si on doit réutiliser un bailleur existant
+    bailleur_id = bailleur_data.get("id")
     if bailleur_id:
         try:
-            bailleur = Bailleur.objects.get(id=bailleur_id)
-            logger.info(f"Réutilisation du bailleur existant: {bailleur_id}")
-            # Pas de co-bailleurs en mode réutilisation
-            return bailleur, []
-        except Bailleur.DoesNotExist:
-            logger.warning(
-                f"Bailleur {bailleur_id} non trouvé, création d'un nouveau bailleur"
-            )
+            bailleur = Bailleur.objects.select_related(
+                'personne', 'societe', 'signataire'
+            ).get(id=bailleur_id)
+            logger.info(f"✅ Bailleur existant trouvé: {bailleur_id}")
 
-    bailleur_type = validated.get("bailleur_type")
+            # ✅ Mettre à jour les données si nécessaire
+            bailleur_type = bailleur_data.get("bailleur_type")
+            updated = False
+
+            # ✅ Détecter changement de type (PHYSIQUE ↔ MORALE)
+            if bailleur.bailleur_type != bailleur_type:
+                logger.info(
+                    f"🔄 Changement de type : "
+                    f"{bailleur.bailleur_type} → {bailleur_type}"
+                )
+
+                # Nettoyer les anciennes FK
+                if bailleur.bailleur_type == BailleurType.PHYSIQUE.value:
+                    # Ancien = PHYSIQUE, nouveau = MORALE
+                    bailleur.personne = None
+                else:
+                    # Ancien = MORALE, nouveau = PHYSIQUE
+                    bailleur.societe = None
+                    bailleur.signataire = None
+
+                # Mettre à jour le type
+                bailleur.bailleur_type = bailleur_type
+
+                # Créer/réutiliser les nouvelles entités selon le nouveau type
+                if bailleur_type == BailleurType.PHYSIQUE.value:
+                    personne_data = bailleur_data.get("personne")
+                    if not personne_data:
+                        raise ValueError("Personne requise pour bailleur physique")
+
+                    bailleur.personne = _create_or_get_personne(personne_data)
+                    # Note: Pour un bailleur physique, pas de signataire distinct
+                    # La personne signe elle-même
+                    bailleur.signataire = None
+
+                elif bailleur_type == BailleurType.MORALE.value:
+                    # Créer/réutiliser société
+                    societe_data = bailleur_data.get("societe")
+                    if not societe_data:
+                        raise ValueError("Société requise pour bailleur moral")
+
+                    bailleur.societe = _create_or_get_societe(societe_data)
+
+                    # Créer/réutiliser signataire
+                    signataire_data = bailleur_data.get("signataire")
+                    if not signataire_data:
+                        raise ValueError("Signataire requis pour bailleur moral")
+
+                    bailleur.signataire = _create_or_get_signataire(signataire_data)
+
+                bailleur.save()
+                updated = True
+
+            # Pas de changement de type, juste mettre à jour les données existantes
+            elif bailleur_type == BailleurType.PHYSIQUE.value and bailleur.personne:
+                personne_data = bailleur_data.get("personne")
+                if personne_data:
+                    if _update_personne_if_changed(bailleur.personne, personne_data):
+                        updated = True
+
+            elif bailleur_type == BailleurType.MORALE.value:
+                # Mettre à jour la société
+                societe_data = bailleur_data.get("societe")
+                if societe_data and bailleur.societe:
+                    if _update_societe_if_changed(bailleur.societe, societe_data):
+                        updated = True
+
+                # Mettre à jour le signataire
+                signataire_data = bailleur_data.get("signataire")
+                if signataire_data and bailleur.signataire:
+                    if _update_personne_if_changed(
+                        bailleur.signataire, signataire_data
+                    ):
+                        updated = True
+
+            if updated:
+                logger.info(f"🔄 Bailleur {bailleur_id} mis à jour")
+
+            return bailleur
+        except Bailleur.DoesNotExist:
+            logger.warning(f"⚠️ Bailleur {bailleur_id} introuvable, création...")
+
+    # 2. Créer un nouveau bailleur (pas de bailleur_id fourni)
+    bailleur_type = bailleur_data.get("bailleur_type")
     if not bailleur_type:
         raise ValueError("Type de bailleur requis")
 
     if bailleur_type == BailleurType.MORALE.value:
-        # Créer la société depuis les données validées
-        societe_data = validated["societe"]
-        societe = Societe.objects.create(
-            raison_sociale=societe_data["raison_sociale"],
-            forme_juridique=societe_data["forme_juridique"],
-            siret=societe_data["siret"],
-            adresse=societe_data["adresse"],
-            email=societe_data.get("email") or "",
-        )
+        # Créer ou réutiliser société
+        societe_data = bailleur_data["societe"]
+        societe = _create_or_get_societe(societe_data)
 
-        # Créer le signataire depuis les données validées
-        # Pour une société, le signataire est dans "signataire" (transformé par le serializer)
-        signataire_data = validated.get("signataire")
-        if signataire_data:
-            personne_signataire = Personne.objects.create(
-                lastName=signataire_data["lastName"],
-                firstName=signataire_data["firstName"],
-                email=signataire_data["email"],
-                adresse=signataire_data.get("adresse") or "",
-            )
-        else:
-            raise ValueError("Données du signataire manquantes pour le bailleur moral")
+        # Créer ou réutiliser signataire
+        signataire_data = bailleur_data.get("signataire")
+        if not signataire_data:
+            raise ValueError("Signataire requis pour bailleur moral")
+
+        personne_signataire = _create_or_get_signataire(signataire_data)
 
         bailleur = Bailleur.objects.create(
             societe=societe,
             signataire=personne_signataire,
         )
     else:
-        # Créer la personne physique depuis les données validées
-        personne_data = validated["personne"]
-        personne_bailleur = Personne.objects.create(
-            lastName=personne_data["lastName"],
-            firstName=personne_data["firstName"],
-            email=personne_data["email"],
-            adresse=personne_data["adresse"],
-            iban=personne_data.get("iban") or "",
-        )
+        # Créer ou réutiliser personne physique
+        personne_data = bailleur_data["personne"]
+        personne_bailleur = _create_or_get_personne(personne_data)
 
+        # Note: Pour un bailleur physique, pas de signataire distinct
+        # La personne signe elle-même
         bailleur = Bailleur.objects.create(
             personne=personne_bailleur,
-            signataire=personne_bailleur,
+            signataire=None,
         )
 
-    logger.info(f"Bailleur créé: {bailleur.id}")
+    logger.info(f"✨ Bailleur créé: {bailleur.id}")
+    return bailleur
 
-    # Créer les co-bailleurs si présents
+
+def create_or_get_bailleur(data):
+    """
+    Crée ou récupère un bailleur depuis les données du formulaire.
+    Les données sont déjà validées par les serializers.
+    Retourne le bailleur principal et les co-bailleurs.
+    """
+    # Les données sont déjà validées, on les utilise directement
+    if "bailleur" not in data:
+        raise ValueError("Données du bailleur requises")
+
+    bailleur_data = data["bailleur"]
+
+    # 1. Bailleur principal (réutilisé ou créé selon présence de l'ID)
+    bailleur = _create_or_get_single_bailleur(bailleur_data)
+
+    # 2. Co-bailleurs (au même niveau que bailleur principal)
     autres_bailleurs = []
-    co_bailleurs_data = validated.get("co_bailleurs") or []
+    co_bailleurs_data = data.get("co_bailleurs") or []  # ✅ Même niveau
     for co_bailleur_data in co_bailleurs_data:
-        personne_autre = Personne.objects.create(
-            lastName=co_bailleur_data["lastName"],
-            firstName=co_bailleur_data["firstName"],
-            email=co_bailleur_data["email"],
-            adresse=co_bailleur_data.get("adresse") or "",
-        )
-
-        autre_bailleur = Bailleur.objects.create(
-            personne=personne_autre,
-            signataire=personne_autre,
-        )
+        # ✅ Réutiliser le même helper pour chaque co-bailleur
+        autre_bailleur = _create_or_get_single_bailleur(co_bailleur_data)
         autres_bailleurs.append(autre_bailleur)
 
+    logger.info(
+        f"✅ Bailleur principal + {len(autres_bailleurs)} co-bailleur(s)"
+    )
     return bailleur, autres_bailleurs
 
 
@@ -844,10 +1055,10 @@ def create_new_location(data, serializer_class, location_id, document_type):
         mandataire_obj = create_mandataire(data)
 
     # Créer les bailleurs (commun aux deux parcours)
-    bailleur, autres_bailleurs = create_or_get_bailleur(data)
+    bailleur_principal, autres_bailleurs = create_or_get_bailleur(data)
 
     # Associer les bailleurs au bien
-    bien.bailleurs.add(bailleur)
+    bien.bailleurs.add(bailleur_principal)
     for autre_bailleur in autres_bailleurs:
         bien.bailleurs.add(autre_bailleur)
 
@@ -888,7 +1099,7 @@ def create_new_location(data, serializer_class, location_id, document_type):
         )
 
     logger.info(f"Location créée avec succès: {location.id}")
-    return location, bien
+    return location, bien, bailleur_principal
 
 
 def update_existing_location(location, data, serializer_class, document_type):
@@ -924,15 +1135,13 @@ def update_existing_location(location, data, serializer_class, document_type):
         )
 
     # 3bis. Créer et associer les bailleurs/co-bailleurs si fournis
+    bailleur_principal = None
     bailleur_data = data.get("bailleur")
     if bailleur_data:
-        bailleur, autres_bailleurs = create_or_get_bailleur(data)
+        bailleur_principal, autres_bailleurs = create_or_get_bailleur(data)
         # Remplacer complètement les bailleurs (évite les doublons)
-        bailleurs_list = [bailleur] + autres_bailleurs
+        bailleurs_list = [bailleur_principal] + autres_bailleurs
         location.bien.bailleurs.set(bailleurs_list)
-        logger.info(
-            f"Bailleur principal et {len(autres_bailleurs)} co-bailleur(s) associé(s) au bien {location.bien.id}"
-        )
 
     # 4. Gérer le mandataire si user_role == MANDATAIRE
     user_role = data.get("user_role")
@@ -955,7 +1164,7 @@ def update_existing_location(location, data, serializer_class, document_type):
     # 5. Mettre à jour ou créer les conditions financières (incluant dépôt de garantie)
     update_rent_terms(location, data, serializer_class=serializer_class)
 
-    return location, location.bien
+    return location, location.bien, bailleur_principal
 
 
 @api_view(["POST"])
@@ -1036,16 +1245,17 @@ def create_or_update_location(request):
                 location = None
 
         # Créer ou mettre à jour la location
+        bailleur_principal = None
         if not location:
             # Si on a un location_id spécifique, créer avec cet ID
-            location, bien = create_new_location(
+            location, bien, bailleur_principal = create_new_location(
                 validated_data,
                 serializer_class,
                 location_id=location_id,
                 document_type=source,
             )
         else:
-            location, bien = update_existing_location(
+            location, bien, bailleur_principal = update_existing_location(
                 location, validated_data, serializer_class, document_type=source
             )
 
@@ -1077,6 +1287,9 @@ def create_or_update_location(request):
             "bien_id": bien.id,
             "message": f"Location {'créée' if not location_id else 'mise à jour'} avec succès depuis {source}",
         }
+
+        if bailleur_principal:
+            response_data["bailleur_id"] = str(bailleur_principal.id)
 
         if bail_id:
             response_data["bail_id"] = bail_id

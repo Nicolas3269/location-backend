@@ -487,6 +487,7 @@ class Command(BaseCommand):
                 "      },",
                 "    },",
                 "    bailleur: data.bailleur,",
+                "    co_bailleurs: data.co_bailleurs || [],",
                 "    locataires: data.locataires,",
                 "    modalites_financieres: data.modalites_financieres,",
                 "    modalites_zone_tendue: data.modalites_zone_tendue,",
@@ -510,6 +511,24 @@ class Command(BaseCommand):
 
     def field_to_zod(self, field, field_name=None):
         """Convertit un champ DRF en validation Zod."""
+
+        # DateTimeField
+        if isinstance(field, serializers.DateTimeField):
+            return "z.string().datetime()"
+
+        # SerializerMethodField - Mappings manuels pour types connus
+        if isinstance(field, serializers.SerializerMethodField):
+            # Mappings basés sur le nom du champ
+            method_field_mappings = {
+                "bailleur": "BailleurInfoSchema",
+                "co_bailleurs": "z.array(BailleurInfoSchema)",
+                "locataires": "z.array(LocataireInfoSchema)",
+                "mandataire": "MandataireInfoSchema",
+            }
+            if field_name in method_field_mappings:
+                return method_field_mappings[field_name]
+            # Par défaut pour les SerializerMethodField non mappés
+            return "z.any()"
 
         # CharField
         if isinstance(field, serializers.CharField):

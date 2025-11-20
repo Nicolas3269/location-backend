@@ -29,9 +29,10 @@ def serialize_personne_to_dict(instance: Personne) -> Dict[str, Any]:
         instance: Instance de Personne
 
     Returns:
-        Dict avec firstName, lastName, email, adresse
+        Dict avec id, firstName, lastName, email, adresse
     """
     return {
+        "id": str(instance.id),  # ✅ ID de la personne
         "firstName": instance.firstName,
         "lastName": instance.lastName,
         "email": instance.email,
@@ -48,9 +49,10 @@ def serialize_societe_to_dict(instance: Societe) -> Dict[str, Any]:
         instance: Instance de Societe
 
     Returns:
-        Dict avec raison_sociale, siret, forme_juridique, adresse, email
+        Dict avec id, raison_sociale, siret, forme_juridique, adresse, email
     """
     return {
+        "id": str(instance.id),  # ✅ ID de la société
         "raison_sociale": instance.raison_sociale,
         "siret": instance.siret,
         "forme_juridique": instance.forme_juridique,
@@ -62,7 +64,7 @@ def serialize_societe_to_dict(instance: Societe) -> Dict[str, Any]:
 def serialize_locataire_to_dict(instance: Locataire) -> Dict[str, Any]:
     """
     Sérialise un Locataire en dictionnaire.
-    Réutilise serialize_personne_to_dict() + ajoute l'ID.
+    Réutilise serialize_personne_to_dict() (qui inclut déjà l'ID).
 
     Args:
         instance: Instance de Locataire (hérite de Personne)
@@ -70,9 +72,7 @@ def serialize_locataire_to_dict(instance: Locataire) -> Dict[str, Any]:
     Returns:
         Dict avec id, firstName, lastName, email
     """
-    data = serialize_personne_to_dict(instance)
-    data["id"] = str(instance.id)
-    return data
+    return serialize_personne_to_dict(instance)
 
 
 # ============================================
@@ -92,6 +92,7 @@ def serialize_bailleur_to_dict(instance: Bailleur) -> Dict[str, Any]:
     Returns:
         Dict avec structure:
         {
+            "id": "uuid-du-bailleur",  # ✅ Ajouté pour réutilisation
             "bailleur_type": "physique",
             "personne": {...} ou None,
             "societe": {...} ou None,
@@ -99,27 +100,26 @@ def serialize_bailleur_to_dict(instance: Bailleur) -> Dict[str, Any]:
         }
     """
     result = {
+        "id": str(instance.id),  # ✅ ID du bailleur
         "bailleur_type": instance.bailleur_type,
     }
 
     # Bailleur PHYSIQUE : ajouter personne
     if instance.bailleur_type == BailleurType.PHYSIQUE:
-        result["personne"] = (
-            serialize_personne_to_dict(instance.personne)
-            if instance.personne
-            else None
-        )
+        if instance.personne:
+            result["personne"] = serialize_personne_to_dict(instance.personne)
+        else:
+            result["personne"] = None
 
     # Bailleur MORALE : ajouter societe + signataire
     elif instance.bailleur_type == BailleurType.MORALE:
         result["societe"] = (
             serialize_societe_to_dict(instance.societe) if instance.societe else None
         )
-        result["signataire"] = (
-            serialize_personne_to_dict(instance.signataire)
-            if instance.signataire
-            else None
-        )
+        if instance.signataire:
+            result["signataire"] = serialize_personne_to_dict(instance.signataire)
+        else:
+            result["signataire"] = None
 
     return result
 
@@ -175,8 +175,10 @@ def extract_bailleurs_with_priority(
     Returns:
         Dict avec structure:
         {
-            "bailleur_type": "physique",
-            "personne": {...},
+            "bailleur": {
+                "bailleur_type": "physique",
+                "personne": {...}
+            },
             "co_bailleurs": [...]
         }
     """
@@ -184,42 +186,33 @@ def extract_bailleurs_with_priority(
     if not bailleurs_queryset.exists():
         return {}
 
-    # Trouver le bailleur correspondant au user connecté
-    bailleur_principal = None
-    if user and hasattr(user, "email"):
-        user_email = user.email
-        for bailleur in bailleurs_queryset.all():
-            try:
-                if bailleur.email == user_email:
-                    bailleur_principal = bailleur
-                    break
-            except ValueError:
-                # Bailleur invalide (pas de personne ni signataire), ignorer
-                continue
+    # ✅ Utiliser la fonction existante (lazy import pour éviter circular import)
+    from location.services.bailleur_utils import get_primary_bailleur_for_user
 
-    # Si pas trouvé ou pas de user, prendre le premier
+    bailleur_principal = get_primary_bailleur_for_user(bailleurs_queryset, user)
+
     if not bailleur_principal:
-        bailleur_principal = bailleurs_queryset.first()
+        return {}
 
     # Sérialiser le bailleur principal avec serialize_bailleur_to_dict
-    data = serialize_bailleur_to_dict(bailleur_principal)
+    bailleur_principal_data = serialize_bailleur_to_dict(bailleur_principal)
 
     # Co-bailleurs = tous SAUF celui en position principale
     co_bailleurs = bailleurs_queryset.exclude(id=bailleur_principal.id)
-    if co_bailleurs.exists():
-        # IMPORTANT : Retourner juste les personne (format WRITE = PersonneSerializer)
-        # TODO: À terme, supporter co_bailleurs avec bailleur_type (personnes morales)
-        # Pour cela, il faudra changer WRITE serializer : co_bailleurs = ListField(child=BailleurInfoSerializer())
-        data["co_bailleurs"] = [
-            serialize_personne_to_dict(co_bailleur.personne)
-            for co_bailleur in co_bailleurs
-            if co_bailleur.bailleur_type == BailleurType.PHYSIQUE
-            and co_bailleur.personne
-        ]
-    else:
-        data["co_bailleurs"] = []
+    co_bailleurs_list = []
 
-    return data
+    if co_bailleurs.exists():
+        # ✅ Retourner la structure complète avec IDs pour permettre la réutilisation
+        for co_bailleur in co_bailleurs:
+            # ✅ Utiliser serialize_bailleur_to_dict pour avoir la même structure
+            co_bailleur_data = serialize_bailleur_to_dict(co_bailleur)
+            co_bailleurs_list.append(co_bailleur_data)
+
+    # ✅ Retourner au même niveau
+    return {
+        "bailleur": bailleur_principal_data,
+        "co_bailleurs": co_bailleurs_list,
+    }
 
 
 def restructure_bien_to_nested_format(

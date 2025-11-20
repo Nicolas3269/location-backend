@@ -18,6 +18,7 @@ from location.models import Bailleur
 
 # Déterminer le rôle de l'utilisateur pour la redirection (fonction factorisée)
 from location.services.access_utils import get_user_role_for_location
+from location.services.bailleur_utils import get_primary_bailleur_for_user
 
 from .models import Quittance
 from .signature_utils import generate_text_signature
@@ -256,9 +257,11 @@ def generate_quittance_pdf(request):
         montant_total = montant_loyer_hc + montant_charges
         montant_en_lettres = amount_to_words_french(montant_total)
 
-        # Récupérer le premier bailleur
-        premier_bailleur: Bailleur = location.bien.bailleurs.first()
-        logger.info(f"Premier bailleur: {premier_bailleur}")
+        # Récupérer le bailleur (priorité au user connecté)
+        premier_bailleur: Bailleur = get_primary_bailleur_for_user(
+            location.bien.bailleurs, request.user
+        )
+        logger.info(f"Bailleur pour génération PDF: {premier_bailleur}")
 
         if not premier_bailleur:
             logger.error("Aucun bailleur trouvé pour cette location")
@@ -395,8 +398,8 @@ def generate_quittance_pdf(request):
                     f"Impossible de supprimer le fichier temporaire {tmp_pdf_path}: {e}"
                 )
 
-        # Récupérer le bailleurId pour la redirection mandataire
-        bailleur = location.bien.bailleurs.first()
+        # Récupérer le bailleurId pour la redirection mandataire (priorité au user)
+        bailleur = get_primary_bailleur_for_user(location.bien.bailleurs, request.user)
         response_data = {
             "success": True,
             "quittanceId": str(quittance.id),

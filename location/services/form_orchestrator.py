@@ -7,7 +7,10 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from location.models import Bailleur, Bien, Location, RentTerms
-from location.services.bailleur_utils import serialize_bailleur
+from location.services.bailleur_utils import (
+    get_primary_bailleur_for_user,
+    serialize_bailleur,
+)
 from location.types.form_state import (
     CreateFormState,
     EditFormState,
@@ -272,13 +275,14 @@ class FormOrchestrator:
         if isinstance(form_state, (PrefillFormState, ExtendFormState)):
             if form_state.source_type == "bien":
                 result["bien_id"] = str(form_state.source_id)
-                # Récupérer bailleur_id depuis le bien
+                # Récupérer bailleur_id depuis le bien (priorité au user connecté)
                 try:
                     bien = Bien.objects.prefetch_related("bailleurs").get(
                         id=form_state.source_id
                     )
-                    if bien.bailleurs.exists():
-                        result["bailleur_id"] = str(bien.bailleurs.first().id)
+                    bailleur = get_primary_bailleur_for_user(bien.bailleurs, user)
+                    if bailleur:
+                        result["bailleur_id"] = str(bailleur.id)
                 except Bien.DoesNotExist:
                     pass
             elif form_state.source_type == "bailleur":
@@ -293,10 +297,10 @@ class FormOrchestrator:
                     )
                     if location.bien:
                         result["bien_id"] = str(location.bien.id)
-                        if location.bien.bailleurs.exists():
-                            result["bailleur_id"] = str(
-                                location.bien.bailleurs.first().id
-                            )
+                        # Priorité au user connecté
+                        bailleur = get_primary_bailleur_for_user(location.bien.bailleurs, user)
+                        if bailleur:
+                            result["bailleur_id"] = str(bailleur.id)
                 except Location.DoesNotExist:
                     pass
 
@@ -382,12 +386,12 @@ class FormOrchestrator:
             elif context_mode == "from_bien":
                 # Pré-remplir bien + bailleur
                 bien = Bien.objects.get(id=context_source_id)
-                return self._extract_bien_and_bailleur_data(bien, country)
+                return self._extract_bien_and_bailleur_data(bien, country, user)
 
             elif context_mode == "from_location":
                 # Pré-remplir tout - utilisé pour édition
                 location = Location.objects.get(id=context_source_id)
-                data = self._extract_location_data(location)
+                data = self._extract_location_data(location, user)
 
                 # Pour les quittances, ajouter locataire_ids (UUIDs des locataires existants)
                 # Cela permet à get_or_create_quittance de récupérer directement les locataires
@@ -414,9 +418,9 @@ class FormOrchestrator:
         return {"bailleur": bailleur_data}
 
     def _extract_bien_and_bailleur_data(
-        self, bien: Bien, country: str
+        self, bien: Bien, country: str, user: Optional[Any] = None
     ) -> Dict[str, Any]:
-        """Extrait les données du bien ET du bailleur principal."""
+        """Extrait les données du bien ET du bailleur principal (priorité au user connecté)."""
         data = {
             "bien": {
                 "localisation": {},
@@ -500,18 +504,18 @@ class FormOrchestrator:
                 eau_chaude_data["energie"] = bien.eau_chaude_energie
             data["bien"]["energie"]["eau_chaude"] = eau_chaude_data
 
-        # Bailleur principal
-        if bien.bailleurs.exists():
-            bailleur = bien.bailleurs.first()
+        # Bailleur principal (priorité au user connecté)
+        bailleur = get_primary_bailleur_for_user(bien.bailleurs, user)
+        if bailleur:
             bailleur_data = self._extract_bailleur_data(bailleur)
             data["bailleur"] = bailleur_data.get("bailleur", {})
 
         return data
 
-    def _extract_location_data(self, location: Location) -> Dict[str, Any]:
+    def _extract_location_data(self, location: Location, user: Optional[Any] = None) -> Dict[str, Any]:
         """
         Extrait les données d'une Location pour pré-remplissage.
-        Format aligné avec les serializers.
+        Format aligné avec les serializers (priorité au user connecté pour le bailleur).
 
         Note: Cette fonction fait du mapping inverse (modèle -> formulaire).
         Les field mappings du serializer sont dans l'autre sens (formulaire -> modèle),
@@ -636,20 +640,21 @@ class FormOrchestrator:
                     eau_chaude_data["energie"] = bien.eau_chaude_energie
                 data["bien"]["energie"]["eau_chaude"] = eau_chaude_data
 
-        # Données du bailleur
+        # Données du bailleur (priorité au user connecté)
         if location.bien and location.bien.bailleurs.exists():
-            bailleur: Bailleur = location.bien.bailleurs.first()
+            bailleur: Bailleur = get_primary_bailleur_for_user(location.bien.bailleurs, user)
             if bailleur:
                 # Utiliser serialize_bailleur pour éviter la duplication
                 bailleur_serialized = serialize_bailleur(bailleur)
                 data["bailleur"].update(bailleur_serialized)
 
-                # Extraire les co-bailleurs (tous sauf le premier)
-                all_bailleurs = list(location.bien.bailleurs.all())
-                if len(all_bailleurs) > 1:
+                # Extraire les co-bailleurs (tous sauf celui sélectionné comme principal)
+                all_bailleurs = location.bien.bailleurs.order_by('created_at')
+                co_bailleurs = all_bailleurs.exclude(id=bailleur.id)
+                if co_bailleurs.exists():
                     # Il y a des co-bailleurs
                     co_bailleurs_list = []
-                    for co_bailleur in all_bailleurs[1:]:
+                    for co_bailleur in co_bailleurs:
                         if co_bailleur.personne:
                             co_bailleurs_list.append(
                                 {

@@ -353,7 +353,7 @@ PERSON_STEPS = [
         "business_rules": ["societeValidation"],  # Validation complète société
     },
     {
-        "id": "bailleur.co_bailleurs",
+        "id": "co_bailleurs",
         "required_fields": [],  # Optionnel
         "fields": {},  # Relation many-to-many
     },
@@ -731,6 +731,12 @@ class FranceBailSerializer(BaseLocationSerializer):
     # Champs toujours obligatoires
     bien = BienBailSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
+    co_bailleurs = serializers.ListField(
+        child=BailleurInfoSerializer(),
+        required=False,
+        default=list,
+        help_text="Co-bailleurs (même niveau que bailleur principal)",
+    )
     mandataire = MandataireInfoSerializer(required=False, allow_null=True)
     honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
@@ -809,6 +815,12 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
     # Champs obligatoires pour une quittance
     bien = BienQuittanceSerializer(required=True)  # Juste l'adresse
     bailleur = BailleurInfoSerializer(required=True)
+    co_bailleurs = serializers.ListField(
+        child=BailleurInfoSerializer(),
+        required=False,
+        default=list,
+        help_text="Co-bailleurs (même niveau que bailleur principal)",
+    )
     mandataire = MandataireInfoSerializer(required=False, allow_null=True)
     honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
@@ -894,6 +906,12 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
     # Champs obligatoires
     bien = BienEtatLieuxSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
+    co_bailleurs = serializers.ListField(
+        child=BailleurInfoSerializer(),
+        required=False,
+        default=list,
+        help_text="Co-bailleurs (même niveau que bailleur principal)",
+    )
     mandataire = MandataireInfoSerializer(required=False, allow_null=True)
     honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(

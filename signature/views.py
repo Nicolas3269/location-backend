@@ -11,9 +11,12 @@ from django.shortcuts import get_object_or_404
 from authentication.utils import get_tokens_for_user, set_refresh_token_cookie
 from location.models import Location
 from location.services.access_utils import get_user_role_for_location
+from location.services.bailleur_utils import get_primary_bailleur_for_user
 from signature.document_status import DocumentStatus
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
+
+from .pdf_processing import process_signature_generic
 
 # Envoyer l'OTP par email
 from .services import (
@@ -238,7 +241,9 @@ def confirm_signature_generic(request, model_class, document_type):
                 status=400,
             )
 
-        sig_req = get_object_or_404(model_class, link_token=token)
+        sig_req: AbstractSignatureRequest = get_object_or_404(
+            model_class, link_token=token
+        )
 
         if sig_req.signed:
             return JsonResponse({"error": "Déjà signé"}, status=400)
@@ -259,8 +264,6 @@ def confirm_signature_generic(request, model_class, document_type):
 
         # Traiter la signature si fournie - utiliser la fonction générique
         if signature_data_url:
-            from .pdf_processing import process_signature_generic
-
             # process_signature_generic s'occupera de mark_as_signed()
             # Passer la request pour capturer métadonnées HTTP (IP, user-agent)
             process_signature_generic(sig_req, signature_data_url, request=request)
@@ -269,7 +272,7 @@ def confirm_signature_generic(request, model_class, document_type):
             sig_req.mark_as_signed()
 
         # Récupérer le document
-        document = sig_req.get_document()
+        document: SignableDocumentMixin = sig_req.get_document()
 
         # Envoi au suivant - utiliser la fonction générique pour tous les types
         next_req = get_next_signer(sig_req)
@@ -296,8 +299,10 @@ def confirm_signature_generic(request, model_class, document_type):
 
                 # Pour le mandataire : ajouter le bailleurId pour la redirection
                 # vers /mon-compte/mes-mandats/{bailleurId}/biens/{bienId}
-                # Le bailleur est lié au bien (ManyToMany), on prend le premier
-                bailleur = document.location.bien.bailleurs.first()
+                # Priorité au bailleur du user authentifié (request.user)
+                bailleur = get_primary_bailleur_for_user(
+                    document.location.bien.bailleurs, request.user
+                )
                 if bailleur:
                     response_data["bailleurId"] = str(bailleur.id)
 

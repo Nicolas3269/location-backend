@@ -271,7 +271,8 @@ def prepare_pdf_with_signature_fields_generic(pdf_field, document):
 
         # Récupérer tous les signataires
         mandataire = location.mandataire
-        bailleurs = location.bien.bailleurs.all()
+        # IMPORTANT: Ordre déterministe (premier créé = principal)
+        bailleurs = location.bien.bailleurs.order_by('created_at')
         bailleur_signataires = [
             bailleur.signataire for bailleur in bailleurs if bailleur.signataire
         ]

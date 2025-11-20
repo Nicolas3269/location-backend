@@ -480,7 +480,10 @@ def prepare_etat_lieux_data_for_pdf(etat_lieux: EtatLieux):
 
     # Récupérer les bailleurs et locataires de la location
     location: Location = etat_lieux.location
-    bailleurs: list[Bailleur] = location.bien.bailleurs.all() if location.bien else []
+    # IMPORTANT: Ordre déterministe (premier créé = principal)
+    bailleurs: list[Bailleur] = (
+        location.bien.bailleurs.order_by('created_at') if location.bien else []
+    )
     locataires: list[Locataire] = (
         location.locataires.all() if location.locataires else []
     )

@@ -84,6 +84,9 @@ class Personne(BaseModel):
     # Informations bancaires (pour les propriétaires)
     iban = models.CharField(max_length=34, blank=True, null=True, default=None)
 
+    # Historique automatique
+    history = HistoricalRecords()
+
     class Meta:
         verbose_name = "Personne"
         verbose_name_plural = "Personnes"
@@ -130,6 +133,9 @@ class Societe(BaseModel):
 
     # Informations bancaires (pour les sociétés propriétaires)
     iban = models.CharField(max_length=34, blank=True, null=True, default=None)
+
+    # Historique automatique
+    history = HistoricalRecords()
 
     class Meta:
         verbose_name = "Société"

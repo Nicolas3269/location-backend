@@ -490,12 +490,17 @@ class RentTermsAdmin(admin.ModelAdmin):
         "location",
         "montant_loyer",
         "montant_charges",
-        "depot_garantie",
+        "display_depot_garantie",
         "zone_tendue",
         "permis_de_louer",
     )
     list_filter = ("zone_tendue", "permis_de_louer", "type_charges")
     search_fields = ("location__bien__adresse",)
+
+    def display_depot_garantie(self, obj):
+        """Affiche le dépôt de garantie (calculé ou override)"""
+        return f"{obj.depot_garantie}€" if obj.depot_garantie else "-"
+    display_depot_garantie.short_description = "Dépôt garantie"
 
     fieldsets = (
         (
@@ -510,8 +515,9 @@ class RentTermsAdmin(admin.ModelAdmin):
                     "type_charges",
                     "montant_charges",
                     "jour_paiement",
-                    "depot_garantie",
-                )
+                    "depot_garantie_override",
+                ),
+                "description": "Le dépôt de garantie est calculé automatiquement (1 mois si non meublé, 2 mois si meublé). Utilisez 'depot_garantie_override' pour forcer une valeur différente.",
             },
         ),
         (

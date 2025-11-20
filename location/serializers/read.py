@@ -89,6 +89,7 @@ class RentTermsReadSerializer(serializers.ModelSerializer):
             "montant_loyer",
             "montant_charges",
             "type_charges",
+            "depot_garantie",
             "zone_tendue",
             "zone_tres_tendue",
             "zone_tendue_touristique",
@@ -214,6 +215,9 @@ class LocationReadSerializer(LocationBaseSerializer):
                 if rt.get("montant_charges")
                 else None,
                 "type_charges": rt.get("type_charges"),
+                "depot_garantie": (
+                    float(rt["depot_garantie"]) if rt.get("depot_garantie") else None
+                ),
             }
 
             # Zone tendue - modalités spécifiques

@@ -813,8 +813,13 @@ class RentTerms(BaseModel):
         max_digits=10, decimal_places=2, null=True, blank=True, default=None
     )
     jour_paiement = models.PositiveSmallIntegerField(null=True, blank=True, default=5)
-    depot_garantie = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True, default=None
+    depot_garantie_override = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        default=None,
+        help_text="Override manuel du dépôt de garantie (si None, calculé automatiquement)",
     )
 
     # Informations réglementaires
@@ -884,6 +889,33 @@ class RentTerms(BaseModel):
         verbose_name="Justification du complément de loyer",
         help_text="Justification du complément de loyer en cas de dépassement du plafond d'encadrement",
     )
+
+    @property
+    def depot_garantie(self):
+        """
+        Calcule automatiquement le dépôt de garantie selon la loi française :
+        - Non meublé : Maximum 1 mois de loyer HC
+        - Meublé : Maximum 2 mois de loyer HC
+
+        Retourne l'override manuel si défini, sinon calcule automatiquement.
+        """
+        # Si un override manuel est défini, le retourner
+        if self.depot_garantie_override is not None:
+            return self.depot_garantie_override
+
+        # Sinon, calculer automatiquement
+        if not self.montant_loyer:
+            return None
+
+        # Vérifier si le bien est meublé
+        try:
+            meuble = self.location.bien.meuble if self.location and self.location.bien else False
+        except Exception:
+            meuble = False
+
+        # Calcul selon la réglementation : 1 mois si non meublé, 2 mois si meublé
+        multiplier = 2 if meuble else 1
+        return self.montant_loyer * multiplier
 
     def get_rent_price(self):
         """

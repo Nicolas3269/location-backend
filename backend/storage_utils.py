@@ -11,12 +11,54 @@ import logging
 import os
 import tempfile
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Optional
 
 from django.core.files.base import File
 from django.db.models.fields.files import FieldFile
 
 logger = logging.getLogger(__name__)
+
+
+def truncate_filename(filename: str, max_length: int = 200) -> str:
+    """
+    Tronque intelligemment un nom de fichier trop long tout en préservant l'extension.
+
+    Args:
+        filename: Le nom de fichier original
+        max_length: Longueur maximale du nom (par défaut 200, marge sous les 255 de Django)
+
+    Returns:
+        str: Nom de fichier tronqué si nécessaire
+
+    Examples:
+        >>> truncate_filename("court.pdf")
+        "court.pdf"
+        >>> truncate_filename("a" * 300 + ".pdf")
+        "aaa...aaa.pdf"  # environ 200 caractères
+    """
+    if len(filename) <= max_length:
+        return filename
+
+    # Séparer le nom et l'extension
+    path = Path(filename)
+    stem = path.stem  # nom sans extension
+    suffix = path.suffix  # extension avec le point (.pdf, .jpg, etc.)
+
+    # Calculer l'espace disponible pour le nom (en gardant de la place pour "..." et l'extension)
+    available_length = max_length - len(suffix) - 3  # 3 pour "..."
+
+    if available_length <= 10:
+        # Si l'extension est très longue, on garde au moins 10 caractères du nom
+        available_length = 10
+        # Et on tronque aussi l'extension si nécessaire
+        suffix = suffix[:max_length - 13]  # 10 pour le nom + 3 pour "..."
+
+    # Tronquer le nom en gardant le début et la fin
+    half = available_length // 2
+    truncated_stem = stem[:half] + "..." + stem[-half:]
+
+    return truncated_stem + suffix
 
 
 @contextmanager

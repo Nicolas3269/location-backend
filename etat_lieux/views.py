@@ -14,7 +14,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from weasyprint import HTML
 
 from backend.pdf_utils import get_logo_pdf_base64_data_uri, get_static_pdf_iframe_url
-from backend.storage_utils import get_local_file_path
+from backend.storage_utils import get_local_file_path, truncate_filename
 from etat_lieux.mapping import EtatDesLieuxMapping
 from etat_lieux.models import (
     EtatLieux,
@@ -672,7 +672,7 @@ def upload_etat_lieux_photo(request):
             equipment=None,  # Sera attaché au submit final via photo_id
             photo_index=0,   # Temporaire, sera mis à jour au submit
             image=photo_file,
-            nom_original=photo_file.name,
+            nom_original=truncate_filename(photo_file.name),
         )
 
         logger.info(

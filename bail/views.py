@@ -17,6 +17,7 @@ from backend.pdf_utils import (
     get_logo_pdf_base64_data_uri,
     get_static_pdf_iframe_url,
 )
+from backend.storage_utils import truncate_filename
 from bail.constants import FORMES_JURIDIQUES
 from bail.generate_bail.mapping import BailMapping
 from bail.models import (
@@ -372,7 +373,7 @@ def upload_document(request):
                 bail=bail,
                 bien=bien,
                 type_document=document_type,
-                nom_original=file.name,
+                nom_original=truncate_filename(file.name),
                 file=file,
                 uploade_par=request.user,
             )
@@ -872,7 +873,7 @@ def upload_locataire_document(request):
                 bail=bail_associe,  # ✅ Auto-renseigné depuis la location
                 bien=bien_associe,  # ✅ Auto-renseigné depuis la location
                 type_document=document_type,
-                nom_original=file.name,
+                nom_original=truncate_filename(file.name),
                 file=file,
                 uploade_par=request.user,
             )

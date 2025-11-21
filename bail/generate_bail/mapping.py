@@ -2,7 +2,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from bail.models import Bail
 from location.models import Bien, RentTerms
-from location.utils.honoraires import get_honoraires_mandataire_for_location
+from location.services.honoraires_utils import get_honoraires_mandataire_for_location
 from rent_control.choices import PropertyType, RegimeJuridique, SystemType
 
 

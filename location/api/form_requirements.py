@@ -13,7 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..services import FormOrchestrator
+from ..services.form_handlers.form_orchestrator import FormOrchestrator
 from ..services.user_role_detector import get_user_role_for_context
 from ..types.form_state import (
     CreateFormState,
@@ -289,6 +289,7 @@ def get_form_requirements_authenticated(request, form_type):
         elif context_mode == "from_draft_bail":
             # Pour draft_bail, récupérer la location_id depuis le bail
             from bail.models import Bail
+
             try:
                 bail = Bail.objects.get(id=context_source_id)
                 user_role_location_id = str(bail.location_id)
@@ -297,6 +298,7 @@ def get_form_requirements_authenticated(request, form_type):
         elif context_mode == "from_draft_edl":
             # Pour draft_edl, récupérer la location_id depuis l'EDL
             from etat_lieux.models import EtatLieux
+
             try:
                 edl = EtatLieux.objects.get(id=context_source_id)
                 user_role_location_id = str(edl.location_id)

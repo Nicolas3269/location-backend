@@ -20,7 +20,8 @@ def get_active_honoraires(location: Location) -> Optional[HonoraireMandataire]:
     """
     try:
         return HonoraireMandataire.objects.get(
-            location=location, date_fin__isnull=True  # Honoraires actifs
+            location=location,
+            date_fin__isnull=True,  # Honoraires actifs
         )
     except HonoraireMandataire.DoesNotExist:
         return None
@@ -58,43 +59,12 @@ def calculate_honoraires_dict(
     }
 
 
-def close_active_honoraires(location: Location, raison: str = "Révocation mandataire"):
-    """
-    Ferme tous les honoraires actifs pour une location.
-    Utilisé lors de la révocation d'un mandataire.
-
-    Args:
-        location: Instance de Location
-        raison: Raison de la fermeture (optionnel)
-
-    Returns:
-        Nombre d'honoraires fermés
-    """
-    from django.utils import timezone
-
-    today = timezone.now().date()
-    active_honoraires = HonoraireMandataire.objects.filter(
-        location=location, date_fin__isnull=True
-    )
-
-    count = 0
-    for honoraire in active_honoraires:
-        honoraire.date_fin = today
-        honoraire.raison_changement = (
-            f"{honoraire.raison_changement or ''}\n{raison}".strip()
-        )
-        honoraire.save(update_fields=["date_fin", "raison_changement", "updated_at"])
-        count += 1
-
-    return count
-
-
 def get_honoraires_mandataire_for_location(
     location: Location,
     include_bail: bool = True,
     include_edl: bool = True,
     check_doit_signer: bool = False,
-    document = None,
+    document=None,
 ) -> dict:
     """
     Récupère et calcule les honoraires mandataire pour une location.

@@ -3,7 +3,7 @@ Mapping pour la génération des données d'état des lieux dans les PDFs
 """
 
 from etat_lieux.models import EtatLieux
-from location.utils.honoraires import get_honoraires_mandataire_for_location
+from location.services.honoraires_utils import get_honoraires_mandataire_for_location
 
 
 class EtatDesLieuxMapping:

@@ -36,6 +36,7 @@ class CaracteristiquesBienSerializer(serializers.Serializer):
     meuble = serializers.BooleanField(required=False, allow_null=True, default=None)
     pieces_info = serializers.JSONField(
         required=False,
+        allow_null=True,
         help_text="Détail des pièces: chambres, sallesDeBain, cuisines, etc.",
     )
 
@@ -81,7 +82,7 @@ class RegimeJuridiqueSerializer(serializers.Serializer):
     """Régime juridique et fiscal du bien"""
 
     regime_juridique = serializers.ChoiceField(
-        choices=["monopropriete", "copropriete"], required=True
+        choices=["monopropriete", "copropriete"], required=False, allow_null=True
     )
     identifiant_fiscal = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     periode_construction = serializers.CharField(required=False, allow_blank=True, allow_null=True)

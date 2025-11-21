@@ -303,8 +303,27 @@
 
     {% else %}
     <p>
-      Le présent logement n’est pas soumis à l’obligation de réalisation d’un diagnostic de performance énergétique, conformément à l’article R.126-15 du Code de la construction et de l’habitation. <br>
-      Cette exclusion s’applique notamment aux logements dépourvus de système de chauffage fixe ou à certains bâtiments spécifiques non couverts par la réglementation thermique.
+      Le présent logement n'est pas soumis à l'obligation de réalisation d'un diagnostic de performance énergétique, conformément à l'article R.126-15 du Code de la construction et de l'habitation. <br>
+      Cette exclusion s'applique notamment aux logements dépourvus de système de chauffage fixe ou à certains bâtiments spécifiques non couverts par la réglementation thermique.
+    </p>
+    <br>
+    {% endif %}
+
+    {% if bail.location.bien.classe_dpe == "G" %}
+    <br>
+    <p>
+      <strong>Information spécifique pour les logements classés G :</strong>
+    </p>
+    <p>
+      Le bailleur déclare avoir remis au locataire le Diagnostic de Performance Énergétique (DPE) établi pour le logement, indiquant une classe énergétique G.
+    </p>
+    <p>
+      Lorsque le logement est classé G, le bailleur informe expressément le locataire que ce classement correspond aux niveaux les plus faibles de performance énergétique.
+      Il reconnaît que les logements classés G ne satisfont plus, à compter du 1er janvier 2025, aux critères de décence énergétique définis par la réglementation en vigueur.
+    </p>
+    <p>
+      Le bailleur déclare assumer seul la responsabilité liée à l'état du logement, à sa conformité aux exigences légales de décence et à la possibilité légale de le louer.
+      Le locataire reconnaît avoir été informé de la performance énergétique du logement avant la signature du présent bail.
     </p>
     <br>
     {% endif %}

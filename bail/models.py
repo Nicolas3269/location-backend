@@ -43,6 +43,16 @@ class Bail(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
     clauses_particulieres = models.TextField(blank=True)
     observations = models.TextField(blank=True)
 
+    # Confirmation DPE G (logement non décent depuis 1er janvier 2025)
+    signature_dpe_g_acknowledgment = models.BooleanField(
+        default=False,
+        verbose_name="Confirmation responsabilité DPE G",
+        help_text=(
+            "Confirmation du bailleur qu'il assume la responsabilité de louer "
+            "un logement classé G, non décent depuis le 1er janvier 2025"
+        ),
+    )
+
     # PDFs spécifiques au bail
     # Note: notice_information et grille_vetuste sont des documents statiques
     # accessibles via get_notice_information_url() - pas de champ FileField

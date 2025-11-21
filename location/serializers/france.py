@@ -178,6 +178,14 @@ DPE_STEPS = [
         },
         "unlocked_from_bien": True,  # DPE peut être amélioré
     },
+    # Alerte DPE pour les classes E, F, G (passoires énergétiques)
+    {
+        "id": "bien.performance_energetique.alerte_dpe",
+        "condition": "dpe_classe_e_f_ou_g",
+        "required_fields": [],
+        "fields": {},
+        "unlocked_from_bien": True,
+    },
     {
         "id": "bien.performance_energetique.depenses_energetiques",
         "condition": "dpe_not_na",
@@ -726,6 +734,14 @@ class FranceBailSerializer(BaseLocationSerializer):
         required=False,
         default=False,
         help_text="Le mandataire doit-il signer ce bail ?",
+    )
+    signature_dpe_g_acknowledgment = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text=(
+            "Confirmation du bailleur qu'il assume la responsabilité de louer "
+            "un logement classé G, non décent depuis le 1er janvier 2025"
+        ),
     )
 
     # Champs toujours obligatoires

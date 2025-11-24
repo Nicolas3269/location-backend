@@ -1,16 +1,9 @@
-import datetime
 import io
-import os
 import platform
 
 import fitz  # PyMuPDF
-from django.conf import settings
 from PIL import Image, ImageDraw, ImageFont
-from pyhanko import stamp
-from pyhanko.pdf_utils.content import BoxConstraints
-from pyhanko.pdf_utils.images import PdfImage
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
-from pyhanko.sign import signers
 from pyhanko.sign.fields import (
     SigFieldSpec,
     append_signature_field,
@@ -34,7 +27,9 @@ def get_signature_field_name(person: Personne):
 def get_named_dest_coordinates(pdf_path, person: Personne, target_type=None):
     field_name = get_signature_field_name(person)
 
-    if target_type == "bailleur":
+    if target_type == "mandataire":
+        target_marker = f"ID_SIGNATURE_MANDATAIRE_{person.id}"
+    elif target_type == "bailleur":
         target_marker = f"ID_SIGNATURE_BAILLEUR_{person.id}"
     elif target_type == "locataire":
         target_marker = f"ID_SIGNATURE_LOC_{person.id}"
@@ -86,7 +81,18 @@ def px_to_pt(px):
     return px * 72 / 96
 
 
-def compose_signature_stamp(signature_bytes, user):
+def compose_signature_stamp(signature_bytes, user, signature_timestamp):
+    """
+    Compose le tampon visuel de signature avec l'image manuscrite et les métadonnées.
+
+    Args:
+        signature_bytes: Image de signature manuscrite (PNG bytes)
+        user: Instance Personne (Bailleur/Locataire)
+        signature_timestamp: datetime pour la date affichée (défaut: now())
+
+    Returns:
+        tuple: (PIL.Image, BytesIO buffer)
+    """
     # Constantes
     scale_factor = SCALE_FACTOR
     final_width = TAMPON_WIDTH_PX * scale_factor
@@ -95,7 +101,7 @@ def compose_signature_stamp(signature_bytes, user):
     margin_above_text = 20 * scale_factor
     text_padding_x = 10 * scale_factor
 
-    # Charger et redimensionner l’image
+    # Charger et redimensionner l'image
     img = Image.open(io.BytesIO(signature_bytes)).convert("RGBA")
     img_ratio = img.width / img.height
 
@@ -115,17 +121,35 @@ def compose_signature_stamp(signature_bytes, user):
     final_img = Image.new("RGBA", (final_width, final_height), (255, 255, 255, 0))
     draw = ImageDraw.Draw(final_img)
 
-    # Centrer l’image horizontalement
+    # Centrer l'image horizontalement
     img_x = (final_width - target_width) // 2
     final_img.paste(img, (img_x, 0), img)
 
-    # Préparer le texte
+    # Date de signature REQUISE (pas de fallback, fail fast si manquante)
+    if signature_timestamp is None:
+        raise ValueError(
+            "signature_timestamp est requis pour cohérence forensique PDF/DB. "
+            "Capturer timezone.now() AVANT appel à compose_signature_stamp()."
+        )
+
+    # Convertir en heure locale française pour affichage
+    import zoneinfo
+
+    paris_tz = zoneinfo.ZoneInfo("Europe/Paris")
+    signature_timestamp_local = signature_timestamp.astimezone(paris_tz)
+
+    # Formater timezone offset ISO 8601 (+01:00 ou +02:00)
+    tz_offset = signature_timestamp_local.strftime("%z")  # "+0100"
+    tz_offset_formatted = f"{tz_offset[:3]}:{tz_offset[3:]}"  # "+01:00"
+
+    # Préparer le texte (avec timezone offset pour traçabilité)
     font = ImageFont.truetype(get_default_font_path(), size=12 * scale_factor)
+    date_str = signature_timestamp_local.strftime("%d/%m/%Y %H:%M:%S")
     text = (
         f"{user.firstName} {user.lastName}\n"
         f"{user.email}\n"
-        f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n"
-        f"Signature conforme eIDAS"
+        f"{date_str} {tz_offset_formatted}\n"
+        f"Signature AES • Conforme eIDAS"
     )
 
     # Position du texte : à gauche, sous l'image avec marge
@@ -171,48 +195,77 @@ def add_signature_fields_dynamic(pdf_path, fields):
         w.write_in_place()
 
 
-def sign_pdf(source_path, output_path, user, field_name, signature_bytes):
-    signer_cert_pfx = os.path.join(settings.BASE_DIR, "cert.pfx")
-    signer_password = os.getenv("KEY_PASSWORD")
-    if isinstance(signer_password, str):
-        signer_password = signer_password.encode("utf-8")
+def sign_pdf(
+    source_path,
+    output_path,
+    user,
+    field_name,
+    signature_bytes,
+    request=None,
+    document=None,
+    signature_request=None,
+):
+    """
+    Signature utilisateur avec certificat auto-signé.
 
-    signer = signers.SimpleSigner.load_pkcs12(
-        pfx_file=signer_cert_pfx, passphrase=signer_password
-    )
+    DEPRECATED: Cette fonction est conservée pour rétrocompatibilité mais délègue
+    maintenant à sign_user_with_metadata() du module certification_flow.
 
-    signature_meta = signers.PdfSignatureMetadata(
+    Args:
+        source_path: Chemin du PDF source
+        output_path: Chemin du PDF de sortie
+        user: Instance de Personne (Bailleur ou Locataire)
+        field_name: Nom du champ de signature
+        signature_bytes: Image de signature manuscrite (PNG en bytes)
+        request: Django HttpRequest (optionnel, pour IP/user-agent)
+        document: Instance du document (Bail/EtatLieux/Quittance)
+        signature_request: Instance de SignatureRequest
+                          (métadonnées OTP extraites depuis ici)
+
+    Returns:
+        str: Chemin du PDF signé
+
+    Note:
+        - Utilise désormais des certificats auto-signés (gratuit, 0€)
+        - Capture métadonnées OTP/IP/timestamp pour journal de preuves
+        - Sauvegarde métadonnées en DB (SignatureMetadata)
+        - Signature d'approbation (certify=False)
+        - Hérite de la protection DocMDP de la certification Hestia
+    """
+    from signature.certification_flow import sign_user_with_metadata
+
+    return sign_user_with_metadata(
+        source_path=source_path,
+        output_path=output_path,
+        user=user,
         field_name=field_name,
-        reason="Accord sur les conditions du bail",
-        contact_info=getattr(user, "email", ""),
-        location="France",
-        name=f"{getattr(user, 'firstName', '')} {getattr(user, 'lastName', '')}",
+        signature_bytes=signature_bytes,
+        request=request,
+        document=document,
+        signature_request=signature_request,
     )
-
-    composed_image, composed_buffer = compose_signature_stamp(signature_bytes, user)
-    box = BoxConstraints(width=TAMPON_WIDTH_PX, height=TAMPON_HEIGHT_PX)
-    pdf_image = PdfImage(composed_image, box=box)
-    stamp_style = stamp.StaticStampStyle(
-        background=pdf_image,
-        background_opacity=1.0,
-        border_width=1,
-    )
-
-    with open(source_path, "rb") as inf:
-        with open(output_path, "wb") as outf:
-            pdf_signer = signers.PdfSigner(
-                signature_meta=signature_meta,
-                signer=signer,
-                stamp_style=stamp_style,
-            )
-
-            writer = IncrementalPdfFileWriter(inf)
-            pdf_signer.sign_pdf(writer, output=outf, existing_fields_only=True)
-
-    return output_path
 
 
 def verify_pdf_signature(pdf_path):
-    # poetry run pyhanko sign validate --trust cert.pem --pretty-print media/bail_pdfs/bail_85_85d663da4dc340cdaaa257ba1086191d_signed.pdf
-    # poetry run pyhanko sign validate --trust ../../cert.pem --pretty-print pdf_path
+    """
+    Valide les signatures d'un PDF avec PyHanko.
+
+    Certificats requis :
+    - certeurope-seal-2028.pem : Certificat Hestia AATL (certification)
+    - hestia_server.pem : Certificat Hestia Local (certification)
+    - hestia_certificate_authority.pem : CA Hestia (signatures utilisateurs)
+    - hestia_tsa.pem : Certificat TSA (timestamps)
+
+    Exemple :
+        poetry run pyhanko sign validate \
+            --trust certificates/certeurope-seal-2028.pem \
+            --trust certificates/hestia_server.pem \
+            --trust certificates/hestia_certificate_authority.pem \
+            --trust certificates/hestia_tsa.pem \
+            --pretty-print media/signed_documents/bail_xxx.pdf
+
+    Sans le certificat TSA, la validation échouera avec :
+        "TSA cert trust anchor: No path to trust anchor found."
+        "The signature is judged INVALID."
+    """
     pass

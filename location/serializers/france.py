@@ -5,15 +5,17 @@ Définit les règles métier et validations pour les formulaires français.
 
 from rest_framework import serializers
 
-from location.models import Bien, Location, RentTerms
+from location.models import Bien, HonoraireMandataire, Location, RentTerms
 
-from ..serializers_composed import (
+from .composed import (
     BailleurInfoSerializer,
     BienBailSerializer,
     BienEtatLieuxSerializer,
     BienQuittanceSerializer,
     DatesLocationSerializer,
+    HonorairesMandataireSerializer,
     LocataireInfoSerializer,
+    MandataireInfoSerializer,
     ModalitesFinancieresSerializer,
     ModalitesZoneTendueSerializer,
     PersonneSerializer,
@@ -176,6 +178,14 @@ DPE_STEPS = [
         },
         "unlocked_from_bien": True,  # DPE peut être amélioré
     },
+    # Alerte DPE pour les classes E, F, G (passoires énergétiques)
+    {
+        "id": "bien.performance_energetique.alerte_dpe",
+        "condition": "dpe_classe_e_f_ou_g",
+        "required_fields": [],
+        "fields": {},
+        "unlocked_from_bien": True,
+    },
     {
         "id": "bien.performance_energetique.depenses_energetiques",
         "condition": "dpe_not_na",
@@ -200,17 +210,115 @@ DPE_STEPS = [
     },
 ]
 
+USER_STEPS = [
+    # Discriminant : Propriétaire ou Mandataire ?
+    {
+        "id": "user_role",
+        "required_fields": ["user_role"],
+        "fields": {},  # Choix UI : "bailleur" ou "mandataire"
+    },
+    # === PARCOURS MANDATAIRE ===
+    {
+        "id": "mandataire.signataire",
+        "condition": "user_role_is_mandataire",
+        "required_fields": [],
+        "fields": {},
+        "business_rules": ["isAuthenticated"],
+    },
+    {
+        "id": "mandataire.agence",
+        "condition": "user_role_is_mandataire",
+        "required_fields": [],
+        "fields": {},
+        "business_rules": ["mandataireAgenceValidation"],
+    },
+    {
+        "id": "mandataire.numero_carte_professionnelle",
+        "condition": "user_role_is_mandataire",
+        "required_fields": ["mandataire.numero_carte_professionnelle"],
+        "fields": {},
+    },
+]
+
+# --- SIGNATURE MANDATAIRE (Bail et EDL) ---
+MANDATAIRE_SIGNATURE_STEPS = [
+    {
+        "id": "mandataire.signature_question",
+        "always_unlocked": True,
+        "condition": "user_role_is_bailleur_and_location_has_mandataire",
+        "required_fields": ["mandataire_doit_signer"],
+        "fields": {},  # Champ direct dans Bail ou EtatLieux
+        "question": "Le mandataire signe-t-il ce document ?",
+    },
+]
+
+
+MANDATAIRE_BAIL_HONORAIRES_STEPS = [
+    # --- HONORAIRES BAIL MANDATAIRE ---
+    {
+        "id": "honoraires_mandataire.bail",
+        "always_unlocked": True,
+        "condition": "user_role_is_mandataire",
+        "required_fields": [
+            "honoraires_mandataire.bail.tarif_par_m2",
+            "honoraires_mandataire.bail.part_bailleur_pct",
+        ],
+        "fields": {
+            "honoraires_mandataire.bail.tarif_par_m2": (
+                HonoraireMandataire.honoraires_bail_par_m2
+            ),
+            "honoraires_mandataire.bail.part_bailleur_pct": (
+                HonoraireMandataire.honoraires_bail_part_bailleur_pct
+            ),
+        },
+    },
+    # --- HONORAIRES EDL MANDATAIRE ---
+    {
+        "id": "honoraires_mandataire.edl.question",
+        "always_unlocked": True,
+        "condition": "user_role_is_mandataire",
+        "required_fields": ["honoraires_mandataire.edl.mandataire_fait_edl"],
+        "fields": {
+            "honoraires_mandataire.edl.mandataire_fait_edl": (
+                HonoraireMandataire.mandataire_fait_edl
+            ),
+        },
+    },
+]
+
+MANDATAIRE_EDL_HONORAIRES_STEPS = [
+    {
+        "id": "honoraires_mandataire.edl.tarifs",
+        "always_unlocked": True,
+        "condition": "user_role_is_mandataire_and_mandataire_fait_edl",
+        "required_fields": [
+            "honoraires_mandataire.edl.tarif_par_m2",
+            "honoraires_mandataire.edl.part_bailleur_pct",
+        ],
+        "fields": {
+            "honoraires_mandataire.edl.tarif_par_m2": (
+                HonoraireMandataire.honoraires_edl_par_m2
+            ),
+            "honoraires_mandataire.edl.part_bailleur_pct": (
+                HonoraireMandataire.honoraires_edl_part_bailleur_pct
+            ),
+        },
+    },
+]
+
+
 # --- PERSONNES (Bailleur et Locataires) ---
 PERSON_STEPS = [
-    # Bailleur
+    # === BAILLEUR (commun aux deux parcours) ===
     {
         "id": "bailleur.bailleur_type",
         "required_fields": ["bailleur.bailleur_type"],
         "fields": {},  # Pas de mapping direct, c'est un choix UI
     },
+    # === PARCOURS PROPRIÉTAIRE ===
     {
         "id": "bailleur.personne",
-        "condition": "bailleur_is_physique",
+        "condition": "user_role_is_bailleur_and_bailleur_is_physique",
         "required_fields": [],  # Validation par business rule
         "fields": {},  # Géré par le serializer BailleurInfoSerializer
         "business_rules": [
@@ -220,11 +328,29 @@ PERSON_STEPS = [
     },
     {
         "id": "bailleur.signataire",
-        "condition": "bailleur_is_morale",
+        "condition": "user_role_is_bailleur_and_bailleur_is_morale",
         "required_fields": [],  # Géré par serializer
         "business_rules": [
             "isAuthenticated",
         ],
+        "fields": {},  # Géré par le serializer
+    },
+    # === PARCOURS MANDATAIRE ===
+    # Steps séparés pour avoir des questions différentes et pas de isAuthenticated
+    {
+        "id": "mandataire.bailleur.personne",
+        "condition": "user_role_is_mandataire_and_bailleur_is_physique",
+        "required_fields": [],  # Validation par business rule
+        "fields": {},  # Géré par le serializer BailleurInfoSerializer
+        "business_rules": [
+            "bailleurPersonneValidation",
+        ],  # Validation personne physique (pas isAuthenticated)
+    },
+    {
+        "id": "mandataire.bailleur.signataire",
+        "condition": "user_role_is_mandataire_and_bailleur_is_morale",
+        "required_fields": [],  # Géré par serializer
+        "business_rules": [],  # Pas de validation auth
         "fields": {},  # Géré par le serializer
     },
     {
@@ -235,11 +361,11 @@ PERSON_STEPS = [
         "business_rules": ["societeValidation"],  # Validation complète société
     },
     {
-        "id": "bailleur.co_bailleurs",
+        "id": "co_bailleurs",
         "required_fields": [],  # Optionnel
         "fields": {},  # Relation many-to-many
     },
-    # Locataires
+    # === LOCATAIRES (commun aux deux parcours) ===
     {
         "id": "locataires",
         "required_fields": [],  # Validation par business rule
@@ -598,9 +724,37 @@ class FranceBailSerializer(BaseLocationSerializer):
     # Override source avec valeur par défaut
     source = serializers.CharField(default="bail")
 
+    # Discriminant : Propriétaire ou Mandataire ?
+    user_role = serializers.ChoiceField(
+        choices=["bailleur", "mandataire"],
+        default="bailleur",
+        help_text="Qui remplit ce formulaire : propriétaire ou mandataire (agent) ?",
+    )
+    mandataire_doit_signer = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Le mandataire doit-il signer ce bail ?",
+    )
+    signature_dpe_g_acknowledgment = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text=(
+            "Confirmation du bailleur qu'il assume la responsabilité de louer "
+            "un logement classé G, non décent depuis le 1er janvier 2025"
+        ),
+    )
+
     # Champs toujours obligatoires
     bien = BienBailSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
+    co_bailleurs = serializers.ListField(
+        child=BailleurInfoSerializer(),
+        required=False,
+        default=list,
+        help_text="Co-bailleurs (même niveau que bailleur principal)",
+    )
+    mandataire = MandataireInfoSerializer(required=False, allow_null=True)
+    honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
         child=LocataireInfoSerializer(), min_length=1, required=True
     )
@@ -641,6 +795,10 @@ class FranceBailSerializer(BaseLocationSerializer):
         BAIL_STEPS.extend(ENERGIE_EAU_CHAUDE_STEPS)
 
         BAIL_STEPS.extend(DPE_STEPS)
+        BAIL_STEPS.extend(USER_STEPS)
+        BAIL_STEPS.extend(MANDATAIRE_SIGNATURE_STEPS)
+        BAIL_STEPS.extend(MANDATAIRE_BAIL_HONORAIRES_STEPS)
+        BAIL_STEPS.extend(MANDATAIRE_EDL_HONORAIRES_STEPS)
         BAIL_STEPS.extend(PERSON_STEPS)
         BAIL_STEPS.extend(PERSON_STEPS_SOLIDAIRES)
         BAIL_STEPS.extend(ZONE_TENDUE_STEPS)
@@ -658,9 +816,29 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
     # Override source avec valeur par défaut
     source = serializers.CharField(default="quittance")
 
+    # Discriminant : Propriétaire ou Mandataire ?
+    user_role = serializers.ChoiceField(
+        choices=["bailleur", "mandataire"],
+        default="bailleur",
+        help_text="Qui remplit ce formulaire : propriétaire ou mandataire (agent) ?",
+    )
+    mandataire_doit_signer = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Le mandataire doit-il signer cette quittance ?",
+    )
+
     # Champs obligatoires pour une quittance
     bien = BienQuittanceSerializer(required=True)  # Juste l'adresse
     bailleur = BailleurInfoSerializer(required=True)
+    co_bailleurs = serializers.ListField(
+        child=BailleurInfoSerializer(),
+        required=False,
+        default=list,
+        help_text="Co-bailleurs (même niveau que bailleur principal)",
+    )
+    mandataire = MandataireInfoSerializer(required=False, allow_null=True)
+    honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True
     )
@@ -713,6 +891,7 @@ class FranceQuittanceSerializer(BaseLocationSerializer):
         QUITTANCE_STEPS = []
         QUITTANCE_STEPS.extend(ADRESSE_STEPS)
         QUITTANCE_STEPS.extend(TYPE_BIEN_STEPS)
+        QUITTANCE_STEPS.extend(USER_STEPS)
         QUITTANCE_STEPS.extend(PERSON_STEPS)
         QUITTANCE_STEPS.extend(QUITTANCE_LOCATAIRE_SELECTION_STEPS)
         QUITTANCE_STEPS.extend(QUITTANCE_MONTANT_STEPS)
@@ -728,9 +907,29 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
     # Override source avec valeur par défaut
     source = serializers.CharField(default="etat_lieux")
 
+    # Discriminant : Propriétaire ou Mandataire ?
+    user_role = serializers.ChoiceField(
+        choices=["bailleur", "mandataire"],
+        default="bailleur",
+        help_text="Qui remplit ce formulaire : propriétaire ou mandataire (agent) ?",
+    )
+    mandataire_doit_signer = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Le mandataire doit-il signer cet état des lieux ?",
+    )
+
     # Champs obligatoires
     bien = BienEtatLieuxSerializer(required=True)
     bailleur = BailleurInfoSerializer(required=True)
+    co_bailleurs = serializers.ListField(
+        child=BailleurInfoSerializer(),
+        required=False,
+        default=list,
+        help_text="Co-bailleurs (même niveau que bailleur principal)",
+    )
+    mandataire = MandataireInfoSerializer(required=False, allow_null=True)
+    honoraires_mandataire = HonorairesMandataireSerializer(required=False)
     locataires = serializers.ListField(
         child=PersonneSerializer(), min_length=1, required=True
     )
@@ -798,8 +997,12 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         """
         ETAT_LIEUX_STEPS = []
         ETAT_LIEUX_STEPS.extend(ETAT_LIEUX_DEFINITION_STEPS)
-        ETAT_LIEUX_STEPS.extend(PERSON_STEPS)
         ETAT_LIEUX_STEPS.extend(ADRESSE_STEPS)
+        ETAT_LIEUX_STEPS.extend(SUPERFICIE_STEPS)
+        ETAT_LIEUX_STEPS.extend(USER_STEPS)
+        ETAT_LIEUX_STEPS.extend(MANDATAIRE_SIGNATURE_STEPS)
+        ETAT_LIEUX_STEPS.extend(MANDATAIRE_EDL_HONORAIRES_STEPS)
+        ETAT_LIEUX_STEPS.extend(PERSON_STEPS)
         ETAT_LIEUX_STEPS.extend(TYPE_BIEN_STEPS)
 
         # Équipements - seulement privatives pour état des lieux

@@ -4,15 +4,20 @@ from .api.form_requirements import (
     get_form_requirements,
     get_form_requirements_authenticated,
 )
-from .views import (
-    create_or_update_location,
-    get_bien_locations,
-    get_location_detail,
-    get_location_documents,
-    get_locataire_locations,
+from .views.location import (
     cancel_bail,
     cancel_etat_lieux,
     cancel_quittance,
+    create_or_update_location,
+    get_bien_locations,
+    get_locataire_locations,
+    get_location_detail,
+    get_location_documents,
+)
+from .views.mandataire import (
+    get_mandataire_bailleur_detail,
+    get_mandataire_bailleurs,
+    get_mandataire_bien_detail,
 )
 
 app_name = "location"
@@ -24,9 +29,7 @@ urlpatterns = [
     path(
         "bien/<uuid:bien_id>/locations/", get_bien_locations, name="get_bien_locations"
     ),
-    path(
-        "mes-locations/", get_locataire_locations, name="get_locataire_locations"
-    ),
+    path("mes-locations/", get_locataire_locations, name="get_locataire_locations"),
     path(
         "<uuid:location_id>/",
         get_location_detail,
@@ -63,5 +66,21 @@ urlpatterns = [
         "quittances/<uuid:quittance_id>/cancel/",
         cancel_quittance,
         name="cancel_quittance",
+    ),
+    # Endpoints mandataire
+    path(
+        "mandataire/bailleurs/",
+        get_mandataire_bailleurs,
+        name="get_mandataire_bailleurs",
+    ),
+    path(
+        "mandataire/bailleurs/<uuid:bailleur_id>/",
+        get_mandataire_bailleur_detail,
+        name="get_mandataire_bailleur_detail",
+    ),
+    path(
+        "mandataire/biens/<uuid:bien_id>/",
+        get_mandataire_bien_detail,
+        name="get_mandataire_bien_detail",
     ),
 ]

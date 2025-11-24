@@ -9,9 +9,19 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
 from authentication.utils import get_tokens_for_user, set_refresh_token_cookie
+from location.models import Location
+from location.services.access_utils import get_user_role_for_location
+from location.services.bailleur_utils import get_primary_bailleur_for_user
+from signature.document_status import DocumentStatus
+from signature.models import AbstractSignatureRequest
+from signature.models_base import SignableDocumentMixin
 
+from .pdf_processing import process_signature_generic
+
+# Envoyer l'OTP par email
 from .services import (
     get_next_signer,
+    send_otp_email,
     send_signature_email,
     verify_signature_order,
 )
@@ -29,7 +39,9 @@ def get_signature_request_generic(request, token, model_class):
         model_class: Classe du modèle de signature
     """
     try:
-        sig_req = get_object_or_404(model_class, link_token=token)
+        sig_req: AbstractSignatureRequest = get_object_or_404(
+            model_class, link_token=token
+        )
 
         if sig_req.signed:
             return JsonResponse(
@@ -63,7 +75,7 @@ def get_signature_request_generic(request, token, model_class):
 
         # Ajouter l'URL du PDF si disponible
         if hasattr(document, "pdf") and document.pdf:
-            response_data["pdfUrl"] = request.build_absolute_uri(document.pdf.url)
+            response_data["pdfUrl"] = document.pdf.url
 
         # Générer et envoyer un OTP seulement si demandé explicitement
         # (via query param send_otp=true)
@@ -74,18 +86,11 @@ def get_signature_request_generic(request, token, model_class):
         if should_send_otp:
             sig_req.generate_otp()
 
-            # Préparer les données de réponse
-            person = sig_req.bailleur_signataire or sig_req.locataire
-            signer_email = sig_req.get_signataire_email()
-
-            # Envoyer l'OTP par email
-            from .services import send_otp_email
-
-            document_type = "bail" if hasattr(sig_req, "bail") else "etat_lieux"
+            document_type = sig_req.get_document_type()
             send_otp_email(sig_req, document_type)
 
-        # Préparer les données du signataire
-        person = sig_req.bailleur_signataire or sig_req.locataire
+        # Préparer les données du signataire (utilise la propriété signer qui gère mandataire)
+        person = sig_req.signer
         signer_email = sig_req.get_signataire_email()
 
         # Préparer la réponse dans le nouveau format unifié
@@ -98,7 +103,9 @@ def get_signature_request_generic(request, token, model_class):
                     "last_name": person.lastName if person else "",
                 },
                 "otp_sent": should_send_otp,
-                "is_tenant": bool(sig_req.locataire),  # Indiquer si c'est un locataire
+                "is_tenant": bool(sig_req.locataire),
+                "is_mandataire": bool(sig_req.mandataire),
+                "is_bailleur": bool(sig_req.bailleur_signataire),
             }
         )
 
@@ -122,7 +129,7 @@ def get_signature_request_generic(request, token, model_class):
                 {
                     "id": str(doc.id),
                     "name": doc.nom_original,
-                    "url": request.build_absolute_uri(doc.file.url),
+                    "url": doc.file.url,
                     "type": "Attestation MRH",
                 }
                 for doc in mrh_docs
@@ -133,7 +140,7 @@ def get_signature_request_generic(request, token, model_class):
                 {
                     "id": str(doc.id),
                     "name": doc.nom_original,
-                    "url": request.build_absolute_uri(doc.file.url),
+                    "url": doc.file.url,
                     "type": "Caution solidaire",
                 }
                 for doc in caution_docs
@@ -161,6 +168,7 @@ def get_signature_request_generic(request, token, model_class):
 
             # Ajouter la liste des documents du dossier de location
             from .document_list_service import get_bail_documents_list
+
             response_data["documents_list"] = get_bail_documents_list(bail, request)
 
         elif hasattr(sig_req, "etat_lieux"):
@@ -170,11 +178,16 @@ def get_signature_request_generic(request, token, model_class):
 
             # Ajouter le régime juridique du bien pour les assurances
             if etat_lieux.location and etat_lieux.location.bien:
-                response_data["regime_juridique"] = etat_lieux.location.bien.regime_juridique
+                response_data["regime_juridique"] = (
+                    etat_lieux.location.bien.regime_juridique
+                )
 
             # Ajouter la liste des documents de l'état des lieux
             from .document_list_service import get_etat_lieux_documents_list
-            response_data["documents_list"] = get_etat_lieux_documents_list(etat_lieux, request)
+
+            response_data["documents_list"] = get_etat_lieux_documents_list(
+                etat_lieux, request
+            )
 
         # Tenter d'authentifier automatiquement l'utilisateur
         User = get_user_model()
@@ -228,7 +241,9 @@ def confirm_signature_generic(request, model_class, document_type):
                 status=400,
             )
 
-        sig_req = get_object_or_404(model_class, link_token=token)
+        sig_req: AbstractSignatureRequest = get_object_or_404(
+            model_class, link_token=token
+        )
 
         if sig_req.signed:
             return JsonResponse({"error": "Déjà signé"}, status=400)
@@ -249,15 +264,15 @@ def confirm_signature_generic(request, model_class, document_type):
 
         # Traiter la signature si fournie - utiliser la fonction générique
         if signature_data_url:
-            from .pdf_processing import process_signature_generic
-
-            process_signature_generic(sig_req, signature_data_url)
-
-        # Marquer comme signé
-        sig_req.mark_as_signed()
+            # process_signature_generic s'occupera de mark_as_signed()
+            # Passer la request pour capturer métadonnées HTTP (IP, user-agent)
+            process_signature_generic(sig_req, signature_data_url, request=request)
+        else:
+            # Si pas de signature fournie, marquer quand même comme signé
+            sig_req.mark_as_signed()
 
         # Récupérer le document
-        document = sig_req.get_document()
+        document: SignableDocumentMixin = sig_req.get_document()
 
         # Envoi au suivant - utiliser la fonction générique pour tous les types
         next_req = get_next_signer(sig_req)
@@ -272,17 +287,24 @@ def confirm_signature_generic(request, model_class, document_type):
 
         # Ajouter l'URL du PDF signé (latest_pdf si disponible, sinon PDF original)
         if hasattr(document, "latest_pdf") and document.latest_pdf:
-            response_data["pdfUrl"] = request.build_absolute_uri(
-                document.latest_pdf.url
-            )
+            response_data["pdfUrl"] = document.latest_pdf.url
         elif hasattr(document, "pdf") and document.pdf:
-            response_data["pdfUrl"] = request.build_absolute_uri(document.pdf.url)
+            response_data["pdfUrl"] = document.pdf.url
 
         # Ajouter le bienId et location_id pour la redirection et le nettoyage localStorage
         if hasattr(document, "location") and document.location:
             response_data["location_id"] = str(document.location.id)
             if hasattr(document.location, "bien"):
                 response_data["bienId"] = document.location.bien.id
+
+                # Pour le mandataire : ajouter le bailleurId pour la redirection
+                # vers /mon-compte/mes-mandats/{bailleurId}/biens/{bienId}
+                # Priorité au bailleur du user authentifié (request.user)
+                bailleur = get_primary_bailleur_for_user(
+                    document.location.bien.bailleurs, request.user
+                )
+                if bailleur:
+                    response_data["bailleurId"] = str(bailleur.id)
 
         return JsonResponse(response_data)
 
@@ -356,3 +378,98 @@ def resend_otp_generic(request, model_class, document_type):
 # - Les vues upload_document et delete_document existantes
 # - L'endpoint standard /location/forms/tenant_documents/requirements/?token=xxx
 #   géré par FormOrchestrator._get_tenant_documents_requirements()
+
+
+def cancel_signature_generic(request, document_id, document_model):
+    """
+    Vue générique pour annuler une signature en cours.
+
+    Permissions: Bailleur ou Mandataire uniquement.
+
+    Actions:
+    - Supprime toutes les signature requests liées au document
+    - Supprime le latest_pdf
+    - Passe le statut du document à DRAFT
+
+    Args:
+        request: HttpRequest
+        document_id: UUID du document
+        document_model: Classe du modèle de document (Bail ou EtatLieux)
+    """
+    try:
+        # Récupérer le document
+        document: SignableDocumentMixin = get_object_or_404(
+            document_model, id=document_id
+        )
+
+        # Vérifier que le document est bien en cours de signature
+        if document.status != DocumentStatus.SIGNING:
+            return JsonResponse(
+                {
+                    "error": f"Ce document n'est pas en cours de signature (statut actuel: {document.status})"
+                },
+                status=400,
+            )
+
+        # Vérifier les permissions: le user doit être bailleur ou mandataire
+        user = request.user
+        if not user.is_authenticated:
+            return JsonResponse(
+                {"error": "Authentification requise"},
+                status=401,
+            )
+
+        # Vérifier que l'utilisateur est bien le bailleur ou le mandataire
+
+        location: Location = document.location
+        user_roles = get_user_role_for_location(location, user.email)
+
+        is_bailleur = user_roles.get("is_bailleur", False)
+        is_mandataire = user_roles.get("is_mandataire", False)
+
+        if not (is_bailleur or is_mandataire):
+            return JsonResponse(
+                {"error": "Vous n'avez pas les droits pour annuler cette signature"},
+                status=403,
+            )
+
+        # Supprimer toutes les signature requests liées au document
+        # Via la relation inverse (related_name="signature_requests")
+        signature_requests = document.signature_requests.all()
+
+        deleted_count = signature_requests.count()
+        signature_requests.delete()
+
+        # Supprimer le latest_pdf si existant
+        if document.latest_pdf:
+            try:
+                # Supprimer le fichier physique
+                document.latest_pdf.delete(save=False)
+            except Exception as e:
+                logger.warning(f"Erreur lors de la suppression du PDF: {e}")
+
+        # Passer le statut à DRAFT
+        document.status = DocumentStatus.DRAFT
+        document.latest_pdf = None
+        document.save()
+
+        logger.info(
+            f"Signature annulée pour {document_model.__name__} {document_id} "
+            f"par {user.email}. {deleted_count} signature request(s) supprimée(s)."
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": "La signature a été annulée avec succès",
+                "document_id": str(document_id),
+                "deleted_signature_requests": deleted_count,
+            }
+        )
+
+    except Exception as e:
+        logger.exception(f"Erreur lors de l'annulation de la signature: {e}")
+        return JsonResponse(
+            {"error": str(e)},
+            status=500,
+        )

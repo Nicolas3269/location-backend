@@ -2,6 +2,7 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from bail.models import Bail
 from location.models import Bien, RentTerms
+from location.services.honoraires_utils import get_honoraires_mandataire_for_location
 from rent_control.choices import PropertyType, RegimeJuridique, SystemType
 
 
@@ -278,3 +279,21 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
         if hasattr(bail.location, "rent_terms"):
             return bail.location.rent_terms.permis_de_louer
         return False
+
+    @staticmethod
+    def get_honoraires_mandataire_data(bail: Bail):
+        """
+        Retourne les honoraires du mandataire (bail + EDL)
+        en lisant depuis HonoraireMandataire (système temporel).
+        Retourne un dict avec les données formatées pour le template PDF.
+
+        Optimisation: Ne calcule les honoraires que si mandataire_doit_signer=True.
+        """
+        # Récupérer bail + EDL (avec vérification mandataire_doit_signer)
+        return get_honoraires_mandataire_for_location(
+            bail.location,
+            include_bail=True,
+            include_edl=True,
+            check_doit_signer=True,
+            document=bail,
+        )

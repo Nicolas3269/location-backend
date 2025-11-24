@@ -13,7 +13,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ..services import FormOrchestrator
+from ..services.form_handlers.form_orchestrator import FormOrchestrator
+from ..services.user_role_detector import get_user_role_for_context
 from ..types.form_state import (
     CreateFormState,
     EditFormState,
@@ -80,7 +81,7 @@ def get_form_requirements(request, form_type):
             form_state=form_state,
             type_etat_lieux=type_etat_lieux,
             user=None,
-            request=request
+            request=request,
         )
 
         # Vérifier si une erreur a été retournée
@@ -95,8 +96,9 @@ def get_form_requirements(request, form_type):
         return Response(requirements, status=status.HTTP_200_OK)
 
     except Exception as e:
-        import traceback
         import logging
+        import traceback
+
         logger = logging.getLogger(__name__)
         logger.error(f"Error in get_form_requirements: {str(e)}")
         logger.error(traceback.format_exc())
@@ -173,8 +175,14 @@ def get_form_requirements_authenticated(request, form_type):
     # Cas 2: Mode extend/prefill (créer depuis source existante)
     elif context_mode and context_source_id:
         valid_modes = [
-            "from_bailleur", "from_bien", "from_location",
-            "location_actuelle", "location_ancienne", "location_nouvelle"
+            "from_bailleur",
+            "from_bien",
+            "from_location",
+            "location_actuelle",
+            "location_ancienne",
+            "location_nouvelle",
+            "from_draft_bail",
+            "from_draft_edl",
         ]
         if context_mode not in valid_modes:
             return Response(
@@ -189,13 +197,9 @@ def get_form_requirements_authenticated(request, form_type):
         if context_mode in ["location_actuelle", "location_ancienne"]:
             # Mode Extend: Lock SI source a docs signés
             lock_fields_str = request.query_params.get("lock_fields", "")
-            lock_fields = [
-                f.strip() for f in lock_fields_str.split(",") if f.strip()
-            ]
+            lock_fields = [f.strip() for f in lock_fields_str.split(",") if f.strip()]
             if not lock_fields:
-                lock_fields = [
-                    "bien", "bailleur", "locataires", "rent_terms"
-                ]
+                lock_fields = ["bien", "bailleur", "locataires", "rent_terms"]
 
             form_state = ExtendFormState(
                 source_type="location",
@@ -212,6 +216,27 @@ def get_form_requirements_authenticated(request, form_type):
                 source_id=UUID(context_source_id),
             )
 
+        # Modes DRAFT (reprendre un document brouillon)
+        elif context_mode == "from_draft_bail":
+            # Reprendre un bail DRAFT
+            # Utiliser ExtendFormState pour charger les données
+            # Pas de lock_fields (formulaire éditable)
+            form_state = ExtendFormState(
+                source_type="draft_bail",
+                source_id=UUID(context_source_id),
+                lock_fields=[],
+            )
+
+        elif context_mode == "from_draft_edl":
+            # Reprendre un état des lieux DRAFT
+            # Utiliser ExtendFormState pour charger les données
+            # Pas de lock_fields (formulaire éditable)
+            form_state = ExtendFormState(
+                source_type="draft_edl",
+                source_id=UUID(context_source_id),
+                lock_fields=[],
+            )
+
         # Legacy modes (from_location, from_bien, from_bailleur)
         else:
             if context_mode == "from_location":
@@ -219,9 +244,7 @@ def get_form_requirements_authenticated(request, form_type):
                 form_state = ExtendFormState(
                     source_type="location",
                     source_id=UUID(context_source_id),
-                    lock_fields=[
-                        "bien", "bailleur", "locataires", "rent_terms"
-                    ],
+                    lock_fields=["bien", "bailleur", "locataires", "rent_terms"],
                 )
             else:
                 # Legacy: from_bien/from_bailleur = Prefill sans lock
@@ -240,6 +263,64 @@ def get_form_requirements_authenticated(request, form_type):
     else:
         form_state = CreateFormState()
 
+    # Déterminer le user_role basé sur les paramètres de la requête
+    # AVANT d'appeler l'orchestrateur (plus propre et direct)
+    user_role_location_id = None
+    user_role_bien_id = None
+    user_role_bailleur_id = None
+
+    # Cas 1: location_id fourni directement (edit/renew)
+    if location_id:
+        user_role_location_id = location_id
+
+    # Cas 2: context_mode et context_source_id (extend/prefill)
+    elif context_mode and context_source_id:
+        if context_mode in ["from_location", "location_actuelle", "location_ancienne"]:
+            user_role_location_id = context_source_id
+        elif context_mode == "from_bien":
+            user_role_bien_id = context_source_id
+        elif context_mode == "from_bailleur":
+            user_role_bailleur_id = context_source_id
+        elif context_mode == "location_nouvelle":
+            # Pour location_nouvelle, on assume que source peut être
+            # location/bien/bailleur. On passe context_source_id comme
+            # location_id par défaut
+            user_role_location_id = context_source_id
+        elif context_mode == "from_draft_bail":
+            # Pour draft_bail, récupérer la location_id depuis le bail
+            from bail.models import Bail
+
+            try:
+                bail = Bail.objects.get(id=context_source_id)
+                user_role_location_id = str(bail.location_id)
+            except Bail.DoesNotExist:
+                pass
+        elif context_mode == "from_draft_edl":
+            # Pour draft_edl, récupérer la location_id depuis l'EDL
+            from etat_lieux.models import EtatLieux
+
+            try:
+                edl = EtatLieux.objects.get(id=context_source_id)
+                user_role_location_id = str(edl.location_id)
+            except EtatLieux.DoesNotExist:
+                pass
+
+    # Déterminer le user_role
+    user_role = get_user_role_for_context(
+        user=request.user,
+        location_id=user_role_location_id,
+        bien_id=user_role_bien_id,
+        bailleur_id=user_role_bailleur_id,
+    )
+
+    # Sécurité: Les locataires ne peuvent pas accéder aux brouillons
+    if context_mode in ["from_draft_bail", "from_draft_edl"]:
+        if user_role == "locataire":
+            return Response(
+                {"error": "Les locataires ne peuvent pas accéder aux brouillons"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
     # Utiliser l'orchestrateur avec ExtendFormState
     orchestrator = FormOrchestrator()
 
@@ -249,7 +330,7 @@ def get_form_requirements_authenticated(request, form_type):
             form_state=form_state,
             type_etat_lieux=type_etat_lieux,
             user=request.user,
-            request=request
+            request=request,
         )
 
         # Vérifier si une erreur a été retournée
@@ -261,11 +342,18 @@ def get_form_requirements_authenticated(request, form_type):
                 else status.HTTP_400_BAD_REQUEST,
             )
 
+        # Injecter user_role dans formData si déterminé
+        if user_role:
+            if "formData" not in requirements:
+                requirements["formData"] = {}
+            requirements["formData"]["user_role"] = user_role
+
         return Response(requirements, status=status.HTTP_200_OK)
 
     except Exception as e:
-        import traceback
         import logging
+        import traceback
+
         logger = logging.getLogger(__name__)
         logger.error(f"Error in get_form_requirements_authenticated: {str(e)}")
         logger.error(traceback.format_exc())

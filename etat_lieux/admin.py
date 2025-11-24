@@ -46,6 +46,7 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         "type_etat_lieux",
         "location_info",
         "date_etat_lieux",
+        "status_display",
         "created_at",
         "pdf_link",
     )
@@ -62,22 +63,39 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         "location__locataires__firstName",
     )
 
-    readonly_fields = ("id", "created_at", "updated_at", "pdf_link", "latest_pdf_link")
+    readonly_fields = (
+        "id",
+        "created_at",
+        "updated_at",
+        "pdf_link",
+        "latest_pdf_link",
+        "grille_vetuste_link",
+    )
 
     fieldsets = (
-        (None, {"fields": ("id", "location", "type_etat_lieux", "date_etat_lieux")}),
+        (None, {"fields": ("id", "location", "type_etat_lieux", "date_etat_lieux", "status")}),
         (
             "Inventaire",
             {
-                "fields": ("nombre_cles", "compteurs", "equipements_chauffage"),
+                "fields": ("nombre_cles", "compteurs", "commentaires_generaux"),
                 "classes": ("collapse",),
             }
         ),
         (
             "PDF",
             {
-                "fields": ("pdf", "pdf_link", "latest_pdf", "latest_pdf_link", "grille_vetuste_pdf"),
-                "classes": ("collapse",)
+                "fields": (
+                    "pdf",
+                    "pdf_link",
+                    "latest_pdf",
+                    "latest_pdf_link",
+                    "grille_vetuste_link",
+                ),
+                "classes": ("collapse",),
+                "description": (
+                    "La grille de vétusté est toujours disponible "
+                    "(document statique)"
+                ),
             }
         ),
         (
@@ -122,6 +140,30 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         return "Pas de PDF signé"
 
     latest_pdf_link.short_description = "PDF Signé"
+
+    def grille_vetuste_link(self, obj):
+        """Affiche un lien vers la grille de vétusté (document statique)"""
+        from django.urls import reverse
+
+        url = reverse(
+            "serve_static_pdf_iframe",
+            kwargs={"file_path": "bails/grille_vetuste.pdf"},
+        )
+        return format_html(
+            '<a href="{}" target="_blank">📋 Grille (statique)</a>',
+            url,
+        )
+
+    grille_vetuste_link.short_description = "Grille de vétusté"
+
+    def status_display(self, obj):
+        """
+        Affiche le statut en format lisible.
+        """
+        # Utiliser get_status_display() pour afficher le label
+        return obj.get_status_display()
+
+    status_display.short_description = "Statut"
 
 
 @admin.register(EtatLieuxPiece)

@@ -1,0 +1,51 @@
+# OpenSSL TSA Runtime Configuration (RFC 3161)
+# Template utilisé par tsa/views.py pour générer la config à chaque requête
+#
+# ⚠️  IMPORTANT - Deux fichiers .cnf distincts:
+# - hestia_tsa_generation.cnf : Génération certificat TSA (une fois)
+# - hestia_tsa.cnf (ce fichier) : Template runtime (remplacé dynamiquement)
+#
+# Chemins remplacés dynamiquement par tsa/views.py:
+# - serial = ... → Fichier temporaire unique par requête
+# - certs = ... → settings.TSA_CERT_PATH (local ou Railway)
+
+# Section pointer (required by openssl ts -reply)
+[ tsa ]
+default_tsa = tsa_config1
+
+# TSA configuration section
+[ tsa_config1 ]
+
+# OID de la politique TSA (peut être n'importe quel OID)
+default_policy = 1.2.3.4.1
+
+# Algorithme de signature utilisé
+signer_digest = sha256
+
+# Algorithmes acceptés pour les requêtes
+digests = sha1, sha256, sha384, sha512
+
+# Précision du timestamp (optionnel)
+accuracy = secs:1, millisecs:500, microsecs:100
+
+# Fichier contenant le prochain numéro de série (remplacé dynamiquement)
+# Ce chemin sera remplacé par tsa/views.py avec un fichier temporaire
+serial = /app/certificates/hestia_tsa_serial.txt
+
+# Certificat du TSA (utilisé pour signer)
+# Ce chemin absolu est valide pour Docker (/app/certificates/)
+# En local, Django utilise le chemin depuis settings.TSA_CERT_PATH
+certs = /app/certificates/hestia_tsa.pem
+
+# Options supplémentaires
+# clock_precision_digits: nombre de chiffres après la virgule pour les microsecondes
+clock_precision_digits = 0
+
+# ess_cert_id_chain: inclure la chaîne de certificats dans la réponse
+ess_cert_id_chain = no
+
+# ordering: garantir l'ordre chronologique des timestamps
+ordering = yes
+
+# tsa_name: inclure le nom du TSA dans la réponse (optionnel)
+tsa_name = yes

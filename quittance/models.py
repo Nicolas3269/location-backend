@@ -3,8 +3,6 @@ Nouveau modèle Quittance refactorisé
 À renommer en models.py après validation
 """
 
-import uuid
-
 from django.db import models
 from simple_history.models import HistoricalRecords
 
@@ -87,12 +85,3 @@ class Quittance(BaseModel):
 
     def __str__(self):
         return f"Quittance {self.mois} {self.annee} - {self.location.bien.adresse}"
-
-    def check_and_update_status(self):
-        """Met à jour automatiquement le statut selon les signatures"""
-        # Pour les quittances, le statut est géré différemment :
-        # - DRAFT lors de la création
-        # - SIGNED dès que le PDF est généré (fait dans generate_quittance_pdf)
-        # Cette méthode est là pour compatibilité mais ne fait rien pour les quittances
-        # car elles n'ont pas de processus de signature
-        pass

@@ -3,14 +3,19 @@ Nouveau modèle EtatLieux refactorisé
 À renommer en models.py après validation
 """
 
-import uuid
-
 from django.db import models
-from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
-from location.models import BaseModel, Locataire, Location, Personne
-from signature.document_status import DocumentStatus
+from backend.pdf_utils import get_static_pdf_iframe_url
+from location.models import (
+    BaseModel,
+    DocumentAvecMandataireMixin,
+    Locataire,
+    Location,
+    Mandataire,
+    Personne,
+)
+from signature.document_types import SignableDocumentType
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
 
@@ -39,7 +44,7 @@ class EtatLieuxType(models.TextChoices):
     SORTIE = "sortie", "État des lieux de sortie"
 
 
-class EtatLieux(SignableDocumentMixin, BaseModel):
+class EtatLieux(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
     """État des lieux"""
 
     location = models.ForeignKey(
@@ -48,13 +53,8 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
 
     type_etat_lieux = models.CharField(max_length=10, choices=EtatLieuxType.choices)
 
-    # Statut du document
-    status = models.CharField(
-        max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.DRAFT
-    )
-
     # Date de l'état des lieux
-    date_etat_lieux = models.DateField(default=timezone.now)
+    date_etat_lieux = models.DateField()
     # Inventaire (garde en JSON car structure simple)
     nombre_cles = models.JSONField(default=dict)
     compteurs = models.JSONField(default=None, null=True, blank=True)
@@ -64,7 +64,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         default=None,
         null=True,
         blank=True,
-        help_text="Commentaires généraux sur l'état des lieux"
+        help_text="Commentaires généraux sur l'état des lieux",
     )
 
     # Annulation
@@ -76,13 +76,8 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
     # Les équipements sont maintenant gérés via le modèle EtatLieuxEquipement
     # (anciennement stockés dans des JSONField)
 
-    # PDF spécifique EDL
-    grille_vetuste_pdf = models.FileField(
-        upload_to="etat_lieux_pdfs/",
-        null=True,
-        blank=True,
-        verbose_name="Grille de vétusté PDF",
-    )
+    # Note: grille_vetuste est un document statique accessible via
+    # get_grille_vetuste_url() - pas de champ FileField
 
     # Note: Les détails des pièces sont dans EtatLieuxPieceDetail
     # Note: Les photos sont dans EtatLieuxPhoto
@@ -96,7 +91,7 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["location", "type_etat_lieux"],
-                condition=models.Q(status__in=['SIGNING', 'SIGNED']),
+                condition=models.Q(status__in=["SIGNING", "SIGNED"]),
                 name="unique_signing_or_signed_edl_per_location_and_type",
             )
         ]
@@ -114,32 +109,40 @@ class EtatLieux(SignableDocumentMixin, BaseModel):
         """Retourne le préfixe pour les noms de fichiers"""
         return "etat_lieux"
 
-    def check_and_update_status(self):
-        """Met à jour automatiquement le statut selon les signatures"""
-        from signature.document_status import DocumentStatus
+    # Méthode de DocumentAvecMandataireMixin
+    def get_reference_date_for_honoraires(self):
+        """
+        Date de référence pour les honoraires (fallback si pas encore signé).
+        Pour un EDL : date effective de l'état des lieux.
+        """
+        return self.date_etat_lieux
 
-        current_status = self.status
+    def get_grille_vetuste_url(self, request):
+        """
+        Retourne l'URL de la grille de vétusté (document statique).
+        Factorise la logique au lieu d'utiliser le champ grille_vetuste_pdf.
 
-        # Ne pas passer automatiquement de DRAFT à SIGNING
-        # Cela sera fait par send_signature_email quand on envoie vraiment l'email
+        Args:
+            request: L'objet request Django pour construire l'URL absolue
 
-        # Passer de SIGNING à SIGNED si toutes les signatures sont complètes
-        if self.status == DocumentStatus.SIGNING:
-            if (
-                self.signature_requests.exists()
-                and not self.signature_requests.filter(signed=False).exists()
-            ):
-                self.status = DocumentStatus.SIGNED
+        Returns:
+            str: URL complète de la grille de vétusté statique
+        """
 
-        if current_status != self.status:
-            self.save(update_fields=["status"])
+        return get_static_pdf_iframe_url(request, "bails/grille_vetuste.pdf")
 
     def _format_equipment_data(self, equipment, include_date_entretien=False):
         """Méthode commune pour formater les données d'un équipement"""
         from etat_lieux.utils import StateEquipmentUtils
+        from etat_lieux.views import image_to_base64_data_url
 
-        # Récupérer les photos de l'équipement
-        photos = [photo.image.url for photo in equipment.photos.all() if photo.image]
+        # Récupérer les photos de l'équipement et convertir en Base64 pour WeasyPrint
+        photos = []
+        for photo in equipment.photos.all():
+            if photo.image:
+                photo_data_url = image_to_base64_data_url(photo.image)
+                if photo_data_url:
+                    photos.append(photo_data_url)
 
         formatted = {
             "uuid": str(equipment.id),
@@ -279,7 +282,7 @@ class EtatLieuxEquipement(BaseModel):
     quantity = models.IntegerField(
         null=True,
         blank=True,
-        help_text="Quantité de l'équipement (pour les équipements comptables)"
+        help_text="Quantité de l'équipement (pour les équipements comptables)",
     )
 
     # Données additionnelles (date_entretien, etc.)
@@ -304,9 +307,14 @@ class EtatLieuxPhoto(BaseModel):
     """Photos associées aux équipements d'état des lieux"""
 
     # Relation directe avec l'équipement
+    # SET_NULL permet de conserver les photos temporairement lors du submit final
+    # (évite la perte lors de la recréation des équipements)
+    # Un job de nettoyage supprimera les photos orphelines > 7 jours
     equipment = models.ForeignKey(
         EtatLieuxEquipement,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="photos",
         help_text="Équipement associé",
     )
@@ -332,7 +340,13 @@ class EtatLieuxPhoto(BaseModel):
         db_table = "etat_lieux_photo"
 
     def __str__(self):
-        return f"Photo {self.equipment.equipment_name} - {self.equipment.etat_lieux}"
+        if self.equipment:
+            return (
+                f"Photo {self.equipment.equipment_name} - "
+                f"{self.equipment.etat_lieux}"
+            )
+        else:
+            return f"Photo standalone {self.nom_original} (ID: {self.id})"
 
 
 class EtatLieuxSignatureRequest(AbstractSignatureRequest):
@@ -343,6 +357,14 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
     )
 
     # Override les champs related_name pour éviter les conflits avec bail
+    mandataire = models.ForeignKey(
+        Mandataire,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="etat_lieux_signature_requests",
+        help_text="Mandataire qui signe pour le compte du bailleur",
+    )
     bailleur_signataire = models.ForeignKey(
         Personne,
         on_delete=models.CASCADE,
@@ -361,6 +383,11 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
     class Meta:
         verbose_name = "Demande signature état des lieux"
         verbose_name_plural = "Demandes signature état des lieux"
+        unique_together = [
+            ("etat_lieux", "bailleur_signataire"),
+            ("etat_lieux", "locataire"),
+            ("etat_lieux", "mandataire"),
+        ]
         ordering = ["order"]
 
     def get_document_name(self):
@@ -383,6 +410,10 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
             .order_by("order")
             .first()
         )
+
+    def get_document_type(self):
+        """Retourne le type de document"""
+        return SignableDocumentType.ETAT_LIEUX.value
 
     def mark_as_signed(self):
         """Marque la demande comme signée et met à jour le statut du document"""

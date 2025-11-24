@@ -23,7 +23,7 @@ from django.contrib import admin
 from django.urls import include, path, re_path
 from django.views.static import serve
 
-from .pdf_views import serve_pdf_for_iframe
+from .pdf_views import serve_pdf_for_iframe, serve_static_pdf_for_iframe
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -34,8 +34,9 @@ urlpatterns = [
     path("api/notifications/", include("notifications.urls")),
     path("api/etat_lieux/", include("etat_lieux.urls")),
     path("api/quittance/", include("quittance.urls")),
-    # Nouvelle route pour servir les PDFs en iframe sans X-Frame-Options
-    path("pdf/<path:file_path>", serve_pdf_for_iframe, name="serve_pdf_iframe"),
+    # Routes pour servir les PDFs en iframe sans X-Frame-Options
+    path("pdf/static/<path:file_path>", serve_static_pdf_for_iframe, name="serve_static_pdf_iframe"),  # Templates statiques
+    path("pdf/<path:file_path>", serve_pdf_for_iframe, name="serve_pdf_iframe"),  # Uploads S3
 ]
 
 # Ajouter ceci pour servir les fichiers médias en développement

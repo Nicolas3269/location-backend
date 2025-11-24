@@ -12,7 +12,7 @@
       margin: 1.5cm 1.5cm 2.5cm 1.5cm;
 
       @bottom-center {
-        content: url({{ logo_base64_uri }}) "  Document généré avec Hestia - Solution de gestion locative, conforme à la loi";
+        content: url({{ logo_base64_uri }}) "  Document généré avec Hestia - Solution gratuite de gestion locative conforme à la loi";
         font-family: 'Playfair Display', Georgia, serif;
         font-style: italic;
         font-size: 10pt;
@@ -101,6 +101,14 @@
       min-height: 182px; /* correspond à la hauteur du tampon */
       border-bottom: 1px dotted #999;
     }
+
+    .highlight-box {
+      background-color: #f0f7ff;
+      border-left: 4px solid #2680eb;
+      padding: 12px 16px;
+      margin: 1em 0;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -145,6 +153,21 @@
     <p class="align-right">
       Dénommé{% if bail.location.locataires.all|length > 1 %}s{% endif %} ci-après « le locataire » ;
     </p>
+
+    {% if bail.location.mandataire and bail.mandataire_doit_signer %}
+    <p>
+      <ul>
+        <li>
+          La <strong>personne morale</strong> {{ bail.location.mandataire.societe.raison_sociale }} ({{ bail.location.mandataire.societe.forme_juridique }}), dont le SIRET est {{ bail.location.mandataire.societe.siret }},
+          domiciliée au {{ bail.location.mandataire.societe.adresse }}, représentée pour la signature par
+          {{ bail.location.mandataire.signataire.firstName }} {{ bail.location.mandataire.signataire.lastName }} ({{ bail.location.mandataire.signataire.email }})
+        </li>
+      </ul>
+    </p>
+    <p class="align-right">
+      Dénommé ci-après « le mandataire » ;
+    </p>
+    {% endif %}
 
     <p class="section-title">2° Déclaration des parties</p>
     <p>
@@ -280,8 +303,27 @@
 
     {% else %}
     <p>
-      Le présent logement n’est pas soumis à l’obligation de réalisation d’un diagnostic de performance énergétique, conformément à l’article R.126-15 du Code de la construction et de l’habitation. <br>
-      Cette exclusion s’applique notamment aux logements dépourvus de système de chauffage fixe ou à certains bâtiments spécifiques non couverts par la réglementation thermique.
+      Le présent logement n'est pas soumis à l'obligation de réalisation d'un diagnostic de performance énergétique, conformément à l'article R.126-15 du Code de la construction et de l'habitation. <br>
+      Cette exclusion s'applique notamment aux logements dépourvus de système de chauffage fixe ou à certains bâtiments spécifiques non couverts par la réglementation thermique.
+    </p>
+    <br>
+    {% endif %}
+
+    {% if bail.location.bien.classe_dpe == "G" %}
+    <br>
+    <p>
+      <strong>Information spécifique pour les logements classés G :</strong>
+    </p>
+    <p>
+      Le bailleur déclare avoir remis au locataire le Diagnostic de Performance Énergétique (DPE) établi pour le logement, indiquant une classe énergétique G.
+    </p>
+    <p>
+      Lorsque le logement est classé G, le bailleur informe expressément le locataire que ce classement correspond aux niveaux les plus faibles de performance énergétique.
+      Il reconnaît que les logements classés G ne satisfont plus, à compter du 1er janvier 2025, aux critères de décence énergétique définis par la réglementation en vigueur.
+    </p>
+    <p>
+      Le bailleur déclare assumer seul la responsabilité liée à l'état du logement, à sa conformité aux exigences légales de décence et à la possibilité légale de le louer.
+      Le locataire reconnaît avoir été informé de la performance énergétique du logement avant la signature du présent bail.
     </p>
     <br>
     {% endif %}
@@ -437,15 +479,15 @@
   </div>
 
   <div class="article">
-    <h2>Article 9 – Conditions financières</h2>
-    
+    <h2>Article 8 – Conditions financières</h2>
+
     <p><strong>1° Fixation du loyer initial</strong></p>
     <p>
     Le loyer convenu est en conséquence chiffré à la somme de {{bail.location.rent_terms.montant_loyer}} euros par mois, charges en sus. Ce loyer sera payable mensuellement à terme à échoir, par tout moyen, dans les 10 premiers jours de chaque mois. Le premier paiement interviendra le jour de la remise des clés.
     </p>
 
     <p>
-    Au titre du trimestre de référence de l’IRL (Indice de référence des loyers) à la date du présent contrat, l’indice s’élève à {{indice_irl}}. 
+    Au titre du trimestre de référence de l'IRL (Indice de référence des loyers) à la date du présent contrat, l'indice s'élève à {{indice_irl}}.
     </p>
 
     {% if zone_tendue_avec_loyer_encadre %}
@@ -455,7 +497,7 @@
     <p>
       <ul>
         <li>
-          Le loyer du logement objet du présent contrat est soumis au décret fixant annuellement le montant maximum d’évolution des loyers à la relocation.
+          Le loyer du logement objet du présent contrat est soumis au décret fixant annuellement le montant maximum d'évolution des loyers à la relocation.
         </li>
         <li>
           Le loyer du logement objet du présent contrat est soumis au loyer de référence majoré fixé par arrêté préfectoral :
@@ -477,7 +519,24 @@
     </p>
     {% endif %}
 
-    <p><strong>2° Révision du loyer </strong></p>
+    {% if display_precedent_loyer %}
+    <p><strong>2° Dernier loyer appliqué au précédent locataire</strong></p>
+    <p>
+      Conformément aux dispositions de l'article 3, 8° de la loi n°89-462 du 6 juillet 1989 tendant à améliorer les rapports locatifs, le bailleur déclare que :
+    </p>
+    <p>
+      <ul>
+        <li>
+          le montant du dernier loyer appliqué au précédent locataire s'élevait à {{dernier_montant_loyer}} € (hors charges) ;
+        </li>
+        <li>
+          la date de paiement du dernier loyer par le précédent locataire était le {{dernier_loyer_periode}}.
+        </li>
+      </ul>
+    </p>
+    {% endif %}
+
+    <p><strong>{% if display_precedent_loyer %}3{% else %}2{% endif %}° Révision du loyer </strong></p>
     <p>
     Le loyer ci-dessus stipulé pourra être révisé chaque année à la date anniversaire de la prise d'effet du présent contrat, notamment dans le cas de sa reconduction, en fonction de la variation de l'indice de référence des loyers (IRL) publié par l'INSEE, conformément à l’article 17-1 de la loi du 6 juillet 1989. 
     </p>
@@ -485,10 +544,10 @@
     L’augmentation annuelle ne pourra excéder la variation de l’indice sur 12 mois, entre l’indice de référence indiqué ci-dessus et celui publié le plus récemment à la date de révision. 
     </p>
     <p>
-    En cas de non-publication ponctuelle de l’indice, le loyer restera provisoirement inchangé. Dès la publication de l’indice, le bailleur pourra exiger le rappel de loyer rétroactif, dans la limite du délai légal de prescription. 
+    En cas de non-publication ponctuelle de l'indice, le loyer restera provisoirement inchangé. Dès la publication de l'indice, le bailleur pourra exiger le rappel de loyer rétroactif, dans la limite du délai légal de prescription.
     </p>
 
-    <p><strong>3° Charges </strong></p>
+    <p><strong>{% if display_precedent_loyer %}4{% else %}3{% endif %}° Charges </strong></p>
     {% if bail.location.rent_terms.type_charges == "forfaitaires" %}
     <p>
     En application de l’article 25-10 de la loi n°89-462 du 6 juillet 1989, les charges locatives sont récupérées sous la forme d’un forfait mensuel, versé simultanément au loyer, et non révisable rétroactivement. 
@@ -523,7 +582,7 @@
 
   <div class="article">
 
-    <h2>Article 10 - Garantie - Cautionnement</h2>
+    <h2>Article 9 - Garantie - Cautionnement</h2>
     <p><strong>1° Dépôt de garantie</strong></p>
     <p>
       Le locataire a versé au bailleur qui le reconnaît et lui en consent quittance la somme de {{bail.location.rent_terms.depot_garantie}} euros, correspondant à {% if bail.location.bien.meuble %}2 mois{%else%}1 mois{% endif %} de loyer hors charges, à titre de dépôt de garantie, destiné à couvrir l’inexécution éventuelle de ses obligations contractuelles.
@@ -569,7 +628,7 @@
   </div>
 
   <div class="article">
-    <h2>Article 11 – Clause résolutoire</h2>
+    <h2>Article 10 – Clause résolutoire</h2>
 
     <p>
       En application de l’article 24 de la loi n°89-462 du 6 juillet 1989, le présent contrat pourra être résilié de plein droit en cas de : 
@@ -597,9 +656,9 @@
       Si le locataire refuse de libérer les lieux, il suffira pour l’y contraindre d’une ordonnance de référé, exécutoire par provision, nonobstant appel ou opposition. 
     </p>
 
-  
+
     <div class="article">
-    <h2>Article 12 – Indemnité d’occupation en cas de maintien dans les lieux</h2>
+    <h2>Article 11 – Indemnité d'occupation en cas de maintien dans les lieux</h2>
     <p>
       En cas de résiliation du présent contrat, pour quelque cause que ce soit, et si le locataire ou toute personne occupant les lieux ne libère pas les locaux à la date prévue, une indemnité d’occupation sera due de plein droit.
     </p>
@@ -613,7 +672,7 @@
   </div>
 
   <div class="article">
-    <h2>Article 13 – Election du domicile</h2>
+    <h2>Article 12 – Election du domicile</h2>
     <p>
       Pour l'exécution du présent acte et de ses suites, les parties font élection de domicile :</p>
     <p>
@@ -627,6 +686,153 @@
       </ul>
       </p>
   </div>
+
+  {% if bail.location.mandataire and bail.mandataire_doit_signer %}
+  <div class="article">
+    <h2>Article 13 – Honoraires du mandataire</h2>
+
+    <p>
+      Conformément à l'article 5 de la loi n°89-464 du 6 juillet 1989, les honoraires dus au titre de la mise en location du logement sont encadrés par la loi.
+    </p>
+
+    <p>
+      Le présent bail est rédigé par le professionnel mandaté par le bailleur, agissant en qualité d'intermédiaire autorisé à prêter son concours à la mise en location du logement.
+    </p>
+
+    <p class="section-title">1. Nature des prestations concernées</p>
+    <p>
+      Les honoraires de location comprennent les prestations suivantes :
+    </p>
+    <p>
+      <ul>
+        <li>la visite du logement par le locataire potentiel ;</li>
+        <li>la constitution de son dossier ;</li>
+        <li>la rédaction du contrat de location ;</li>
+        <li>le cas échéant : la réalisation de l'état des lieux d'entrée.</li>
+      </ul>
+    </p>
+
+    <p class="section-title">2. Répartition et plafonds légaux</p>
+    <p>
+      Les honoraires facturés au locataire :
+    </p>
+    <p>
+      <ul>
+        <li>ne peuvent excéder ceux facturés au bailleur ;</li>
+        <li>et demeurent inférieurs ou égaux aux plafonds fixés par décret, à savoir :
+          <ul>
+            <li><strong>12 € TTC/m²</strong> en zone <strong>très tendue</strong>,</li>
+            <li><strong>10 € TTC/m²</strong> en zone <strong>tendue</strong>,</li>
+            <li><strong>8 € TTC/m²</strong> ailleurs,</li>
+            <li>et <strong>3 € TTC/m²</strong> pour l'état des lieux d'entrée.</li>
+          </ul>
+        </li>
+      </ul>
+    </p>
+    <p>
+      Ces plafonds sont révisables chaque année selon les conditions prévues par décret.
+    </p>
+
+    {% if bail.location.rent_terms.zone_tres_tendue %}
+    <p class="highlight-box">
+      <strong>Zone applicable :</strong> Le bien est situé en <strong>zone très tendue (Zone A bis)</strong>.
+      Le plafond légal applicable est de <strong>12 € TTC/m²</strong>.
+    </p>
+    {% elif bail.location.rent_terms.zone_tendue or bail.location.rent_terms.zone_tendue_touristique %}
+    <p class="highlight-box">
+      <strong>Zone applicable :</strong> Le bien est situé en <strong>zone tendue</strong>.
+      Le plafond légal applicable est de <strong>10 € TTC/m²</strong>.
+    </p>
+    {% else %}
+    <p class="highlight-box">
+      <strong>Zone applicable :</strong> Le bien n'est pas situé en zone tendue.
+      Le plafond légal applicable est de <strong>8 € TTC/m²</strong>.
+    </p>
+    {% endif %}
+
+    <p class="section-title">3. Mandataire ou intermédiaire professionnel</p>
+    <p>
+      Le présent bail a été établi par <strong>{{ bail.location.mandataire.societe.raison_sociale }}</strong>,
+      titulaire de la carte professionnelle n°<strong>{{ bail.location.mandataire.numero_carte_professionnelle|default:"[à compléter]" }}</strong>,
+      agissant en qualité de mandataire du bailleur dans le cadre d'un mandat de location conforme à la loi n°70-9 du 2 janvier 1970, appelée loi Hoguet.
+    </p>
+    <p>
+      Les honoraires dus au titre de cette prestation sont perçus par l'agence précitée, conformément au mandat et dans le respect des plafonds légaux.
+    </p>
+
+    <p class="section-title">4. Montant des honoraires appliqués</p>
+    <p>
+      Les parties reconnaissent avoir été informées préalablement du montant des honoraires de location et de leur répartition, conformément à la réglementation.
+    </p>
+    <p>
+      Le montant TTC des honoraires applicables au présent bail est arrêté comme suit :
+    </p>
+
+    {% if honoraires_mandataire.bail %}
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <thead>
+          <tr style="background-color: #f0f0f0;">
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: left;"><strong>Prestation</strong></th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Montant total TTC</strong></th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Part bailleur ({{ honoraires_mandataire.bail.part_bailleur_pct }}%)</strong></th>
+            <th style="border: 1px solid #ddd; padding: 8px; text-align: center;"><strong>Part locataire ({{ honoraires_mandataire.bail.part_locataire_pct }}%)</strong></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">
+              Visite du logement, constitution du dossier et rédaction du bail
+              ({{ honoraires_mandataire.bail.superficie|floatformat:2 }} m² × {{ honoraires_mandataire.bail.tarif_par_m2|floatformat:2 }} €/m²)
+            </td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_total|floatformat:2 }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_bailleur|floatformat:2 }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.bail.montant_locataire|floatformat:2 }} € TTC</td>
+          </tr>
+          {% if honoraires_mandataire.edl %}
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">
+              État des lieux d'entrée
+              ({{ honoraires_mandataire.edl.superficie|floatformat:2 }} m² × {{ honoraires_mandataire.edl.tarif_par_m2|floatformat:2 }} €/m²)
+            </td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_total|floatformat:2 }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_bailleur|floatformat:2 }} € TTC</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">{{ honoraires_mandataire.edl.montant_locataire|floatformat:2 }} € TTC</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    {% else %}
+      <p style="font-style: italic; color: #6c6b70;">Les montants des honoraires n'ont pas été renseignés.</p>
+    {% endif %}
+
+    <p>
+      Les honoraires relatifs à la mise en location sont <strong>dus à la signature du présent bail</strong>,
+      et le cas échéant, ceux relatifs à l'état des lieux <strong>à la réalisation de la prestation</strong>.
+    </p>
+
+    <p>
+      Le présent contrat a été généré via la plateforme Hestia.
+      Hestia n'intervient pas en qualité d'intermédiaire ou de mandataire et ne perçoit aucun honoraire de location.
+      L'intégralité des honoraires mentionnés ci-dessus relève du professionnel signataire, titulaire d'une carte professionnelle délivrée conformément à la loi Hoguet.
+    </p>
+  </div>
+  {% else %}
+  <div class="article">
+    <h2>Article 13 – Absence d'intermédiaire professionnel</h2>
+
+    <p>
+      Le présent contrat a été établi directement entre le bailleur et le locataire, sans intervention d'un professionnel soumis à la loi n°70-9 du 2 janvier 1970, appelée loi Hoguet.
+    </p>
+
+    <p>
+      Aucun honoraire de location n'est dû par le locataire ni par le bailleur à un intermédiaire au titre de la rédaction du présent bail ou de la mise en location.
+    </p>
+
+    <p>
+      Le bailleur et le locataire reconnaissent avoir librement convenu des conditions du présent contrat.
+    </p>
+  </div>
+  {% endif %}
 
   <div class="article">
     <h2>ANNEXES</h2>
@@ -661,6 +867,10 @@
       </p>
   </div>
 
-  {% include "pdf/bail/components/signature_fields.html" with bailleurs=bail.location.bien.bailleurs.all locataires=bail.location.locataires.all %}
+  {% if bail.mandataire_doit_signer %}
+    {% include "pdf/bail/components/signature_fields.html" with mandataire=bail.location.mandataire bailleurs=bail.location.bien.bailleurs.all locataires=bail.location.locataires.all %}
+  {% else %}
+    {% include "pdf/bail/components/signature_fields.html" with mandataire=None bailleurs=bail.location.bien.bailleurs.all locataires=bail.location.locataires.all %}
+  {% endif %}
 </body>
 </html>

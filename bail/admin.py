@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.urls import reverse
 from django.utils.html import format_html
 
 from .models import (
@@ -65,8 +66,13 @@ class BailAdmin(admin.ModelAdmin):
         "location__locataires__lastName",
         "location__locataires__firstName",
     )
-    date_hierarchy = "date_signature"
+    date_hierarchy = "created_at"
     inlines = [DocumentInline, BailSignatureRequestInline]
+    readonly_fields = (
+        "date_signature_display",
+        "est_signe_display",
+        "notice_information_link",
+    )
 
     fieldsets = (
         ("Location associée", {"fields": ("location",)}),
@@ -82,7 +88,21 @@ class BailAdmin(admin.ModelAdmin):
         ),
         (
             "Dates importantes",
-            {"fields": ("date_signature",)},
+            {"fields": ("date_signature_display", "est_signe_display")},
+        ),
+        (
+            "Documents PDF",
+            {
+                "fields": (
+                    "pdf",
+                    "latest_pdf",
+                    "notice_information_link",
+                ),
+                "description": (
+                    "Notice d'information est un document statique. "
+                    "Les diagnostics sont gérés via les Documents annexes."
+                ),
+            },
         ),
         (
             "Clauses et observations",
@@ -101,19 +121,6 @@ class BailAdmin(admin.ModelAdmin):
                     "travaux_bailleur",
                     "travaux_locataire",
                     "honoraires_ttc",
-                ),
-                "classes": ("collapse",),
-            },
-        ),
-        (
-            "Documents PDF",
-            {
-                "fields": (
-                    "pdf",
-                    "latest_pdf",
-                    "notice_information_pdf",
-                    "dpe_pdf",
-                    "grille_vetuste_pdf",
                 ),
                 "classes": ("collapse",),
             },
@@ -170,12 +177,8 @@ class BailAdmin(admin.ModelAdmin):
         docs = []
         if obj.pdf:
             docs.append('<span style="color: green;">📄 Bail</span>')
-        if obj.grille_vetuste_pdf:
-            docs.append('<span style="color: green;">📋 Grille vétusté</span>')
-        if obj.notice_information_pdf:
-            docs.append('<span style="color: green;">📋 Notice info</span>')
-        if obj.dpe_pdf:
-            docs.append('<span style="color: green;">📋 DPE</span>')
+        # Notice est toujours disponible (statique)
+        docs.append('<span style="color: green;">📋 Notice info</span>')
 
         if not docs:
             return '<span style="color: gray;">Aucun document</span>'
@@ -184,6 +187,36 @@ class BailAdmin(admin.ModelAdmin):
 
     display_documents_status.short_description = "Documents"
     display_documents_status.allow_tags = True
+
+    def date_signature_display(self, obj):
+        """Affiche la date de signature complète (property calculée)"""
+        if obj.date_signature:
+            return obj.date_signature.strftime("%d/%m/%Y %H:%M")
+        return "Non signé"
+
+    date_signature_display.short_description = "Date signature complète"
+
+    def est_signe_display(self, obj):
+        """Affiche si le bail est complètement signé (property calculée)"""
+        if obj.est_signe:
+            return format_html('<span style="color: green;">✓ Signé</span>')
+        return format_html('<span style="color: orange;">⏳ En attente</span>')
+
+    est_signe_display.short_description = "État signature"
+
+    def notice_information_link(self, obj):
+        """Affiche un lien vers la notice d'information (document statique)"""
+        # On a besoin de la request pour construire l'URL absolue
+        # Mais dans l'admin, on n'a pas accès à la request dans les méthodes
+        # On va utiliser une URL relative
+        from django.urls import reverse
+
+        url = reverse("serve_static_pdf_iframe", kwargs={"file_path": "bails/notice_information.pdf"})
+        return format_html(
+            '<a href="{}" target="_blank">📋 Notice d\'information (statique)</a>', url
+        )
+
+    notice_information_link.short_description = "Notice d'information"
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "location":
@@ -202,14 +235,21 @@ class DocumentAdmin(admin.ModelAdmin):
         "type_document",
         "get_bail_info",
         "get_bien_info",
+        "get_locataire_info",
+        "get_uploade_par_info",
         "created_at",
-        "uploade_par",
     )
-    list_filter = ("type_document", "created_at")
+    list_filter = ("type_document", "created_at", "uploade_par")
     search_fields = (
         "nom_original",
         "bail__location__bien__adresse",
         "bien__adresse",
+        "locataire__lastName",
+        "locataire__firstName",
+        "locataire__email",
+        "uploade_par__email",
+        "uploade_par__first_name",
+        "uploade_par__last_name",
     )
     date_hierarchy = "created_at"
 
@@ -217,8 +257,8 @@ class DocumentAdmin(admin.ModelAdmin):
         (
             "Relations",
             {
-                "fields": ("bail", "bien"),
-                "description": "Un document peut être lié soit à un bail, soit à un bien",
+                "fields": ("bail", "bien", "locataire"),
+                "description": "Un document peut être lié à un bail, un bien, ou un locataire",
             },
         ),
         (
@@ -239,27 +279,75 @@ class DocumentAdmin(admin.ModelAdmin):
                     "updated_at",
                     "uploade_par",
                 ),
-                "classes": ("collapse",),
             },
         ),
     )
     readonly_fields = ("created_at", "updated_at")
 
     def get_bail_info(self, obj):
-        """Affiche les informations du bail associé"""
+        """Affiche les informations du bail associé avec lien cliquable"""
         if obj.bail:
-            return f"{obj.bail.location.bien.adresse}"
+            url = reverse("admin:bail_bail_change", args=[obj.bail.id])
+            adresse = obj.bail.location.bien.adresse
+            status_badge = {
+                "draft": "🟡",
+                "signing": "🟠",
+                "signed": "🟢",
+                "cancelled": "🔴",
+            }.get(obj.bail.status, "⚪")
+            return format_html(
+                '<a href="{}">{} {} ({})</a>',
+                url,
+                status_badge,
+                adresse,
+                obj.bail.status,
+            )
         return "-"
 
     get_bail_info.short_description = "Bail"
 
     def get_bien_info(self, obj):
-        """Affiche les informations du bien associé"""
+        """Affiche les informations du bien associé avec lien cliquable"""
         if obj.bien:
-            return obj.bien.adresse
+            url = reverse("admin:location_bien_change", args=[obj.bien.id])
+            return format_html(
+                '<a href="{}">🏠 {}</a>',
+                url,
+                obj.bien.adresse,
+            )
         return "-"
 
     get_bien_info.short_description = "Bien"
+
+    def get_locataire_info(self, obj):
+        """Affiche les informations du locataire associé avec lien cliquable"""
+        if obj.locataire:
+            url = reverse("admin:location_locataire_change", args=[obj.locataire.id])
+            nom_complet = f"{obj.locataire.firstName} {obj.locataire.lastName}"
+            return format_html(
+                '<a href="{}">👤 {}</a>',
+                url,
+                nom_complet,
+            )
+        return "-"
+
+    get_locataire_info.short_description = "Locataire"
+
+    def get_uploade_par_info(self, obj):
+        """Affiche l'utilisateur qui a uploadé le document avec lien cliquable"""
+        if obj.uploade_par:
+            url = reverse("admin:auth_user_change", args=[obj.uploade_par.id])
+            # Afficher nom/prénom si disponibles, sinon email
+            display_name = (
+                f"{obj.uploade_par.first_name} {obj.uploade_par.last_name}".strip()
+            )
+            if not display_name:
+                display_name = obj.uploade_par.email
+
+            return format_html('<a href="{}">👤 {}</a>', url, display_name)
+        return "-"
+
+    get_uploade_par_info.short_description = "Uploadé par"
 
 
 @admin.register(BailSignatureRequest)

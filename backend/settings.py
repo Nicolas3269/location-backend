@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django.contrib.gis",  # Add GeoDjango
     "simple_history",
+    "storages",  # Django storages for S3/R2
     # Apps
     "authentication",
     "location",
@@ -58,6 +59,7 @@ INSTALLED_APPS = [
     "etat_lieux",
     "quittance",
     "signature",
+    "tsa",  # Time Stamping Authority
 ]
 
 MIDDLEWARE = [
@@ -178,7 +180,7 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = "fr-fr"
 USE_L10N = True
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Europe/Paris"  # Affichage admin en heure française (stockage UTC)
 
 USE_I18N = True
 
@@ -192,8 +194,49 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+# Media files configuration (uploads, PDFs, photos)
+# Always use S3-compatible storage:
+# - Development: MinIO (http://localhost:9000)
+# - Production: Cloudflare R2 (https://xxx.r2.cloudflarestorage.com)
+
+# AWS S3 / Cloudflare R2 / MinIO Configuration
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_S3_ENDPOINT_URL = os.getenv("AWS_S3_ENDPOINT_URL")
+AWS_STORAGE_BUCKET_NAME = os.getenv("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME = "auto"  # Cloudflare R2 and MinIO use 'auto'
+AWS_S3_SIGNATURE_VERSION = "s3v4"
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None
+
+# Security: Signed URLs are enabled by default in django-storages
+# - AWS_QUERYSTRING_AUTH = True (default)
+# - AWS_QUERYSTRING_EXPIRE = 3600 seconds (default, 1 hour)
+# file.url automatically returns temporary signed URLs
+AWS_QUERYSTRING_EXPIRE = 604800  # 7 days (7 * 24 * 3600 seconds)
+
+AWS_S3_OBJECT_PARAMETERS = {
+    "CacheControl": "max-age=86400",  # 1 day cache
+}
+
+# Use custom domain if provided (optional, for CDN)
+AWS_S3_CUSTOM_DOMAIN = os.getenv("AWS_S3_CUSTOM_DOMAIN", None)
+
+# Storage backends
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# Media URL configuration
+if AWS_S3_CUSTOM_DOMAIN:
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+else:
+    MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -246,7 +289,7 @@ FRONTEND_URL = os.getenv("FRONTEND_URL")
 # Google Auth config
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 
-# Logging 1
+# Logging configuration
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -256,6 +299,35 @@ LOGGING = {
     "root": {
         "handlers": ["console"],
         "level": "INFO",
+    },
+    "loggers": {
+        # Réduire la verbosité de WeasyPrint
+        "weasyprint": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "weasyprint.text.fonts": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        # Réduire les logs de fontTools (compiling/writing tables)
+        "fontTools": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "fontTools.ttLib": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "fontTools.subset": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
     },
 }
 
@@ -276,3 +348,22 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # SIRENE API KEY
 SIRENE_API_KEY = os.getenv("SIRENE_API_KEY")
+
+# ============================================================================
+# Certificates Configuration
+# ============================================================================
+
+# Certificate Authority (CA) Hestia - Signs user certificates
+CA_CERT_PATH = str(BASE_DIR / "certificates" / "hestia_certificate_authority.pem")
+CA_KEY_PATH = str(BASE_DIR / "certificates" / "hestia_certificate_authority.key")
+PASSWORD_CERT_CA = os.getenv("PASSWORD_CERT_CA")
+
+# Time Stamping Authority (TSA) Hestia - Timestamps PDF signatures
+TSA_CERT_PATH = str(BASE_DIR / "certificates" / "hestia_tsa.pem")
+TSA_KEY_PATH = str(BASE_DIR / "certificates" / "hestia_tsa.key")
+PASSWORD_CERT_TSA = os.getenv("PASSWORD_CERT_TSA")
+
+# Server Certificate - Main signature certificate
+# Test: hestia_server.pfx (self-signed)
+# Production: hestia_server.pfx (CertEurope qualified certificate)
+PASSWORD_CERT_SERVER = os.getenv("PASSWORD_CERT_SERVER")

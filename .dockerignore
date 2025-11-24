@@ -1,9 +1,10 @@
-private.key
-cert.pem
-cert.pfx
-cert.pfx.b64
-key.pem
 .env
 .env.production
-venv/
+.env.railway
+.env.docker
 __pycache__/
+# Media files (generated PDFs)
+staticfiles/*
+certificates/
+!certificates/*.cnf
+!certificates/*.csr

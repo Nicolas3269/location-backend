@@ -7,7 +7,15 @@ from django.urls import path
 from rent_control.management.commands.constants import DEFAULT_YEAR
 
 from .choices import Region
-from .models import PermisDeLouer, RentControlArea, RentMap, RentPrice, ZoneTendue
+from .models import (
+    PermisDeLouer,
+    RentControlArea,
+    RentMap,
+    RentPrice,
+    ZoneTendue,
+    ZoneTendueTouristique,
+    ZoneTresTendue,
+)
 
 
 class RegionListFilter(admin.SimpleListFilter):
@@ -510,6 +518,102 @@ class ZoneTendueAdmin(admin.ModelAdmin):
         return response
 
     export_selected_zones.short_description = "Exporter les zones sélectionnées en CSV"  # type: ignore
+
+
+@admin.register(ZoneTresTendue)
+class ZoneTresTendueAdmin(admin.ModelAdmin):
+    """Admin view for ZoneTresTendue (Zone A bis)"""
+
+    list_display = ("commune", "departement_code", "departement_nom")
+    list_filter = ("departement_nom", "departement_code")
+    search_fields = ("commune", "departement_nom", "departement_code")
+    ordering = ("departement_code", "commune")
+
+    # Pagination pour gérer les enregistrements
+    list_per_page = 50
+
+    # Grouper les champs dans le formulaire
+    fieldsets = (
+        ("Informations principales", {"fields": ("commune",)}),
+        ("Localisation administrative", {"fields": ("departement_code", "departement_nom")}),
+    )
+
+    # Actions personnalisées
+    actions = ["export_selected_zones_tres_tendues"]
+
+    def export_selected_zones_tres_tendues(self, request, queryset):
+        """Exporter les zones très tendues sélectionnées en CSV"""
+        import csv
+
+        from django.http import HttpResponse
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="zones_tres_tendues.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(["Département Code", "Département", "Commune"])
+
+        for zone in queryset:
+            writer.writerow(
+                [
+                    zone.departement_code,
+                    zone.departement_nom,
+                    zone.commune,
+                ]
+            )
+
+        self.message_user(request, f"{queryset.count()} zones très tendues exportées avec succès.")
+        return response
+
+    export_selected_zones_tres_tendues.short_description = "Exporter les zones très tendues sélectionnées en CSV"  # type: ignore
+
+
+@admin.register(ZoneTendueTouristique)
+class ZoneTendueTouristiqueAdmin(admin.ModelAdmin):
+    """Admin view for ZoneTendueTouristique"""
+
+    list_display = ("commune", "code_insee", "departement_code")
+    list_filter = ("departement_code",)
+    search_fields = ("commune", "code_insee", "departement_code")
+    ordering = ("departement_code", "commune")
+
+    # Pagination pour gérer les enregistrements
+    list_per_page = 50
+
+    # Grouper les champs dans le formulaire
+    fieldsets = (
+        ("Informations principales", {"fields": ("commune", "code_insee")}),
+        ("Localisation administrative", {"fields": ("departement_code",)}),
+    )
+
+    # Actions personnalisées
+    actions = ["export_selected_zones_touristiques"]
+
+    def export_selected_zones_touristiques(self, request, queryset):
+        """Exporter les zones tendues touristiques sélectionnées en CSV"""
+        import csv
+
+        from django.http import HttpResponse
+
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="zones_tendues_touristiques.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(["Département", "Commune", "Code INSEE"])
+
+        for zone in queryset:
+            writer.writerow(
+                [
+                    zone.departement_code,
+                    zone.commune,
+                    zone.code_insee,
+                ]
+            )
+
+        self.message_user(request, f"{queryset.count()} zones tendues touristiques exportées avec succès.")
+        return response
+
+    export_selected_zones_touristiques.short_description = "Exporter les zones tendues touristiques sélectionnées en CSV"  # type: ignore
 
 
 @admin.register(PermisDeLouer)

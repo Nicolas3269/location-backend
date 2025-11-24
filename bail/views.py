@@ -15,9 +15,9 @@ from weasyprint import HTML
 
 from backend.pdf_utils import (
     get_logo_pdf_base64_data_uri,
-    get_pdf_iframe_url,
     get_static_pdf_iframe_url,
 )
+from backend.storage_utils import truncate_filename
 from bail.constants import FORMES_JURIDIQUES
 from bail.generate_bail.mapping import BailMapping
 from bail.models import (
@@ -33,10 +33,15 @@ from bail.utils import (
 # from etat_lieux.utils import get_or_create_pieces_for_bien  # Supprimé - nouvelle architecture
 from location.models import (
     Bien,
+    RentTerms,
 )
+from location.serializers.composed import BienRentPriceSerializer
+from location.services.access_utils import user_has_bien_access
 from rent_control.utils import get_rent_price_for_bien
+from signature.document_types import SignableDocumentType
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
+    cancel_signature_generic,
     confirm_signature_generic,
     get_signature_request_generic,
     resend_otp_generic,
@@ -69,6 +74,53 @@ def generate_bail_pdf(request):
         # Calculer une seule fois les données d'encadrement des loyers
         encadrement_data = BailMapping.get_encadrement_loyers_data(bail)
         zone_tendue_avec_loyer_encadre = bool(encadrement_data["prix_reference"])
+        # Récupérer les données du dernier loyer si disponibles
+        dernier_montant_loyer = None
+        dernier_loyer_periode_formatted = None
+        display_precedent_loyer = False
+        if hasattr(bail.location, "rent_terms") and bail.location.rent_terms:
+            rent_terms: RentTerms = bail.location.rent_terms
+            dernier_montant_loyer = rent_terms.dernier_montant_loyer
+            dernier_loyer_periode = rent_terms.dernier_loyer_periode
+            display_precedent_loyer = (
+                rent_terms.zone_tendue
+                and not rent_terms.premiere_mise_en_location
+                and rent_terms.locataire_derniers_18_mois
+                and dernier_montant_loyer
+                and dernier_loyer_periode
+            )
+
+            # Formater la période (YYYY-MM -> "Mois Année")
+            if dernier_loyer_periode:
+                from datetime import datetime
+
+                try:
+                    date_obj = datetime.strptime(dernier_loyer_periode, "%Y-%m")
+                    # Formater en français: "janvier 2024", "février 2024", etc.
+                    mois_fr = [
+                        "janvier",
+                        "février",
+                        "mars",
+                        "avril",
+                        "mai",
+                        "juin",
+                        "juillet",
+                        "août",
+                        "septembre",
+                        "octobre",
+                        "novembre",
+                        "décembre",
+                    ]
+                    dernier_loyer_periode_formatted = (
+                        f"{mois_fr[date_obj.month - 1]} {date_obj.year}"
+                    )
+                except ValueError:
+                    # Si le format n'est pas valide, garder la valeur originale
+                    dernier_loyer_periode_formatted = dernier_loyer_periode
+
+        # Calculer les honoraires du mandataire
+        honoraires_data = BailMapping.get_honoraires_mandataire_data(bail)
+
         # Générer le PDF depuis le template HTML
         html = render_to_string(
             "pdf/bail/bail.html",
@@ -93,6 +145,7 @@ def generate_bail_pdf(request):
                 "information_info": BailMapping.information_info(bail.location.bien),
                 "energy_info": BailMapping.energy_info(bail.location.bien),
                 "indice_irl": INDICE_IRL,
+                "display_precedent_loyer": display_precedent_loyer,
                 "zone_tendue_avec_loyer_encadre": zone_tendue_avec_loyer_encadre,
                 "prix_reference": encadrement_data["prix_reference"],
                 "prix_majore": encadrement_data["prix_majore"],
@@ -100,11 +153,14 @@ def generate_bail_pdf(request):
                 "justificatif_complement_loyer": bail.location.rent_terms.justificatif_complement_loyer
                 if hasattr(bail.location, "rent_terms")
                 else None,
+                "dernier_montant_loyer": dernier_montant_loyer,
+                "dernier_loyer_periode": dernier_loyer_periode_formatted,
                 "is_copropriete": BailMapping.is_copropriete(bail),
                 "potentiel_permis_de_louer": BailMapping.potentiel_permis_de_louer(
                     bail
                 ),
                 "logo_base64_uri": get_logo_pdf_base64_data_uri(),
+                "honoraires_mandataire": honoraires_data,
             },
         )
         pdf_bytes = HTML(
@@ -121,23 +177,51 @@ def generate_bail_pdf(request):
             with open(tmp_pdf_path, "wb") as f:
                 f.write(pdf_bytes)
 
-            # 2. Ajouter champs
+            # 2. Ajouter les champs de signature
+            # La fonction gère automatiquement le téléchargement depuis R2 si nécessaire
             prepare_pdf_with_signature_fields_generic(tmp_pdf_path, bail)
 
-            # 3. Recharger dans bail.pdf
+            # 3. ✅ NOUVEAU : Certifier avec Hestia (certify=True + DocMDP)
+            try:
+                from signature.certification_flow import certify_document_hestia
+
+                certified_pdf_path = tmp_pdf_path.replace(".pdf", "_certified.pdf")
+                certify_document_hestia(
+                    source_path=tmp_pdf_path,
+                    output_path=certified_pdf_path,
+                    document_type=SignableDocumentType.BAIL.value,
+                )
+
+                # Utiliser le PDF certifié au lieu du PDF vierge
+                tmp_pdf_path = certified_pdf_path
+                logger.info(f"✅ Bail {bail.id} certifié Hestia avec succès")
+            except FileNotFoundError as e:
+                logger.warning(f"⚠️ Certificat Hestia AATL manquant (mode dev) : {e}")
+                logger.warning("⚠️ PDF non certifié, continuons quand même")
+            except ValueError as e:
+                logger.warning(f"⚠️ PASSWORD_CERT_SERVER manquant : {e}")
+                logger.warning("⚠️ PDF non certifié, continuons quand même")
+            except Exception as e:
+                logger.error(f"❌ Erreur certification Hestia : {e}")
+                logger.error("⚠️ PDF non certifié, continuons quand même")
+
+            # 4. Recharger dans bail.pdf
             with open(tmp_pdf_path, "rb") as f:
                 bail.pdf.save(pdf_filename, ContentFile(f.read()), save=True)
 
         finally:
-            # 4. Supprimer le fichier temporaire
-            try:
-                os.remove(tmp_pdf_path)
-            except Exception as e:
-                logger.warning(
-                    f"Impossible de supprimer le fichier temporaire {tmp_pdf_path}: {e}"
-                )
+            # 5. Supprimer les fichiers temporaires
+            for temp_file in [
+                tmp_pdf_path,
+                tmp_pdf_path.replace("_certified.pdf", ".pdf"),
+            ]:
+                try:
+                    if os.path.exists(temp_file):
+                        os.remove(temp_file)
+                except Exception as e:
+                    logger.warning(f"Impossible de supprimer {temp_file}: {e}")
 
-        create_signature_requests(bail)
+        create_signature_requests(bail, user=request.user)
 
         first_sign_req = bail.signature_requests.order_by("order").first()
 
@@ -145,7 +229,7 @@ def generate_bail_pdf(request):
             {
                 "success": True,
                 "bailId": bail.id,
-                "pdfUrl": request.build_absolute_uri(bail.pdf.url),
+                "pdfUrl": bail.pdf.url,
                 "linkTokenFirstSigner": str(first_sign_req.link_token),
             }
         )
@@ -169,7 +253,16 @@ def get_signature_request(request, token):
 @permission_classes([IsAuthenticated])
 def confirm_signature_bail(request):
     """Vue pour confirmer une signature de bail"""
-    return confirm_signature_generic(request, BailSignatureRequest, "bail")
+    return confirm_signature_generic(
+        request, BailSignatureRequest, SignableDocumentType.BAIL.value
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cancel_signature_bail(request, bail_id):
+    """Vue pour annuler une signature de bail en cours"""
+    return cancel_signature_generic(request, bail_id, Bail)
 
 
 @api_view(["POST"])
@@ -280,7 +373,7 @@ def upload_document(request):
                 bail=bail,
                 bien=bien,
                 type_document=document_type,
-                nom_original=file.name,
+                nom_original=truncate_filename(file.name),
                 file=file,
                 uploade_par=request.user,
             )
@@ -289,7 +382,7 @@ def upload_document(request):
                 {
                     "id": str(document.id),
                     "name": document.nom_original,
-                    "url": request.build_absolute_uri(document.file.url),
+                    "url": document.file.url,
                     "type": document.get_type_document_display(),
                     "created_at": document.created_at.isoformat(),
                 }
@@ -335,14 +428,13 @@ def delete_document(request, document_id):
                 status=403,
             )
 
-        # Supprimer le fichier du système de fichiers si il existe
-        if document.file and hasattr(document.file, "path"):
+        # Supprimer le fichier du storage (R2 ou local filesystem)
+        if document.file:
             try:
-                if os.path.exists(document.file.path):
-                    os.remove(document.file.path)
+                document.file.delete(save=False)
             except Exception as e:
                 logger.warning(
-                    f"Impossible de supprimer le fichier {document.file.path}: {e}"
+                    f"Impossible de supprimer le fichier {document.file.name}: {e}"
                 )
 
         # Supprimer l'entrée de la base de données
@@ -368,8 +460,6 @@ def get_rent_prices(request):
     selon les caractéristiques minimales du bien
     """
     try:
-        from location.serializers_composed import BienRentPriceSerializer
-
         data = request.data
 
         # Utiliser le serializer minimal pour valider et extraire les données
@@ -561,26 +651,9 @@ def get_bien_detail(request, bien_id):
         bien = get_object_or_404(Bien, id=bien_id)
 
         # Vérifier que l'utilisateur a accès à ce bien
-        # L'utilisateur doit être le signataire d'un des bailleurs du bien
-        # ou être un locataire d'un bail sur ce bien
-        user_bails = Bail.objects.filter(location__bien=bien)
-        has_access = False
-
-        # Récupérer l'email de l'utilisateur connecté
+        # L'utilisateur doit être bailleur ou locataire d'un bail sur ce bien
         user_email = request.user.email
-
-        # Vérifier si l'utilisateur est signataire d'un des bailleurs
-        for bailleur in bien.bailleurs.all():
-            if bailleur.signataire and bailleur.signataire.email == user_email:
-                has_access = True
-                break
-
-        # Si pas encore d'accès, vérifier si l'utilisateur est locataire
-        if not has_access:
-            for bail in user_bails:
-                if bail.location.locataires.filter(email=user_email).exists():
-                    has_access = True
-                    break
+        has_access = user_has_bien_access(bien, user_email, check_locataires=True)
 
         if not has_access:
             return JsonResponse(
@@ -623,13 +696,7 @@ def get_bien_baux(request, bien_id):
 
         # Vérifier que l'utilisateur a accès à ce bien
         user_email = request.user.email
-        has_access = False
-
-        # Vérifier si l'utilisateur est signataire d'un des bailleurs
-        for bailleur in bien.bailleurs.all():
-            if bailleur.signataire and bailleur.signataire.email == user_email:
-                has_access = True
-                break
+        has_access = user_has_bien_access(bien, user_email)
 
         if not has_access:
             return JsonResponse(
@@ -658,12 +725,8 @@ def get_bien_baux(request, bien_id):
                 signed=False
             ).exists()
 
-            pdf_url = get_pdf_iframe_url(request, bail.pdf) if bail.pdf else None
-            latest_pdf_url = (
-                get_pdf_iframe_url(request, bail.latest_pdf)
-                if bail.latest_pdf
-                else None
-            )
+            pdf_url = bail.pdf.url if bail.pdf else None
+            latest_pdf_url = bail.latest_pdf.url if bail.latest_pdf else None
             created_at = (
                 bail.date_signature.isoformat() if bail.date_signature else None
             )
@@ -720,7 +783,9 @@ def resend_otp_bail(request):
     """
     Renvoie un OTP pour la signature de bail
     """
-    return resend_otp_generic(request, BailSignatureRequest, "bail")
+    return resend_otp_generic(
+        request, BailSignatureRequest, SignableDocumentType.BAIL.value
+    )
 
 
 @api_view(["POST"])
@@ -765,6 +830,27 @@ def upload_locataire_document(request):
 
         locataire = get_object_or_404(Locataire, id=locataire_id)
 
+        # Trouver le bail et le bien associés au locataire
+        # (pour remplissage automatique)
+        bail_associe = None
+        bien_associe = None
+
+        # Chercher la location active du locataire
+        location_active = locataire.locations.order_by("-created_at").first()
+        if location_active:
+            # Récupérer le bail le plus récent (SIGNED ou SIGNING prioritaires)
+            bail_associe = (
+                location_active.bails.filter(status__in=["signed", "signing"])
+                .order_by("-created_at")
+                .first()
+            )
+            # Si pas de bail signé/en signature, prendre le plus récent (même DRAFT)
+            if not bail_associe:
+                bail_associe = location_active.bails.order_by("-created_at").first()
+
+            # Récupérer le bien de la location
+            bien_associe = location_active.bien
+
         # Pour attestation_mrh (document unique), supprimer les anciens documents
         # avant d'uploader le nouveau (comportement "remplacer")
         if document_type == DocumentType.ATTESTATION_MRH:
@@ -781,11 +867,13 @@ def upload_locataire_document(request):
         files = request.FILES.getlist("files")
 
         for file in files:
-            # Créer le document
+            # Créer le document avec relations automatiques
             document = Document.objects.create(
                 locataire=locataire,
+                bail=bail_associe,  # ✅ Auto-renseigné depuis la location
+                bien=bien_associe,  # ✅ Auto-renseigné depuis la location
                 type_document=document_type,
-                nom_original=file.name,
+                nom_original=truncate_filename(file.name),
                 file=file,
                 uploade_par=request.user,
             )
@@ -794,7 +882,7 @@ def upload_locataire_document(request):
                 {
                     "id": str(document.id),
                     "name": document.nom_original,
-                    "url": request.build_absolute_uri(document.file.url),
+                    "url": document.file.url,
                     "type": document.get_type_document_display(),
                 }
             )

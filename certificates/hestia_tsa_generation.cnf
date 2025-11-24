@@ -1,0 +1,39 @@
+# OpenSSL configuration for Hestia TSA (Time Stamping Authority) Certificate
+# Used to generate TSA certificate for timestamping PDF signatures (RFC 3161)
+#
+# Generate TSA certificate:
+# openssl genrsa -aes256 -out hestia_tsa.key 4096 -passout pass:$PASSWORD_CERT_TSA
+# openssl req -new -x509 -key hestia_tsa.key -out hestia_tsa.pem \
+#   -days 3650 -config hestia_tsa_generation.cnf -passin pass:$PASSWORD_CERT_TSA
+
+[ req ]
+default_bits = 4096
+prompt = no
+encrypt_key = yes
+default_md = sha256
+distinguished_name = dn
+x509_extensions = v3_tsa
+
+[ dn ]
+C = FR
+ST = Hauts-de-France
+L = Arras
+O = HB CONSULTING
+# Format eIDAS : 0002 + SIREN (France)
+0.OU = 0002 900207218
+# Identifiant d'organisation eIDAS
+organizationIdentifier = NTRFR-900207218
+CN = Hestia TSA
+emailAddress = contact@hestia.software
+
+[ v3_tsa ]
+# TSA certificate extensions (RFC 3161)
+basicConstraints = critical,CA:FALSE
+keyUsage = critical,digitalSignature,nonRepudiation
+extendedKeyUsage = critical,timeStamping
+subjectKeyIdentifier = hash
+subjectAltName = @alt_names
+
+[ alt_names ]
+email = contact@hestia.software
+DNS.1 = hestia.software

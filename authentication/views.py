@@ -22,7 +22,16 @@ from authentication.utils import (
     verify_google_token,
     verify_otp_only_and_generate_token,
 )
-from location.models import Bailleur, Locataire, Personne
+from bail.models import Bail
+from location.models import Bailleur, Bien, Locataire, Location, Mandataire
+from location.services.access_utils import (
+    get_user_mandataires,
+    user_has_mandataire_role,
+)
+from location.services.serialization_utils import (
+    serialize_bien_with_stats,
+)
+from signature.document_status import DocumentStatus
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -281,123 +290,134 @@ def google_redirect_callback(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_user_profile(request):
-    """Vue pour récupérer le profil utilisateur de base"""
-    user = request.user
-    return JsonResponse(
-        {
-            "success": True,
-            "user": {
-                "email": user.email,
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "username": user.username,
-            },
-        }
-    )
+    """
+    Vue pour récupérer le profil utilisateur de base avec les rôles.
 
-
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def get_user_profile_detailed(request):
-    """Vue pour récupérer le profil utilisateur complet avec biens et locations"""
+    Endpoint rapide sans comptage lourd de statistiques.
+    Pour les données détaillées (biens, locations), utiliser /auth/profile/stats/
+    """
     user = request.user
 
     # Informations utilisateur de base
     profile_data = {
-        "user": {
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "username": user.username,
-        },
+        "id": str(user.id),
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "username": user.username,
         "roles": {
+            "is_mandataire": False,
             "is_bailleur": False,
             "is_locataire": False,
         },
-        "biens": [],
-        "locations": [],
     }
 
-    # Vérifier si l'utilisateur est un bailleur (propriétaire ou signataire)
-    try:
-        # Rechercher les personnes physiques avec cet email
-        personnes = Personne.objects.filter(email=user.email)
+    # Vérifier si l'utilisateur est un mandataire
+    mandataires = Mandataire.objects.filter(signataire__email=user.email).select_related('signataire')
+    profile_data["roles"]["is_mandataire"] = mandataires.exists()
 
-        if personnes.exists():
-            # Vérifier si cette personne est un bailleur (propriétaire ou signataire)
-            bailleurs = Bailleur.objects.filter(
-                models.Q(personne__email=user.email)
-                | models.Q(signataire__email=user.email)
-            ).distinct()
+    # Si mandataire et User.first_name vide, utiliser données du signataire
+    if mandataires.exists() and not user.first_name:
+        mandataire = mandataires.first()
+        if mandataire.signataire:
+            profile_data["first_name"] = mandataire.signataire.firstName
+            profile_data["last_name"] = mandataire.signataire.lastName
 
-            if bailleurs.exists():
-                profile_data["roles"]["is_bailleur"] = True
+    # Vérifier si l'utilisateur est un bailleur
+    bailleurs = Bailleur.objects.filter(
+        models.Q(personne__email=user.email) | models.Q(signataire__email=user.email)
+    ).select_related('personne', 'signataire').distinct()
 
-                # Récupérer tous les biens associés à ces bailleurs
-                from bail.models import Bail
-                from location.models import Bien, Location
+    profile_data["roles"]["is_bailleur"] = bailleurs.exists()
 
-                biens = []
-                for bailleur in bailleurs:
-                    # Un bailleur est lié aux biens via la relation ManyToMany
-                    for bien in Bien.objects.filter(bailleurs=bailleur):
-                        # Compter les locations et bails actifs pour ce bien
-                        nombre_locations = Location.objects.filter(bien=bien).count()
-                        # Compter les bails actifs via les locations
-                        from signature.document_status import DocumentStatus
+    # Si bailleur et User.first_name vide, utiliser données bailleur
+    if bailleurs.exists() and not user.first_name:
+        from location.models import BailleurType
 
-                        baux_actifs = Bail.objects.filter(
-                            location__bien=bien, status=DocumentStatus.SIGNED
-                        ).count()
-
-                        bien_data = {
-                            "id": bien.id,
-                            "adresse": bien.adresse,
-                            "type_bien": bien.get_type_bien_display(),
-                            "superficie": float(bien.superficie)
-                            if bien.superficie
-                            else None,
-                            "meuble": bien.meuble,
-                            "nombre_locations": nombre_locations,
-                            "nombre_baux": nombre_locations,  # Pour compatibilité
-                            "baux_actifs": baux_actifs,
-                        }
-                        # Éviter les doublons
-                        if not any(b["id"] == bien.id for b in biens):
-                            biens.append(bien_data)
-
-                profile_data["biens"] = biens
-
-    except Exception as e:
-        error_msg = f"Erreur lors de la récupération des biens pour {user.email}: {e}"
-        logger.warning(error_msg)
+        bailleur = bailleurs.first()
+        if bailleur.bailleur_type == BailleurType.PHYSIQUE and bailleur.personne:
+            # Bailleur personne physique
+            profile_data["first_name"] = bailleur.personne.firstName
+            profile_data["last_name"] = bailleur.personne.lastName
+        elif bailleur.bailleur_type == BailleurType.MORALE and bailleur.signataire:
+            # Bailleur société → utiliser le signataire
+            profile_data["first_name"] = bailleur.signataire.firstName
+            profile_data["last_name"] = bailleur.signataire.lastName
 
     # Vérifier si l'utilisateur est un locataire
+    locataires = Locataire.objects.filter(email=user.email)
+    profile_data["roles"]["is_locataire"] = locataires.exists()
+
+    # Si locataire et User.first_name vide, utiliser données locataire
+    if locataires.exists() and not user.first_name:
+        locataire = locataires.first()
+        profile_data["first_name"] = locataire.firstName
+        profile_data["last_name"] = locataire.lastName
+
+    return JsonResponse({"success": True, **profile_data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_user_profile_stats(request):
+    """
+    Vue pour récupérer les statistiques et données détaillées du profil.
+
+    Endpoint plus lourd avec comptage de biens, locations, et statistiques mandataire.
+    À appeler après get_user_profile pour lazy-loading.
+    """
+    user = request.user
+    stats_data = {}
+
+    # Statistiques Bailleur : Liste des biens avec comptages
+    try:
+        bailleurs = Bailleur.objects.filter(
+            models.Q(personne__email=user.email)
+            | models.Q(signataire__email=user.email)
+        ).distinct()
+
+        if bailleurs.exists():
+            biens = []
+            for bailleur in bailleurs:
+                for bien in Bien.objects.filter(bailleurs=bailleur):
+                    # Utiliser le helper de sérialisation
+                    bien_data = serialize_bien_with_stats(bien)
+                    # Ajouter compatibilité avec ancien format
+                    bien_data["nombre_baux"] = bien_data["nombre_baux"]
+                    # Éviter les doublons
+                    if not any(b["id"] == bien_data["id"] for b in biens):
+                        biens.append(bien_data)
+
+            stats_data["biens"] = biens
+
+    except Exception as e:
+        error_msg = f"Erreur récupération biens pour {user.email}: {e}"
+        logger.warning(error_msg)
+        stats_data["biens"] = []
+
+    # Statistiques Locataire : Liste des locations avec bails
     try:
         locataires = Locataire.objects.filter(email=user.email)
 
         if locataires.exists():
-            profile_data["roles"]["is_locataire"] = True
-
-            # Récupérer toutes les locations associées à ces locataires
-            from bail.models import Bail
-            from location.models import Location
-
             locations = []
             for locataire in locataires:
-                # Les locataires sont liés aux locations via ManyToMany
                 for location in Location.objects.filter(locataires=locataire):
-                    # Récupérer le bail actif de cette location s'il existe (SIGNING ou SIGNED)
-                    bail = Bail.objects.filter(
-                        location=location,
-                        status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED]
-                    ).order_by('-created_at').first()
+                    # Récupérer le bail actif (SIGNING ou SIGNED)
+                    bail = (
+                        Bail.objects.filter(
+                            location=location,
+                            status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED],
+                        )
+                        .order_by("-created_at")
+                        .first()
+                    )
 
                     date_fin = (
                         location.date_fin.isoformat() if location.date_fin else None
                     )
 
-                    # Si un bail existe, vérifier les signatures
+                    # Si un bail existe, récupérer ses infos
                     signatures_completes = True
                     pdf_url = None
                     latest_pdf_url = None
@@ -407,15 +427,9 @@ def get_user_profile_detailed(request):
                         signatures_completes = not bail.signature_requests.filter(
                             signed=False
                         ).exists()
-                        pdf_url = (
-                            request.build_absolute_uri(bail.pdf.url)
-                            if bail.pdf
-                            else None
-                        )
+                        pdf_url = bail.pdf.url if bail.pdf else None
                         latest_pdf_url = (
-                            request.build_absolute_uri(bail.latest_pdf.url)
-                            if bail.latest_pdf
-                            else None
+                            bail.latest_pdf.url if bail.latest_pdf else None
                         )
                         status = bail.status
 
@@ -449,16 +463,42 @@ def get_user_profile_detailed(request):
                         ),
                     }
                     # Éviter les doublons
-                    location_exists = any(
-                        location["id"] == bail.id for location in locations
-                    )
-                    if not location_exists:
+                    if not any(loc["id"] == location_data["id"] for loc in locations):
                         locations.append(location_data)
 
-            profile_data["locations"] = locations
+            stats_data["locations"] = locations
 
     except Exception as e:
-        error_msg = f"Erreur lors de la récupération des locations pour {user.email}"
-        logger.warning(f"{error_msg}: {e}")
+        error_msg = f"Erreur récupération locations pour {user.email}: {e}"
+        logger.warning(error_msg)
+        stats_data["locations"] = []
 
-    return JsonResponse({"success": True, **profile_data})
+    # Statistiques Mandataire : Nombre de biens/bailleurs gérés
+    try:
+        mandataires = get_user_mandataires(user.email)
+
+        if mandataires.exists():
+            # Compter les biens gérés via les locations
+            nombre_biens_geres = (
+                Bien.objects.filter(locations__mandataire__in=mandataires)
+                .distinct()
+                .count()
+            )
+
+            # Compter les bailleurs uniques gérés
+            nombre_bailleurs_geres = (
+                Bailleur.objects.filter(bien__locations__mandataire__in=mandataires)
+                .distinct()
+                .count()
+            )
+
+            stats_data["mandataire_stats"] = {
+                "nombre_biens_geres": nombre_biens_geres,
+                "nombre_bailleurs_geres": nombre_bailleurs_geres,
+            }
+
+    except Exception as e:
+        error_msg = f"Erreur stats mandataire pour {user.email}: {e}"
+        logger.warning(error_msg)
+
+    return JsonResponse({"success": True, **stats_data})

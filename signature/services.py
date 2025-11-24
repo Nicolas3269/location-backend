@@ -125,8 +125,8 @@ def send_otp_email(signature_request, document_type="document"):
     if hasattr(document, 'status'):
         from signature.document_status import DocumentStatus
         # Si c'est le premier signataire (order = 1), passer en SIGNING
-        if signature_request.order == 1 and document.status == DocumentStatus.DRAFT:
-            document.status = DocumentStatus.SIGNING
+        if signature_request.order == 1 and document.status == DocumentStatus.DRAFT.value:
+            document.status = DocumentStatus.SIGNING.value
             document.save()
             logger.info(f"Document {type(document).__name__} {document.id} passé en status SIGNING lors de l'envoi de l'OTP")
 
@@ -236,14 +236,21 @@ def get_next_signer(signature_request):
     return signature_request.get_next_signature_request()
 
 
-def create_signature_requests_generic(document, signature_request_model):
+def create_signature_requests_generic(document, signature_request_model, user=None):
     """
     Fonction générique pour créer des demandes de signature pour un document.
     Fonctionne avec bail et état des lieux.
 
+    Ordre de signature:
+    1. User créateur (celui qui a généré le document) - order=1
+    2. Mandataire (si existe et différent du user)
+    3. Bailleurs signataires (si différents du user)
+    4. Locataires (si différents du user)
+
     Args:
         document: Instance du document signable (Bail, EtatLieux, etc.)
         signature_request_model: Modèle de demande de signature
+        user: User qui a créé le document (sera le premier signataire)
     """
     # Déterminer le champ de relation vers le document
     document_field_name = None
@@ -265,20 +272,49 @@ def create_signature_requests_generic(document, signature_request_model):
     signature_request_model.objects.filter(**{document_field_name: document}).delete()
 
     # Déduire la location depuis le document
-
     location = document.location
 
-    bailleurs = location.bien.bailleurs.all()
+    # IMPORTANT: Ordre déterministe (premier créé = principal)
+    bailleurs = location.bien.bailleurs.order_by('created_at')
     bailleur_signataires = [
         bailleur.signataire for bailleur in bailleurs if bailleur.signataire
     ]
     locataires = list(location.locataires.all())
 
     order = 1
+    user_email = user.email.lower() if user else None
 
-    # Créer les demandes pour les bailleurs signataires
-    for signataire in bailleur_signataires:
-        if signataire:
+    # Vérifier si le mandataire doit signer ce document
+    mandataire_doit_signer = (
+        hasattr(document, 'mandataire_doit_signer') and
+        document.mandataire_doit_signer and
+        location.mandataire
+    )
+
+    # ÉTAPE 1: Le user créateur signe en premier (si fourni)
+    if user and user_email:
+        # Identifier le type de signataire du user
+        # Vérifier si c'est le mandataire
+        if (
+            mandataire_doit_signer and
+            location.mandataire.signataire.email.lower() == user_email
+        ):
+            signature_request_model.objects.create(
+                **{
+                    document_field_name: document,
+                    "mandataire": location.mandataire,
+                    "order": order,
+                    "otp": "",
+                }
+            )
+            order += 1
+            logger.info(
+                f"User créateur (mandataire) ajouté en premier signataire (order={order-1}) "
+                f"pour {type(document).__name__} {document.id}"
+            )
+        # Vérifier si c'est un bailleur
+        elif any(sig and sig.email.lower() == user_email for sig in bailleur_signataires):
+            signataire = next(sig for sig in bailleur_signataires if sig and sig.email.lower() == user_email)
             signature_request_model.objects.create(
                 **{
                     document_field_name: document,
@@ -288,18 +324,73 @@ def create_signature_requests_generic(document, signature_request_model):
                 }
             )
             order += 1
+            logger.info(
+                f"User créateur (bailleur) ajouté en premier signataire (order={order-1}) "
+                f"pour {type(document).__name__} {document.id}"
+            )
+        # Vérifier si c'est un locataire
+        elif any(loc.email.lower() == user_email for loc in locataires):
+            locataire = next(loc for loc in locataires if loc.email.lower() == user_email)
+            signature_request_model.objects.create(
+                **{
+                    document_field_name: document,
+                    "locataire": locataire,
+                    "order": order,
+                    "otp": "",
+                }
+            )
+            order += 1
+            logger.info(
+                f"User créateur (locataire) ajouté en premier signataire (order={order-1}) "
+                f"pour {type(document).__name__} {document.id}"
+            )
 
-    # Créer les demandes pour les locataires
+    # ÉTAPE 2: Mandataire (si pas déjà ajouté comme user créateur)
+    if mandataire_doit_signer:
+        mandataire_email = location.mandataire.signataire.email.lower()
+        if not (user_email and mandataire_email == user_email):
+            signature_request_model.objects.create(
+                **{
+                    document_field_name: document,
+                    "mandataire": location.mandataire,
+                    "order": order,
+                    "otp": "",
+                }
+            )
+            order += 1
+            logger.info(
+                f"Mandataire ajouté comme signataire (order={order-1}) "
+                f"pour {type(document).__name__} {document.id}"
+            )
+
+    # ÉTAPE 3: Bailleurs signataires (si pas déjà ajouté comme user créateur)
+    for signataire in bailleur_signataires:
+        if signataire:
+            signataire_email = signataire.email.lower()
+            if not (user_email and signataire_email == user_email):
+                signature_request_model.objects.create(
+                    **{
+                        document_field_name: document,
+                        "bailleur_signataire": signataire,
+                        "order": order,
+                        "otp": "",
+                    }
+                )
+                order += 1
+
+    # ÉTAPE 4: Locataires (si pas déjà ajouté comme user créateur)
     for locataire in locataires:
-        signature_request_model.objects.create(
-            **{
-                document_field_name: document,
-                "locataire": locataire,
-                "order": order,
-                "otp": "",
-            }
-        )
-        order += 1
+        locataire_email = locataire.email.lower()
+        if not (user_email and locataire_email == user_email):
+            signature_request_model.objects.create(
+                **{
+                    document_field_name: document,
+                    "locataire": locataire,
+                    "order": order,
+                    "otp": "",
+                }
+            )
+            order += 1
 
     logger.info(
         f"Créé {order - 1} demandes de signature pour "

@@ -5,11 +5,19 @@ Nouveau modèle Bail refactorisé
 
 from django.conf import settings
 from django.db import models
-from django.utils import timezone
 from simple_history.models import HistoricalRecords
 
-from location.models import BaseModel, Bien, Locataire, Location, Personne
-from signature.document_status import DocumentStatus
+from backend.pdf_utils import get_static_pdf_iframe_url
+from location.models import (
+    BaseModel,
+    Bien,
+    DocumentAvecMandataireMixin,
+    Locataire,
+    Location,
+    Mandataire,
+    Personne,
+)
+from signature.document_types import SignableDocumentType
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
 
@@ -17,16 +25,11 @@ from signature.models_base import SignableDocumentMixin
 # (on garde les existants)
 
 
-class Bail(SignableDocumentMixin, BaseModel):
+class Bail(DocumentAvecMandataireMixin, SignableDocumentMixin, BaseModel):
     """Contrat de bail (ex-Bail)"""
 
     location = models.ForeignKey(
         Location, on_delete=models.CASCADE, related_name="bails"
-    )
-
-    # Statut
-    status = models.CharField(
-        max_length=20, choices=DocumentStatus.choices, default=DocumentStatus.DRAFT
     )
 
     # Annulation
@@ -40,25 +43,20 @@ class Bail(SignableDocumentMixin, BaseModel):
     clauses_particulieres = models.TextField(blank=True)
     observations = models.TextField(blank=True)
 
-    # PDFs spécifiques au bail
-    notice_information_pdf = models.FileField(
-        upload_to="bail_pdfs/", null=True, blank=True
-    )
-    dpe_pdf = models.FileField(
-        upload_to="bail_pdfs/",
-        null=True,
-        blank=True,
-        verbose_name="Diagnostic de Performance Énergétique PDF",
-    )
-    grille_vetuste_pdf = models.FileField(
-        upload_to="bail_pdfs/",
-        null=True,
-        blank=True,
-        verbose_name="Grille de vétusté PDF",
+    # Confirmation DPE G (logement non décent depuis 1er janvier 2025)
+    signature_dpe_g_acknowledgment = models.BooleanField(
+        default=False,
+        verbose_name="Confirmation responsabilité DPE G",
+        help_text=(
+            "Confirmation du bailleur qu'il assume la responsabilité de louer "
+            "un logement classé G, non décent depuis le 1er janvier 2025"
+        ),
     )
 
-    # Dates importantes
-    date_signature = models.DateField(default=timezone.now)
+    # PDFs spécifiques au bail
+    # Note: notice_information et grille_vetuste sont des documents statiques
+    # accessibles via get_notice_information_url() - pas de champ FileField
+    # Note: Les diagnostics (DPE, etc.) sont gérés via le modèle Document
 
     # Travaux et réparations
     travaux_bailleur = models.TextField(blank=True)
@@ -70,31 +68,34 @@ class Bail(SignableDocumentMixin, BaseModel):
     # Historique automatique
     history = HistoricalRecords()
 
-    # Méthodes héritées de l'ancien Bail
-    def check_and_update_status(self):
-        """Met à jour automatiquement le statut selon les signatures"""
-        current_status = self.status
-
-        # Ne pas passer automatiquement de DRAFT à SIGNING
-        # Cela sera fait par send_signature_email quand on envoie vraiment l'email
-
-        # Passer de SIGNING à SIGNED si toutes les signatures sont complètes
-        if self.status == DocumentStatus.SIGNING:
-            if (
-                self.signature_requests.exists()
-                and not self.signature_requests.filter(signed=False).exists()
-            ):
-                self.status = DocumentStatus.SIGNED
-
-        if current_status != self.status:
-            self.save(update_fields=["status"])
-
     # Méthodes de SignableDocumentMixin
     def get_document_name(self):
         return "Bail"
 
     def get_file_prefix(self):
         return "bail"
+
+    # Méthode de DocumentAvecMandataireMixin
+    def get_reference_date_for_honoraires(self):
+        """
+        Date de référence pour les honoraires (fallback si pas encore signé).
+        Pour un bail : date de création du brouillon.
+        """
+        return self.created_at.date()
+
+    def get_notice_information_url(self, request):
+        """
+        Retourne l'URL de la notice d'information (document statique).
+        Factorise la logique au lieu d'utiliser le champ notice_information_pdf.
+
+        Args:
+            request: L'objet request Django pour construire l'URL absolue
+
+        Returns:
+            str: URL complète de la notice d'information statique
+        """
+
+        return get_static_pdf_iframe_url(request, "bails/notice_information.pdf")
 
     def __str__(self):
         return f"Bail {self.location.bien} - ({self.location.date_debut})"
@@ -119,7 +120,7 @@ class DocumentType(models.TextChoices):
     BAIL = "bail", "Contrat de bail"
     GRILLE_VETUSTE = "grille_vetuste", "Grille de vétusté"
     NOTICE_INFORMATION = "notice_information", "Notice d'information"
-    DIAGNOSTIC = "diagnostic", "Diagnostic"
+    DIAGNOSTIC = "diagnostic", "Diagnostics techniques"
     PERMIS_DE_LOUER = "permis_de_louer", "Permis de louer"
     ATTESTATION_MRH = "attestation_mrh", "Attestation MRH"
     CAUTION_SOLIDAIRE = "caution_solidaire", "Caution solidaire"
@@ -180,6 +181,14 @@ class BailSignatureRequest(AbstractSignatureRequest):
     )
 
     # Override les champs pour spécifier les related_name différents d'EtatLieux
+    mandataire = models.ForeignKey(
+        Mandataire,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="bail_signature_requests",
+        help_text="Mandataire qui signe pour le compte du bailleur",
+    )
     bailleur_signataire = models.ForeignKey(
         Personne,
         null=True,
@@ -199,7 +208,11 @@ class BailSignatureRequest(AbstractSignatureRequest):
     )
 
     class Meta:
-        unique_together = [("bail", "bailleur_signataire"), ("bail", "locataire")]
+        unique_together = [
+            ("bail", "bailleur_signataire"),
+            ("bail", "locataire"),
+            ("bail", "mandataire"),
+        ]
         ordering = ["order"]
 
     def get_document_name(self):
@@ -221,6 +234,10 @@ class BailSignatureRequest(AbstractSignatureRequest):
             .order_by("order")
             .first()
         )
+
+    def get_document_type(self):
+        """Retourne le type de document"""
+        return SignableDocumentType.BAIL.value
 
     def mark_as_signed(self):
         """Marque la demande comme signée et met à jour le statut du document"""

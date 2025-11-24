@@ -5,6 +5,8 @@ Chaque serializer représente un domaine métier atomique.
 
 from rest_framework import serializers
 
+from location.models import BailleurType
+
 # ============================================
 # SERIALIZERS ATOMIQUES DE BASE
 # ============================================
@@ -34,6 +36,7 @@ class CaracteristiquesBienSerializer(serializers.Serializer):
     meuble = serializers.BooleanField(required=False, allow_null=True, default=None)
     pieces_info = serializers.JSONField(
         required=False,
+        allow_null=True,
         help_text="Détail des pièces: chambres, sallesDeBain, cuisines, etc.",
     )
 
@@ -79,7 +82,7 @@ class RegimeJuridiqueSerializer(serializers.Serializer):
     """Régime juridique et fiscal du bien"""
 
     regime_juridique = serializers.ChoiceField(
-        choices=["monopropriete", "copropriete"], required=True
+        choices=["monopropriete", "copropriete"], required=False, allow_null=True
     )
     identifiant_fiscal = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     periode_construction = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -89,6 +92,8 @@ class ZoneReglementaireSerializer(serializers.Serializer):
     """Zone réglementaire et autorisations"""
 
     zone_tendue = serializers.BooleanField(required=False, allow_null=True)
+    zone_tres_tendue = serializers.BooleanField(required=False, allow_null=True)
+    zone_tendue_touristique = serializers.BooleanField(required=False, allow_null=True)
     permis_de_louer = serializers.BooleanField(required=False, allow_null=True)
 
 
@@ -105,14 +110,15 @@ class PersonneSerializer(serializers.Serializer):
     firstName = serializers.CharField(max_length=100)
     email = serializers.EmailField()
     date_naissance = serializers.DateField(required=False, allow_null=True)
-    telephone = serializers.CharField(max_length=20, required=False, allow_blank=True)
-    adresse = serializers.CharField(required=False, allow_blank=True)
-    iban = serializers.CharField(max_length=34, required=False, allow_blank=True)
+    telephone = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
+    adresse = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    iban = serializers.CharField(max_length=34, required=False, allow_blank=True, allow_null=True)
 
 
 class SocieteSerializer(serializers.Serializer):
     """Serializer pour une société"""
 
+    id = serializers.UUIDField(required=False, allow_null=True, help_text="UUID de la société (pour réutilisation)")
     raison_sociale = serializers.CharField(max_length=200)
     siret = serializers.CharField(max_length=14, min_length=14)
     forme_juridique = serializers.CharField(max_length=100)
@@ -122,44 +128,46 @@ class SocieteSerializer(serializers.Serializer):
 
 
 class BailleurInfoSerializer(serializers.Serializer):
-    """Informations du bailleur (physique ou morale)"""
+    """Informations du bailleur principal (physique ou morale)"""
 
+    id = serializers.UUIDField(required=False, allow_null=True, help_text="UUID du bailleur (pour réutilisation)")
     bailleur_type = serializers.ChoiceField(
-        choices=["physique", "morale"], default="physique"
+        choices=BailleurType.choices, default=BailleurType.PHYSIQUE.value
     )
     personne = PersonneSerializer(required=False, allow_null=True)
     societe = SocieteSerializer(required=False, allow_null=True)
     signataire = PersonneSerializer(required=False, allow_null=True)
-    co_bailleurs = serializers.ListField(child=PersonneSerializer(), required=False)
+    # Note: co_bailleurs définis au niveau du serializer principal
+    # (FranceBailSerializer, etc.)
 
     def to_internal_value(self, data):
         """Nettoyer les données avant la validation"""
-        # Récupérer le type de bailleur
-        bailleur_type = data.get("bailleur_type", "physique")
-        
+        # Récupérer le type de bailleur (string)
+        bailleur_type = data.get("bailleur_type", BailleurType.PHYSIQUE.value)
+
         # Créer une copie des données pour ne pas modifier l'original
         cleaned_data = dict(data)
-        
+
         # Nettoyer les champs non pertinents selon le type
-        if bailleur_type == "physique":
+        if bailleur_type == BailleurType.PHYSIQUE.value:
             # Pour personne physique, supprimer les champs société
             cleaned_data.pop("societe", None)
             cleaned_data.pop("signataire", None)
-        elif bailleur_type == "morale":
+        elif bailleur_type == BailleurType.MORALE.value:
             # Pour personne morale, supprimer le champ personne s'il n'est pas utilisé comme signataire
             if "personne" in cleaned_data and "signataire" not in cleaned_data:
                 # Conserver personne pour transformation en signataire
                 pass
             elif "personne" in cleaned_data:
                 cleaned_data.pop("personne", None)
-        
+
         return super().to_internal_value(cleaned_data)
 
     def validate(self, data):
         """Validation : physique avec personne (adresse obligatoire), morale avec société et signataire"""
-        bailleur_type = data.get("bailleur_type", "physique")
+        bailleur_type = data.get("bailleur_type", BailleurType.PHYSIQUE.value)
 
-        if bailleur_type == "physique":
+        if bailleur_type == BailleurType.PHYSIQUE.value:
             if not data.get("personne"):
                 raise serializers.ValidationError(
                     "Les informations de la personne sont requises pour un bailleur physique"
@@ -174,7 +182,7 @@ class BailleurInfoSerializer(serializers.Serializer):
             data.pop("societe", None)
             data.pop("signataire", None)
 
-        elif bailleur_type == "morale":
+        elif bailleur_type == BailleurType.MORALE.value:
             if not data.get("societe"):
                 raise serializers.ValidationError(
                     "Les informations de la société sont requises pour un bailleur moral"
@@ -187,6 +195,35 @@ class BailleurInfoSerializer(serializers.Serializer):
             data.pop("personne", None)
             
         return data
+
+
+class MandataireInfoSerializer(serializers.Serializer):
+    """
+    Informations sur le mandataire (agent immobilier).
+    Le mandataire gère la location pour le compte des bailleurs.
+    """
+
+    # Signataire du mandataire (personne physique qui signe pour l'agence)
+    signataire = PersonneSerializer(
+        required=True,
+        help_text=(
+            "Signataire du mandataire "
+            "(personne physique qui va recevoir la signature)"
+        )
+    )
+
+    # Informations de l'agence
+    agence = SocieteSerializer(
+        required=True,
+        help_text="Société de l'agence immobilière"
+    )
+
+    # Numéro de carte professionnelle (CPI)
+    numero_carte_professionnelle = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Numéro de carte professionnelle (CPI) du mandataire"
+    )
 
 
 class LocataireInfoSerializer(PersonneSerializer):
@@ -236,6 +273,36 @@ class ModalitesZoneTendueSerializer(serializers.Serializer):
     justificatif_complement_loyer = serializers.CharField(
         required=False, allow_blank=True
     )
+
+
+class HonorairesBailSerializer(serializers.Serializer):
+    """Honoraires de bail du mandataire"""
+
+    tarif_par_m2 = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    part_bailleur_pct = serializers.DecimalField(
+        max_digits=5, decimal_places=2, required=False, allow_null=True
+    )
+
+
+class HonorairesEDLSerializer(serializers.Serializer):
+    """Honoraires d'état des lieux du mandataire"""
+
+    mandataire_fait_edl = serializers.BooleanField(required=False, default=False)
+    tarif_par_m2 = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    part_bailleur_pct = serializers.DecimalField(
+        max_digits=5, decimal_places=2, required=False, allow_null=True
+    )
+
+
+class HonorairesMandataireSerializer(serializers.Serializer):
+    """Honoraires du mandataire (bail + EDL)"""
+
+    bail = HonorairesBailSerializer(required=False)
+    edl = HonorairesEDLSerializer(required=False)
 
 
 class DatesLocationSerializer(serializers.Serializer):
@@ -351,21 +418,9 @@ class BienBailSerializer(serializers.Serializer):
 
 
 # ============================================
-# SERIALIZERS POUR CRÉATION VIA /location/create-or-update/
+# NOTE: Les serializers de création (CreateBailSerializer, etc.)
+# sont maintenant importés directement depuis france.py dans views.py
+# pour éviter l'import circulaire.
 # ============================================
-
-# Import des serializers spécifiques par pays
-from location.serializers.france import (
-    FranceBailSerializer,
-    FranceQuittanceSerializer,
-    FranceEtatLieuxSerializer,
-    FranceTenantDocumentsSerializer,
-)
-
-# Alias pour utilisation dans views.py
-CreateBailSerializer = FranceBailSerializer
-CreateQuittanceSerializer = FranceQuittanceSerializer
-CreateEtatLieuxSerializer = FranceEtatLieuxSerializer
-CreateTenantDocumentsSerializer = FranceTenantDocumentsSerializer
 
 

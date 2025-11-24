@@ -1,18 +1,22 @@
 import logging
 
 from bail.models import BailSignatureRequest
+from signature.services import create_signature_requests_generic
 
 logger = logging.getLogger(__name__)
 
 
-def create_signature_requests(bail):
+def create_signature_requests(bail, user=None):
     """
     Crée les demandes de signature pour un bail.
     Utilise la fonction générique pour factoriser le code.
-    """
-    from signature.services import create_signature_requests_generic
 
-    create_signature_requests_generic(bail, BailSignatureRequest)
+    Args:
+        bail: Instance de Bail
+        user: User qui a créé le document (sera le premier signataire)
+    """
+
+    create_signature_requests_generic(bail, BailSignatureRequest, user=user)
 
 
 def create_bien_from_form_data(validated_data, serializer_class, save=True):

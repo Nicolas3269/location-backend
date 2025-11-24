@@ -6,7 +6,11 @@ Architecture refactorisée - Coordonne les services spécialisés.
 import uuid
 from typing import Any, Dict, List, Optional
 
-from location.models import Bien, Location, RentTerms
+from location.models import Bailleur, Bien, Location, RentTerms
+from location.services.bailleur_utils import (
+    get_primary_bailleur_for_user,
+    serialize_bailleur,
+)
 from location.types.form_state import (
     CreateFormState,
     EditFormState,
@@ -88,7 +92,7 @@ class FormOrchestrator:
 
         # 2. Pattern matching exhaustif sur form_state
         # Détermine : existing_data, final_location_id, is_new, has_been_renewed
-        if isinstance(form_state, CreateFormState) and form_state.kind == 'create':
+        if isinstance(form_state, CreateFormState) and form_state.kind == "create":
             # Nouveau formulaire vide
             existing_data = {}
             final_location_id = str(uuid.uuid4())
@@ -96,7 +100,7 @@ class FormOrchestrator:
             has_been_renewed = False
             source_location_id = None  # Pas de source
 
-        elif isinstance(form_state, EditFormState) and form_state.kind == 'edit':
+        elif isinstance(form_state, EditFormState) and form_state.kind == "edit":
             # Éditer location en DRAFT
             location_id = str(form_state.location_id)
 
@@ -111,33 +115,57 @@ class FormOrchestrator:
                     "error": "Cannot edit signed document. Use RenewFormState to create a new version."
                 }
 
-            existing_data = self.data_fetcher.fetch_location_data(location_id) or {}
+            existing_data = (
+                self.data_fetcher.fetch_location_data(location_id, user) or {}
+            )
             final_location_id = location_id
             is_new = False
             has_been_renewed = False
             source_location_id = None  # Pas de source
 
-        elif isinstance(form_state, ExtendFormState) and form_state.kind == 'extend':
+        elif isinstance(form_state, ExtendFormState) and form_state.kind == "extend":
             # Mode Extend: Location Actuelle/Ancienne - RÉUTILISER la location existante
             source_id = str(form_state.source_id)
-            source_data = self.data_fetcher.fetch_location_data(source_id) or {}
-            source_location_id = source_id  # Pour check lock
+
+            # Si source_type est draft_edl ou draft_bail, charger les données du document
+            if form_state.source_type == "draft_edl":
+                result = self.data_fetcher.fetch_draft_edl_data(source_id, user)
+                if result is None:
+                    return {"error": "État des lieux not found"}
+                source_data, final_location_id = result
+                source_location_id = final_location_id
+            elif form_state.source_type == "draft_bail":
+                result = self.data_fetcher.fetch_draft_bail_data(source_id, user)
+                if result is None:
+                    return {"error": "Bail not found"}
+                source_data, final_location_id = result
+                source_location_id = final_location_id
+            else:
+                # source_type = "location" (cas normal)
+                source_data = (
+                    self.data_fetcher.fetch_location_data(source_id, user) or {}
+                )
+                source_location_id = source_id
+                final_location_id = source_id
 
             # Copier TOUTES les données
             existing_data = source_data
-            final_location_id = source_id  # ✅ RÉUTILISER le même location_id
             is_new = False  # ✅ Pas une nouvelle location, c'est une location existante
             has_been_renewed = False
 
-        elif isinstance(form_state, PrefillFormState) and form_state.kind == 'prefill':
+        elif isinstance(form_state, PrefillFormState) and form_state.kind == "prefill":
             # Mode Prefill: Nouvelle Location avec suggestions (JAMAIS de lock)
             source_id = str(form_state.source_id)
 
-            if form_state.source_type == 'location':
-                source_data = self.data_fetcher.fetch_location_data(source_id) or {}
-            elif form_state.source_type == 'bien':
-                source_data = self.data_fetcher.fetch_bien_data(source_id) or {}
-            elif form_state.source_type == 'bailleur':
+            if form_state.source_type == "location":
+                source_data = (
+                    self.data_fetcher.fetch_location_data(source_id, user) or {}
+                )
+            elif form_state.source_type == "bien":
+                source_data = (
+                    self.data_fetcher.fetch_bien_data(source_id, user) or {}
+                )
+            elif form_state.source_type == "bailleur":
                 source_data = self.data_fetcher.fetch_bailleur_data(source_id) or {}
             else:
                 source_data = {}
@@ -149,10 +177,13 @@ class FormOrchestrator:
             has_been_renewed = False
             source_location_id = None  # Pas de lock check en mode prefill
 
-        elif isinstance(form_state, RenewFormState) and form_state.kind == 'renew':
+        elif isinstance(form_state, RenewFormState) and form_state.kind == "renew":
             # Renouvellement (document signé → nouveau location_id)
             previous_location_id = str(form_state.previous_location_id)
-            existing_data = self.data_fetcher.fetch_location_data(previous_location_id) or {}
+            existing_data = (
+                self.data_fetcher.fetch_location_data(previous_location_id, user)
+                or {}
+            )
             final_location_id = str(uuid.uuid4())
             is_new = True
             has_been_renewed = True
@@ -166,21 +197,28 @@ class FormOrchestrator:
 
         # 4. Obtenir les steps verrouillées (SERVICE)
         # En mode extend depuis location, on vérifie le verrouillage de la source
-        lock_check_location_id = source_location_id if source_location_id else final_location_id
+        lock_check_location_id = (
+            source_location_id if source_location_id else final_location_id
+        )
         locked_steps = self.step_filter.get_locked_steps(
             lock_check_location_id, country, is_new
         )
 
         # Pour PrefillFormState depuis bien, locker tous les steps
         # SAUF ceux marqués unlocked_from_bien
-        if (isinstance(form_state, PrefillFormState) and
-            form_state.source_type == 'bien'):
+        if (
+            isinstance(form_state, PrefillFormState)
+            and form_state.source_type == "bien"
+        ):
             for step in step_config:
                 step_id = step.get("id")
                 # Si le step n'est pas unlocked, le locker (s'il a une valeur)
                 if not step.get("unlocked_from_bien", False):
                     if self._step_has_value(step_id, existing_data):
                         locked_steps.add(step_id)
+
+        # Pour les drafts (EditFormState), ne rien locker
+        # Le formulaire est simplement pré-rempli avec les données existantes
 
         # 5. Filtrer et enrichir les steps (SERVICE)
         steps = self.step_filter.filter_steps(
@@ -205,7 +243,8 @@ class FormOrchestrator:
         # Pour les états des lieux en mode ExtendFormState, filtrer les types disponibles
         if form_type == "etat_lieux" and isinstance(form_state, ExtendFormState):
             try:
-                location = Location.objects.get(id=form_state.source_id)
+                # Utiliser final_location_id car source_id peut être un draft_edl_id
+                location = Location.objects.get(id=final_location_id)
                 available_types = self._get_available_etat_lieux_types(location)
 
                 # Modifier le step type_etat_lieux pour n'afficher que les types disponibles
@@ -213,11 +252,12 @@ class FormOrchestrator:
                     if step.get("id") == "type_etat_lieux" and available_types:
                         step["available_choices"] = available_types
                         # Si un seul choix, le pré-sélectionner
-                        if len(available_types) == 1 and not form_data.get("type_etat_lieux"):
+                        if len(available_types) == 1 and not form_data.get(
+                            "type_etat_lieux"
+                        ):
                             form_data["type_etat_lieux"] = available_types[0]
             except Location.DoesNotExist:
                 pass
-
 
         result = {
             "formData": form_data,
@@ -233,25 +273,34 @@ class FormOrchestrator:
 
         # Pour PrefillFormState ET ExtendFormState, ajouter bien_id/bailleur_id au niveau racine
         if isinstance(form_state, (PrefillFormState, ExtendFormState)):
-            if form_state.source_type == 'bien':
+            if form_state.source_type == "bien":
                 result["bien_id"] = str(form_state.source_id)
-                # Récupérer bailleur_id depuis le bien
+                # Récupérer bailleur_id depuis le bien (priorité au user connecté)
                 try:
-                    bien = Bien.objects.prefetch_related("bailleurs").get(id=form_state.source_id)
-                    if bien.bailleurs.exists():
-                        result["bailleur_id"] = str(bien.bailleurs.first().id)
+                    bien = Bien.objects.prefetch_related("bailleurs").get(
+                        id=form_state.source_id
+                    )
+                    bailleur = get_primary_bailleur_for_user(bien.bailleurs, user)
+                    if bailleur:
+                        result["bailleur_id"] = str(bailleur.id)
                 except Bien.DoesNotExist:
                     pass
-            elif form_state.source_type == 'bailleur':
+            elif form_state.source_type == "bailleur":
                 result["bailleur_id"] = str(form_state.source_id)
-            elif form_state.source_type == 'location':
+            elif form_state.source_type == "location":
                 # Pour prefill/extend depuis location, récupérer bien_id et bailleur_id
                 try:
-                    location = Location.objects.select_related('bien').prefetch_related('bien__bailleurs').get(id=form_state.source_id)
+                    location = (
+                        Location.objects.select_related("bien")
+                        .prefetch_related("bien__bailleurs")
+                        .get(id=form_state.source_id)
+                    )
                     if location.bien:
                         result["bien_id"] = str(location.bien.id)
-                        if location.bien.bailleurs.exists():
-                            result["bailleur_id"] = str(location.bien.bailleurs.first().id)
+                        # Priorité au user connecté
+                        bailleur = get_primary_bailleur_for_user(location.bien.bailleurs, user)
+                        if bailleur:
+                            result["bailleur_id"] = str(bailleur.id)
                 except Location.DoesNotExist:
                     pass
 
@@ -337,12 +386,12 @@ class FormOrchestrator:
             elif context_mode == "from_bien":
                 # Pré-remplir bien + bailleur
                 bien = Bien.objects.get(id=context_source_id)
-                return self._extract_bien_and_bailleur_data(bien, country)
+                return self._extract_bien_and_bailleur_data(bien, country, user)
 
             elif context_mode == "from_location":
                 # Pré-remplir tout - utilisé pour édition
                 location = Location.objects.get(id=context_source_id)
-                data = self._extract_location_data(location)
+                data = self._extract_location_data(location, user)
 
                 # Pour les quittances, ajouter locataire_ids (UUIDs des locataires existants)
                 # Cela permet à get_or_create_quittance de récupérer directement les locataires
@@ -362,45 +411,16 @@ class FormOrchestrator:
 
         return {}
 
-    def _extract_bailleur_data(self, bailleur) -> Dict[str, Any]:
+    def _extract_bailleur_data(self, bailleur: Bailleur) -> Dict[str, Any]:
         """Extrait uniquement les données du bailleur."""
-        data = {"bailleur": {}}
 
-        bailleur_type = (
-            "physique" if bailleur.personne else "morale" if bailleur.societe else None
-        )
-        data["bailleur"]["bailleur_type"] = bailleur_type
-
-        if bailleur_type == "physique" and bailleur.personne:
-            personne = bailleur.personne
-            data["bailleur"]["personne"] = {
-                "lastName": personne.lastName,
-                "firstName": personne.firstName,
-                "email": personne.email,
-                "adresse": personne.adresse,
-            }
-        elif bailleur_type == "morale" and bailleur.societe:
-            societe = bailleur.societe
-            data["bailleur"]["societe"] = {
-                "raison_sociale": societe.raison_sociale,
-                "siret": societe.siret,
-                "forme_juridique": societe.forme_juridique,
-                "adresse": societe.adresse,
-                "email": societe.email,
-            }
-            if bailleur.signataire:
-                data["bailleur"]["signataire"] = {
-                    "lastName": bailleur.signataire.lastName,
-                    "firstName": bailleur.signataire.firstName,
-                    "email": bailleur.signataire.email,
-                }
-
-        return data
+        bailleur_data = serialize_bailleur(bailleur)
+        return {"bailleur": bailleur_data}
 
     def _extract_bien_and_bailleur_data(
-        self, bien: Bien, country: str
+        self, bien: Bien, country: str, user: Optional[Any] = None
     ) -> Dict[str, Any]:
-        """Extrait les données du bien ET du bailleur principal."""
+        """Extrait les données du bien ET du bailleur principal (priorité au user connecté)."""
         data = {
             "bien": {
                 "localisation": {},
@@ -484,18 +504,18 @@ class FormOrchestrator:
                 eau_chaude_data["energie"] = bien.eau_chaude_energie
             data["bien"]["energie"]["eau_chaude"] = eau_chaude_data
 
-        # Bailleur principal
-        if bien.bailleurs.exists():
-            bailleur = bien.bailleurs.first()
+        # Bailleur principal (priorité au user connecté)
+        bailleur = get_primary_bailleur_for_user(bien.bailleurs, user)
+        if bailleur:
             bailleur_data = self._extract_bailleur_data(bailleur)
             data["bailleur"] = bailleur_data.get("bailleur", {})
 
         return data
 
-    def _extract_location_data(self, location: Location) -> Dict[str, Any]:
+    def _extract_location_data(self, location: Location, user: Optional[Any] = None) -> Dict[str, Any]:
         """
         Extrait les données d'une Location pour pré-remplissage.
-        Format aligné avec les serializers.
+        Format aligné avec les serializers (priorité au user connecté pour le bailleur).
 
         Note: Cette fonction fait du mapping inverse (modèle -> formulaire).
         Les field mappings du serializer sont dans l'autre sens (formulaire -> modèle),
@@ -620,50 +640,21 @@ class FormOrchestrator:
                     eau_chaude_data["energie"] = bien.eau_chaude_energie
                 data["bien"]["energie"]["eau_chaude"] = eau_chaude_data
 
-        # Données du bailleur
+        # Données du bailleur (priorité au user connecté)
         if location.bien and location.bien.bailleurs.exists():
-            bailleur = location.bien.bailleurs.first()
+            bailleur: Bailleur = get_primary_bailleur_for_user(location.bien.bailleurs, user)
             if bailleur:
-                # Mapper "personne" vers "physique" pour cohérence avec le frontend
-                bailleur_type = (
-                    "physique"
-                    if bailleur.personne
-                    else "morale"
-                    if bailleur.societe
-                    else None
-                )
-                data["bailleur"]["bailleur_type"] = bailleur_type
+                # Utiliser serialize_bailleur pour éviter la duplication
+                bailleur_serialized = serialize_bailleur(bailleur)
+                data["bailleur"].update(bailleur_serialized)
 
-                if bailleur_type == "physique" and bailleur.personne:
-                    personne = bailleur.personne
-                    data["bailleur"]["personne"] = {
-                        "lastName": personne.lastName,
-                        "firstName": personne.firstName,
-                        "email": personne.email,
-                        "adresse": personne.adresse,
-                    }
-                elif bailleur_type == "morale" and bailleur.societe:
-                    societe = bailleur.societe
-                    data["bailleur"]["societe"] = {
-                        "raison_sociale": societe.raison_sociale,
-                        "siret": societe.siret,
-                        "forme_juridique": societe.forme_juridique,
-                        "adresse": societe.adresse,
-                        "email": societe.email,
-                    }
-                    if bailleur.signataire:
-                        data["bailleur"]["signataire"] = {
-                            "lastName": bailleur.signataire.lastName,
-                            "firstName": bailleur.signataire.firstName,
-                            "email": bailleur.signataire.email,
-                        }
-
-                # Extraire les co-bailleurs (tous sauf le premier)
-                all_bailleurs = list(location.bien.bailleurs.all())
-                if len(all_bailleurs) > 1:
+                # Extraire les co-bailleurs (tous sauf celui sélectionné comme principal)
+                all_bailleurs = location.bien.bailleurs.order_by('created_at')
+                co_bailleurs = all_bailleurs.exclude(id=bailleur.id)
+                if co_bailleurs.exists():
                     # Il y a des co-bailleurs
                     co_bailleurs_list = []
-                    for co_bailleur in all_bailleurs[1:]:
+                    for co_bailleur in co_bailleurs:
                         if co_bailleur.personne:
                             co_bailleurs_list.append(
                                 {
@@ -893,7 +884,7 @@ class FormOrchestrator:
                 {
                     "id": str(doc.id),
                     "name": doc.nom_original,
-                    "url": request.build_absolute_uri(doc.file.url),
+                    "url": doc.file.url,
                     "type": "attestation_mrh",
                 }
                 for doc in mrh_docs
@@ -903,7 +894,7 @@ class FormOrchestrator:
                 {
                     "id": str(doc.id),
                     "name": doc.nom_original,
-                    "url": request.build_absolute_uri(doc.file.url),
+                    "url": doc.file.url,
                     "type": "caution_solidaire",
                 }
                 for doc in caution_docs

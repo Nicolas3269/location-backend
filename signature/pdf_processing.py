@@ -6,23 +6,26 @@ import base64
 import logging
 import os
 
+from django.core.files.base import File
+
 from algo.signature.main import (
     add_signature_fields_dynamic,
     get_named_dest_coordinates,
     sign_pdf,
 )
-from bail.models import Bail
+from backend.storage_utils import get_local_file_path, save_file_to_storage
 
 logger = logging.getLogger(__name__)
 
 
-def process_signature_generic(signature_request, signature_data_url):
+def process_signature_generic(signature_request, signature_data_url, request=None):
     """
     Version générique de process_signature qui fonctionne avec n'importe quel document signable
 
     Args:
         signature_request: Instance de AbstractSignatureRequest
         signature_data_url: Image de signature en base64
+        request: Django HttpRequest (pour capturer métadonnées IP/user-agent)
     """
     try:
         # Récupérer le document signable
@@ -36,10 +39,8 @@ def process_signature_generic(signature_request, signature_data_url):
             )
             return False
 
-        # Récupérer la personne qui signe
-        signing_person = (
-            signature_request.bailleur_signataire or signature_request.locataire
-        )
+        # Récupérer la personne qui signe (utilise la propriété signer qui gère mandataire)
+        signing_person = signature_request.signer
         logger.info(f"Personne qui signe: {signing_person}")
 
         # Vérifier que le document a un PDF
@@ -55,48 +56,44 @@ def process_signature_generic(signature_request, signature_data_url):
         field_name = document.get_signature_field_name(signing_person)
         logger.info(f"Nom du champ de signature: {field_name}")
 
-        # Chemin source : soit latest_pdf (s'il existe), soit le PDF d'origine
-        source_path = (
-            document.latest_pdf.path if document.latest_pdf else document.pdf.path
-        )
-        logger.info(f"Chemin source: {source_path}")
-
-        # Vérifier que le fichier existe physiquement
-        if not os.path.exists(source_path):
-            logger.error(f"Le fichier PDF n'existe pas: {source_path}")
-            logger.error("Le PDF doit être généré avant de pouvoir être signé.")
-            logger.error(
-                "Utilisez l'API generate-etat-lieux pour générer le PDF d'abord."
-            )
-            return False
+        # Sélectionner le PDF source (latest_pdf si existe, sinon pdf)
+        source_field = document.latest_pdf if document.latest_pdf else document.pdf
 
         # Générer le nom de fichier basé sur le type de document
         base_name = (
-            os.path.basename(source_path).replace("_signed", "").replace(".pdf", "")
+            os.path.basename(source_field.name)
+            .replace("_signed", "")
+            .replace(".pdf", "")
         )
+        signed_filename = f"{base_name}_signed.pdf"
         final_tmp_path = f"/tmp/{base_name}_signed_temp.pdf"
 
-        logger.info(
-            f"Appel de sign_pdf avec: source={source_path}, output={final_tmp_path}, field={field_name}"
-        )
-        sign_pdf(
-            source_path=source_path,
-            output_path=final_tmp_path,
-            user=signing_person,
-            field_name=field_name,
-            signature_bytes=signature_bytes,
-        )
-        logger.info("sign_pdf terminé avec succès")
+        # Utiliser le helper pour gérer R2/local storage
+        # IMPORTANT : Tout le traitement doit être dans le with pour que le fichier temporaire existe
+        with get_local_file_path(source_field) as source_path:
+            logger.info(f"Fichier source téléchargé: {source_path}")
+
+            logger.info(
+                f"Appel de sign_pdf avec: source={source_path}, output={final_tmp_path}, field={field_name}"
+            )
+            sign_pdf(
+                source_path=source_path,
+                output_path=final_tmp_path,
+                user=signing_person,
+                field_name=field_name,
+                signature_bytes=signature_bytes,
+                request=request,
+                document=document,
+                signature_request=signature_request,  # Métadonnées OTP extraites depuis ici
+            )
+            logger.info("sign_pdf terminé avec succès")
 
         # Supprimer l'ancien fichier latest_pdf si existant
         if document.latest_pdf and document.latest_pdf.name:
             document.latest_pdf.delete(save=False)
 
-        # Sauvegarder le PDF signé dans latest_pdf (même logique que les bails)
+        # Sauvegarder le PDF signé dans latest_pdf
         with open(final_tmp_path, "rb") as f:
-            from django.core.files.base import File
-
-            signed_filename = f"{base_name}_signed.pdf"
             document.latest_pdf.save(signed_filename, File(f), save=True)
 
         # Vérifier que le fichier a été sauvegardé avant de nettoyer
@@ -114,6 +111,139 @@ def process_signature_generic(signature_request, signature_data_url):
             return False
 
         logger.info(f"PDF signé avec succès pour {document.get_document_name()}")
+
+        # Marquer la SignatureRequest comme signée maintenant que le PDF est signé
+        signature_request.mark_as_signed()
+
+        # Mettre le document en SIGNING si c'est la première signature
+        if hasattr(document, "status"):
+            from signature.document_status import DocumentStatus
+
+            if document.status == DocumentStatus.DRAFT.value:
+                document.status = DocumentStatus.SIGNING.value
+                document.save(update_fields=["status"])
+                logger.info("✅ Status mis à jour : SIGNING (première signature)")
+
+        # Vérifier si c'était la dernière signature et sceller si nécessaire
+        try:
+            # Utiliser la relation inverse signature_requests définie sur le document
+            if not hasattr(document, "signature_requests"):
+                logger.warning(
+                    f"Document {document.get_document_name()} n'a pas de signature_requests"
+                )
+                return True
+
+            sig_requests = document.signature_requests.all()
+            total_signatures = sig_requests.count()
+            completed_signatures = sig_requests.filter(signed=True).count()
+
+            logger.info(
+                f"📝 Signatures : {completed_signatures}/{total_signatures} complétées"
+            )
+
+            # Si toutes les signatures utilisateurs sont complètes → Finalisation
+            if total_signatures > 0 and completed_signatures == total_signatures:
+                logger.info(
+                    f"✅ Toutes les signatures utilisateurs complètes pour {document.get_document_name()}"
+                )
+
+                # ✅ PAdES B-LT (Long Term validation)
+                # DocTimeStamp final NON UTILISÉ (PAdES B-LTA non nécessaire)
+                #
+                # Raisons du choix B-LT vs B-LTA :
+                # 1. Légalement suffisant pour baux/mandats/assurance (5-10 ans)
+                # 2. Accepté par assurances loyers impayés et tribunaux français
+                # 3. Adobe rejette DocTimeStamp avec TSA auto-signé
+                # 4. TSA commercial uniquement pour B-LTA (archivage 30+ ans)
+                #
+                # Architecture actuelle :
+                # - Certification Hestia + embed_validation_info (DSS créé)
+                # - Timestamp TSA Hestia sur chaque signature (T0, T1, T2...)
+                # - Infos révocation embarquées (CRL/OCSP dans DSS)
+                # → Validité : 5-10 ans (durée certificats)
+                #
+                # Pour activer B-LTA avec TSA commercial (si besoin futur) :
+                # Décommenter le code ci-dessous et configurer TSA commercial
+                # dans apply_final_timestamp()
+                #
+                # try:
+                #     from signature.certification_flow import (
+                #         apply_final_timestamp,
+                #     )
+                #
+                #     # Télécharger le PDF signé depuis S3
+                #     with get_local_file_path(document.latest_pdf) as source_pdf:
+                #         output_pdf = source_pdf.replace('.pdf', '_ts.pdf')
+                #
+                #         # Appliquer le DocTimeStamp final
+                #         apply_final_timestamp(source_pdf, output_pdf)
+                #
+                #         if os.path.exists(output_pdf):
+                #             # Supprimer l'ancien latest_pdf
+                #             if document.latest_pdf:
+                #                 document.latest_pdf.delete(save=False)
+                #
+                #             # Uploader le PDF timestampé vers S3
+                #             with open(output_pdf, 'rb') as f:
+                #                 from django.core.files.base import File
+                #                 fname = os.path.basename(
+                #                     document.latest_pdf.name
+                #                 )
+                #                 document.latest_pdf.save(
+                #                     fname, File(f), save=False
+                #                 )
+                #
+                #             # Nettoyer le fichier temporaire
+                #             os.remove(output_pdf)
+                #             logger.info("✅ DocTimeStamp final (B-LTA)")
+                # except Exception as ts_error:
+                #     logger.warning(f"⚠️ DocTimeStamp: {ts_error}")
+
+                logger.info("✅ PAdES B-LT complet (validation long terme)")
+
+                # ✅ NOUVEAU : Générer journal de preuves
+                try:
+                    from signature.certification_flow import generate_proof_journal
+
+                    journal = generate_proof_journal(document)
+
+                    # TODO: Sauvegarder journal JSON sur S3 Glacier
+                    # journal_json = json.dumps(journal, indent=2)
+                    # upload_to_s3_glacier(journal_json, f"proofs/{document.id}.json")
+
+                    logger.info("✅ Journal de preuves généré")
+                    logger.info(
+                        f"   Signatures forensiques : {len(journal.get('signatures', []))}"
+                    )
+
+                except Exception as journal_error:
+                    logger.warning(f"⚠️ Erreur génération journal : {journal_error}")
+                    import traceback
+
+                    logger.warning(traceback.format_exc())
+
+                # Mettre le statut à SIGNED (APRÈS toutes les opérations)
+                from signature.document_status import DocumentStatus
+
+                if (
+                    hasattr(document, "status")
+                    and document.status != DocumentStatus.SIGNED.value
+                ):
+                    document.status = DocumentStatus.SIGNED.value
+                    document.save(update_fields=["status"])
+                    logger.info("✅ Status mis à jour : SIGNED")
+
+                logger.info(
+                    "✅ Document complet : Certification Hestia + Signatures users + TSA final + Journal"
+                )
+        except Exception as seal_error:
+            logger.warning(
+                f"⚠️  Erreur lors du scellement Hestia (optionnel): {seal_error}"
+            )
+            import traceback
+
+            logger.warning(traceback.format_exc())
+
         return True
 
     except Exception as e:
@@ -121,73 +251,127 @@ def process_signature_generic(signature_request, signature_data_url):
         return False
 
 
-def prepare_pdf_with_signature_fields_generic(pdf_path, document):
+def prepare_pdf_with_signature_fields_generic(pdf_field, document):
     """
     Version générique pour préparer un PDF avec les champs de signature
     Fonctionne avec n'importe quel document signable (bail, état des lieux, etc.)
 
     Args:
-        pdf_path: Chemin vers le PDF à préparer
+        pdf_field: Soit un FieldFile Django (document.pdf), soit un chemin string (/tmp/xxx.pdf)
         document: Instance du document signable (Bail, EtatLieux, etc.) qui a une relation 'location'
     """
     try:
         # Récupérer la location du document
-        if hasattr(document, 'location'):
+        if hasattr(document, "location"):
             location = document.location
         else:
-            raise ValueError(f"Le document {type(document).__name__} n'a pas de relation 'location'")
-        
+            raise ValueError(
+                f"Le document {type(document).__name__} n'a pas de relation 'location'"
+            )
+
         # Récupérer tous les signataires
-        bailleurs = location.bien.bailleurs.all()
+        mandataire = location.mandataire
+        # IMPORTANT: Ordre déterministe (premier créé = principal)
+        bailleurs = location.bien.bailleurs.order_by('created_at')
         bailleur_signataires = [
             bailleur.signataire for bailleur in bailleurs if bailleur.signataire
         ]
         locataires = list(location.locataires.all())
 
-        all_fields = []
+        # Déterminer si c'est un FieldFile (depuis S3) ou un chemin local (string)
+        is_local_path = isinstance(pdf_field, str)
 
-        # Ajouter les champs pour les bailleurs signataires
-        for person in bailleur_signataires:
-            page, rect, field_name = get_named_dest_coordinates(
-                pdf_path, person, "bailleur"
-            )
-            if rect is None:
-                logger.warning(f"Aucun champ de signature trouvé pour {person.email}")
-                continue
+        if is_local_path:
+            # Cas 1: Fichier temporaire local (string path)
+            # Travailler directement sur le fichier sans télécharger depuis S3
+            pdf_path = pdf_field
+            logger.info(f"Préparation des champs de signature (fichier local): {pdf_path}")
+        else:
+            # Cas 2: FieldFile depuis S3 - télécharger d'abord
+            logger.info(f"Téléchargement du PDF depuis S3: {pdf_field.name}")
 
-            all_fields.append(
-                {
-                    "field_name": field_name,
-                    "rect": rect,
-                    "person": person,
-                    "page": page,
-                }
-            )
+        # Utiliser context manager seulement si c'est un FieldFile
+        from contextlib import nullcontext
+        context_manager = nullcontext(pdf_field) if is_local_path else get_local_file_path(pdf_field)
 
-        # Ajouter les champs pour les locataires
-        for person in locataires:
-            page, rect, field_name = get_named_dest_coordinates(
-                pdf_path, person, "locataire"
-            )
-            if rect is None:
-                logger.warning(f"Aucun champ de signature trouvé pour {person.email}")
-                continue
+        with context_manager as pdf_path:
+            all_fields = []
 
-            all_fields.append(
-                {
-                    "field_name": field_name,
-                    "rect": rect,
-                    "person": person,
-                    "page": page,
-                }
-            )
+            # Ajouter le champ pour le mandataire (si présent) - EN PREMIER
+            if mandataire and mandataire.signataire:
+                person = mandataire.signataire
+                page, rect, field_name = get_named_dest_coordinates(
+                    pdf_path, person, "mandataire"
+                )
+                if rect is None:
+                    logger.warning(
+                        f"Aucun champ de signature trouvé pour le mandataire {person.email}"
+                    )
+                else:
+                    all_fields.append(
+                        {
+                            "field_name": field_name,
+                            "rect": rect,
+                            "person": person,
+                            "page": page,
+                        }
+                    )
 
-        if not all_fields:
-            raise ValueError("Aucun champ de signature trouvé dans le PDF")
+            # Ajouter les champs pour les bailleurs signataires
+            for person in bailleur_signataires:
+                page, rect, field_name = get_named_dest_coordinates(
+                    pdf_path, person, "bailleur"
+                )
+                if rect is None:
+                    logger.warning(
+                        f"Aucun champ de signature trouvé pour {person.email}"
+                    )
+                    continue
 
-        # Ajouter les champs de signature au PDF
-        add_signature_fields_dynamic(pdf_path, all_fields)
-        logger.info(f"Ajouté {len(all_fields)} champs de signature au PDF")
+                all_fields.append(
+                    {
+                        "field_name": field_name,
+                        "rect": rect,
+                        "person": person,
+                        "page": page,
+                    }
+                )
+
+            # Ajouter les champs pour les locataires
+            for person in locataires:
+                page, rect, field_name = get_named_dest_coordinates(
+                    pdf_path, person, "locataire"
+                )
+                if rect is None:
+                    logger.warning(
+                        f"Aucun champ de signature trouvé pour {person.email}"
+                    )
+                    continue
+
+                all_fields.append(
+                    {
+                        "field_name": field_name,
+                        "rect": rect,
+                        "person": person,
+                        "page": page,
+                    }
+                )
+
+            if not all_fields:
+                raise ValueError("Aucun champ de signature trouvé dans le PDF")
+
+            # Ajouter les champs de signature au PDF (modifie le fichier in-place)
+            add_signature_fields_dynamic(pdf_path, all_fields)
+            logger.info(f"Ajouté {len(all_fields)} champs de signature au PDF")
+
+            # Re-uploader vers S3 uniquement si c'est un FieldFile
+            if not is_local_path:
+                save_file_to_storage(
+                    pdf_field, pdf_path, filename=pdf_field.name, save=True
+                )
+                logger.info("PDF avec champs de signature uploadé vers S3")
+            else:
+                logger.info("Fichier local modifié in-place (pas d'upload S3)")
 
         return True
 

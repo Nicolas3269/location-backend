@@ -339,7 +339,7 @@ O=HB CONSULTING
 ```bash
 TSA_CERT_PATH=/path/to/tsa_cert.pem
 TSA_KEY_PATH=/path/to/tsa_key.pem
-TSA_PASSWORD=secure_password
+PASSWORD_CERT_TSA=secure_password
 ```
 
 **Validation** :

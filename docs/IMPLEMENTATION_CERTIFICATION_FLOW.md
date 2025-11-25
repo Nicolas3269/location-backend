@@ -184,7 +184,7 @@ def signer(self):
 ```python
 TSA_CERT_PATH = os.getenv("TSA_CERT_PATH", BASE_DIR / "certificates/tsa_cert.pem")
 TSA_KEY_PATH = os.getenv("TSA_KEY_PATH", BASE_DIR / "certificates/tsa_key.pem")
-TSA_PASSWORD = os.getenv("TSA_PASSWORD", "")
+PASSWORD_CERT_TSA = os.getenv("PASSWORD_CERT_TSA", "")
 ```
 
 ### Admin Django : `signature/admin.py`
@@ -461,8 +461,6 @@ poetry run python scripts/test_tsa.py
 # Copier le certificat
 cp hestia_server.pfx backend/certificates/
 
-# Mettre à jour .env
-HESTIA_AATL_PASSWORD=<mot_de_passe_certificat>
 ```
 
 ### 2. Configurer Archivage S3 Glacier

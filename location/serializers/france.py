@@ -71,7 +71,7 @@ PIECES_INFO_STEPS = [
             "bien.caracteristiques.pieces_info": Bien.pieces_info,
         },
         "business_rules": ["atLeastOneRoom"],  # Au moins 1 chambre ou séjour
-        "unlocked_from_bien": True,  # Peut être complété/corrigé
+        "always_unlocked": True,
     },
 ]
 MEUBLE_STEPS = [

@@ -145,10 +145,9 @@ npx playwright show-report
 PWDEBUG=1 npm run test:e2e
 
 # Screenshots on failure
-npm run test:e2e -- --screenshot=only-on-failure
 
-# Video
-npm run test:e2e -- --video=retain-on-failure
+npx playwright test bail-multi-parties-with-edl.spec.ts --project="chromium"
+npx playwright test bail-multi-parties-with-edl.spec.ts --project="chromium" --debug
 ```
 
 ### Django

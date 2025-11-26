@@ -13,7 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from bail.models import Avenant
+from bail.models import Avenant, Document, DocumentType
 from location.services.form_handlers.form_conflict_resolver import FormConflictResolver
 
 from ..services.form_handlers.form_orchestrator import FormOrchestrator
@@ -416,6 +416,34 @@ def get_form_requirements_authenticated(request, form_type):
                 requirements["formData"]["identifiant_fiscal"] = (
                     avenant.identifiant_fiscal
                 )
+
+            # Récupérer les documents uploadés pour l'avenant
+            ddt_docs = Document.objects.filter(
+                avenant=avenant, type_document=DocumentType.DIAGNOSTIC
+            )
+            permis_docs = Document.objects.filter(
+                avenant=avenant, type_document=DocumentType.PERMIS_DE_LOUER
+            )
+
+            requirements["formData"]["ddt_documents"] = [
+                {
+                    "id": str(doc.id),
+                    "name": doc.nom_original,
+                    "url": doc.file.url if doc.file else None,
+                    "type": DocumentType.DIAGNOSTIC,
+                }
+                for doc in ddt_docs
+            ]
+            requirements["formData"]["permis_documents"] = [
+                {
+                    "id": str(doc.id),
+                    "name": doc.nom_original,
+                    "url": doc.file.url if doc.file else None,
+                    "type": DocumentType.PERMIS_DE_LOUER,
+                }
+                for doc in permis_docs
+            ]
+
             requirements["is_edit"] = True
 
         return Response(requirements, status=status.HTTP_200_OK)

@@ -1041,6 +1041,19 @@ def save_signature_metadata(
     document_content_type = ContentType.objects.get_for_model(document)
     sig_req_content_type = ContentType.objects.get_for_model(signature_request)
 
+    # Vérifier si un SignatureMetadata existe déjà pour ce signature_request
+    # (protection contre les doubles soumissions)
+    existing = SignatureMetadata.objects.filter(
+        signature_request_content_type=sig_req_content_type,
+        signature_request_object_id=signature_request.id,
+    ).first()
+    if existing:
+        logger.warning(
+            f"⚠️ SignatureMetadata déjà existant pour SignatureRequest {signature_request.id}, "
+            f"skip création (protection anti-doublon)"
+        )
+        return existing
+
     # Utiliser le timestamp fourni ou NOW
     if signature_timestamp is None:
         signature_timestamp = timezone.now()

@@ -153,6 +153,13 @@ class Document(BaseModel):
         null=True,
         blank=True,
     )
+    avenant = models.ForeignKey(
+        "Avenant",
+        on_delete=models.CASCADE,
+        related_name="documents",
+        null=True,
+        blank=True,
+    )
 
     type_document = models.CharField(max_length=50, choices=DocumentType.choices)
     nom_original = models.CharField(max_length=255)

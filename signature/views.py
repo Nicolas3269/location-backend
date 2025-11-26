@@ -201,6 +201,13 @@ def get_signature_request_generic(request, token, model_class):
                     avenant.bail.location.bien.regime_juridique
                 )
 
+            # Ajouter la liste des documents de l'avenant
+            from .document_list_service import get_avenant_documents_list
+
+            response_data["documents_list"] = get_avenant_documents_list(
+                avenant, request
+            )
+
         # Tenter d'authentifier automatiquement l'utilisateur
         User = get_user_model()
         try:

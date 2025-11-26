@@ -491,7 +491,7 @@ def get_location_documents(request, location_id):
             )
 
             # 2. Ajouter les annexes seulement si le bail est SIGNING ou SIGNED
-            if bail.status in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
+            if bail.is_locked:
                 # Notice d'information (toujours statique, via méthode du modèle)
                 documents.append(
                     {
@@ -606,6 +606,27 @@ def get_location_documents(request, location_id):
                         }
                     )
 
+                    # Ajouter les annexes de l'avenant si SIGNING ou SIGNED
+                    if avenant.is_locked:
+                        # Documents annexes de l'avenant (diagnostics, permis de louer)
+                        documents_avenant = Document.objects.filter(
+                            avenant=avenant
+                        ).order_by("type_document")
+
+                        for doc in documents_avenant:
+                            doc_nom = doc.get_type_document_display()
+
+                            documents.append(
+                                {
+                                    "id": f"avenant-doc-{doc.id}",
+                                    "type": "annexe_bail",
+                                    "nom": doc_nom,
+                                    "date": avenant_date,
+                                    "url": doc.file.url,
+                                    "status": f"Annexe - Avenant n°{avenant.numero}",
+                                }
+                            )
+
         # 2. Récupérer les quittances
         quittances = Quittance.objects.filter(location=location).order_by(
             "-annee", "-mois"
@@ -677,7 +698,7 @@ def get_location_documents(request, location_id):
             )
 
             # 2. Ajouter les annexes seulement si l'EDL est SIGNING ou SIGNED
-            if etat.status in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
+            if etat.is_locked:
                 # Type d'EDL pour le statut de l'annexe
                 edl_type_status = (
                     "Entrée" if etat.type_etat_lieux == "entree" else "Sortie"

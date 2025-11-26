@@ -1162,6 +1162,20 @@ class FranceAvenantSerializer(BaseLocationSerializer):
         help_text="Numéro d'identifiant fiscal du logement",
     )
 
+    # Documents uploadés (metadata stockée côté frontend, IDs envoyés au submit)
+    ddt_documents = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        default=list,
+        help_text="Liste des documents diagnostics DDT uploadés {id, name, url, type}",
+    )
+    permis_documents = serializers.ListField(
+        child=serializers.DictField(),
+        required=False,
+        default=list,
+        help_text="Liste des documents permis de louer uploadés {id, name, url, type}",
+    )
+
     @classmethod
     def get_step_config(cls):
         """

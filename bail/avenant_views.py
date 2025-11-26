@@ -21,7 +21,7 @@ from signature.certification_flow import certify_document_hestia
 from signature.document_status import DocumentStatus
 from signature.document_types import SignableDocumentType
 
-from .models import Avenant, AvenantMotif, AvenantSignatureRequest
+from .models import Avenant, AvenantMotif, AvenantSignatureRequest, Document, DocumentType
 from .utils import (
     create_avenant_signature_requests,
     get_avenant_with_access_check,
@@ -142,6 +142,10 @@ def create_avenant(request, bail_id):
             # Réinitialiser pour nouvelle édition (supprime PDF + signature_requests)
             avenant.reset_for_edit()
             avenant.save()
+
+            # Supprimer les anciens documents liés à l'avenant
+            avenant.documents.all().delete()
+
             is_update = True
         except Avenant.DoesNotExist:
             return Response(
@@ -158,7 +162,24 @@ def create_avenant(request, bail_id):
             else None,
         )
 
-    # 5. Créer les demandes de signature
+    # 5. Lier les documents uploadés via leurs IDs
+    # document_ids est une liste d'UUIDs envoyée par le frontend
+    document_ids = data.get("document_ids", [])
+    if isinstance(document_ids, str):
+        try:
+            document_ids = json.loads(document_ids)
+        except json.JSONDecodeError:
+            document_ids = []
+
+    if document_ids:
+        # Lier les documents existants à l'avenant
+        linked_count = Document.objects.filter(
+            id__in=document_ids,
+            avenant__isnull=True,
+        ).update(avenant=avenant)
+        logger.info(f"Linked {linked_count} documents to avenant {avenant.id}")
+
+    # 6. Créer les demandes de signature
     create_avenant_signature_requests(avenant, user=request.user)
 
     # 6. Récupérer le token du premier signataire
@@ -344,3 +365,132 @@ def resend_otp_avenant(request):
     return resend_otp_generic(
         request, AvenantSignatureRequest, SignableDocumentType.AVENANT.value
     )
+
+
+# ============================================================================
+# Gestion des documents pour l'avenant (upload immédiat)
+# ============================================================================
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def upload_avenant_document(request):
+    """
+    Upload immédiat d'un document pour un avenant.
+    Le backend génère l'UUID, le frontend stocke {id, url, name, type} dans Zustand.
+
+    Body (multipart/form-data):
+        - bail_id: UUID du bail (pour vérifier ownership)
+        - type_document: "diagnostic" ou "permis_de_louer"
+        - file: Fichier à uploader
+
+    Returns:
+        {
+            "success": true,
+            "id": "document-uuid",
+            "url": "...",
+            "name": "filename.pdf",
+            "type": "diagnostic"
+        }
+    """
+    try:
+        bail_id = request.POST.get("bail_id")
+        type_document = request.POST.get("type_document")
+        uploaded_file = request.FILES.get("file")
+
+        # Validation
+        if not bail_id:
+            return Response(
+                {"success": False, "error": "bail_id requis"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not type_document:
+            return Response(
+                {"success": False, "error": "type_document requis"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not uploaded_file:
+            return Response(
+                {"success": False, "error": "file requis"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Mapper le type_document vers DocumentType
+        type_mapping = {
+            "diagnostic": DocumentType.DIAGNOSTIC,
+            "permis_de_louer": DocumentType.PERMIS_DE_LOUER,
+        }
+        if type_document not in type_mapping:
+            return Response(
+                {"success": False, "error": f"type_document invalide: {type_document}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Vérifier accès au bail
+        get_bail_for_avenant(bail_id, request.user.email, prefetch=False)
+
+        # Créer le document (UUID auto-généré par BaseModel)
+        document = Document.objects.create(
+            avenant=None,  # Sera lié lors du create_avenant
+            type_document=type_mapping[type_document],
+            nom_original=uploaded_file.name,
+            file=uploaded_file,
+            uploade_par=request.user,
+        )
+
+        return Response(
+            {
+                "success": True,
+                "id": str(document.id),
+                "url": document.file.url,
+                "name": document.nom_original,
+                "type": type_document,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    except Exception as e:
+        logger.exception(f"Erreur lors de l'upload du document: {e}")
+        return Response(
+            {"success": False, "error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_avenant_document(request, document_id):
+    """
+    Supprime un document uploadé pour un avenant.
+
+    DELETE /api/avenant/documents/{document_id}/
+    """
+    try:
+        document = Document.objects.get(id=document_id)
+
+        # Vérifier ownership via le bail ou l'avenant
+        if document.bail:
+            get_bail_for_avenant(document.bail.id, request.user.email, prefetch=False)
+        elif document.avenant:
+            get_bail_for_avenant(
+                document.avenant.bail.id, request.user.email, prefetch=False
+            )
+
+        # Supprimer le fichier et le document
+        if document.file:
+            document.file.delete(save=False)
+        document.delete()
+
+        return Response({"success": True})
+
+    except Document.DoesNotExist:
+        return Response(
+            {"success": False, "error": "Document non trouvé"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    except Exception as e:
+        logger.exception(f"Erreur lors de la suppression du document: {e}")
+        return Response(
+            {"success": False, "error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )

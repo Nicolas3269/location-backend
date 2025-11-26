@@ -4,7 +4,7 @@ Service pour générer la liste des documents à signer
 
 from typing import Any, Dict, List
 
-from bail.models import Bail, Document, DocumentType
+from bail.models import Avenant, Bail, Document, DocumentType
 from bail.views import get_static_pdf_iframe_url
 from etat_lieux.models import EtatLieux
 
@@ -118,5 +118,60 @@ def get_etat_lieux_documents_list(
             "required": False,
         }
     )
+
+    return documents_list
+
+
+def get_avenant_documents_list(avenant: Avenant, request) -> List[Dict[str, Any]]:
+    """
+    Retourne la liste des documents associés à un avenant
+
+    Args:
+        avenant: Instance de Avenant
+        request: HttpRequest (optionnel pour S3/MinIO, requis pour fichiers locaux)
+
+    Returns:
+        Liste de dictionnaires avec name, url, type, required
+    """
+    documents_list = []
+
+    # 1. PDF de l'avenant (document principal)
+    if avenant.pdf:
+        documents_list.append(
+            {
+                "name": f"Avenant n°{avenant.numero}",
+                "url": avenant.pdf.url,
+                "type": "avenant",
+                "required": True,
+            }
+        )
+
+    # 2. Diagnostics techniques (liés directement à l'avenant)
+    diagnostics = Document.objects.filter(
+        avenant=avenant, type_document=DocumentType.DIAGNOSTIC
+    )
+    for doc in diagnostics:
+        documents_list.append(
+            {
+                "name": f"Diagnostic - {doc.nom_original}",
+                "url": doc.file.url,
+                "type": "diagnostic",
+                "required": False,
+            }
+        )
+
+    # 3. Permis de louer (liés directement à l'avenant)
+    permis = Document.objects.filter(
+        avenant=avenant, type_document=DocumentType.PERMIS_DE_LOUER
+    )
+    for doc in permis:
+        documents_list.append(
+            {
+                "name": f"Permis de louer - {doc.nom_original}",
+                "url": doc.file.url,
+                "type": "permis_de_louer",
+                "required": False,
+            }
+        )
 
     return documents_list

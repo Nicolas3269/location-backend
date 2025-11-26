@@ -4,10 +4,12 @@ from bail.avenant_views import (
     cancel_signature_avenant,
     confirm_signature_avenant,
     create_avenant,
+    delete_avenant_document,
     generate_avenant_pdf,
     get_avenant_requirements,
     get_avenant_signature_request,
     resend_otp_avenant,
+    upload_avenant_document,
 )
 from bail.views import (
     cancel_signature_bail,
@@ -94,5 +96,16 @@ urlpatterns = [
         "avenant/resend-otp/",
         resend_otp_avenant,
         name="resend_otp_avenant",
+    ),
+    # Avenant documents routes
+    path(
+        "avenant/upload-document/",
+        upload_avenant_document,
+        name="upload_avenant_document",
+    ),
+    path(
+        "avenant/documents/<uuid:document_id>/",
+        delete_avenant_document,
+        name="delete_avenant_document",
     ),
 ]

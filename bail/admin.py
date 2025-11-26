@@ -3,6 +3,8 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from .models import (
+    Avenant,
+    AvenantSignatureRequest,
     Bail,
     BailSignatureRequest,
     Document,
@@ -46,6 +48,190 @@ class BailSignatureRequestInline(admin.TabularInline):
     readonly_fields = ("link_token", "signed_at")
 
 
+class AvenantInline(admin.TabularInline):
+    """Inline pour afficher les avenants d'un bail"""
+
+    model = Avenant
+    extra = 0
+    fields = ("numero", "motifs", "status", "identifiant_fiscal", "created_at")
+    readonly_fields = ("numero", "created_at")
+    show_change_link = True
+
+
+class AvenantSignatureRequestInline(admin.TabularInline):
+    """Inline pour les demandes de signature d'un avenant"""
+
+    model = AvenantSignatureRequest
+    extra = 0
+    fields = ("order", "bailleur_signataire", "locataire", "mandataire", "signed", "signed_at")
+    readonly_fields = ("link_token", "signed_at")
+
+
+@admin.register(Avenant)
+class AvenantAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les avenants"""
+
+    list_display = (
+        "numero_display",
+        "get_bail_info",
+        "get_motifs_display",
+        "status",
+        "identifiant_fiscal",
+        "created_at",
+    )
+    list_filter = ("status", "created_at")
+    search_fields = (
+        "bail__location__bien__adresse",
+        "bail__location__locataires__lastName",
+        "bail__location__locataires__firstName",
+        "identifiant_fiscal",
+    )
+    date_hierarchy = "created_at"
+    inlines = [AvenantSignatureRequestInline]
+    readonly_fields = ("numero", "created_at", "updated_at")
+
+    fieldsets = (
+        (
+            "Bail associé",
+            {"fields": ("bail", "numero")},
+        ),
+        (
+            "Contenu de l'avenant",
+            {
+                "fields": (
+                    "motifs",
+                    "identifiant_fiscal",
+                )
+            },
+        ),
+        (
+            "État",
+            {"fields": ("status",)},
+        ),
+        (
+            "Document PDF",
+            {"fields": ("pdf", "latest_pdf")},
+        ),
+        (
+            "Métadonnées",
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    def numero_display(self, obj):
+        """Affiche le numéro d'avenant"""
+        return f"Avenant n°{obj.numero}"
+
+    numero_display.short_description = "Numéro"
+
+    def get_bail_info(self, obj):
+        """Affiche les informations du bail avec lien cliquable"""
+        url = reverse("admin:bail_bail_change", args=[obj.bail.id])
+        adresse = obj.bail.location.bien.adresse
+        return format_html('<a href="{}">{}</a>', url, adresse)
+
+    get_bail_info.short_description = "Bail"
+
+    def get_motifs_display(self, obj):
+        """Affiche les motifs de l'avenant"""
+        motif_labels = {
+            "identifiant_fiscal": "📋 Identifiant fiscal",
+            "diagnostics_ddt": "📄 Diagnostics DDT",
+            "permis_de_louer": "🏠 Permis de louer",
+        }
+        motifs = obj.motifs or []
+        labels = [motif_labels.get(m, m) for m in motifs]
+        return ", ".join(labels) if labels else "-"
+
+    get_motifs_display.short_description = "Motifs"
+
+
+@admin.register(AvenantSignatureRequest)
+class AvenantSignatureRequestAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les demandes de signature d'avenant"""
+
+    list_display = (
+        "avenant_display",
+        "signataire_display",
+        "order",
+        "signed",
+        "signed_at",
+        "created_at",
+    )
+
+    list_filter = ("signed", "created_at")
+
+    search_fields = (
+        "bailleur_signataire__email",
+        "locataire__email",
+        "avenant__bail__location__bien__adresse",
+    )
+
+    readonly_fields = (
+        "link_token",
+        "otp_generated_at",
+        "signed_at",
+        "created_at",
+        "signature_image_link",
+    )
+
+    fieldsets = (
+        (None, {"fields": ("avenant", "order", "bailleur_signataire", "locataire", "mandataire")}),
+        (
+            "Authentification",
+            {
+                "fields": ("link_token", "otp", "otp_generated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Signature",
+            {
+                "fields": (
+                    "signed",
+                    "signed_at",
+                    "signature_image",
+                    "signature_image_link",
+                ),
+            },
+        ),
+        ("Métadonnées", {"fields": ("created_at",), "classes": ("collapse",)}),
+    )
+
+    def avenant_display(self, obj):
+        """Affichage de l'avenant"""
+        return f"Avenant n°{obj.avenant.numero} - {obj.avenant.bail.location.bien.adresse}"
+
+    avenant_display.short_description = "Avenant"
+
+    def signataire_display(self, obj):
+        """Affichage du signataire"""
+        if obj.mandataire:
+            return f"Mandataire: {obj.mandataire}"
+        elif obj.bailleur_signataire:
+            nom = f"{obj.bailleur_signataire.firstName} {obj.bailleur_signataire.lastName}"
+            return f"Bailleur: {nom}"
+        elif obj.locataire:
+            return f"Locataire: {obj.locataire.firstName} {obj.locataire.lastName}"
+        return "Aucun signataire"
+
+    signataire_display.short_description = "Signataire"
+
+    def signature_image_link(self, obj):
+        """Lien vers l'image de signature"""
+        if obj.signature_image:
+            return format_html(
+                '<a href="{}" target="_blank">Voir signature</a>',
+                obj.signature_image.url,
+            )
+        return "Pas de signature"
+
+    signature_image_link.short_description = "Image signature"
+
+
 @admin.register(Bail)
 class BailAdmin(admin.ModelAdmin):
     """Interface d'administration pour les baux"""
@@ -67,7 +253,7 @@ class BailAdmin(admin.ModelAdmin):
         "location__locataires__firstName",
     )
     date_hierarchy = "created_at"
-    inlines = [DocumentInline, BailSignatureRequestInline]
+    inlines = [DocumentInline, BailSignatureRequestInline, AvenantInline]
     readonly_fields = (
         "date_signature_display",
         "est_signe_display",

@@ -19,6 +19,7 @@ class Command(BaseCommand):
             BelgiumBailSerializer,
             BelgiumEtatLieuxSerializer,
             BelgiumQuittanceSerializer,
+            FranceAvenantSerializer,
             FranceBailSerializer,
             FranceEtatLieuxSerializer,
             FranceQuittanceSerializer,
@@ -91,6 +92,7 @@ class Command(BaseCommand):
             FranceBailSerializer,
             FranceQuittanceSerializer,
             FranceEtatLieuxSerializer,
+            FranceAvenantSerializer,
             BelgiumBailSerializer,
             BelgiumQuittanceSerializer,
             BelgiumEtatLieuxSerializer,
@@ -110,15 +112,18 @@ class Command(BaseCommand):
             serializers_atomiques, serializers_composes, serializers_pays, serializers_read
         )
 
-        output_path = "/home/havardn/location/frontend/src/types/generated/schemas-composed.zod.ts"
+        # Chemin relatif depuis backend vers frontend
+        # __file__ = .../backend/location/management/commands/generate_composed_schemas.py
+        # On remonte de 5 niveaux pour arriver à .../location/ (project root)
+        import os
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
+        output_path = os.path.join(project_root, "frontend/src/types/generated/schemas-composed.zod.ts")
         with open(output_path, "w") as f:
             f.write(zod_content)
 
         # Générer un exemple d'utilisation
         example_content = self.generate_usage_examples()
-        example_path = (
-            "/home/havardn/location/frontend/src/types/generated/COMPOSED_EXAMPLES.md"
-        )
+        example_path = os.path.join(project_root, "frontend/src/types/generated/COMPOSED_EXAMPLES.md")
         with open(example_path, "w") as f:
             f.write(example_content)
 

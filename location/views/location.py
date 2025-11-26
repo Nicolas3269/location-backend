@@ -579,6 +579,33 @@ def get_location_documents(request, location_id):
                             }
                         )
 
+                # Avenants au bail
+                avenants = bail.avenants.order_by("numero")
+                for avenant in avenants:
+                    # Filtrer les brouillons pour les locataires
+                    if is_locataire and avenant.status == DocumentStatus.DRAFT:
+                        continue
+
+                    avenant_date = avenant.created_at.isoformat()
+                    pdf_url = None
+                    if avenant.latest_pdf:
+                        pdf_url = avenant.latest_pdf.url
+                    elif avenant.pdf:
+                        pdf_url = avenant.pdf.url
+
+                    documents.append(
+                        {
+                            "id": f"avenant-{avenant.id}",
+                            "type": "avenant",
+                            "nom": f"Avenant n°{avenant.numero}",
+                            "date": avenant_date,
+                            "url": pdf_url,
+                            "status": avenant.get_status_display(),
+                            "avenant_id": str(avenant.id),
+                            "bail_id": str(bail.id),
+                        }
+                    )
+
         # 2. Récupérer les quittances
         quittances = Quittance.objects.filter(location=location).order_by(
             "-annee", "-mois"
@@ -721,8 +748,8 @@ def cancel_bail(request, bail_id):
                 {"error": "Vous n'avez pas les droits pour annuler ce bail"}, status=403
             )
 
-        # Vérifier que le bail est SIGNING ou SIGNED
-        if bail.status not in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
+        # Vérifier que le bail est verrouillé (SIGNING ou SIGNED)
+        if not bail.is_locked:
             return JsonResponse(
                 {
                     "error": f"Seuls les baux en signature ou signés peuvent être annulés. Statut actuel: {bail.status}"
@@ -782,8 +809,8 @@ def cancel_etat_lieux(request, etat_lieux_id):
                 status=403,
             )
 
-        # Vérifier que l'EDL est SIGNING ou SIGNED
-        if etat_lieux.status not in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
+        # Vérifier que l'EDL est verrouillé (SIGNING ou SIGNED)
+        if not etat_lieux.is_locked:
             return JsonResponse(
                 {
                     "error": f"Seuls les états des lieux en signature ou signés peuvent être annulés. Statut actuel: {etat_lieux.status}"

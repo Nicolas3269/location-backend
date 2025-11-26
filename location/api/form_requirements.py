@@ -13,6 +13,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from bail.models import Avenant
+from location.services.form_handlers.form_conflict_resolver import FormConflictResolver
+
 from ..services.form_handlers.form_orchestrator import FormOrchestrator
 from ..services.user_role_detector import get_user_role_for_context
 from ..types.form_state import (
@@ -81,7 +84,6 @@ def get_form_requirements(request, form_type):
             form_state=form_state,
             type_etat_lieux=type_etat_lieux,
             user=None,
-            request=request,
         )
 
         # Vérifier si une erreur a été retournée
@@ -133,7 +135,13 @@ def get_form_requirements_authenticated(request, form_type):
     """
 
     # Valider le type de formulaire
-    valid_form_types = ["bail", "quittance", "etat_lieux", "tenant_documents"]
+    valid_form_types = [
+        "bail",
+        "quittance",
+        "etat_lieux",
+        "tenant_documents",
+        "avenant",
+    ]
     if form_type not in valid_form_types:
         return Response(
             {
@@ -158,7 +166,6 @@ def get_form_requirements_authenticated(request, form_type):
             form_state = EditFormState(location_id=UUID(location_id))
         else:
             # Bail/Quittance/EDL : vérifier si edit vs renew
-            from ..services.form_conflict_resolver import FormConflictResolver
 
             resolver = FormConflictResolver()
             conflict_result = resolver.resolve_location_id(
@@ -178,6 +185,8 @@ def get_form_requirements_authenticated(request, form_type):
             "from_bailleur",
             "from_bien",
             "from_location",
+            "from_bail",  # Pour avenant (création)
+            "from_draft_avenant",  # Pour avenant (reprise draft)
             "location_actuelle",
             "location_ancienne",
             "location_nouvelle",
@@ -233,6 +242,29 @@ def get_form_requirements_authenticated(request, form_type):
             # Pas de lock_fields (formulaire éditable)
             form_state = ExtendFormState(
                 source_type="draft_edl",
+                source_id=UUID(context_source_id),
+                lock_fields=[],
+            )
+
+        elif context_mode == "from_bail":
+            # Avenant: Étendre depuis un bail signé
+            from bail.utils import get_bail_for_avenant
+
+            # Lève NotFound/PermissionDenied/ValidationError si erreur
+            bail = get_bail_for_avenant(context_source_id, request.user.email)
+
+            # Utiliser la location du bail comme source
+            form_state = ExtendFormState(
+                source_type="location",
+                source_id=bail.location.id,
+                lock_fields=[],  # Avenant: pas de lock
+            )
+
+        elif context_mode == "from_draft_avenant":
+            # Avenant: Reprendre un avenant draft existant
+
+            form_state = ExtendFormState(
+                source_type="draft_avenant",
                 source_id=UUID(context_source_id),
                 lock_fields=[],
             )
@@ -304,6 +336,25 @@ def get_form_requirements_authenticated(request, form_type):
                 user_role_location_id = str(edl.location_id)
             except EtatLieux.DoesNotExist:
                 pass
+        elif context_mode == "from_bail":
+            # Pour avenant, récupérer la location_id depuis le bail
+            from bail.models import Bail
+
+            try:
+                bail_obj = Bail.objects.get(id=context_source_id)
+                user_role_location_id = str(bail_obj.location_id)
+            except Bail.DoesNotExist:
+                pass
+        elif context_mode == "from_draft_avenant":
+            # Pour avenant draft, récupérer la location_id depuis l'avenant
+
+            try:
+                avenant_obj = Avenant.objects.select_related("bail__location").get(
+                    id=context_source_id
+                )
+                user_role_location_id = str(avenant_obj.bail.location_id)
+            except Avenant.DoesNotExist:
+                pass
 
     # Déterminer le user_role
     user_role = get_user_role_for_context(
@@ -330,7 +381,6 @@ def get_form_requirements_authenticated(request, form_type):
             form_state=form_state,
             type_etat_lieux=type_etat_lieux,
             user=request.user,
-            request=request,
         )
 
         # Vérifier si une erreur a été retournée
@@ -347,6 +397,26 @@ def get_form_requirements_authenticated(request, form_type):
             if "formData" not in requirements:
                 requirements["formData"] = {}
             requirements["formData"]["user_role"] = user_role
+
+        # Injecter bail_id pour avenant (création)
+        if context_mode == "from_bail" and context_source_id:
+            if "formData" not in requirements:
+                requirements["formData"] = {}
+            requirements["formData"]["bail_id"] = context_source_id
+
+        # Injecter données de l'avenant draft (reprise)
+        if context_mode == "from_draft_avenant" and context_source_id:
+            avenant = Avenant.objects.get(id=context_source_id)
+            if "formData" not in requirements:
+                requirements["formData"] = {}
+            requirements["formData"]["bail_id"] = str(avenant.bail_id)
+            requirements["formData"]["avenant_id"] = str(avenant.id)
+            requirements["formData"]["motifs"] = avenant.motifs
+            if avenant.identifiant_fiscal:
+                requirements["formData"]["identifiant_fiscal"] = (
+                    avenant.identifiant_fiscal
+                )
+            requirements["is_edit"] = True
 
         return Response(requirements, status=status.HTTP_200_OK)
 

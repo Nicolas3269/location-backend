@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
 from authentication.utils import get_tokens_for_user, set_refresh_token_cookie
+from bail.models import Avenant
 from location.models import Location
 from location.services.access_utils import get_user_role_for_location
 from location.services.bailleur_utils import get_primary_bailleur_for_user
@@ -16,6 +17,7 @@ from signature.document_status import DocumentStatus
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
 
+from .document_list_service import get_etat_lieux_documents_list
 from .pdf_processing import process_signature_generic
 
 # Envoyer l'OTP par email
@@ -183,11 +185,21 @@ def get_signature_request_generic(request, token, model_class):
                 )
 
             # Ajouter la liste des documents de l'état des lieux
-            from .document_list_service import get_etat_lieux_documents_list
 
             response_data["documents_list"] = get_etat_lieux_documents_list(
                 etat_lieux, request
             )
+
+        elif hasattr(sig_req, "avenant"):
+            avenant: Avenant = sig_req.avenant
+            response_data["avenant_id"] = str(avenant.id)
+            response_data["location_id"] = str(avenant.bail.location_id)
+
+            # Ajouter le régime juridique du bien pour les assurances
+            if avenant.bail.location and avenant.bail.location.bien:
+                response_data["regime_juridique"] = (
+                    avenant.bail.location.bien.regime_juridique
+                )
 
         # Tenter d'authentifier automatiquement l'utilisateur
         User = get_user_model()

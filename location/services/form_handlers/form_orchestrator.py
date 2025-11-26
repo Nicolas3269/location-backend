@@ -51,25 +51,23 @@ class FormOrchestrator:
         country: str = "FR",
         type_etat_lieux: Optional[str] = None,
         user: Optional[Any] = None,
-        request: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
         Point d'entrée pour obtenir les requirements d'un formulaire.
 
         Args:
-            form_type: Type de formulaire ('bail', 'etat_lieux', 'quittance')
+            form_type: Type de formulaire ('bail', 'etat_lieux', 'quittance', 'avenant')
             form_state: État du formulaire (CreateFormState | EditFormState | ExtendFormState | RenewFormState)
             country: Pays ('FR', 'BE')
             type_etat_lieux: Type d'état des lieux si applicable
-            user: Utilisateur authentifié (pour modes extend)
-            request: Request Django (pour tenant_documents)
+            user: Utilisateur authentifié (pour vérifications d'accès)
 
         Returns:
             - steps: Liste des steps avec données manquantes (ordonnées)
             - prefill_data: Données existantes pour pré-remplissage
         """
         # Validation du type de formulaire
-        valid_types = ["bail", "quittance", "etat_lieux", "tenant_documents"]
+        valid_types = ["bail", "quittance", "etat_lieux", "tenant_documents", "avenant"]
         if form_type not in valid_types:
             return {
                 "error": f"Invalid form type. Must be one of: {', '.join(valid_types)}"
@@ -81,7 +79,7 @@ class FormOrchestrator:
             # avec location_id = signature_request.id
             if isinstance(form_state, EditFormState):
                 return self._get_tenant_documents_requirements(
-                    str(form_state.location_id), request
+                    str(form_state.location_id)
                 )
             return {"error": "tenant_documents requires EditFormState"}
 
@@ -138,6 +136,12 @@ class FormOrchestrator:
                 result = self.data_fetcher.fetch_draft_bail_data(source_id, user)
                 if result is None:
                     return {"error": "Bail not found"}
+                source_data, final_location_id = result
+                source_location_id = final_location_id
+            elif form_state.source_type == "draft_avenant":
+                result = self.data_fetcher.fetch_draft_avenant_data(source_id, user)
+                if result is None:
+                    return {"error": "Avenant not found"}
                 source_data, final_location_id = result
                 source_location_id = final_location_id
             else:
@@ -316,6 +320,7 @@ class FormOrchestrator:
             BelgiumBailSerializer,
             BelgiumEtatLieuxSerializer,
             BelgiumQuittanceSerializer,
+            FranceAvenantSerializer,
             FranceBailSerializer,
             FranceEtatLieuxSerializer,
             FranceQuittanceSerializer,
@@ -326,11 +331,13 @@ class FormOrchestrator:
                 "bail": FranceBailSerializer,
                 "quittance": FranceQuittanceSerializer,
                 "etat_lieux": FranceEtatLieuxSerializer,
+                "avenant": FranceAvenantSerializer,
             },
             "BE": {
                 "bail": BelgiumBailSerializer,
                 "quittance": BelgiumQuittanceSerializer,
                 "etat_lieux": BelgiumEtatLieuxSerializer,
+                # Note: Pas d'avenant en Belgique pour l'instant
             },
         }
 
@@ -822,7 +829,6 @@ class FormOrchestrator:
     def _get_tenant_documents_requirements(
         self,
         location_id: str,
-        request: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
         Retourne les requirements pour les documents tenant (MRH, Caution).
@@ -831,7 +837,6 @@ class FormOrchestrator:
 
         Args:
             location_id: Link token du magic link
-            request: Request Django (pour build_absolute_uri)
 
         Returns:
             Dict avec steps, formData, etc.

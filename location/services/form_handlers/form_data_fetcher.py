@@ -9,7 +9,7 @@ Utilise les serializers READ pour éviter la duplication de code.
 
 from typing import Any, Dict, Optional, Tuple
 
-from bail.models import Bail
+from bail.models import Avenant, Bail
 from etat_lieux.models import EquipmentType, EtatLieux
 from location.models import Bailleur, Bien, Location
 from location.serializers.helpers import (
@@ -362,4 +362,42 @@ class FormDataFetcher:
 
             print(f"Error in fetch_draft_edl_data: {e}")
             traceback.print_exc()
+            return None
+
+    def fetch_draft_avenant_data(
+        self, avenant_id: str, user: Optional[Any] = None
+    ) -> Optional[Tuple[Dict[str, Any], str]]:
+        """
+        Récupère les données d'un Avenant DRAFT pour reprendre l'édition.
+        Réutilise fetch_location_data() + ajoute données spécifiques Avenant.
+
+        Args:
+            avenant_id: UUID de l'avenant
+            user: Utilisateur connecté (optionnel).
+                  Si fourni, son bailleur sera mis en premier.
+
+        Returns:
+            Tuple (données, location_id) ou None si avenant inexistant
+        """
+        try:
+            avenant = Avenant.objects.select_related("bail__location").get(id=avenant_id)
+
+            # Réutiliser fetch_location_data (utilise LocationReadSerializer)
+            data = self.fetch_location_data(str(avenant.bail.location_id), user)
+
+            if not data:
+                return None
+
+            # Ajouter les données spécifiques de l'avenant
+            data["motifs"] = avenant.motifs
+            if avenant.identifiant_fiscal:
+                data["identifiant_fiscal"] = avenant.identifiant_fiscal
+
+            # Retourner les données ET le location_id
+            return data, str(avenant.bail.location_id)
+
+        except Exception as e:
+            import logging
+
+            logging.error(f"Error in fetch_draft_avenant_data: {e}", exc_info=True)
             return None

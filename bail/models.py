@@ -118,6 +118,7 @@ class DocumentType(models.TextChoices):
     """Types de documents gérés dans le système."""
 
     BAIL = "bail", "Contrat de bail"
+    AVENANT = "avenant", "Avenant au bail"
     GRILLE_VETUSTE = "grille_vetuste", "Grille de vétusté"
     NOTICE_INFORMATION = "notice_information", "Notice d'information"
     DIAGNOSTIC = "diagnostic", "Diagnostics techniques"
@@ -128,9 +129,9 @@ class DocumentType(models.TextChoices):
 
 
 class Document(BaseModel):
-    """Modèle pour gérer tous les documents liés aux baux, biens et locataires."""
+    """Modèle pour gérer tous les documents liés aux baux, biens, locataires ou avenants."""
 
-    # Relations - un document peut être lié soit à un bail, soit à un bien, soit à un locataire
+    # Relations - un document peut être lié à un bail, bien, locataire ou avenant
     bail = models.ForeignKey(
         Bail,
         on_delete=models.CASCADE,
@@ -253,3 +254,170 @@ class BailSignatureRequest(AbstractSignatureRequest):
         # Mettre à jour le statut du bail associé (pour compatibilité)
         if self.bail:
             self.bail.check_and_update_status()
+
+
+class AvenantMotif(models.TextChoices):
+    """Motifs possibles pour un avenant au bail."""
+
+    IDENTIFIANT_FISCAL = "identifiant_fiscal", "Numéro d'identifiant fiscal"
+    DIAGNOSTICS_DDT = "diagnostics_ddt", "Diagnostics techniques obligatoires"
+    PERMIS_DE_LOUER = "permis_de_louer", "Autorisation préalable de mise en location"
+
+
+class Avenant(SignableDocumentMixin, BaseModel):
+    """
+    Avenant au contrat de bail.
+    Permet de compléter un bail signé avec des informations manquantes.
+    Un bail peut avoir plusieurs avenants.
+    """
+
+    bail = models.ForeignKey(
+        Bail,
+        on_delete=models.CASCADE,
+        related_name="avenants",
+        help_text="Bail auquel cet avenant est rattaché",
+    )
+
+    # Numéro d'avenant (auto-incrémenté par bail)
+    numero = models.PositiveIntegerField(
+        verbose_name="Numéro d'avenant",
+        help_text="Numéro séquentiel de l'avenant pour ce bail",
+    )
+
+    # Motifs de l'avenant (peut en avoir plusieurs)
+    motifs = models.JSONField(
+        default=list,
+        verbose_name="Motifs de l'avenant",
+        help_text="Liste des motifs : identifiant_fiscal, diagnostics_ddt, permis_de_louer",
+    )
+
+    # Données ajoutées via cet avenant
+    identifiant_fiscal = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        default=None,
+        verbose_name="Identifiant fiscal ajouté",
+        help_text="Numéro d'identifiant fiscal du logement (si ajouté via cet avenant)",
+    )
+
+    # Les documents (DDT, permis de louer) sont liés via le modèle Document existant
+    # avec une référence au bail
+
+    # Historique automatique
+    history = HistoricalRecords()
+
+    class Meta:
+        db_table = "bail_avenant"
+        verbose_name = "Avenant"
+        verbose_name_plural = "Avenants"
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bail", "numero"],
+                name="unique_avenant_numero_per_bail",
+            )
+        ]
+
+    def save(self, *args, **kwargs):
+        """Auto-incrémente le numéro d'avenant si non défini."""
+        if not self.numero:
+            # Trouver le dernier numéro pour ce bail
+            last_avenant = Avenant.objects.filter(bail=self.bail).order_by(
+                "-numero"
+            ).first()
+            self.numero = (last_avenant.numero + 1) if last_avenant else 1
+        super().save(*args, **kwargs)
+
+    def get_document_name(self):
+        return f"Avenant n°{self.numero}"
+
+    def get_file_prefix(self):
+        return f"avenant_{self.numero}"
+
+    def __str__(self):
+        return f"Avenant n°{self.numero} - Bail {self.bail.location.bien.adresse}"
+
+    @property
+    def location(self):
+        """Accès direct à la location via le bail."""
+        return self.bail.location
+
+    @property
+    def has_identifiant_fiscal(self):
+        return AvenantMotif.IDENTIFIANT_FISCAL in self.motifs
+
+    @property
+    def has_diagnostics_ddt(self):
+        return AvenantMotif.DIAGNOSTICS_DDT in self.motifs
+
+    @property
+    def has_permis_de_louer(self):
+        return AvenantMotif.PERMIS_DE_LOUER in self.motifs
+
+
+class AvenantSignatureRequest(AbstractSignatureRequest):
+    """Demande de signature pour un avenant."""
+
+    avenant = models.ForeignKey(
+        Avenant,
+        on_delete=models.CASCADE,
+        related_name="signature_requests",
+    )
+
+    # Signataires (mêmes que le bail original)
+    mandataire = models.ForeignKey(
+        Mandataire,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="avenant_signature_requests",
+    )
+    bailleur_signataire = models.ForeignKey(
+        Personne,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="avenant_bailleur_signature_requests",
+    )
+    locataire = models.ForeignKey(
+        Locataire,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="avenant_signature_requests",
+    )
+
+    class Meta:
+        db_table = "bail_avenant_signature_request"
+        unique_together = [
+            ("avenant", "bailleur_signataire"),
+            ("avenant", "locataire"),
+            ("avenant", "mandataire"),
+        ]
+        ordering = ["order"]
+
+    def get_document_name(self):
+        return f"Avenant n°{self.avenant.numero} - {self.avenant.bail.location.bien.adresse}"
+
+    def get_document(self):
+        return self.avenant
+
+    def get_next_signature_request(self):
+        return (
+            AvenantSignatureRequest.objects.filter(
+                avenant=self.avenant,
+                signed=False,
+                order__gt=self.order,
+            )
+            .order_by("order")
+            .first()
+        )
+
+    def get_document_type(self):
+        return SignableDocumentType.AVENANT.value
+
+    def mark_as_signed(self):
+        super().mark_as_signed()
+        if self.avenant:
+            self.avenant.check_and_update_status()

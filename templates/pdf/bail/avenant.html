@@ -1,0 +1,261 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Avenant n°{{ avenant.numero }} au contrat de bail</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&display=swap');
+
+    @page {
+      size: A4;
+      margin: 1.5cm 1.5cm 2.5cm 1.5cm;
+
+      @bottom-center {
+        content: "Document généré avec Hestia - Solution gratuite de gestion locative conforme à la loi";
+        font-family: 'Playfair Display', Georgia, serif;
+        font-style: italic;
+        font-size: 10pt;
+        color: #999999;
+        text-align: center;
+        vertical-align: middle;
+      }
+    }
+
+    body {
+      font-family: Ubuntu, DejaVu Sans, Arial, Helvetica, sans-serif;
+      font-size: 12pt;
+      color: #3e3c41;
+      background-color: #ffffff;
+    }
+
+    h1, h2, h3 {
+      color: #2680eb;
+      margin-top: 2em;
+    }
+
+    .document-title {
+      text-align: center;
+      font-size: 20pt;
+      font-weight: bold;
+      margin-top: 0;
+      margin-bottom: 0.2cm;
+    }
+
+    .document-subtitle {
+      text-align: center;
+      font-size: 12pt;
+      font-style: italic;
+      margin-bottom: 2cm;
+    }
+
+    p {
+      line-height: 1.6em;
+      text-align: justify;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.5em;
+    }
+
+    li {
+      line-height: 1.6em;
+      text-align: justify;
+      margin-bottom: 0.5em;
+    }
+
+    .align-right {
+      text-align: right;
+    }
+
+    .article {
+      margin-bottom: 2em;
+    }
+
+    .section-title {
+      font-weight: bold;
+      font-size: 1.1em;
+      margin-top: 1.5em;
+    }
+
+    .signature-section {
+      margin-bottom: 0;
+    }
+
+    .signature {
+      margin-top: 0;
+    }
+
+    .signature-list {
+      display: block;
+    }
+
+    .signature-block {
+      width: 45%;
+      text-align: left;
+      margin-bottom: 40px;
+      min-height: 182px;
+      border-bottom: 1px dotted #999;
+    }
+
+    .highlight-box {
+      background-color: #f0f7ff;
+      border-left: 4px solid #2680eb;
+      padding: 12px 16px;
+      margin: 1em 0;
+      border-radius: 4px;
+    }
+
+    .identifiant-fiscal-box {
+      background-color: #f5f5f5;
+      border: 2px solid #2680eb;
+      padding: 16px;
+      margin: 1em 0;
+      text-align: center;
+      font-size: 14pt;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="document-title">AVENANT N°{{ avenant.numero }} AU CONTRAT DE BAIL</h1>
+  <p class="document-subtitle">
+    Complétant le contrat de location du {{ bail.location.date_debut|date:"d F Y" }}
+  </p>
+
+  <!-- ARTICLE 1 - DÉSIGNATION DES PARTIES -->
+  <div class="article">
+    <h2>Article 1 - Désignation des parties</h2>
+
+    <p class="section-title">1° Désignation du bailleur</p>
+    <p>
+      <ul>
+        {% for bailleur in bailleurs %}
+          {% if bailleur.personne %}
+            <li>
+              {{ bailleur.personne.firstName }} {{ bailleur.personne.lastName }}{% if bailleur.personne.email %} ({{ bailleur.personne.email }}){% endif %},
+              <strong>personne physique</strong>{% if bailleur.personne.adresse %} domiciliée au {{ bailleur.personne.adresse }}{% endif %}{% if not forloop.last %} ;{% endif %}
+            </li>
+          {% elif bailleur.societe %}
+            <li>
+              La <strong>personne morale</strong> {{ bailleur.societe.raison_sociale }} ({{ bailleur.societe.forme_juridique }}), dont le SIRET est {{ bailleur.societe.siret }},
+              domiciliée au {{ bailleur.societe.adresse }}, représentée pour la signature par
+              {{ bailleur.signataire.firstName }} {{ bailleur.signataire.lastName }}{% if bailleur.signataire.email %} ({{ bailleur.signataire.email }}){% endif %}{% if not forloop.last %} ;{% endif %}
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </p>
+    <p class="align-right">
+      Dénommé{% if bailleurs|length > 1 %}s{% endif %} ci-après « le bailleur » ;
+    </p>
+
+    <p class="section-title">2° Désignation du ou des locataires</p>
+    <p>
+      <ul>
+      {% for locataire in locataires %}
+        <li>{{ locataire.firstName }} {{ locataire.lastName }}{% if locataire.email %} ({{ locataire.email }}){% endif %}, personne physique{% if not forloop.last %} ;{% endif %}</li>
+      {% endfor %}
+      </ul>
+    </p>
+    <p class="align-right">
+      Dénommé{% if locataires|length > 1 %}s{% endif %} ci-après « le locataire ».
+    </p>
+  </div>
+
+  <!-- PRÉAMBULE -->
+  <div class="article">
+    <h2>Préambule</h2>
+    <p>
+      Il a été conclu en date du <strong>{{ bail.location.date_debut|date:"d F Y" }}</strong> un contrat de location
+      portant sur le logement sis <strong>{{ bien.adresse }}</strong>.
+    </p>
+    <p>
+      Le présent avenant a pour objet de compléter le contrat de location initial par l'ajout des documents
+      et informations ci-après.
+    </p>
+  </div>
+
+  <!-- ARTICLE 2 - DIAGNOSTICS TECHNIQUES (si applicable) -->
+  {% if has_diagnostics_ddt %}
+  <div class="article">
+    <h2>Article 2 - Annexes relatives aux diagnostics techniques obligatoires</h2>
+    <p>
+      Conformément aux dispositions des articles L. 271-4 et suivants du Code de la construction et de l'habitation,
+      le bailleur remet au locataire, en annexe au présent avenant, l'ensemble des diagnostics techniques obligatoires
+      relatifs au logement, notamment :
+    </p>
+    <ul>
+      <li>le diagnostic de performance énergétique (DPE),</li>
+      <li>le constat de risque d'exposition au plomb (CREP), si applicable,</li>
+      <li>l'état d'amiante, si applicable,</li>
+      <li>l'état des risques et pollutions (ERP),</li>
+      <li>l'état de l'installation intérieure de gaz et/ou d'électricité, si applicable,</li>
+      <li>le diagnostic bruit, si applicable.</li>
+    </ul>
+    <p>
+      Ces documents sont annexés au présent avenant et tiennent lieu de compléments au contrat initial.
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- ARTICLE - IDENTIFIANT FISCAL (si applicable) -->
+  {% if has_identifiant_fiscal %}
+  <div class="article">
+    <h2>Article {% if has_diagnostics_ddt %}3{% else %}2{% endif %} - Communication du numéro fiscal du logement</h2>
+    <p>
+      Conformément à l'article 1406 du Code général des impôts et aux obligations déclaratives relatives à la taxe
+      d'habitation sur les résidences principales et secondaires, le bailleur communique au locataire le numéro
+      d'identifiant fiscal du logement loué :
+    </p>
+    <div class="identifiant-fiscal-box">
+      Numéro d'identifiant fiscal du logement : {{ avenant.identifiant_fiscal }}
+    </div>
+    <p>
+      Cette information est annexée au présent avenant et complète le contrat initial.
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- ARTICLE - PERMIS DE LOUER (si applicable) -->
+  {% if has_permis_de_louer %}
+  <div class="article">
+    <h2>Article {% if has_diagnostics_ddt and has_identifiant_fiscal %}4{% elif has_diagnostics_ddt or has_identifiant_fiscal %}3{% else %}2{% endif %} - Autorisation préalable de mise en location</h2>
+    <p>
+      Conformément aux dispositions des articles L. 635-1 et suivants du Code de la construction et de l'habitation,
+      le bailleur atteste avoir obtenu l'autorisation préalable de mise en location délivrée par la commune ou
+      l'établissement public de coopération intercommunale compétent pour le logement situé <strong>{{ bien.adresse }}</strong>.
+    </p>
+    <p>
+      Le bailleur remet au locataire, en annexe au présent avenant, une copie de ladite autorisation,
+      communément appelée "permis de louer", ce qui complète le contrat initial.
+    </p>
+    <p>
+      Cette autorisation atteste que le logement respecte les caractéristiques de décence prévues à l'article 6
+      de la loi du 6 juillet 1989 et complète le contrat de location initial.
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- ARTICLE FINAL - DISPOSITIONS GÉNÉRALES -->
+  <div class="article">
+    <h2>Article {{ final_article_number }} - Dispositions générales</h2>
+    <p>
+      Le présent avenant fait partie intégrante du contrat de bail initial. Toutes les autres clauses et conditions
+      du contrat de bail initial demeurent inchangées et en vigueur.
+    </p>
+    <p>
+      Les parties déclarent avoir pris connaissance des éléments ajoutés par le présent avenant et en accepter
+      les termes.
+    </p>
+  </div>
+
+  <!-- SIGNATURES - Réutilise le composant bail -->
+  {% if mandataire_doit_signer %}
+    {% include "pdf/bail/components/signature_fields.html" with mandataire=mandataire bailleurs=bailleurs locataires=locataires %}
+  {% else %}
+    {% include "pdf/bail/components/signature_fields.html" with mandataire=None bailleurs=bailleurs locataires=locataires %}
+  {% endif %}
+</body>
+</html>

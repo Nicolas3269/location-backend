@@ -1089,4 +1089,91 @@ class FranceTenantDocumentsSerializer(BaseLocationSerializer):
         return TENANT_DOCS_STEPS
 
 
+# ========================================
+# STEPS SPÉCIFIQUES AVENANT
+# ========================================
+
+AVENANT_MOTIFS_STEPS = [
+    {
+        "id": "avenant.motifs",
+        "required_fields": ["motifs"],
+        "fields": {},
+        "business_rules": ["atLeastOneMotif"],
+    },
+]
+
+AVENANT_IDENTIFIANT_FISCAL_STEPS = [
+    {
+        "id": "avenant.identifiant_fiscal",
+        "condition": "avenant_has_motif_identifiant_fiscal",
+        "required_fields": ["identifiant_fiscal"],
+        "fields": {},
+    },
+]
+
+AVENANT_DIAGNOSTICS_DDT_STEPS = [
+    {
+        "id": "avenant.diagnostics_ddt",
+        "condition": "avenant_has_motif_diagnostics_ddt",
+        "required_fields": [],
+        "fields": {},
+        "business_rules": ["ddtHasBeenUploaded"],
+    },
+]
+
+AVENANT_PERMIS_DE_LOUER_STEPS = [
+    {
+        "id": "avenant.permis_de_louer",
+        "condition": "avenant_has_motif_permis_de_louer",
+        "required_fields": [],
+        "fields": {},
+        "business_rules": ["permisDeLouerHasBeenUploaded"],
+    },
+]
+
+
+class FranceAvenantSerializer(BaseLocationSerializer):
+    """
+    Serializer pour un avenant au bail en France.
+    Permet de compléter un bail signé avec des informations manquantes.
+    Hérite de BaseLocationSerializer pour get_step_config_by_id.
+    """
+
+    # Identifiant du bail auquel l'avenant est rattaché
+    bail_id = serializers.UUIDField(required=False)
+    source = serializers.CharField(default="avenant")
+
+    # Motifs de l'avenant (au moins un requis)
+    motifs = serializers.ListField(
+        child=serializers.ChoiceField(
+            choices=["identifiant_fiscal", "diagnostics_ddt", "permis_de_louer"]
+        ),
+        min_length=1,
+        required=True,
+        help_text="Liste des motifs de l'avenant",
+    )
+
+    # Identifiant fiscal (conditionnel)
+    identifiant_fiscal = serializers.CharField(
+        max_length=50,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Numéro d'identifiant fiscal du logement",
+    )
+
+    @classmethod
+    def get_step_config(cls):
+        """
+        Configuration des steps du formulaire avenant France.
+        """
+        AVENANT_STEPS = []
+        AVENANT_STEPS.extend(AVENANT_MOTIFS_STEPS)
+        AVENANT_STEPS.extend(AVENANT_IDENTIFIANT_FISCAL_STEPS)
+        AVENANT_STEPS.extend(AVENANT_DIAGNOSTICS_DDT_STEPS)
+        AVENANT_STEPS.extend(AVENANT_PERMIS_DE_LOUER_STEPS)
+        # Note: avenant.validation est ajouté côté frontend (step final)
+        return AVENANT_STEPS
+
+
 # Les helper functions sont maintenant des méthodes de BaseLocationSerializer

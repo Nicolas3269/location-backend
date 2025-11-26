@@ -56,6 +56,14 @@ class SignableDocumentMixin(models.Model):
         return get_signature_field_name(signing_person)
 
     @property
+    def is_locked(self) -> bool:
+        """
+        Document verrouillé (non modifiable) si en signature ou signé.
+        Utilisé pour empêcher les modifications sur les documents engagés.
+        """
+        return self.status in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]
+
+    @property
     def est_signe(self):
         """
         Le document est-il complètement signé par TOUTES les parties ?
@@ -115,6 +123,41 @@ class SignableDocumentMixin(models.Model):
             return None
 
         return self.latest_signature_timestamp
+
+    def reset_for_edit(self):
+        """
+        Réinitialise le document pour permettre une nouvelle édition.
+        Utilisé quand on veut modifier un document DRAFT existant.
+
+        Actions:
+        - Supprime le PDF initial (pdf)
+        - Supprime le PDF signé (latest_pdf) si présent
+        - Supprime toutes les signature_requests
+        - Remet le status à DRAFT
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # Supprimer le PDF initial
+        if self.pdf:
+            try:
+                self.pdf.delete(save=False)
+            except Exception as e:
+                logger.warning(f"Impossible de supprimer le PDF: {e}")
+
+        # Supprimer le PDF signé si présent
+        if self.latest_pdf:
+            try:
+                self.latest_pdf.delete(save=False)
+            except Exception as e:
+                logger.warning(f"Impossible de supprimer le latest_pdf: {e}")
+
+        # Supprimer les signature requests
+        self.signature_requests.all().delete()
+
+        # Remettre en DRAFT
+        self.status = DocumentStatus.DRAFT
 
     def check_and_update_status(self):
         """

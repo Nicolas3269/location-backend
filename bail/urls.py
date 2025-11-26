@@ -1,5 +1,14 @@
 from django.urls import path
 
+from bail.avenant_views import (
+    cancel_signature_avenant,
+    confirm_signature_avenant,
+    create_avenant,
+    generate_avenant_pdf,
+    get_avenant_requirements,
+    get_avenant_signature_request,
+    resend_otp_avenant,
+)
 from bail.views import (
     cancel_signature_bail,
     confirm_signature_bail,
@@ -48,5 +57,42 @@ urlpatterns = [
         "upload-locataire-document/",
         upload_locataire_document,
         name="upload_locataire_document",
+    ),
+    # Avenant routes
+    path(
+        "avenant/<uuid:bail_id>/requirements/",
+        get_avenant_requirements,
+        name="get_avenant_requirements",
+    ),
+    path(
+        "avenant/<uuid:bail_id>/create/",
+        create_avenant,
+        name="create_avenant",
+    ),
+    path(
+        "avenant/<uuid:avenant_id>/pdf/",
+        generate_avenant_pdf,
+        name="generate_avenant_pdf",
+    ),
+    # Avenant signature routes
+    path(
+        "avenant/get-signature-request/<uuid:token>/",
+        get_avenant_signature_request,
+        name="get_avenant_signature_request",
+    ),
+    path(
+        "avenant/confirm-signature/",
+        confirm_signature_avenant,
+        name="confirm_signature_avenant",
+    ),
+    path(
+        "avenant/cancel-signature/<uuid:avenant_id>/",
+        cancel_signature_avenant,
+        name="cancel_signature_avenant",
+    ),
+    path(
+        "avenant/resend-otp/",
+        resend_otp_avenant,
+        name="resend_otp_avenant",
     ),
 ]

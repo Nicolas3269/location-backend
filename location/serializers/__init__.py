@@ -3,22 +3,24 @@ Serializers par pays pour les formulaires adaptatifs.
 """
 
 from .france import (
+    FranceAvenantSerializer,
     FranceBailSerializer,
-    FranceQuittanceSerializer,
     FranceEtatLieuxSerializer,
+    FranceQuittanceSerializer,
 )
 
 from .belgium import (
     BelgiumBailSerializer,
-    BelgiumQuittanceSerializer,
     BelgiumEtatLieuxSerializer,
+    BelgiumQuittanceSerializer,
 )
 
 __all__ = [
+    "FranceAvenantSerializer",
     "FranceBailSerializer",
-    "FranceQuittanceSerializer",
     "FranceEtatLieuxSerializer",
+    "FranceQuittanceSerializer",
     "BelgiumBailSerializer",
-    "BelgiumQuittanceSerializer",
     "BelgiumEtatLieuxSerializer",
+    "BelgiumQuittanceSerializer",
 ]

@@ -19,6 +19,6 @@ class SignableDocumentType(models.TextChoices):
     BAIL = "bail", "Contrat de bail"
     ETAT_LIEUX = "etat_lieux", "État des lieux"
     QUITTANCE = "quittance", "Quittance de loyer"
+    AVENANT = "avenant", "Avenant au bail"
     # Futurs documents signables :
-    # AVENANT = "avenant", "Avenant au bail"
     # ATTESTATION = "attestation", "Attestation"

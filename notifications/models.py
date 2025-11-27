@@ -9,13 +9,12 @@ class NotificationRequest(models.Model):
     """
 
     FEATURE_CHOICES = [
-        ("quittance", "Quittance automatique"),
-        ("etat_des_lieux", "État des lieux digital"),
+        ("assurance", "Comparateur d'assurances"),
     ]
 
     ROLE_CHOICES = [
         ("proprietaire", "Propriétaire"),
-        ("gestionnaire", "Gestionnaire immobilier"),
+        ("mandataire", "Mandataire immobilier"),
         ("locataire", "Locataire"),
         ("comptable", "Comptable"),
         ("autre", "Autre"),

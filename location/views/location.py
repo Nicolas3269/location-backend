@@ -645,6 +645,7 @@ def get_location_documents(request, location_id):
                         "url": quittance.pdf.url,
                         "status": quittance.get_status_display(),
                         "periode": f"{quittance.mois} {quittance.annee}",
+                        "quittance_id": str(quittance.id),
                     }
                 )
 

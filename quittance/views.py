@@ -21,6 +21,7 @@ from location.services.access_utils import get_user_role_for_location
 from location.services.bailleur_utils import get_primary_bailleur_for_user
 from signature.document_status import DocumentStatus
 
+from .email_service import send_quittance_email as send_email
 from .models import Quittance
 from .signature_utils import generate_text_signature
 
@@ -423,3 +424,80 @@ def generate_quittance_pdf(request):
 
 
 # create_location_for_quittance supprimé - utiliser /location/create-or-update/ à la place
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def send_quittance_email(request, quittance_id):
+    """
+    Envoie une quittance par email au locataire.
+
+    POST /quittance/send-email/<quittance_id>/
+
+    La quittance doit avoir un PDF généré (status SIGNED).
+    """
+
+    try:
+        # Récupérer la quittance avec les relations nécessaires
+        quittance = (
+            Quittance.objects.select_related("location__bien")
+            .prefetch_related("location__locataires", "location__bien__bailleurs")
+            .get(id=quittance_id)
+        )
+
+        # Vérifier que la quittance a un PDF
+        if not quittance.pdf:
+            return JsonResponse(
+                {"success": False, "error": "La quittance n'a pas de PDF généré"},
+                status=400,
+            )
+
+        # Vérifier que l'utilisateur a accès (est bailleur ou mandataire)
+        user_email = request.user.email
+        is_bailleur = any(
+            bailleur.email == user_email
+            for bailleur in quittance.location.bien.bailleurs.all()
+        )
+        is_mandataire = (
+            quittance.location.mandataire
+            and quittance.location.mandataire.email == user_email
+        )
+
+        if not is_bailleur and not is_mandataire:
+            return JsonResponse(
+                {"success": False, "error": "Vous n'avez pas accès à cette quittance"},
+                status=403,
+            )
+
+        # URL du PDF (déjà absolue car stocké sur S3/R2)
+        pdf_url = quittance.pdf.url
+
+        # Envoyer l'email (CC: l'expéditeur)
+        success = send_email(quittance, pdf_url, user_email)
+
+        if success:
+            recipients = [loc.email for loc in quittance.location.locataires.all()]
+            logger.info(f"Quittance {quittance_id} envoyée par email à {recipients}")
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f"Quittance envoyée à {', '.join(recipients)}",
+                    "recipients": recipients,
+                }
+            )
+        else:
+            logger.error(f"Échec de l'envoi de la quittance {quittance_id}")
+            return JsonResponse(
+                {"success": False, "error": "Échec de l'envoi de l'email"},
+                status=500,
+            )
+
+    except Quittance.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "error": "Quittance introuvable"}, status=404
+        )
+    except Exception as e:
+        logger.exception(f"Erreur lors de l'envoi de la quittance {quittance_id}")
+        return JsonResponse(
+            {"success": False, "error": f"Erreur: {str(e)}"}, status=500
+        )

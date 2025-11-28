@@ -14,6 +14,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+import sentry_sdk
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -367,3 +368,19 @@ PASSWORD_CERT_TSA = os.getenv("PASSWORD_CERT_TSA")
 # Test: hestia_server.pfx (self-signed)
 # Production: hestia_server.pfx (CertEurope qualified certificate)
 PASSWORD_CERT_SERVER = os.getenv("PASSWORD_CERT_SERVER")
+
+
+# ============================================================================
+# Sentry Configuration
+# ============================================================================
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "local")
+if SENTRY_DSN and not DEBUG:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        # Environnement : "production" sur Railway, "local" en local
+        environment=ENVIRONMENT,
+        # Add data like request headers and IP for users
+        # https://docs.sentry.io/platforms/python/data-management/data-collected/
+        send_default_pii=True,
+    )

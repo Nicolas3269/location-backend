@@ -25,6 +25,12 @@ from django.views.static import serve
 
 from .pdf_views import serve_pdf_for_iframe, serve_static_pdf_for_iframe
 
+
+def trigger_error(request):
+    """Route de test pour vérifier que Sentry capture bien les erreurs"""
+    division_by_zero = 1 / 0
+
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/location/", include("location.urls")),  # Nouvelle app centrale
@@ -42,6 +48,7 @@ urlpatterns = [
 # Ajouter ceci pour servir les fichiers médias en développement
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += [path("sentry-debug/", trigger_error)]  # Test Sentry
 else:
     # In production, you should serve media files using a web server like Nginx or Apache
     urlpatterns += [

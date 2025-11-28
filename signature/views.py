@@ -5,6 +5,7 @@ Vues génériques pour la signature de documents
 import logging
 
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
@@ -14,7 +15,7 @@ from location.models import Location
 from location.services.access_utils import get_user_role_for_location
 from location.services.bailleur_utils import get_primary_bailleur_for_user
 from signature.document_status import DocumentStatus
-from signature.models import AbstractSignatureRequest
+from signature.models import AbstractSignatureRequest, SignatureMetadata
 from signature.models_base import SignableDocumentMixin
 
 from .document_list_service import get_etat_lieux_documents_list
@@ -463,6 +464,13 @@ def cancel_signature_generic(request, document_id, document_model):
 
         deleted_count = signature_requests.count()
         signature_requests.delete()
+
+        # Supprimer les SignatureMetadata associées (preuves forensiques)
+        # Important: évite les orphelins qui faussent le count de est_signe
+        content_type = ContentType.objects.get_for_model(document)
+        SignatureMetadata.objects.filter(
+            document_content_type=content_type, document_object_id=document.id
+        ).delete()
 
         # Supprimer le latest_pdf si existant
         if document.latest_pdf:

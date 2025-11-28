@@ -14,6 +14,7 @@ from algo.signature.main import (
     sign_pdf,
 )
 from backend.storage_utils import get_local_file_path, save_file_to_storage
+from signature.document_status import DocumentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -117,8 +118,6 @@ def process_signature_generic(signature_request, signature_data_url, request=Non
 
         # Mettre le document en SIGNING si c'est la première signature
         if hasattr(document, "status"):
-            from signature.document_status import DocumentStatus
-
             if document.status == DocumentStatus.DRAFT.value:
                 document.status = DocumentStatus.SIGNING.value
                 document.save(update_fields=["status"])
@@ -223,7 +222,6 @@ def process_signature_generic(signature_request, signature_data_url, request=Non
                     logger.warning(traceback.format_exc())
 
                 # Mettre le statut à SIGNED (APRÈS toutes les opérations)
-                from signature.document_status import DocumentStatus
 
                 if (
                     hasattr(document, "status")
@@ -272,7 +270,7 @@ def prepare_pdf_with_signature_fields_generic(pdf_field, document):
         # Récupérer tous les signataires
         mandataire = location.mandataire
         # IMPORTANT: Ordre déterministe (premier créé = principal)
-        bailleurs = location.bien.bailleurs.order_by('created_at')
+        bailleurs = location.bien.bailleurs.order_by("created_at")
         bailleur_signataires = [
             bailleur.signataire for bailleur in bailleurs if bailleur.signataire
         ]
@@ -285,14 +283,19 @@ def prepare_pdf_with_signature_fields_generic(pdf_field, document):
             # Cas 1: Fichier temporaire local (string path)
             # Travailler directement sur le fichier sans télécharger depuis S3
             pdf_path = pdf_field
-            logger.info(f"Préparation des champs de signature (fichier local): {pdf_path}")
+            logger.info(
+                f"Préparation des champs de signature (fichier local): {pdf_path}"
+            )
         else:
             # Cas 2: FieldFile depuis S3 - télécharger d'abord
             logger.info(f"Téléchargement du PDF depuis S3: {pdf_field.name}")
 
         # Utiliser context manager seulement si c'est un FieldFile
         from contextlib import nullcontext
-        context_manager = nullcontext(pdf_field) if is_local_path else get_local_file_path(pdf_field)
+
+        context_manager = (
+            nullcontext(pdf_field) if is_local_path else get_local_file_path(pdf_field)
+        )
 
         with context_manager as pdf_path:
             all_fields = []

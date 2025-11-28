@@ -415,8 +415,7 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
         """Retourne le type de document"""
         return SignableDocumentType.ETAT_LIEUX.value
 
-    def mark_as_signed(self):
-        """Marque la demande comme signée et met à jour le statut du document"""
-        super().mark_as_signed()
-        # Vérifier et mettre à jour le statut du document
-        self.etat_lieux.check_and_update_status()
+    # NOTE: mark_as_signed() n'est PAS surchargé ici.
+    # Le statut du document (SIGNING → SIGNED) est géré par
+    # process_signature_generic dans pdf_processing.py qui vérifie
+    # si TOUTES les signatures sont complètes avant de passer à SIGNED.

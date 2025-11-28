@@ -247,20 +247,10 @@ class BailSignatureRequest(AbstractSignatureRequest):
         """Retourne le type de document"""
         return SignableDocumentType.BAIL.value
 
-    def mark_as_signed(self):
-        """Marque la demande comme signée et met à jour le statut du document"""
-        super().mark_as_signed()
-        # Vérifier et mettre à jour le statut du bail
-        if self.bail:
-            self.bail.check_and_update_status()
-
-    def save(self, *args, **kwargs):
-        """Override save pour mettre à jour automatiquement le statut du bail"""
-        super().save(*args, **kwargs)
-
-        # Mettre à jour le statut du bail associé (pour compatibilité)
-        if self.bail:
-            self.bail.check_and_update_status()
+    # NOTE: mark_as_signed() n'est PAS surchargé ici.
+    # Le statut du document (SIGNING → SIGNED) est géré par
+    # process_signature_generic dans pdf_processing.py qui vérifie
+    # si TOUTES les signatures sont complètes avant de passer à SIGNED.
 
 
 class AvenantMotif(models.TextChoices):
@@ -424,7 +414,7 @@ class AvenantSignatureRequest(AbstractSignatureRequest):
     def get_document_type(self):
         return SignableDocumentType.AVENANT.value
 
-    def mark_as_signed(self):
-        super().mark_as_signed()
-        if self.avenant:
-            self.avenant.check_and_update_status()
+    # NOTE: mark_as_signed() n'est PAS surchargé ici.
+    # Le statut du document (SIGNING → SIGNED) est géré par
+    # process_signature_generic dans pdf_processing.py qui vérifie
+    # si TOUTES les signatures sont complètes avant de passer à SIGNED.

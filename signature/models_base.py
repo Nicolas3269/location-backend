@@ -2,11 +2,14 @@
 Modèles de base pour les documents signables
 """
 
+import logging
 from abc import ABC, abstractmethod
 
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 
 from signature.document_status import DocumentStatus
+from signature.models import SignatureMetadata
 
 
 class SignableDocumentMixin(models.Model):
@@ -70,14 +73,14 @@ class SignableDocumentMixin(models.Model):
         Vérifie que le nombre de SignatureMetadata (signatures forensiques)
         correspond au nombre de signature_requests attendus.
         """
-        from django.contrib.contenttypes.models import ContentType
 
-        from signature.models import SignatureMetadata
+        logger = logging.getLogger(__name__)
 
         # Compter le nombre de signatures attendues
         nb_signatures_attendues = self.signature_requests.count()
 
         if nb_signatures_attendues == 0:
+            logger.debug(f"🔍 est_signe: 0 signature_requests pour {self}")
             return False
 
         # Compter le nombre de signatures forensiques complètes
@@ -86,8 +89,16 @@ class SignableDocumentMixin(models.Model):
             document_content_type=content_type, document_object_id=self.id
         ).count()
 
+        result = nb_signatures_forensiques == nb_signatures_attendues
+
+        logger.info(
+            f"🔍 est_signe pour {self.__class__.__name__} {self.id}: "
+            f"forensiques={nb_signatures_forensiques}, attendues={nb_signatures_attendues}, "
+            f"result={result}"
+        )
+
         # Toutes les parties ont signé si nb forensiques = nb attendues
-        return nb_signatures_forensiques == nb_signatures_attendues
+        return result
 
     @property
     def latest_signature_timestamp(self):
@@ -167,7 +178,15 @@ class SignableDocumentMixin(models.Model):
         Lifecycle:
         - DRAFT → SIGNING : Fait manuellement par send_signature_email()
         - SIGNING → SIGNED : Automatique quand est_signe = True
+
+        NOTE: Cette méthode ne devrait généralement PAS être appelée depuis
+        mark_as_signed() car process_signature_generic gère déjà correctement
+        le cycle de vie du statut. Elle reste disponible pour des cas d'usage
+        spécifiques comme la synchronisation manuelle via admin.
         """
+        import logging
+
+        logger = logging.getLogger(__name__)
         current_status = self.status
 
         # Ne pas passer automatiquement de DRAFT à SIGNING
@@ -177,8 +196,13 @@ class SignableDocumentMixin(models.Model):
         # sont complètes
         if self.status == DocumentStatus.SIGNING.value:
             # Utiliser est_signe (vérifie SignatureMetadata)
-            if self.est_signe:
+            is_complete = self.est_signe
+            if is_complete:
                 self.status = DocumentStatus.SIGNED.value
+                logger.info(
+                    f"✅ check_and_update_status: {self.__class__.__name__} {self.id} "
+                    f"passe de SIGNING à SIGNED (est_signe=True)"
+                )
 
         if current_status != self.status:
             self.save(update_fields=["status"])

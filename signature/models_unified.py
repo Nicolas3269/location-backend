@@ -67,13 +67,10 @@ class SignatureRequest(AbstractSignatureRequest):
             .first()
         )
 
-    def save(self, *args, **kwargs):
-        """Override save pour mettre à jour automatiquement le statut du document"""
-        super().save(*args, **kwargs)
-
-        # Mettre à jour le statut du document associé s'il a une méthode check_and_update_status
-        if self.document and hasattr(self.document, "check_and_update_status"):
-            self.document.check_and_update_status()
+    # NOTE: save() n'est PAS surchargé ici.
+    # Le statut du document (SIGNING → SIGNED) est géré par
+    # process_signature_generic dans pdf_processing.py qui vérifie
+    # si TOUTES les signatures sont complètes avant de passer à SIGNED.
 
     class Meta:
         ordering = ["order"]

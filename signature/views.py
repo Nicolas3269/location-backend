@@ -281,14 +281,19 @@ def confirm_signature_generic(request, model_class, document_type):
                 status=403,
             )
 
-        # Traiter la signature si fournie - utiliser la fonction générique
-        if signature_data_url:
-            # process_signature_generic s'occupera de mark_as_signed()
-            # Passer la request pour capturer métadonnées HTTP (IP, user-agent)
-            process_signature_generic(sig_req, signature_data_url, request=request)
-        else:
-            # Si pas de signature fournie, marquer quand même comme signé
-            sig_req.mark_as_signed()
+        # La signature manuscrite est OBLIGATOIRE pour :
+        # 1. Créer les métadonnées forensiques (SignatureMetadata)
+        # 2. Signer le PDF avec le tampon visuel
+        # 3. Garantir la validité juridique (eIDAS AES)
+        if not signature_data_url:
+            return JsonResponse(
+                {"error": "Image de signature manuscrite requise"},
+                status=400,
+            )
+
+        # process_signature_generic s'occupera de mark_as_signed()
+        # Passer la request pour capturer métadonnées HTTP (IP, user-agent)
+        process_signature_generic(sig_req, signature_data_url, request=request)
 
         # Récupérer le document
         document: SignableDocumentMixin = sig_req.get_document()

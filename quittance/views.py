@@ -460,7 +460,7 @@ def send_quittance_email(request, quittance_id):
         )
         is_mandataire = (
             quittance.location.mandataire
-            and quittance.location.mandataire.email == user_email
+            and quittance.location.mandataire.signataire.email == user_email
         )
 
         if not is_bailleur and not is_mandataire:

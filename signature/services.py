@@ -6,7 +6,6 @@ import logging
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.template.loader import render_to_string
 
 logger = logging.getLogger(__name__)
 
@@ -20,73 +19,79 @@ def send_signature_email(signature_request, document_type="document"):
         signature_request: Instance de AbstractSignatureRequest
         document_type: Type de document ("bail" ou "etat_lieux")
     """
-    # Plus besoin de générer l'OTP ici - il sera généré lors de l'accès à la page
-
     # Récupérer l'email du signataire
     email = signature_request.get_signataire_email()
     if not email:
         logger.error(f"Pas d'email pour {signature_request}")
         return False
 
+    # Récupérer le prénom du signataire
+    signer = signature_request.signer
+    prenom = signer.firstName if signer else "Signataire"
+
+    # Récupérer le document et l'adresse du bien
+    document = signature_request.get_document()
+    adresse_logement = ""
+    if hasattr(document, "location") and document.location:
+        bien = document.location.bien
+        if bien:
+            adresse_logement = bien.adresse or ""
+
     # Convertir le document_type technique vers un nom lisible
     document_display_name = {
-        "bail": "bail",
+        "bail": "bail de location",
         "etat_lieux": "état des lieux",
+        "avenant": "avenant au bail",
     }.get(document_type, document_type)
 
-    # Déterminer le type de document pour l'email
-    if document_type == "bail":
-        subject = "Signature électronique de votre bail de location"
-        template = "bail/email_signature.html"
-    elif document_type == "etat_lieux":
-        subject = "Signature électronique de votre état des lieux"
-        template = "etat_lieux/email_signature.html"
-    else:
-        subject = f"Signature électronique de votre {document_display_name}"
-        template = None
-
-    # Construire l'URL de signature selon le type de document
+    # Construire les URLs
     base_url = settings.FRONTEND_URL
+    espace_personnel_url = f"{base_url}/mon-compte"
+
     if document_type == "bail":
         signature_url = f"{base_url}/bail/signing/{signature_request.link_token}"
+        subject = "Votre signature est requise pour le bail ✍️"
     elif document_type == "etat_lieux":
         signature_url = f"{base_url}/etat-lieux/signing/{signature_request.link_token}"
+        subject = "Votre signature est requise pour l'état des lieux ✍️"
+    elif document_type == "avenant":
+        signature_url = f"{base_url}/avenant/signing/{signature_request.link_token}"
+        subject = "Votre signature est requise pour l'avenant ✍️"
     else:
         signature_url = (
             f"{base_url}/{document_type}/signing/{signature_request.link_token}"
         )
+        subject = f"Votre signature est requise pour le {document_display_name} ✍️"
 
-    # Préparer le contexte de l'email
-    context = {
-        "signataire_name": signature_request.get_signataire_name(),
-        "signature_url": signature_url,
-        "document_type": document_display_name,
-    }
-
-    # Générer le contenu de l'email
-    if template:
-        try:
-            html_message = render_to_string(template, context)
-        except Exception:
-            # Si le template n'existe pas, utiliser un message par défaut
-            html_message = None
+    # Construire le message avec l'adresse si disponible
+    if adresse_logement:
+        intro_logement = (
+            f"Vous êtes invité(e) à signer le {document_display_name} "
+            f"concernant le logement situé au {adresse_logement}."
+        )
     else:
-        html_message = None
+        intro_logement = f"Vous êtes invité(e) à signer le {document_display_name}."
 
-    # Message texte par défaut
     text_message = f"""
-    Bonjour {signature_request.get_signataire_name()},
+Bonjour {prenom},
 
-    Vous êtes invité(e) à signer électroniquement votre {document_display_name}.
+{intro_logement}
 
-    Pour accéder au document et le signer, cliquez sur le lien suivant :
-    {signature_url}
+👉 Signer le document : {signature_url}
 
-    Un code de vérification (OTP) vous sera envoyé par email lors de l'accès à la page.
+La signature est sécurisée, personnelle et ne prend que 2 minutes.
 
-    Cordialement,
-    L'équipe Hestia
-    """
+Une fois votre signature apposée :
+- le document sera transmis au signataire suivant (s'il y en a) ;
+- vous recevrez un email de confirmation ;
+- le document complet sera disponible dans votre espace personnel.
+
+👉 Accéder à votre espace : {espace_personnel_url}
+
+Si vous avez des questions, nous sommes là pour vous aider.
+
+L'équipe Hestia 🏡
+"""
 
     # Envoyer l'email
     try:
@@ -95,7 +100,7 @@ def send_signature_email(signature_request, document_type="document"):
             message=text_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[email],
-            html_message=html_message,
+            html_message=None,
             fail_silently=False,
         )
         logger.info(f"Email de signature envoyé à {email}")
@@ -119,16 +124,26 @@ def send_otp_email(signature_request, document_type="document"):
     if not email:
         logger.error(f"Pas d'email pour {signature_request}")
         return False
-    
+
+    # Récupérer le prénom du signataire
+    signer = signature_request.signer
+    prenom = signer.firstName if signer else "Signataire"
+
     # Récupérer le document et mettre à jour son statut si c'est le premier signataire
     document = signature_request.get_document()
-    if hasattr(document, 'status'):
+    if hasattr(document, "status"):
         from signature.document_status import DocumentStatus
+
         # Si c'est le premier signataire (order = 1), passer en SIGNING
-        if signature_request.order == 1 and document.status == DocumentStatus.DRAFT.value:
+        if (
+            signature_request.order == 1
+            and document.status == DocumentStatus.DRAFT.value
+        ):
             document.status = DocumentStatus.SIGNING.value
             document.save()
-            logger.info(f"Document {type(document).__name__} {document.id} passé en status SIGNING lors de l'envoi de l'OTP")
+            logger.info(
+                f"Document {type(document).__name__} {document.id} passé en status SIGNING lors de l'envoi de l'OTP"
+            )
 
     # Convertir le document_type technique vers un nom lisible
     document_display_name = {
@@ -146,18 +161,22 @@ def send_otp_email(signature_request, document_type="document"):
     subject = f"🔏 Code {otp} - Signature de votre {document_display_name}"
 
     text_message = f"""
-    Bonjour {signature_request.get_signataire_name()},
+    Bonjour {prenom},
 
     Voici votre code de vérification (OTP) pour signer votre {document_display_name} :
 
     {otp}
 
-    Ce code est valable pendant 10 minutes.
+    ⏱️ Ce code est personnel et valable 10 minutes.
 
-    Si vous n'avez pas demandé ce code, ignorez cet email.
+    Il garantit la sécurité de votre signature électronique, conforme à la réglementation en vigueur. 
 
-    Cordialement,
-    L'équipe Hestia
+    Saisissez-le dans l’interface de signature pour valider votre engagement.
+
+    👉 Si vous n’avez pas fait cette demande, vous pouvez ignorer ce message.
+
+    À très vite,
+    L’équipe Hestia 🏡
     """
 
     # Envoyer l'email
@@ -275,7 +294,7 @@ def create_signature_requests_generic(document, signature_request_model, user=No
     location = document.location
 
     # IMPORTANT: Ordre déterministe (premier créé = principal)
-    bailleurs = location.bien.bailleurs.order_by('created_at')
+    bailleurs = location.bien.bailleurs.order_by("created_at")
     bailleur_signataires = [
         bailleur.signataire for bailleur in bailleurs if bailleur.signataire
     ]
@@ -286,9 +305,9 @@ def create_signature_requests_generic(document, signature_request_model, user=No
 
     # Vérifier si le mandataire doit signer ce document
     mandataire_doit_signer = (
-        hasattr(document, 'mandataire_doit_signer') and
-        document.mandataire_doit_signer and
-        location.mandataire
+        hasattr(document, "mandataire_doit_signer")
+        and document.mandataire_doit_signer
+        and location.mandataire
     )
 
     # ÉTAPE 1: Le user créateur signe en premier (si fourni)
@@ -296,8 +315,8 @@ def create_signature_requests_generic(document, signature_request_model, user=No
         # Identifier le type de signataire du user
         # Vérifier si c'est le mandataire
         if (
-            mandataire_doit_signer and
-            location.mandataire.signataire.email.lower() == user_email
+            mandataire_doit_signer
+            and location.mandataire.signataire.email.lower() == user_email
         ):
             signature_request_model.objects.create(
                 **{
@@ -309,12 +328,18 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             )
             order += 1
             logger.info(
-                f"User créateur (mandataire) ajouté en premier signataire (order={order-1}) "
+                f"User créateur (mandataire) ajouté en premier signataire (order={order - 1}) "
                 f"pour {type(document).__name__} {document.id}"
             )
         # Vérifier si c'est un bailleur
-        elif any(sig and sig.email.lower() == user_email for sig in bailleur_signataires):
-            signataire = next(sig for sig in bailleur_signataires if sig and sig.email.lower() == user_email)
+        elif any(
+            sig and sig.email.lower() == user_email for sig in bailleur_signataires
+        ):
+            signataire = next(
+                sig
+                for sig in bailleur_signataires
+                if sig and sig.email.lower() == user_email
+            )
             signature_request_model.objects.create(
                 **{
                     document_field_name: document,
@@ -325,12 +350,14 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             )
             order += 1
             logger.info(
-                f"User créateur (bailleur) ajouté en premier signataire (order={order-1}) "
+                f"User créateur (bailleur) ajouté en premier signataire (order={order - 1}) "
                 f"pour {type(document).__name__} {document.id}"
             )
         # Vérifier si c'est un locataire
         elif any(loc.email.lower() == user_email for loc in locataires):
-            locataire = next(loc for loc in locataires if loc.email.lower() == user_email)
+            locataire = next(
+                loc for loc in locataires if loc.email.lower() == user_email
+            )
             signature_request_model.objects.create(
                 **{
                     document_field_name: document,
@@ -341,7 +368,7 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             )
             order += 1
             logger.info(
-                f"User créateur (locataire) ajouté en premier signataire (order={order-1}) "
+                f"User créateur (locataire) ajouté en premier signataire (order={order - 1}) "
                 f"pour {type(document).__name__} {document.id}"
             )
 
@@ -359,7 +386,7 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             )
             order += 1
             logger.info(
-                f"Mandataire ajouté comme signataire (order={order-1}) "
+                f"Mandataire ajouté comme signataire (order={order - 1}) "
                 f"pour {type(document).__name__} {document.id}"
             )
 
@@ -396,3 +423,331 @@ def create_signature_requests_generic(document, signature_request_model, user=No
         f"Créé {order - 1} demandes de signature pour "
         f"{type(document).__name__} {document.id}"
     )
+
+
+def send_signature_success_email(
+    signature_request, document_type="document", next_signer=None
+):
+    """
+    Envoie un email de confirmation au signataire après une signature réussie.
+
+    Inclut:
+    - Liste des personnes ayant déjà signé
+    - Liste des personnes devant encore signer
+    - Indication du prochain signataire
+    - Lien vers l'espace personnel
+
+    Args:
+        signature_request: Instance de AbstractSignatureRequest (vient de signer)
+        document_type: Type de document ("bail", "etat_lieux", "avenant")
+        next_signer: Prochaine signature request (optionnel, récupéré si non fourni)
+    """
+    # Récupérer l'email du signataire
+    email = signature_request.get_signataire_email()
+    if not email:
+        logger.error(f"Pas d'email pour {signature_request}")
+        return False
+
+    # Récupérer le prénom du signataire
+    signer = signature_request.signer
+    prenom = signer.firstName if signer else "Signataire"
+
+    # Récupérer le document
+    document = signature_request.get_document()
+
+    # Récupérer toutes les signature requests pour ce document
+    all_signature_requests = list(document.signature_requests.all().order_by("order"))
+
+    # Séparer ceux qui ont signé et ceux qui doivent encore signer
+    signed_requests = [sr for sr in all_signature_requests if sr.signed]
+    pending_requests = [sr for sr in all_signature_requests if not sr.signed]
+
+    # Formater les listes
+    signed_list = [sr.get_signataire_name() for sr in signed_requests]
+    pending_list = [sr.get_signataire_name() for sr in pending_requests]
+
+    # Prochain signataire
+    if next_signer is None:
+        next_signer = signature_request.get_next_signature_request()
+
+    next_signer_name = next_signer.get_signataire_name() if next_signer else None
+
+    # Convertir le document_type technique vers un nom lisible
+    document_display_name = {
+        "bail": "bail",
+        "etat_lieux": "état des lieux",
+        "avenant": "avenant",
+    }.get(document_type, document_type)
+
+    # Construire l'URL de l'espace personnel
+    base_url = settings.FRONTEND_URL
+    espace_personnel_url = f"{base_url}/mon-compte"
+
+    # Déterminer le sujet selon le type de document
+    subject = "Votre signature est bien enregistrée ✔️"
+
+    # Construire les listes formatées pour l'email
+    if signed_list:
+        signed_list_text = "\n".join([f"- {name}" for name in signed_list])
+    else:
+        signed_list_text = "- (aucun)"
+
+    if pending_list:
+        pending_list_text = "\n".join([f"- {name}" for name in pending_list])
+    else:
+        pending_list_text = "- (aucun - toutes les signatures sont complètes !)"
+
+    # Message texte
+    if pending_requests and next_signer_name:
+        # Il reste des signataires
+        text_message = f"""
+Bonjour {prenom},
+
+Bravo 🎉
+
+Vous venez de signer électroniquement votre {document_display_name} — merci pour votre réactivité !
+
+Voici un point complet sur l'avancement des signatures :
+
+✅ Ont déjà signé :
+{signed_list_text}
+
+✍️ Doivent encore signer :
+{pending_list_text}
+
+👉 Le prochain à signer sera :
+{next_signer_name}
+
+Le signataire vient de recevoir automatiquement son lien sécurisé de signature.
+
+---
+
+Pour votre information, vous pouvez à tout moment :
+
+📄 Télécharger le document actuel (version provisoire)
+👀 Suivre l'avancement des signatures en temps réel
+🗂️ Retrouver tous vos documents ({document_display_name}, annexes, pièces justificatives)
+
+En accédant à votre espace personnel : {espace_personnel_url}
+
+⚠️ Rappel important : le {document_display_name} ne sera juridiquement valable qu'une fois l'ensemble des signataires passés.
+
+Nous vous enverrons un email dès que toutes les signatures seront terminées.
+
+Merci pour votre confiance,
+
+L'équipe Hestia 🏡
+"""
+    else:
+        # Toutes les signatures sont complètes !
+        text_message = f"""
+Bonjour {prenom},
+
+Bravo 🎉
+
+Vous venez de signer électroniquement votre {document_display_name} — merci pour votre réactivité !
+
+🎊 Excellente nouvelle : toutes les signatures sont désormais complètes !
+
+✅ Ont signé :
+{signed_list_text}
+
+Votre {document_display_name} est maintenant juridiquement valable.
+
+---
+
+Vous pouvez à tout moment :
+
+📄 Télécharger le document final signé
+🗂️ Retrouver tous vos documents ({document_display_name}, annexes, pièces justificatives)
+
+En accédant à votre espace personnel : {espace_personnel_url}
+
+Merci pour votre confiance,
+
+L'équipe Hestia 🏡
+"""
+
+    # Envoyer l'email
+    try:
+        send_mail(
+            subject=subject,
+            message=text_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            html_message=None,
+            fail_silently=False,
+        )
+        logger.info(f"Email de confirmation de signature envoyé à {email}")
+        return True
+    except Exception as e:
+        logger.error(
+            f"Erreur lors de l'envoi de l'email de confirmation à {email}: {e}"
+        )
+        return False
+
+
+def send_all_signed_notification(document, document_type="document"):
+    """
+    Envoie un email à TOUS les signataires quand le document est complètement signé.
+
+    Args:
+        document: Le document signable (Bail, EtatLieux, etc.)
+        document_type: Type de document ("bail", "etat_lieux", "avenant")
+    """
+    # Récupérer toutes les signature requests
+    all_signature_requests = list(document.signature_requests.all().order_by("order"))
+
+    if not all_signature_requests:
+        logger.warning(f"Aucune signature request pour {document}")
+        return False
+
+    # Vérifier que toutes les signatures sont complètes
+    if not all(sr.signed for sr in all_signature_requests):
+        logger.warning(
+            f"Document {document} n'est pas complètement signé, "
+            "notification non envoyée"
+        )
+        return False
+
+    # Convertir le document_type technique vers un nom lisible
+    document_display_name = {
+        "bail": "bail",
+        "etat_lieux": "état des lieux",
+        "avenant": "avenant",
+    }.get(document_type, document_type)
+
+    # Construire les URLs
+    base_url = settings.FRONTEND_URL
+    espace_personnel_url = f"{base_url}/mon-compte"
+
+    # Liste des signataires formatée
+    signers_list = [sr.get_signataire_name() for sr in all_signature_requests]
+    signers_list_text = "\n".join([f"- {name}" for name in signers_list])
+
+    # Sujet de l'email
+    subject = (
+        f"Votre {document_display_name} est maintenant signé par toutes les parties ✅"
+    )
+
+    success_count = 0
+
+    # Envoyer à chaque signataire
+    for sig_req in all_signature_requests:
+        email = sig_req.get_signataire_email()
+        if not email:
+            continue
+
+        signer = sig_req.signer
+        prenom = signer.firstName if signer else "Signataire"
+
+        # Déterminer le rôle du signataire
+        is_locataire = sig_req.locataire is not None
+        is_bailleur_or_mandataire = (
+            sig_req.bailleur_signataire is not None or sig_req.mandataire is not None
+        )
+
+        # Message différent selon le type de document
+        if document_type == "bail":
+            # Base du message commune à tous
+            base_message = f"""
+Bonjour {prenom},
+
+Bonne nouvelle : toutes les parties viennent de signer électroniquement le bail.
+
+👉 Le contrat est désormais valable juridiquement.
+
+✅ Ont signé :
+{signers_list_text}
+
+Vous trouverez le bail signé par toutes les parties dans votre espace Hestia :
+{espace_personnel_url}
+"""
+            # Section "Et maintenant" uniquement pour bailleur/mandataire
+            if is_bailleur_or_mandataire:
+                next_step_section = """
+Et maintenant ?
+
+La prochaine étape consiste à réaliser l'état des lieux d'entrée.
+Celui-ci est obligatoire et permet de comparer l'état du logement à l'entrée et à la sortie du locataire.
+
+Avec Hestia, vous pouvez générer votre état des lieux en quelques clics depuis votre location dans votre espace personnel.
+"""
+            elif is_locataire:
+                next_step_section = """
+Et maintenant ?
+
+La prochaine étape sera la réalisation de l'état des lieux d'entrée avec votre bailleur ou mandataire. Celui-ci est obligatoire et permet de comparer l'état du logement à l'entrée et à la sortie.
+"""
+            else:
+                next_step_section = ""
+
+            text_message = (
+                base_message
+                + next_step_section
+                + """
+Nous restons à vos côtés pour simplifier chaque étape de la gestion locative.
+
+Bien cordialement,
+
+L'équipe Hestia 🏡
+"""
+            )
+        elif document_type == "etat_lieux":
+            text_message = f"""
+Bonjour {prenom},
+
+Bonne nouvelle : toutes les parties viennent de signer électroniquement l'état des lieux.
+
+👉 Le document est désormais valable juridiquement.
+
+✅ Ont signé :
+{signers_list_text}
+
+Vous trouverez l'état des lieux signé par toutes les parties dans votre espace Hestia :
+{espace_personnel_url}
+
+Nous restons à vos côtés pour simplifier chaque étape de la gestion locative.
+
+Bien cordialement,
+
+L'équipe Hestia 🏡
+"""
+        else:
+            text_message = f"""
+Bonjour {prenom},
+
+Bonne nouvelle : toutes les parties viennent de signer électroniquement le {document_display_name}.
+
+👉 Le document est désormais valable juridiquement.
+
+✅ Ont signé :
+{signers_list_text}
+
+Vous trouverez le document signé par toutes les parties dans votre espace Hestia :
+{espace_personnel_url}
+
+Nous restons à vos côtés pour simplifier chaque étape de la gestion locative.
+
+Bien cordialement,
+
+L'équipe Hestia 🏡
+"""
+
+        try:
+            send_mail(
+                subject=subject,
+                message=text_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                html_message=None,
+                fail_silently=False,
+            )
+            logger.info(f"Email de notification 'tout signé' envoyé à {email}")
+            success_count += 1
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de la notification à {email}: {e}")
+
+    total = len(all_signature_requests)
+    logger.info(f"Notifications 'tout signé' envoyées: {success_count}/{total}")
+    return success_count > 0

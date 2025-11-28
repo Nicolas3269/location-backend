@@ -23,8 +23,10 @@ from .pdf_processing import process_signature_generic
 # Envoyer l'OTP par email
 from .services import (
     get_next_signer,
+    send_all_signed_notification,
     send_otp_email,
     send_signature_email,
+    send_signature_success_email,
     verify_signature_order,
 )
 
@@ -293,10 +295,17 @@ def confirm_signature_generic(request, model_class, document_type):
         # Récupérer le document
         document: SignableDocumentMixin = sig_req.get_document()
 
-        # Envoi au suivant - utiliser la fonction générique pour tous les types
+        # Récupérer le prochain signataire
         next_req = get_next_signer(sig_req)
+
+        # Envoi des emails selon l'état des signatures
         if next_req:
+            # Il reste des signataires : confirmation + invitation au suivant
+            send_signature_success_email(sig_req, document_type, next_signer=next_req)
             send_signature_email(next_req, document_type)
+        else:
+            # Toutes les signatures complètes : notification à tous
+            send_all_signed_notification(document, document_type)
 
         # Préparer la réponse
         response_data = {

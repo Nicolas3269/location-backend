@@ -160,8 +160,24 @@
       </ul>
     </p>
     <p class="align-right">
-      Dénommé{% if locataires|length > 1 %}s{% endif %} ci-après « le locataire ».
+      Dénommé{% if locataires|length > 1 %}s{% endif %} ci-après « le locataire »{% if mandataire and mandataire_doit_signer %} ;{% else %}.{% endif %}
     </p>
+
+    {% if mandataire and mandataire_doit_signer %}
+    <p class="section-title">3° Désignation du mandataire</p>
+    <p>
+      <ul>
+        <li>
+          La <strong>personne morale</strong> {{ mandataire.societe.raison_sociale }} ({{ mandataire.societe.forme_juridique }}), dont le SIRET est {{ mandataire.societe.siret }},
+          domiciliée au {{ mandataire.societe.adresse }}, représentée pour la signature par
+          {{ mandataire.signataire.firstName }} {{ mandataire.signataire.lastName }} ({{ mandataire.signataire.email }})
+        </li>
+      </ul>
+    </p>
+    <p class="align-right">
+      Dénommé ci-après « le mandataire ».
+    </p>
+    {% endif %}
   </div>
 
   <!-- PRÉAMBULE -->

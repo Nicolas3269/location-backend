@@ -352,6 +352,14 @@ class Avenant(SignableDocumentMixin, BaseModel):
     def has_permis_de_louer(self):
         return AvenantMotif.PERMIS_DE_LOUER in self.motifs
 
+    @property
+    def mandataire_doit_signer(self):
+        """
+        Hérite du paramètre du bail parent.
+        L'avenant doit être signé par les mêmes parties que le bail.
+        """
+        return self.bail.mandataire_doit_signer
+
 
 class AvenantSignatureRequest(AbstractSignatureRequest):
     """Demande de signature pour un avenant."""

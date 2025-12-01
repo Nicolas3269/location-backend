@@ -75,9 +75,10 @@ def user_has_bien_access(
     """
     Vérifie si un utilisateur a accès à un bien.
 
-    Vérifie si l'utilisateur est un des bailleurs du bien.
-    Si check_locataires=True, vérifie aussi si l'utilisateur est locataire
-    d'un bail sur ce bien.
+    Vérifie dans l'ordre :
+    1. Si l'utilisateur est un des bailleurs du bien
+    2. Si l'utilisateur est mandataire d'une location de ce bien
+    3. Si check_locataires=True, si l'utilisateur est locataire d'un bail sur ce bien
 
     Args:
         bien: Instance de Bien
@@ -95,6 +96,12 @@ def user_has_bien_access(
         except ValueError:
             # Bailleur invalide (pas de personne ni signataire), ignorer
             continue
+
+    # Vérifier si l'utilisateur est mandataire d'une location de ce bien
+    mandataires = Mandataire.objects.filter(signataire__email=user_email)
+    if mandataires.exists():
+        if Location.objects.filter(bien=bien, mandataire__in=mandataires).exists():
+            return True
 
     # Vérifier si l'utilisateur est locataire d'un bail sur ce bien (optionnel)
     if check_locataires:

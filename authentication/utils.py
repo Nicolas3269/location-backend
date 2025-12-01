@@ -9,8 +9,9 @@ from typing import Any, Dict, Optional, Tuple
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
 from django.utils import timezone
+
+from core.email_service import EmailService
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -104,31 +105,15 @@ def send_verification_email_with_otp(verification: EmailVerification) -> None:
     """
     Envoie un email de vérification avec OTP.
     """
-    verification_url = f"{settings.FRONTEND_URL}/verify-email/{verification.token}/"
-
-    message = f"""
-Bonjour,
-
-Merci d'avoir fourni votre adresse email. Pour continuer, veuillez vérifier
-votre adresse email.
-
-Votre code de vérification est : {verification.otp}
-
-Ce code est valable pour une durée de 24 heures.
-
-Si vous n'avez pas demandé cette vérification, vous pouvez ignorer cet email.
-
-Cordialement,
-L'équipe HESTIA
-"""
-
     # Inclure l'OTP dans l'objet pour faciliter l'auto-complétion sur mobile
     # Format standard reconnu par iOS et Android
-    send_mail(
+    EmailService.send(
+        to=verification.email,
         subject=f"{verification.otp} - Vérifiez votre adresse email",
-        message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[verification.email],
+        template="auth/verification_otp",
+        context={
+            "otp": verification.otp,
+        },
     )
 
 

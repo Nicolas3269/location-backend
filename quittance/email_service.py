@@ -2,11 +2,15 @@
 Service d'envoi d'emails pour les quittances.
 """
 
-from django.conf import settings
-from django.core.mail import EmailMessage
+import logging
 
+from django.conf import settings
+
+from core.email_service import EmailService
 from location.models import Locataire
 from quittance.models import Quittance
+
+logger = logging.getLogger(__name__)
 
 
 def send_quittance_email(quittance: Quittance, pdf_url: str, sender_email: str):
@@ -19,34 +23,40 @@ def send_quittance_email(quittance: Quittance, pdf_url: str, sender_email: str):
 
     recipients = [loc.email for loc in locataires]
 
-    message = f"""Bonjour,
+    # Récupérer l'adresse du logement
+    bien = quittance.location.bien
+    adresse = f"{bien.adresse}, {bien.code_postal} {bien.ville}" if bien else ""
 
-Votre quittance de loyer pour {quittance.mois} {quittance.annee} est disponible.
+    # Premier prénom pour la salutation
+    prenom = locataires[0].prenom if locataires else ""
 
-Montant payé : {quittance.montant_total}€
-- Loyer HC : {quittance.montant_loyer}€
-- Charges : {quittance.montant_charges}€
+    mois = quittance.mois.capitalize()
+    subject = f"Quittance de loyer - {mois} {quittance.annee}"
 
-Tous vos documents et quittances sont disponibles sur votre espace locataire :
-{settings.FRONTEND_URL}/mon-compte/mes-locations
+    context = {
+        "prenom": prenom,
+        "mois": mois,
+        "annee": quittance.annee,
+        "montant_total": quittance.montant_total,
+        "montant_loyer": quittance.montant_loyer,
+        "montant_charges": quittance.montant_charges,
+        "adresse": adresse,
+        "pdf_url": pdf_url,
+        "lien_espace": f"{settings.FRONTEND_URL}/mon-compte/mes-locations",
+        "lien_services": f"{settings.FRONTEND_URL}/services",
+    }
 
-Vous pouvez également télécharger votre quittance (lien valable 7 jours) : {pdf_url}
+    success = EmailService.send(
+        to=recipients,
+        subject=subject,
+        template="locataire/quittance/nouvelle",
+        context=context,
+        cc=[sender_email],
+    )
 
-Cordialement,
-Hestia"""
+    if success:
+        logger.info(f"Email quittance envoyé à {recipients}")
+    else:
+        logger.error(f"Erreur envoi email quittance à {recipients}")
 
-    try:
-        mois = quittance.mois.capitalize()
-        subject = f"Quittance de loyer - {mois} {quittance.annee}"
-        email = EmailMessage(
-            subject=subject,
-            body=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=recipients,
-            cc=[sender_email],
-        )
-        email.send()
-        return True
-    except Exception as e:
-        print(f"Erreur envoi email quittance : {e}")
-        return False
+    return success

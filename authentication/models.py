@@ -22,8 +22,8 @@ class EmailVerification(models.Model):
         return f"Email {self.email} - {status}"
 
     def is_expired(self):
-        """Retourne True si la vérification a expiré (plus de 24h)"""
+        """Retourne True si la vérification a expiré (plus de 10 minutes)"""
         if self.verified:
             return False
-        expiration_time = datetime.timedelta(hours=24)
+        expiration_time = datetime.timedelta(minutes=10)
         return timezone.now() > (self.created_at + expiration_time)

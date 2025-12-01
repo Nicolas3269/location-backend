@@ -5,10 +5,51 @@ Services partagés pour la signature de documents
 import logging
 
 from django.conf import settings
-from django.core.mail import send_mail
-from django.template.loader import render_to_string
+
+from core.email_service import EmailService
+from core.email_subjects import get_subject
+from location.models import Bien
 
 logger = logging.getLogger(__name__)
+
+
+def _get_signataire_role(signature_request) -> str:
+    """Détermine le rôle du signataire (bailleur, mandataire, locataire)."""
+    if (
+        hasattr(signature_request, "bailleur_signataire")
+        and signature_request.bailleur_signataire
+    ):
+        return "bailleur"
+    elif hasattr(signature_request, "mandataire") and signature_request.mandataire:
+        return "mandataire"
+    elif hasattr(signature_request, "locataire") and signature_request.locataire:
+        return "locataire"
+    return "bailleur"  # Fallback
+
+
+def _get_document_config(document_type: str) -> dict:
+    """Retourne la config pour un type de document."""
+    configs = {
+        "bail": {"display": "bail", "folder": "bail", "url_path": "bail"},
+        "etat_lieux": {
+            "display": "état des lieux",
+            "folder": "edl",
+            "url_path": "etat-lieux",
+        },
+    }
+    return configs.get(
+        document_type,
+        {"display": document_type, "folder": document_type, "url_path": document_type},
+    )
+
+
+def _get_adresse_logement(document) -> str:
+    """Récupère l'adresse du logement depuis le document."""
+    if hasattr(document, "location") and document.location:
+        bien: Bien = document.location.bien
+        if bien and bien.adresse:
+            return bien.adresse
+    return ""
 
 
 def send_signature_email(signature_request, document_type="document"):
@@ -20,89 +61,47 @@ def send_signature_email(signature_request, document_type="document"):
         signature_request: Instance de AbstractSignatureRequest
         document_type: Type de document ("bail" ou "etat_lieux")
     """
-    # Plus besoin de générer l'OTP ici - il sera généré lors de l'accès à la page
-
-    # Récupérer l'email du signataire
     email = signature_request.get_signataire_email()
     if not email:
         logger.error(f"Pas d'email pour {signature_request}")
         return False
 
-    # Convertir le document_type technique vers un nom lisible
-    document_display_name = {
-        "bail": "bail",
-        "etat_lieux": "état des lieux",
-    }.get(document_type, document_type)
+    role = _get_signataire_role(signature_request)
+    config = _get_document_config(document_type)
+    document = signature_request.get_document()
 
-    # Déterminer le type de document pour l'email
-    if document_type == "bail":
-        subject = "Signature électronique de votre bail de location"
-        template = "bail/email_signature.html"
-    elif document_type == "etat_lieux":
-        subject = "Signature électronique de votre état des lieux"
-        template = "etat_lieux/email_signature.html"
-    else:
-        subject = f"Signature électronique de votre {document_display_name}"
-        template = None
-
-    # Construire l'URL de signature selon le type de document
+    # Construire l'URL de signature
     base_url = settings.FRONTEND_URL
-    if document_type == "bail":
-        signature_url = f"{base_url}/bail/signing/{signature_request.link_token}"
-    elif document_type == "etat_lieux":
-        signature_url = f"{base_url}/etat-lieux/signing/{signature_request.link_token}"
-    else:
-        signature_url = (
-            f"{base_url}/{document_type}/signing/{signature_request.link_token}"
-        )
+    signature_url = (
+        f"{base_url}/{config['url_path']}/signing/{signature_request.link_token}"
+    )
 
-    # Préparer le contexte de l'email
+    # Template et contexte
+    template = f"{role}/{config['folder']}/demande_signature"
     context = {
-        "signataire_name": signature_request.get_signataire_name(),
+        "prenom": signature_request.get_signataire_name(),
         "signature_url": signature_url,
-        "document_type": document_display_name,
+        "document_type": config["display"],
+        "adresse_logement": _get_adresse_logement(document),
+        "lien_espace": f"{base_url}/mon-compte",
     }
 
-    # Générer le contenu de l'email
-    if template:
-        try:
-            html_message = render_to_string(template, context)
-        except Exception:
-            # Si le template n'existe pas, utiliser un message par défaut
-            html_message = None
-    else:
-        html_message = None
+    # Sujet depuis le mapping EMAIL_SUBJECTS
+    subject = get_subject(template)
 
-    # Message texte par défaut
-    text_message = f"""
-    Bonjour {signature_request.get_signataire_name()},
+    success = EmailService.send(
+        to=email,
+        subject=subject,
+        template=template,
+        context=context,
+    )
 
-    Vous êtes invité(e) à signer électroniquement votre {document_display_name}.
-
-    Pour accéder au document et le signer, cliquez sur le lien suivant :
-    {signature_url}
-
-    Un code de vérification (OTP) vous sera envoyé par email lors de l'accès à la page.
-
-    Cordialement,
-    L'équipe Hestia
-    """
-
-    # Envoyer l'email
-    try:
-        send_mail(
-            subject=subject,
-            message=text_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            html_message=html_message,
-            fail_silently=False,
-        )
+    if success:
         logger.info(f"Email de signature envoyé à {email}")
-        return True
-    except Exception as e:
-        logger.error(f"Erreur lors de l'envoi de l'email à {email}: {e}")
-        return False
+    else:
+        logger.error(f"Erreur lors de l'envoi de l'email à {email}")
+
+    return success
 
 
 def send_otp_email(signature_request, document_type="document"):
@@ -114,67 +113,55 @@ def send_otp_email(signature_request, document_type="document"):
         signature_request: Instance de AbstractSignatureRequest
         document_type: Type de document ("bail" ou "etat_lieux")
     """
-    # Récupérer l'email du signataire
     email = signature_request.get_signataire_email()
     if not email:
         logger.error(f"Pas d'email pour {signature_request}")
         return False
-    
+
     # Récupérer le document et mettre à jour son statut si c'est le premier signataire
     document = signature_request.get_document()
-    if hasattr(document, 'status'):
+    if hasattr(document, "status"):
         from signature.document_status import DocumentStatus
-        # Si c'est le premier signataire (order = 1), passer en SIGNING
-        if signature_request.order == 1 and document.status == DocumentStatus.DRAFT.value:
+
+        if (
+            signature_request.order == 1
+            and document.status == DocumentStatus.DRAFT.value
+        ):
             document.status = DocumentStatus.SIGNING.value
             document.save()
-            logger.info(f"Document {type(document).__name__} {document.id} passé en status SIGNING lors de l'envoi de l'OTP")
+            logger.info(
+                f"Document {type(document).__name__} {document.id} passé en status SIGNING"
+            )
 
-    # Convertir le document_type technique vers un nom lisible
-    document_display_name = {
-        "bail": "bail",
-        "etat_lieux": "état des lieux",
-    }.get(document_type, document_type)
-
-    # Récupérer l'OTP généré
     otp = signature_request.otp
     if not otp:
         logger.error("Aucun OTP généré pour cette demande de signature")
         return False
 
-    # Sujet et message spécifiques à l'OTP
-    subject = f"🔏 Code {otp} - Signature de votre {document_display_name}"
+    role = _get_signataire_role(signature_request)
+    config = _get_document_config(document_type)
 
-    text_message = f"""
-    Bonjour {signature_request.get_signataire_name()},
+    # Utiliser le template OTP commun
+    context = {
+        "prenom": signature_request.get_signataire_name(),
+        "otp": otp,
+        "role": role,
+        "document_type": config["display"],
+    }
 
-    Voici votre code de vérification (OTP) pour signer votre {document_display_name} :
+    success = EmailService.send(
+        to=email,
+        subject=f"🔏 Code {otp} - Signature de votre {config['display']}",
+        template="common/otp_signature",
+        context=context,
+    )
 
-    {otp}
-
-    Ce code est valable pendant 10 minutes.
-
-    Si vous n'avez pas demandé ce code, ignorez cet email.
-
-    Cordialement,
-    L'équipe Hestia
-    """
-
-    # Envoyer l'email
-    try:
-        send_mail(
-            subject=subject,
-            message=text_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            html_message=None,
-            fail_silently=False,
-        )
+    if success:
         logger.info(f"Email OTP envoyé à {email}")
-        return True
-    except Exception as e:
-        logger.error(f"Erreur lors de l'envoi de l'email OTP à {email}: {e}")
-        return False
+    else:
+        logger.error(f"Erreur lors de l'envoi de l'email OTP à {email}")
+
+    return success
 
 
 def verify_signature_order(signature_request):
@@ -275,7 +262,7 @@ def create_signature_requests_generic(document, signature_request_model, user=No
     location = document.location
 
     # IMPORTANT: Ordre déterministe (premier créé = principal)
-    bailleurs = location.bien.bailleurs.order_by('created_at')
+    bailleurs = location.bien.bailleurs.order_by("created_at")
     bailleur_signataires = [
         bailleur.signataire for bailleur in bailleurs if bailleur.signataire
     ]
@@ -286,9 +273,9 @@ def create_signature_requests_generic(document, signature_request_model, user=No
 
     # Vérifier si le mandataire doit signer ce document
     mandataire_doit_signer = (
-        hasattr(document, 'mandataire_doit_signer') and
-        document.mandataire_doit_signer and
-        location.mandataire
+        hasattr(document, "mandataire_doit_signer")
+        and document.mandataire_doit_signer
+        and location.mandataire
     )
 
     # ÉTAPE 1: Le user créateur signe en premier (si fourni)
@@ -296,8 +283,8 @@ def create_signature_requests_generic(document, signature_request_model, user=No
         # Identifier le type de signataire du user
         # Vérifier si c'est le mandataire
         if (
-            mandataire_doit_signer and
-            location.mandataire.signataire.email.lower() == user_email
+            mandataire_doit_signer
+            and location.mandataire.signataire.email.lower() == user_email
         ):
             signature_request_model.objects.create(
                 **{
@@ -309,12 +296,18 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             )
             order += 1
             logger.info(
-                f"User créateur (mandataire) ajouté en premier signataire (order={order-1}) "
+                f"User créateur (mandataire) ajouté en premier signataire (order={order - 1}) "
                 f"pour {type(document).__name__} {document.id}"
             )
         # Vérifier si c'est un bailleur
-        elif any(sig and sig.email.lower() == user_email for sig in bailleur_signataires):
-            signataire = next(sig for sig in bailleur_signataires if sig and sig.email.lower() == user_email)
+        elif any(
+            sig and sig.email.lower() == user_email for sig in bailleur_signataires
+        ):
+            signataire = next(
+                sig
+                for sig in bailleur_signataires
+                if sig and sig.email.lower() == user_email
+            )
             signature_request_model.objects.create(
                 **{
                     document_field_name: document,
@@ -325,12 +318,14 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             )
             order += 1
             logger.info(
-                f"User créateur (bailleur) ajouté en premier signataire (order={order-1}) "
+                f"User créateur (bailleur) ajouté en premier signataire (order={order - 1}) "
                 f"pour {type(document).__name__} {document.id}"
             )
         # Vérifier si c'est un locataire
         elif any(loc.email.lower() == user_email for loc in locataires):
-            locataire = next(loc for loc in locataires if loc.email.lower() == user_email)
+            locataire = next(
+                loc for loc in locataires if loc.email.lower() == user_email
+            )
             signature_request_model.objects.create(
                 **{
                     document_field_name: document,
@@ -341,7 +336,7 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             )
             order += 1
             logger.info(
-                f"User créateur (locataire) ajouté en premier signataire (order={order-1}) "
+                f"User créateur (locataire) ajouté en premier signataire (order={order - 1}) "
                 f"pour {type(document).__name__} {document.id}"
             )
 
@@ -359,7 +354,7 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             )
             order += 1
             logger.info(
-                f"Mandataire ajouté comme signataire (order={order-1}) "
+                f"Mandataire ajouté comme signataire (order={order - 1}) "
                 f"pour {type(document).__name__} {document.id}"
             )
 

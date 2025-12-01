@@ -10,24 +10,24 @@
 
         <mj-text>Bonjour,</mj-text>
 
-        <mj-text>Voici votre code de vérification pour accéder à Hestia :</mj-text>
+        <mj-text>Voici votre code de vérification pour accéder aux services d'Hestia :</mj-text>
 
         <!-- Code OTP -->
         <mj-text align="center">
-          <table cellpadding="0" cellspacing="0" border="0" style="background-color: #2680eb; border-radius: 8px; margin: 0 auto;">
+          <table cellpadding="0" cellspacing="0" border="0" style="background-color: #2680eb; border-radius: 8px; margin: 0 auto">
             <tr>
-              <td style="padding: 15px 30px; text-align: center;">
-                <span style="font-size: 26px; font-weight: 700; color: white; letter-spacing: 5px;">{{ otp }}</span>
+              <td style="padding: 15px 30px; text-align: center">
+                <span style="font-size: 26px; font-weight: 700; color: white; letter-spacing: 5px">{{ otp }}</span>
               </td>
             </tr>
           </table>
         </mj-text>
 
         <mj-text>
-          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px" class="box-info">
             <tr>
-              <td style="padding: 20px; font-size: 16px;" class="box-info">
-                ⏱️ Ce code est valable <strong>10 minutes</strong>.<br/><br/>
+              <td style="padding: 20px; font-size: 16px" class="box-info">
+                ⏱️ Ce code est valable <strong>10 minutes</strong>.<br /><br />
                 👉 Si vous n'avez pas demandé cette vérification, vous pouvez ignorer cet email.
               </td>
             </tr>

@@ -7,11 +7,11 @@
 
     <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
       <mj-column>
-        <mj-text font-size="22px" font-weight="700">Code de vérification pour votre signature</mj-text>
+        <mj-text font-size="22px" font-weight="700">Signature électronique de votre {{ document_type }} : à vous de jouer</mj-text>
 
         <mj-text>Bonjour {{ prenom }},</mj-text>
 
-        <mj-text>Pour signer électroniquement <strong>{{ document_type|avec_le }}</strong>{% if role == 'mandataire' %} en tant que mandataire{% endif %} via Hestia, veuillez saisir le code de vérification ci-dessous :</mj-text>
+        <mj-text>Pour finaliser la signature de votre <strong>{{ document_type }}</strong>{% if role == 'mandataire' %} en tant que mandataire{% endif %}, entrez le code suivant :</mj-text>
 
         <!-- Code OTP -->
         <mj-text align="center">
@@ -24,15 +24,17 @@
           </table>
         </mj-text>
 
-        <mj-text>⏱️ Ce code est valable <strong>10 minutes</strong> et doit rester confidentiel.</mj-text>
+        <mj-text>⏱️ Ce code est personnel et valable <strong>10 minutes</strong>.</mj-text>
 
-        <mj-text>Cette étape garantit la sécurité de la signature et la conformité légale du document.</mj-text>
+        <mj-text>Il garantit la sécurité de votre signature électronique, conforme à la réglementation en vigueur.</mj-text>
+
+        <mj-text>Saisissez-le dans l'interface de signature pour valider votre engagement.</mj-text>
 
         <mj-text>
           <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
             <tr>
               <td style="padding: 15px; font-size: 16px;" class="box-info">
-                👉 Si vous n'avez pas demandé ce code, merci d'ignorer ce message.
+                👉 Si vous n'avez pas fait cette demande, vous pouvez ignorer ce message.
               </td>
             </tr>
           </table>

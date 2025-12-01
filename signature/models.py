@@ -86,8 +86,12 @@ class AbstractSignatureRequest(BaseModel):
         return self.bailleur_signataire or self.locataire
 
     def get_signataire_name(self):
-        """Retourne le nom du signataire"""
+        """Retourne le nom complet du signataire"""
         return self.signer.full_name if self.signer else "Inconnu"
+
+    def get_signataire_first_name(self):
+        """Retourne le prénom du signataire"""
+        return self.signer.firstName if self.signer else "Inconnu"
 
     def get_signataire_email(self):
         """Retourne l'email du signataire"""

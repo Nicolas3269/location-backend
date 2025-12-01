@@ -10,15 +10,15 @@
 
         <mj-text>Bonjour {{ prenom }},</mj-text>
 
-        <mj-text>L'état des lieux de votre logement a été préparé sur Hestia. Il ne manque plus que votre signature pour le valider.</mj-text>
+        <mj-text>L'état des lieux de votre logement a été préparé sur Hestia. C’est maintenant à vous de jouer pour finaliser votre location.</mj-text>
 
         <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer mon état des lieux</mj-button>
 
         <mj-text>
-          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px" class="box-info">
             <tr>
-              <td style="padding: 20px; font-size: 16px;" class="box-info">
-                <strong>Pourquoi c'est important ?</strong><br/><br/>
+              <td style="padding: 20px; font-size: 16px" class="box-info">
+                <strong>Pourquoi c'est important ?</strong><br /><br />
                 L'état des lieux est un document officiel qui décrit l'état du logement à votre arrivée ou à votre sortie. Une fois signé par les deux parties, il protège à la fois le locataire et le bailleur en cas de litige.
               </td>
             </tr>

@@ -10,13 +10,12 @@ from typing import Any, Dict, Optional, Tuple
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-
-from core.email_service import EmailService
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from authentication.models import EmailVerification
+from core.email_service import EmailService
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -49,13 +48,17 @@ def verify_google_token(token: str) -> Tuple[bool, Optional[str], Optional[str]]
         if settings.DEBUG and token.startswith("E2E_TEST_TOKEN:"):
             email = token.split(":", 1)[1]  # Format: "E2E_TEST_TOKEN:email@example.com"
             logger.info(f"🧪 Test token detected for E2E: {email}")
-            return True, {
-                "email": email,
-                "given_name": "Test",
-                "family_name": "E2E",
-                "email_verified": True,
-                "iss": "accounts.google.com"
-            }, None
+            return (
+                True,
+                {
+                    "email": email,
+                    "given_name": "Test",
+                    "family_name": "E2E",
+                    "email_verified": True,
+                    "iss": "accounts.google.com",
+                },
+                None,
+            )
 
         # Configuration Google Client ID à définir dans settings.py
         GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
@@ -109,7 +112,7 @@ def send_verification_email_with_otp(verification: EmailVerification) -> None:
     # Format standard reconnu par iOS et Android
     EmailService.send(
         to=verification.email,
-        subject=f"{verification.otp} - Vérifiez votre adresse email",
+        subject=f"Code {verification.otp} - Vérifiez votre adresse email",
         template="auth/verification_otp",
         context={
             "otp": verification.otp,

@@ -12,7 +12,7 @@ EMAIL_SUBJECTS = {
     # === COMMON ===
     "common/otp_signature": "Code de vérification pour votre signature",
     "common/post_signature": "Votre signature est bien enregistrée",
-    "common/annulation_signature": "La procédure de signature a été annulée",
+    "common/annulation_signature": "La procédure de signature {document_type} a été annulée",
     "common/edl_en_cours_signature": "L'état des lieux est en attente de signature",
     # === BAILLEUR BAIL ===
     "bailleur/bail/demande_signature": "Votre signature est requise pour le bail",

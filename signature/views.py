@@ -25,6 +25,7 @@ from .pdf_processing import process_signature_generic
 from .services import (
     get_next_signer,
     send_otp_email,
+    send_signature_cancelled_emails,
     send_signature_email,
     verify_signature_order,
 )
@@ -459,11 +460,22 @@ def cancel_signature_generic(request, document_id, document_model):
                 status=403,
             )
 
-        # Supprimer toutes les signature requests liées au document
+        # Récupérer toutes les signature requests liées au document
         # Via la relation inverse (related_name="signature_requests")
         signature_requests = document.signature_requests.all()
-
         deleted_count = signature_requests.count()
+
+        # Envoyer les emails d'annulation AVANT suppression
+        if deleted_count > 0:
+            first_sig = signature_requests.first()
+            document_type = first_sig.get_document_type()
+            try:
+                send_signature_cancelled_emails(signature_requests, document, document_type)
+                logger.info(f"📧 Emails d'annulation envoyés pour {document_type}")
+            except Exception as email_error:
+                logger.warning(f"⚠️ Erreur envoi emails d'annulation: {email_error}")
+
+        # Supprimer les signature requests
         signature_requests.delete()
 
         # Supprimer les SignatureMetadata associées (preuves forensiques)

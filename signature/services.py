@@ -9,6 +9,7 @@ from django.conf import settings
 from core.email_service import EmailService
 from core.email_subjects import get_subject
 from location.models import Bien
+from location.templatetags.french_grammar import avec_de
 
 logger = logging.getLogger(__name__)
 
@@ -248,6 +249,62 @@ def send_document_signed_emails(document, document_type="bail"):
             logger.info(f"Email 'document signé' envoyé à {email} ({role})")
         else:
             logger.error(f"Erreur envoi email 'document signé' à {email}")
+
+
+def send_signature_cancelled_emails(signature_requests, document, document_type="bail"):
+    """
+    Envoie un email à toutes les parties pour les informer que la signature a été annulée.
+    IMPORTANT: Appeler AVANT de supprimer les signature_requests.
+
+    N'envoie qu'aux personnes qui ont déjà signé OU qui sont en train de signer
+    (pas à ceux qui n'ont jamais reçu de lien de signature).
+
+    Args:
+        signature_requests: QuerySet des signature requests (avant suppression)
+        document: Instance du document signable (Bail, EtatLieux, etc.)
+        document_type: Type de document ("bail", "etat_lieux", "avenant")
+    """
+    config = _get_document_config(document_type)
+    base_url = settings.FRONTEND_URL
+    adresse = _get_adresse_logement(document)
+
+    # Trouver le prochain signataire en attente (celui qui a reçu le lien)
+    next_signer = signature_requests.filter(signed=False).order_by("order").first()
+    next_order = next_signer.order if next_signer else float("inf")
+
+    # Filtrer: ceux qui ont signé OU le signataire actuel
+    signataires_a_notifier = [
+        sig for sig in signature_requests if sig.signed or sig.order == next_order
+    ]
+
+    for sig_request in signataires_a_notifier:
+        email = sig_request.get_signataire_email()
+        if not email:
+            continue
+
+        context = {
+            "prenom": sig_request.get_signataire_first_name(),
+            "document_type": config["display"],
+            "adresse": adresse,
+            "lien_espace": f"{base_url}/mon-compte",
+        }
+
+        subject = get_subject(
+            "common/annulation_signature",
+            document_type=avec_de(config["display"]),
+        )
+
+        success = EmailService.send(
+            to=email,
+            subject=subject,
+            template="common/annulation_signature",
+            context=context,
+        )
+
+        if success:
+            logger.info(f"Email 'signature annulée' envoyé à {email}")
+        else:
+            logger.error(f"Erreur envoi email 'signature annulée' à {email}")
 
 
 def verify_signature_order(signature_request):

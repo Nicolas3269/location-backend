@@ -1,0 +1,39 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre bail avance, à vous de le finaliser ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Votre bail est prêt à être signé.</mj-text>
+
+        <mj-text>Il ne manque plus que vos documents pour qu'il soit complet et juridiquement valide.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                <strong>En 2 minutes :</strong><br/><br/>
+                ✓ Choisissez votre assurance via Hestia ou téléchargez votre attestation<br/>
+                {% if has_caution %}✓ Ajoutez la <strong>caution solidaire</strong>{% endif %}
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Compléter et signer mon bail</mj-button>
+
+        <mj-text>Encore un petit pas et vous aurez un bail signé par l'ensemble des parties ✅</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

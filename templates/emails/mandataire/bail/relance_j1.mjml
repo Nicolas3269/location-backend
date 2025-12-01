@@ -1,0 +1,48 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre signature de mandataire est attendue ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Vous intervenez en tant que mandataire pour le bail du logement situé au <strong>{{ adresse }}</strong>, mais votre signature n'a pas encore été finalisée.</mj-text>
+
+        <mj-text>👉 Bonne nouvelle : <strong>tout est déjà prêt</strong>.</mj-text>
+
+        <mj-text>Il ne vous reste plus qu'à apposer votre signature électronique.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #e8f5e9; border-radius: 8px;" class="box-success">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-success">
+                <span style="font-size: 18px; font-weight: 700; color: #479965;" class="text-success">💸 C'est entièrement gratuit, conforme et sécurisé.</span><br/><br/>
+                Aucun frais caché, aucun abonnement.<br/>La signature électronique est 100% gratuite, pour vous comme pour le bailleur.
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-text>Signer maintenant vous permet de :</mj-text>
+
+        <mj-text>
+          ✓ valider officiellement votre intervention<br/>
+          ✓ sécuriser la mise en location<br/>
+          ✓ transmettre automatiquement le bail au signataire suivant
+        </mj-text>
+
+        <mj-button href="{{ cta_url }}" css-class="btn-primary">Signer mon bail en tant que mandataire</mj-button>
+
+        <mj-text>Si vous avez la moindre question, nous sommes là pour vous accompagner.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

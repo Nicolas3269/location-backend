@@ -1,0 +1,41 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre logement vous attend, plus qu'une signature ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Bonne nouvelle : tout est prêt de votre côté.</mj-text>
+
+        <mj-text>Votre bail est généré, signé par votre propriétaire et il n'attend plus que votre validation.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                <strong>Finaliser maintenant, c'est :</strong><br/><br/>
+                ✓ Simplifier votre emménagement<br/><br/>
+                ✓ Recevoir immédiatement une copie du bail complet et valable juridiquement
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Je signe mon bail</mj-button>
+
+        <mj-text>Un petit clic et vous êtes officiellement locataire !</mj-text>
+
+        <mj-text>Nous restons disponibles pour vous accompagner à chaque étape.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

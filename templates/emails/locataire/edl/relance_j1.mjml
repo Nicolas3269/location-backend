@@ -1,0 +1,29 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Il vous reste à signer l'état des lieux ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>L'état des lieux de votre logement est prêt sur Hestia.</mj-text>
+
+        <mj-text>Il ne manque plus que votre signature pour valider le document.</mj-text>
+
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer mon état des lieux</mj-button>
+
+        <mj-text>Sans votre signature, le document reste incomplet.</mj-text>
+
+        <mj-text>Merci de prendre un instant pour finaliser cette étape importante.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

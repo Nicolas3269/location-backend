@@ -1,0 +1,35 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre état des lieux n'est pas encore validé ⚠️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>À ce jour, vous n'avez pas encore signé votre état des lieux.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fff3e0; border-radius: 8px;" class="box-warning">
+            <tr>
+              <td style="padding: 15px; font-size: 16px;" class="box-warning">
+                <span style="color: #e65100;" class="text-warning">⚠️ Ce document doit être signé par toutes les parties pour avoir une <strong>valeur juridique</strong> et protéger vos droits.</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer mon état des lieux maintenant</mj-button>
+
+        <mj-text>Merci de régulariser rapidement la situation pour que votre bailleur et vous soyez couverts en cas de litige.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

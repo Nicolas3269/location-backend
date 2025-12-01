@@ -1,0 +1,38 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Protégez vos droits en signant l'avenant ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Votre avenant est toujours en attente de signature.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fff3e0; border-radius: 8px;" class="box-warning">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-warning">
+                <span style="font-weight: 600; color: #e65100;" class="text-warning">⚠️ Sans lui, votre bail reste incomplet.</span><br/><br/>
+                En le signant, vous vous assurez d'avoir toutes les garanties :<br/><br/>
+                {% if manque_ddt %}✓ Les diagnostics obligatoires (DDT) à jour<br/>{% endif %}
+                {% if manque_numero_fiscal %}✓ Le numéro fiscal du logement, indispensable pour certaines démarches{% endif %}
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer mon avenant</mj-button>
+
+        <mj-text>C'est une formalité rapide mais cruciale : elle vous <strong>protège juridiquement</strong> et vous évite tout risque de litige.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

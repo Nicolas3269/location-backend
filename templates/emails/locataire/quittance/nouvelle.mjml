@@ -1,0 +1,53 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Vous avez une nouvelle quittance de loyer 📄</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Une quittance de loyer a été générée via Hestia.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                👉 Vous trouverez ce document dans votre espace Hestia.<br/><br/>
+                La quittance atteste que votre loyer a bien été payé pour la période concernée.
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_espace }}" css-class="btn-primary">Accéder à mon espace Hestia</mj-button>
+
+        <mj-divider border-color="#d0ccc5" css-class="divider" />
+
+        <mj-text font-size="18px" font-weight="600">💡 Et si on allait plus loin ?</mj-text>
+
+        <mj-text>Hestia vous propose aussi :</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                🛡️ <strong>Assurances locatives</strong> : protégez vos biens et comparez les meilleures offres<br/><br/>
+                ⚡ <strong>Abonnements énergie & internet</strong> : changez facilement et économisez sur vos factures
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_services }}" background-color="#3e3c41">Découvrir les services Hestia</mj-button>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

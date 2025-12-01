@@ -1,0 +1,55 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre avenant est signé, en attente des autres parties ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Vous venez de signer électroniquement l'avenant à votre bail via Hestia ✅</mj-text>
+
+        <mj-text>Le document est désormais en attente de la signature de votre locataire.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                👉 Vous recevrez automatiquement la version définitive dès que le locataire aura signé à son tour.<br/><br/>
+                En attendant, aucune action n'est nécessaire de votre part.
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-divider border-color="#d0ccc5" css-class="divider" />
+
+        <mj-text font-size="18px" font-weight="600">🛡️ Sécurisez encore plus votre location</mj-text>
+
+        <mj-text>Pendant que l'avenant suit son cours, pensez à renforcer la protection de votre bien :</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                🔑 <strong>Assurance PNO</strong> : obligatoire en copropriété, elle couvre votre logement même en cas de vacance ou de sinistre non pris en charge par le locataire<br/><br/>
+                💼 <strong>Garantie Loyers Impayés (GLI)</strong> : protégez vos revenus locatifs et sécurisez vos loyers en cas d'impayé
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_assurances }}" background-color="#3e3c41">Découvrir mes assurances bailleur</mj-button>
+
+        <mj-text>Merci de votre confiance.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

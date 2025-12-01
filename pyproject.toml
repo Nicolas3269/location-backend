@@ -42,6 +42,7 @@ django-simple-history = "^3.10.1"
 django-storages = "^1.14.6"
 boto3 = "^1.40.65"
 sentry-sdk = {extras = ["django"], version = "^2.46.0"}
+mrml = "^0.2.0"
 
 
 [tool.poetry.group.dev.dependencies]

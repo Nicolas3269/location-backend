@@ -1,0 +1,44 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Le bail n'est pas encore complet ⚠️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Nous constatons que le bail du logement situé au <strong>{{ adresse }}</strong> n'a pas encore été régularisé par avenant.</mj-text>
+
+        <mj-text>Les éléments suivants manquent toujours :</mj-text>
+
+        <mj-text>
+          {% if manque_ddt %}• Le <strong>Dossier de Diagnostics Techniques (DDT)</strong><br/>{% endif %}
+          {% if manque_numero_fiscal %}• Le <strong>numéro fiscal du logement</strong>{% endif %}
+        </mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fff3e0; border-radius: 8px;" class="box-warning">
+            <tr>
+              <td style="padding: 15px; font-size: 16px;" class="box-warning">
+                <span style="color: #e65100;" class="text-warning">⚠️ Ces informations sont <strong>obligatoires</strong> et leur absence peut engager la responsabilité du bailleur.</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-text>En tant que mandataire, vous pouvez compléter ces éléments afin de mettre le bail en conformité.</mj-text>
+
+        <mj-button href="{{ cta_url }}" css-class="btn-primary">Compléter le bail et créer l'avenant</mj-button>
+
+        <mj-text>Nous restons disponibles pour vous accompagner et simplifier vos démarches.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

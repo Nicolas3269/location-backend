@@ -1,0 +1,59 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre état des lieux d'entrée est signé et disponible 📋</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>L'état des lieux d'entrée de votre logement a été signé par toutes les parties ✅</mj-text>
+
+        <mj-text>Il est consultable à tout moment dans votre espace Hestia.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-radius: 6px; overflow: hidden;">
+            <tr>
+              <td style="width: 4px; background-color: #479965;"></td>
+              <td style="padding: 12px 15px; background-color: #f5f7f9;">
+                <span>👉 Cet état des lieux est désormais <strong>valable juridiquement</strong> et vous protège pour toute la durée de votre location.</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_espace }}" css-class="btn-primary">Accéder à mon espace Hestia</mj-button>
+
+        <mj-divider border-color="#d0ccc5" css-class="divider" />
+
+        <mj-text font-size="18px" font-weight="600">🚀 Besoin d'un coup de pouce pour votre installation ?</mj-text>
+
+        <mj-text>Hestia vous accompagne avec ses partenaires pour faciliter votre emménagement :</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                🚚 <strong>Déménagement</strong> : camions et services pros à prix réduit<br/><br/>
+                📦 <strong>Box de stockage</strong> : solutions sécurisées pour vos affaires<br/><br/>
+                ⚡ <strong>Abonnements énergie</strong> : électricité et gaz activés en quelques clics<br/><br/>
+                🌐 <strong>Internet & téléphonie</strong> : trouvez l'offre la plus adaptée
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_partenaires }}" background-color="#3e3c41">Découvrir les offres partenaires</mj-button>
+
+        <mj-text>Bonne installation dans votre nouveau logement !</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

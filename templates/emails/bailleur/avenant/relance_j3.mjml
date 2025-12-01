@@ -1,0 +1,42 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre bail n'est pas encore complet ⚠️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Nous constatons que vous n'avez pas encore créé l'avenant à votre bail, censé ajouter :</mj-text>
+
+        <mj-text>
+          {% if manque_ddt %}• Le <strong>Dossier de Diagnostics Techniques</strong><br/>{% endif %}
+          {% if manque_numero_fiscal %}• Le <strong>numéro fiscal du logement</strong>{% endif %}
+        </mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fff3e0; border-radius: 8px;" class="box-warning">
+            <tr>
+              <td style="padding: 15px; font-size: 16px;" class="box-warning">
+                <span style="color: #e65100;" class="text-warning">⚠️ Ces éléments sont <strong>indispensables</strong> et leur absence peut engager votre responsabilité en tant que bailleur.</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-text>Nous vous encourageons à régulariser rapidement votre bail en générant l'avenant via votre espace Hestia.</mj-text>
+
+        <mj-button href="{{ cta_url }}" css-class="btn-primary">Compléter mon bail</mj-button>
+
+        <mj-text>Nous sommes là pour vous simplifier la vie et vous aider à rester en règle.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

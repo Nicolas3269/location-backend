@@ -1,0 +1,39 @@
+<mj-head>
+  <mj-title>{{ email_title|default:"Hestia" }}</mj-title>
+  <mj-preview>{{ email_preview|default:"" }}</mj-preview>
+
+  <!-- Dark mode meta tags -->
+  <mj-raw>
+    <meta name="color-scheme" content="light dark">
+    <meta name="supported-color-schemes" content="light dark">
+  </mj-raw>
+
+  <mj-attributes>
+    <mj-all font-family="Ubuntu, 'Segoe UI', Arial, sans-serif" />
+    <mj-text font-size="16px" color="#3e3c41" line-height="1.6" />
+    <mj-button background-color="#2680eb" color="white" border-radius="8px" font-weight="600" font-size="16px" inner-padding="15px 30px" />
+    <mj-section padding="0" />
+  </mj-attributes>
+
+  <mj-style>
+    /* Base styles */
+    a { color: #2680eb; text-decoration: none; }
+    strong { font-weight: 600; }
+
+    /* Semantic colors - Light mode */
+    .text-muted { color: #6c6b70 !important; }
+    .text-success { color: #479965 !important; }
+    .text-warning { color: #e65100 !important; }
+    .text-error { color: #d96c63 !important; }
+
+    /* Box styles - font-size standardisé (16px = même que body) */
+    .box-info, .box-success, .box-warning, .box-error { font-size: 16px !important; }
+  </mj-style>
+
+  <!--
+    Dark mode: Désactivé pour l'instant car le support est trop inconsistant.
+    Gmail ignore complètement et applique sa propre inversion.
+    Mailpit/navigateurs appliquent partiellement (texte sans fond).
+    À réactiver quand le support sera meilleur.
+  -->
+</mj-head>

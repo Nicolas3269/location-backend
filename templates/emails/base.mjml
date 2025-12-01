@@ -1,0 +1,49 @@
+<mjml>
+  <mj-head>
+    <mj-title>{% block title %}Hestia{% endblock %}</mj-title>
+    <mj-preview>{% block preview %}{% endblock %}</mj-preview>
+
+    <mj-attributes>
+      <mj-all font-family="Ubuntu, 'Segoe UI', Arial, sans-serif" />
+      <mj-text font-size="16px" color="#3e3c41" line-height="1.6" />
+      <mj-button background-color="#2680eb" color="white" border-radius="8px" font-weight="600" font-size="16px" inner-padding="15px 30px" />
+      <mj-section padding="0" />
+    </mj-attributes>
+
+    <mj-style>
+      .highlight { background-color: #f5f7f9; border-radius: 8px; padding: 16px; }
+      .text-muted { color: #6c6b70; }
+      .text-success { color: #479965; }
+      .text-warning { color: #f2c94c; }
+      a { color: #2680eb; }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="#f5f7f9">
+    <!-- Header -->
+    <mj-section padding="30px 20px 20px">
+      <mj-column>
+        <mj-image width="140px" src="{{ logo_url }}" alt="Hestia" href="{{ frontend_url }}" />
+      </mj-column>
+    </mj-section>
+
+    <!-- Content -->
+    <mj-section background-color="white" border-radius="12px" padding="40px 30px">
+      <mj-column>
+        {% block content %}{% endblock %}
+      </mj-column>
+    </mj-section>
+
+    <!-- Footer -->
+    <mj-section padding="30px 20px">
+      <mj-column>
+        <mj-text align="center" font-size="14px" color="#6c6b70">
+          © {{ current_year }} Hestia — Gestion locative simplifiée
+        </mj-text>
+        <mj-text align="center" font-size="12px" color="#6c6b70">
+          Cet email a été envoyé automatiquement. Besoin d'aide ? <a href="{{ frontend_url }}/contact">Contactez-nous</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

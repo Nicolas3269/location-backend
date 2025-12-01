@@ -1,0 +1,29 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Dernier rappel : signez votre état des lieux aujourd'hui ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Ceci est notre <strong>dernier rappel</strong>.</mj-text>
+
+        <mj-text>Votre état des lieux est toujours en attente de votre signature. Sans cette étape, il n'a aucune valeur et ne protège ni vous, ni votre bailleur.</mj-text>
+
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer mon état des lieux</mj-button>
+
+        <mj-text>Merci de compléter cette formalité dès aujourd'hui pour finaliser votre installation en toute sécurité.</mj-text>
+
+        <mj-text>Nous restons disponibles pour vous accompagner à chaque étape.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

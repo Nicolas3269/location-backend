@@ -1,0 +1,49 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre bail est maintenant signé par toutes les parties ✅</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Bonne nouvelle : toutes les parties viennent de <strong>signer électroniquement</strong> le bail.</mj-text>
+
+        <mj-text>👉 Le contrat est désormais <strong>valable juridiquement</strong>.</mj-text>
+
+        <!-- Box téléchargement -->
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #e8f5e9; border-radius: 8px;" class="box-success">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-success">
+                <span style="font-weight: 600; color: #479965;" class="text-success">📄 Bail signé disponible</span><br/><br/>
+                Vous trouverez le bail signé par toutes les parties dans votre espace Hestia.
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_espace }}" background-color="#479965">Accéder à mon bail</mj-button>
+
+        <mj-divider border-color="#d0ccc5" css-class="divider" />
+
+        <mj-text font-size="18px" font-weight="600">Et maintenant ?</mj-text>
+
+        <mj-text>La prochaine étape consiste à réaliser <strong>l'état des lieux d'entrée</strong>. Celui-ci est obligatoire et permet de comparer l'état du logement à l'entrée et à la sortie du locataire.</mj-text>
+
+        <mj-text>Avec Hestia, vous pouvez générer votre état des lieux en quelques clics :</mj-text>
+
+        <mj-button href="{{ lien_edl }}" css-class="btn-primary">Faire mon état des lieux</mj-button>
+
+        <mj-text>Nous restons à vos côtés pour simplifier chaque étape de la gestion locative.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

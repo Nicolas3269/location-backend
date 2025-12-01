@@ -1,0 +1,43 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">La procédure de signature a été annulée</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Nous vous informons que la procédure de signature électronique du <strong>{{ document_type }}</strong> concernant le logement situé au <strong>{{ adresse }}</strong> a été annulée.</mj-text>
+
+        <!-- Box informations -->
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #ffebee; border-radius: 8px;" class="box-error">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-error">
+                <span style="font-weight: 600; color: #d96c63;" class="text-error">Cela signifie que :</span><br/><br/>
+                • les signatures déjà apposées ne seront pas prises en compte<br/>
+                • le document en cours de signature est désormais invalide<br/>
+                • aucun engagement juridique n'a été formé
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-text>Si une nouvelle version du {{ document_type }} doit être établie, vous recevrez automatiquement un nouveau lien de signature.</mj-text>
+
+        <mj-text>Vous pouvez consulter l'état du dossier et les documents associés depuis votre espace Hestia :</mj-text>
+
+        <mj-button href="{{ lien_espace }}" css-class="btn-primary">Accéder à mon espace</mj-button>
+
+        <mj-text>Si vous pensez qu'il s'agit d'une erreur ou si vous avez des questions, notre équipe est disponible pour vous accompagner.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

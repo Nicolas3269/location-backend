@@ -1,0 +1,38 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">L'état des lieux est en attente de signature</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>{% if role == 'mandataire' %}L'état des lieux du logement situé au <strong>{{ adresse }}</strong> a été finalisé de votre côté.{% else %}Vous avez finalisé l'état des lieux de votre logement via Hestia.{% endif %}</mj-text>
+
+        <mj-text>Le document doit maintenant être signé par les autres parties pour devenir définitif.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                👉 Vous recevrez une notification dès que toutes les signatures auront été complétées.<br/><br/>
+                À ce moment-là, l'état des lieux sera disponible en <strong>version définitive, datée et signée</strong> dans votre espace Hestia.
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-text>En attendant, vous pouvez consulter la version provisoire :</mj-text>
+
+        <mj-button href="{{ lien_espace }}" css-class="btn-primary">Accéder à mon espace</mj-button>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

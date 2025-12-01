@@ -1,0 +1,29 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Dernier rappel — complétez votre état des lieux 📋</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Ceci est notre <strong>dernier rappel</strong> concernant l'état des lieux que vous avez débuté sur Hestia.</mj-text>
+
+        <mj-text>Pas de panique : votre formulaire est toujours sauvegardé et vous pouvez le reprendre à tout moment.</mj-text>
+
+        <mj-button href="{{ cta_url }}" css-class="btn-primary">Reprendre mon état des lieux</mj-button>
+
+        <mj-text>Même si vous décidez de ne pas l'achever aujourd'hui, sachez que nous serons toujours là pour vos prochains documents de location.</mj-text>
+
+        <mj-text>Merci de votre confiance.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

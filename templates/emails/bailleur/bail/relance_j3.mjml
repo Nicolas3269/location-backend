@@ -1,0 +1,37 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre bail est presque prêt ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Votre bail est <strong>quasiment finalisé</strong>.</mj-text>
+
+        <mj-text>Il ne vous reste qu'une dernière étape pour pouvoir le signer avec votre locataire.</mj-text>
+
+        {% include "emails/components/box_gratuit.mjml" %}
+
+        <mj-text>En complétant votre document maintenant, vous pourrez :</mj-text>
+
+        <mj-text>
+          ✓ obtenir immédiatement un <strong>bail conforme à la loi ALUR</strong><br/>
+          ✓ le <strong>signer en ligne gratuitement et de manière sécurisée</strong> avec votre locataire<br/>
+          ✓ accélérer toute la suite de la location (état des lieux, quittances, etc.)
+        </mj-text>
+
+        <mj-button href="{{ cta_url }}" css-class="btn-primary">Finaliser mon bail gratuitement</mj-button>
+
+        <mj-text>Besoin d'aide ? Nous sommes là pour vous accompagner.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

@@ -1,0 +1,48 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Code de vérification pour votre signature</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Pour finaliser votre signature{% if role == 'mandataire' %} en tant que mandataire{% endif %} sur le <strong>{{ document_type }}</strong>{% if adresse %} du logement situé au <strong>{{ adresse }}</strong>{% endif %}, saisissez le code suivant :</mj-text>
+
+        <!-- Code OTP -->
+        <mj-text align="center">
+          <table cellpadding="0" cellspacing="0" border="0" style="background-color: #2680eb; border-radius: 8px; margin: 0 auto;">
+            <tr>
+              <td style="padding: 15px 30px; text-align: center;">
+                <span style="font-size: 26px; font-weight: 700; color: white; letter-spacing: 5px;">{{ otp_code }}</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-text>⏱️ Ce code est personnel et valable <strong>10 minutes</strong>.</mj-text>
+
+        <mj-text>Cette étape garantit que <strong>vous êtes bien l'auteur de la signature</strong>.</mj-text>
+
+        <mj-text>Votre signature électronique est <strong>100% sécurisée</strong> et conforme à la loi.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 15px; font-size: 16px;" class="box-info">
+                <span class="text-muted">👉 Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer ce message.</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

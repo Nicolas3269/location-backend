@@ -1,0 +1,8 @@
+<!-- Footer -->
+<mj-section padding="15px 10px">
+  <mj-column>
+    <mj-text align="center" font-size="12px" color="#6c6b70" css-class="text-muted">
+      <a href="{{ frontend_url }}" style="color: #2680eb; text-decoration: none;">hestia.software</a> — Gestion locative simplifiée
+    </mj-text>
+  </mj-column>
+</mj-section>

@@ -1,0 +1,51 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre avenant est prêt à être signé ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Un <strong>avenant à votre bail</strong> a été généré via Hestia.</mj-text>
+
+        <mj-text>Cet avenant concerne l'ajout {% if manque_ddt and manque_numero_fiscal %}du <strong>Dossier de Diagnostic Technique (DDT)</strong> et du <strong>numéro fiscal du logement</strong>, éléments nécessaires{% elif manque_ddt %}du <strong>Dossier de Diagnostic Technique (DDT)</strong>, élément nécessaire{% else %}du <strong>numéro fiscal du logement</strong>, élément nécessaire{% endif %} pour compléter et sécuriser votre contrat.</mj-text>
+
+        <mj-text>Il ne tient plus qu'à vous de signer et finaliser le document.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                <strong>Signer l'avenant est important :</strong><br/><br/>
+                ✓ Il garantit que votre bail est <strong>conforme à la réglementation</strong><br/>
+                ✓ Il vous <strong>protège juridiquement</strong> en cas de litige<br/>
+                ✓ Vous recevez une copie officielle, datée et archivée
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer mon avenant</mj-button>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-radius: 6px; overflow: hidden;">
+            <tr>
+              <td style="width: 4px; background-color: #479965;"></td>
+              <td style="padding: 12px 15px; background-color: #f5f7f9;">
+                <span>🔒 La signature électronique est simple, rapide et a la <strong>même valeur légale</strong> qu'une signature manuscrite.</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

@@ -1,0 +1,39 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Finalisez votre bail gratuitement en quelques clics 📝</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Vous avez commencé à générer un bail de location sur Hestia, mais il n'est pas encore finalisé.</mj-text>
+
+        <mj-text>👉 Bonne nouvelle : <strong>tout est déjà prêt</strong>.</mj-text>
+
+        <mj-text>Il ne vous reste plus qu'une étape : <strong>la signature électronique valable juridiquement</strong>.</mj-text>
+
+        {% include "emails/components/box_gratuit.mjml" %}
+
+        <mj-text>Finaliser votre bail maintenant vous permet de :</mj-text>
+
+        <mj-text>
+          ✓ obtenir un <strong>bail conforme à la loi ALUR</strong>, complet et à jour<br/>
+          ✓ rassurer immédiatement votre locataire<br/>
+          ✓ sécuriser votre mise en location, sans aucun coût
+        </mj-text>
+
+        <mj-text>Vous avez déjà fait le plus dur : autant aller au bout, c'est offert et ça ne prend que 2 minutes !</mj-text>
+
+        <mj-button href="{{ cta_url }}" css-class="btn-primary">Finaliser mon bail gratuitement</mj-button>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

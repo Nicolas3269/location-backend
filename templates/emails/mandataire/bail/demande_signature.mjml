@@ -1,0 +1,42 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre signature de mandataire est requise pour le bail ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Une signature est nécessaire en qualité de mandataire pour le bail du logement situé au <strong>{{ adresse }}</strong>.</mj-text>
+
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Accéder à la signature</mj-button>
+
+        <mj-text>La procédure de signature est <strong>sécurisée</strong>, <strong>personnelle</strong> et prend moins de <strong>2 minutes</strong>.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                <strong>Après la signature :</strong><br/><br/>
+                ✓ le document passe automatiquement au signataire suivant<br/>
+                ✓ une confirmation vous est envoyée par email<br/>
+                ✓ le bail reste disponible dans votre espace personnel ainsi que dans celui du bailleur
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-text>👉 <a href="{{ lien_espace }}" style="color: #2680eb;">Accéder à votre espace</a></mj-text>
+
+        <mj-text>En cas de question ou de difficulté technique, notre équipe peut vous accompagner.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

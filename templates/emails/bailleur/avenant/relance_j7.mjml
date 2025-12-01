@@ -1,0 +1,46 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Dernier rappel — Vous prenez le risque d'être en infraction ⚠️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Ceci est notre <strong>dernier message</strong> concernant la nécessité de créer un avenant au bail que vous avez généré.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #ffebee; border-radius: 8px;" class="box-error">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-error">
+                <span style="font-weight: 600; color: #d96c63;" class="text-error">👉 Pour rappel :</span><br/><br/>
+                {% if manque_ddt %}• Le DDT doit être annexé au bail (loi du 6 juillet 1989, décret n°2006-1147)<br/>{% endif %}
+                {% if manque_numero_fiscal %}• Le numéro fiscal du logement doit être mentionné (loi de finances 2020, art. 1418){% endif %}
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-text>À ce stade, vous avez connaissance de vos obligations légales. En choisissant de ne pas régulariser votre bail, vous prenez vous-même le risque :</mj-text>
+
+        <mj-text>
+          • que le bail soit contesté par le locataire<br/>
+          • d'être sanctionné pour manquement à vos obligations légales
+        </mj-text>
+
+        <mj-text>Hestia ne vous enverra plus de rappel à ce sujet. Vous pouvez néanmoins régulariser à tout moment depuis votre espace.</mj-text>
+
+        <mj-button href="{{ cta_url }}" css-class="btn-primary">Compléter mon bail</mj-button>
+
+        <mj-text>Si nous insistons autant, c'est pour protéger vos intérêts. Nous restons disponibles pour toute question.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

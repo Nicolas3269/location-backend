@@ -1,0 +1,40 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Un état des lieux clair, une location sans souci ✨</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>L'état des lieux du logement situé au <strong>{{ adresse }}</strong> est toujours en attente de finalisation.</mj-text>
+
+        <mj-text>En quelques minutes, vous pouvez obtenir un document complet, signé électroniquement, qui sécurise l'ensemble des parties et facilite la suite de la location.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                <strong>Finaliser l'état des lieux, c'est :</strong><br/><br/>
+                ✓ Gagner du temps lors de la remise des clés<br/>
+                ✓ Limiter les risques d'oubli ou de litige<br/>
+                ✓ Disposer d'un document conforme, horodaté et archivé
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ cta_url }}" css-class="btn-primary">Compléter mon état des lieux</mj-button>
+
+        <mj-text>Nous restons disponibles pour vous accompagner dans vos missions de mandataire.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

@@ -1,0 +1,47 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre avenant est signé et disponible 📑</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Bonne nouvelle : l'avenant à votre bail a été <strong>signé par toutes les parties</strong> ✅</mj-text>
+
+        <mj-text>Le document est désormais complet, <strong>valable juridiquement</strong> et archivé dans votre espace Hestia.</mj-text>
+
+        <mj-button href="{{ lien_espace }}" css-class="btn-primary">Accéder à mon espace Hestia</mj-button>
+
+        <mj-divider border-color="#d0ccc5" css-class="divider" />
+
+        <mj-text font-size="18px" font-weight="600">🛡️ Sécurisez votre investissement locatif</mj-text>
+
+        <mj-text>Pour continuer à louer l'esprit léger, Hestia vous propose :</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                🔑 <strong>Assurance PNO</strong> : obligatoire en copropriété, couvrez les risques non pris en charge par le locataire<br/><br/>
+                💼 <strong>Garantie Loyers Impayés (GLI)</strong> : sécurisez vos revenus locatifs<br/><br/>
+                📋 <strong>Quittances & documents</strong> : générez et envoyez vos quittances en quelques clics
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_services }}" background-color="#3e3c41">Découvrir les services Hestia</mj-button>
+
+        <mj-text>Merci de votre confiance.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

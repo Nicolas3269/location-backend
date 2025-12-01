@@ -1,0 +1,47 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre bail est signé et disponible !</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Bonne nouvelle : le bail de votre logement a été signé par l'ensemble des parties.</mj-text>
+
+        <mj-text>Vous pouvez retrouver sur votre espace Hestia le document complet signé électroniquement.</mj-text>
+
+        <mj-button href="{{ lien_espace }}" css-class="btn-primary">Accéder à mon espace Hestia</mj-button>
+
+        <mj-divider border-color="#d0ccc5" css-class="divider" />
+
+        <mj-text font-size="18px" font-weight="600">📦 Besoin d'un coup de pouce pour votre installation ?</mj-text>
+
+        <mj-text>Grâce à nos partenariats, vous pouvez bénéficier d'offres exclusives pour :</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                🚚 Votre <strong>déménagement</strong> (camions et services pros)<br/><br/>
+                📦 La location de <strong>box de stockage</strong> à tarif préférentiel<br/><br/>
+                ⚡ La souscription rapide de vos <strong>abonnements électricité, gaz et internet</strong>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_partenaires }}" background-color="#3e3c41">Découvrir les offres partenaires</mj-button>
+
+        <mj-text>Nous vous souhaitons une installation sereine dans votre nouveau logement.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

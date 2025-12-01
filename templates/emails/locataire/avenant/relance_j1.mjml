@@ -1,0 +1,29 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Il ne manque plus que votre signature ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Les autres parties ont signé l'avenant à votre bail.</mj-text>
+
+        <mj-text>Cet avenant intègre {% if manque_ddt and manque_numero_fiscal %}le <strong>Dossier de Diagnostic Technique (DDT)</strong> et le <strong>numéro fiscal du logement</strong>, informations utiles{% elif manque_ddt %}le <strong>Dossier de Diagnostic Technique (DDT)</strong>, information utile{% else %}le <strong>numéro fiscal du logement</strong>, information utile{% endif %} pour sécuriser votre contrat.</mj-text>
+
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer mon avenant</mj-button>
+
+        <mj-text>Signer cet avenant ne prend que quelques minutes et vous assure d'avoir un bail <strong>complet et conforme</strong>.</mj-text>
+
+        <mj-text>Ne tardez pas à finaliser cette étape.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

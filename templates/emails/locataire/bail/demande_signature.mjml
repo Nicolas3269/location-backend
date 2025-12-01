@@ -1,0 +1,53 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre bail est prêt à être signé ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Bonne nouvelle : le contrat de location pour le logement situé au <strong>{{ adresse }}</strong> est prêt à être signé sur Hestia.</mj-text>
+
+        <mj-text>C'est maintenant à vous de jouer pour finaliser votre location.</mj-text>
+
+        <mj-text>Avant de signer électroniquement, Hestia vous accompagne pour :</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                <strong>🏠 L'assurance habitation</strong><br/>
+                Comparez nos offres partenaires pour l'obtenir immédiatement, ou téléchargez votre attestation si vous l'avez déjà.<br/><br/>
+                {% if has_caution %}<strong>🤝 La caution solidaire</strong><br/>
+                Ajoutez le document de votre garant.{% endif %}
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Finaliser mes documents et signer</mj-button>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-radius: 6px; overflow: hidden;">
+            <tr>
+              <td style="width: 4px; background-color: #479965;"></td>
+              <td style="padding: 12px 15px; background-color: #f5f7f9;">
+                <span>🔒 Signature <strong>100% sécurisée</strong>, <strong>gratuite</strong> et conforme eIDAS.</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-text>Encore une étape et votre bail sera validé !</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

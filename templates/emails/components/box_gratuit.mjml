@@ -1,0 +1,11 @@
+<!-- Box gratuit - table pour compatibilité Outlook -->
+<mj-text>
+  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #e8f5e9; border-radius: 8px;" class="box-success">
+    <tr>
+      <td style="padding: 20px; font-size: 16px;" class="box-success">
+        <span style="font-size: 18px; font-weight: 700; color: #479965;" class="text-success">💸 Tout est 100% gratuit.</span><br/><br/>
+        Pas de frais cachés, pas d'abonnement, pas de surprise.<br/>Même la signature électronique est gratuite — vraiment.
+      </td>
+    </tr>
+  </table>
+</mj-text>

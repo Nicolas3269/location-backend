@@ -1,0 +1,27 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre état des lieux est prêt à être complété 📝</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Vous avez commencé à préparer l'état des lieux du logement situé au <strong>{{ adresse }}</strong> sur Hestia.</mj-text>
+
+        <mj-text>Bonne nouvelle : toutes les informations déjà saisies ont été enregistrées. Il ne reste plus qu'à finaliser les dernières étapes.</mj-text>
+
+        <mj-button href="{{ cta_url }}" css-class="btn-primary">Reprendre mon état des lieux</mj-button>
+
+        <mj-text>Terminer ce document maintenant permet de sécuriser et d'organiser sereinement l'entrée ou la sortie du locataire.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

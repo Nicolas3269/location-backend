@@ -1,0 +1,78 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">Votre signature est bien enregistrée ✔️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Votre signature{% if role == 'mandataire' %} en tant que mandataire{% elif role == 'bailleur' %} en tant que bailleur{% endif %} a bien été prise en compte — merci !</mj-text>
+
+        <mj-text>Voici un point complet sur l'avancement des signatures :</mj-text>
+
+        <!-- Signataires ayant signé -->
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #e8f5e9; border-radius: 8px;" class="box-success">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-success">
+                <span style="font-weight: 600; color: #479965;" class="text-success">✅ Déjà signé :</span><br/><br/>
+                {% for signataire in signataires_signes %}• {{ signataire.nom }}{% if signataire.date %} ({{ signataire.date }}){% endif %}<br/>{% endfor %}
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        {% if signataires_restants %}
+        <!-- Signataires restants -->
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fff8e1; border-radius: 8px;" class="box-warning">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-warning">
+                <span style="font-weight: 600; color: #f59e0b;" class="text-warning">✍️ Encore à signer :</span><br/><br/>
+                {% for signataire in signataires_restants %}• {{ signataire.nom }}<br/>{% endfor %}
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        {% if prochain_signataire %}
+        <mj-text>👉 <strong>Prochain signataire : {{ prochain_signataire.nom }}</strong></mj-text>
+        <mj-text>Un lien sécurisé vient de lui être envoyé automatiquement.</mj-text>
+        {% endif %}
+        {% endif %}
+
+        <mj-divider border-color="#d0ccc5" css-class="divider" />
+
+        <mj-text>Pour votre information, vous pouvez à tout moment :</mj-text>
+
+        <mj-text>
+          📄 <strong>Télécharger le document actuel</strong> (version provisoire)<br/>
+          👀 <strong>Suivre l'avancement des signatures</strong> en temps réel{% if role == 'bailleur' or role == 'mandataire' %}<br/>
+          🗂️ <strong>Retrouver tous vos documents</strong> (bail, annexes, pièces justificatives){% endif %}
+        </mj-text>
+
+        <mj-button href="{{ lien_espace }}" css-class="btn-primary">Accéder à mon espace</mj-button>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fff3e0; border-radius: 8px;" class="box-warning">
+            <tr>
+              <td style="padding: 15px; font-size: 16px;" class="box-warning">
+                <span style="color: #e65100;" class="text-warning">⚠️ <strong>Rappel :</strong> le bail ne sera juridiquement valable qu'une fois toutes les signatures apposées.</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-text>Vous recevrez un mail dès que la procédure sera entièrement finalisée.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

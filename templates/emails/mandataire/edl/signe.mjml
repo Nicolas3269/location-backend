@@ -1,0 +1,58 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">L'état des lieux est signé et disponible 📋</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>L'état des lieux du logement situé au <strong>{{ adresse }}</strong> a été <strong>signé par toutes les parties</strong> ✅</mj-text>
+
+        <mj-text>Vous pouvez désormais consulter la version définitive à tout moment depuis votre espace Hestia.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="border-radius: 6px; overflow: hidden;">
+            <tr>
+              <td style="width: 4px; background-color: #479965;"></td>
+              <td style="padding: 12px 15px; background-color: #f5f7f9;">
+                <span>👉 Ce document a <strong>pleine valeur juridique</strong> et sécurise la relation entre bailleur et locataire.</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_espace }}" css-class="btn-primary">Accéder à mon espace Hestia</mj-button>
+
+        <mj-divider border-color="#d0ccc5" css-class="divider" />
+
+        <mj-text font-size="18px" font-weight="600">🔧 Simplifiez vos prochaines missions avec Hestia</mj-text>
+
+        <mj-text>Pour vous accompagner lors de vos futures interventions, Hestia met à votre disposition :</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                📋 <strong>Baux et documents conformes</strong>, prêts à signer gratuitement<br/><br/>
+                📸 <strong>États des lieux guidés</strong>, avec photos horodatées et signature intégrée<br/><br/>
+                🗂️ <strong>Archivage centralisé</strong> pour bailleurs et mandataires
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_services }}" background-color="#3e3c41">Découvrir les outils pour mandataires</mj-button>
+
+        <mj-text>Merci pour votre intervention.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

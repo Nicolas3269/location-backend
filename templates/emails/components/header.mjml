@@ -1,0 +1,6 @@
+<!-- Header minimaliste - juste un peu d'espace -->
+<mj-section padding="10px 0 0 0">
+  <mj-column>
+    <mj-spacer height="5px" />
+  </mj-column>
+</mj-section>

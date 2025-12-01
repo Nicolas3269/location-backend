@@ -1,0 +1,57 @@
+<mjml>
+  {% include "emails/components/head.mjml" %}
+
+  <mj-body background-color="#f5f7f9" css-class="body-wrapper">
+    {% include "emails/components/header.mjml" %}
+
+    <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="700">L'avenant est signé de votre côté, en attente du locataire ✍️</mj-text>
+
+        <mj-text>Bonjour {{ prenom }},</mj-text>
+
+        <mj-text>Votre signature en tant que <strong>mandataire</strong> sur l'avenant au bail du logement situé au <strong>{{ adresse }}</strong> a bien été enregistrée via Hestia ✅</mj-text>
+
+        <mj-text>Le document est maintenant en attente de la signature des autres parties.</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                👉 Vous recevrez automatiquement la version définitive dès que l'ensemble des signatures sera complété.<br/><br/>
+                En attendant, aucune action n'est requise de votre part.
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-divider border-color="#d0ccc5" css-class="divider" />
+
+        <mj-text font-size="18px" font-weight="600">🧰 Simplifiez vos prochaines missions de gestion</mj-text>
+
+        <mj-text>Si vous intervenez régulièrement pour des mises en location, Hestia peut vous accompagner pour :</mj-text>
+
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 20px; font-size: 16px;" class="box-info">
+                📋 <strong>Baux conformes</strong>, prêts à signer gratuitement en ligne<br/><br/>
+                📝 <strong>Avenants et documents légaux</strong> en quelques clics<br/><br/>
+                🏠 <strong>États des lieux guidés</strong>, avec photos horodatées et signature intégrée<br/><br/>
+                📂 <strong>Archivage centralisé</strong> pour vos collaborateurs et vos clients bailleurs
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+
+        <mj-button href="{{ lien_services }}" background-color="#3e3c41">Découvrir les outils Hestia</mj-button>
+
+        <mj-text>Merci de votre confiance.</mj-text>
+
+        {% include "emails/components/signature.mjml" %}
+      </mj-column>
+    </mj-section>
+
+    {% include "emails/components/footer.mjml" %}
+  </mj-body>
+</mjml>

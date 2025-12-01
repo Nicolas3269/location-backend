@@ -7,7 +7,7 @@ import logging
 from django.conf import settings
 
 from core.email_service import EmailService
-from location.models import Locataire
+from location.models import Bien, Locataire
 from quittance.models import Quittance
 
 logger = logging.getLogger(__name__)
@@ -24,11 +24,10 @@ def send_quittance_email(quittance: Quittance, pdf_url: str, sender_email: str):
     recipients = [loc.email for loc in locataires]
 
     # Récupérer l'adresse du logement
-    bien = quittance.location.bien
-    adresse = f"{bien.adresse}, {bien.code_postal} {bien.ville}" if bien else ""
+    bien: Bien = quittance.location.bien
 
     # Premier prénom pour la salutation
-    prenom = locataires[0].prenom if locataires else ""
+    prenom = locataires[0].firstName if locataires else ""
 
     mois = quittance.mois.capitalize()
     subject = f"Quittance de loyer - {mois} {quittance.annee}"
@@ -40,7 +39,7 @@ def send_quittance_email(quittance: Quittance, pdf_url: str, sender_email: str):
         "montant_total": quittance.montant_total,
         "montant_loyer": quittance.montant_loyer,
         "montant_charges": quittance.montant_charges,
-        "adresse": adresse,
+        "adresse": bien.adresse,
         "pdf_url": pdf_url,
         "lien_espace": f"{settings.FRONTEND_URL}/mon-compte/mes-locations",
         "lien_services": f"{settings.FRONTEND_URL}/services",

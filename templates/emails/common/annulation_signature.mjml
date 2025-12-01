@@ -1,5 +1,6 @@
 <mjml>
   {% include "emails/components/head.mjml" %}
+  {% load french_grammar %}
 
   <mj-body background-color="#f5f7f9" css-class="body-wrapper">
     {% include "emails/components/header.mjml" %}
@@ -10,7 +11,7 @@
 
         <mj-text>Bonjour {{ prenom }},</mj-text>
 
-        <mj-text>Nous vous informons que la procédure de signature électronique du <strong>{{ document_type }}</strong> concernant le logement situé au <strong>{{ adresse }}</strong> a été annulée.</mj-text>
+        <mj-text>Nous vous informons que la procédure de signature électronique <strong>{{ document_type|avec_de }}</strong> concernant le logement situé au <strong>{{ adresse }}</strong> a été annulée.</mj-text>
 
         <!-- Box informations -->
         <mj-text>
@@ -26,7 +27,7 @@
           </table>
         </mj-text>
 
-        <mj-text>Si une nouvelle version du {{ document_type }} doit être établie, vous recevrez automatiquement un nouveau lien de signature.</mj-text>
+        <mj-text>Si une nouvelle version {{ document_type|avec_de }} doit être établie, vous recevrez automatiquement un nouveau lien de signature.</mj-text>
 
         <mj-text>Vous pouvez consulter l'état du dossier et les documents associés depuis votre espace Hestia :</mj-text>
 

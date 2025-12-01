@@ -8,6 +8,7 @@ from django.conf import settings
 
 from core.email_service import EmailService
 from core.email_subjects import get_subject
+from location.templatetags.french_grammar import avec_de
 from location.models import Bien
 
 logger = logging.getLogger(__name__)
@@ -30,11 +31,20 @@ def _get_signataire_role(signature_request) -> str:
 def _get_document_config(document_type: str) -> dict:
     """Retourne la config pour un type de document."""
     configs = {
-        "bail": {"display": "bail", "folder": "bail", "url_path": "bail"},
+        "bail": {
+            "display": "bail",
+            "folder": "bail",
+            "url_path": "bail",
+        },
         "etat_lieux": {
             "display": "état des lieux",
             "folder": "edl",
             "url_path": "etat-lieux",
+        },
+        "avenant": {
+            "display": "avenant",
+            "folder": "avenant",
+            "url_path": "avenant",
         },
     }
     return configs.get(
@@ -149,9 +159,12 @@ def send_otp_email(signature_request, document_type="document"):
         "document_type": config["display"],
     }
 
+    # Sujet avec OTP visible et formulation correcte (ex: "Signature du bail")
+    subject = f"🔏 Code {otp} - Signature {avec_de(config['display'])}"
+
     success = EmailService.send(
         to=email,
-        subject=f"🔏 Code {otp} - Signature de votre {config['display']}",
+        subject=subject,
         template="common/otp_signature",
         context=context,
     )

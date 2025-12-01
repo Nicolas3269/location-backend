@@ -1,18 +1,19 @@
 <mjml>
   {% include "emails/components/head.mjml" %}
+  {% load french_grammar %}
 
   <mj-body background-color="#f5f7f9" css-class="body-wrapper">
     {% include "emails/components/header.mjml" %}
 
     <mj-section background-color="white" border-radius="8px" padding="20px 15px" css-class="content-card">
       <mj-column>
-        <mj-text font-size="22px" font-weight="700">Votre signature est requise pour le {{ document_type }} ✍️</mj-text>
+        <mj-text font-size="22px" font-weight="700">Votre signature est requise pour {{ document_type|avec_le }} ✍️</mj-text>
 
         <mj-text>Bonjour {{ prenom }},</mj-text>
 
-        <mj-text>Vous êtes invité(e) à <strong>signer le {{ document_type }}</strong> concernant le logement situé au <strong>{{ adresse_logement }}</strong>.</mj-text>
+        <mj-text>Vous êtes invité(e) à <strong>signer {{ document_type|avec_le }}</strong> concernant le logement situé au <strong>{{ adresse_logement }}</strong>.</mj-text>
 
-        <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer le {{ document_type }}</mj-button>
+        <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer {{ document_type|avec_le }}</mj-button>
 
         <mj-text>La signature est <strong>sécurisée</strong>, <strong>personnelle</strong> et ne prend que <strong>2 minutes</strong>.</mj-text>
 
@@ -23,7 +24,7 @@
                 <strong>Une fois votre signature apposée :</strong><br/><br/>
                 ✓ le document sera transmis au signataire suivant (s'il y en a)<br/>
                 ✓ vous recevrez un email de confirmation<br/>
-                ✓ le {{ document_type }} complet sera disponible dans votre espace personnel
+                ✓ {{ document_type|avec_le }} complet sera disponible dans votre espace personnel
               </td>
             </tr>
           </table>

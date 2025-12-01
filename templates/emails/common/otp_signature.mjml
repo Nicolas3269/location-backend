@@ -1,5 +1,6 @@
 <mjml>
   {% include "emails/components/head.mjml" %}
+  {% load french_grammar %}
 
   <mj-body background-color="#f5f7f9" css-class="body-wrapper">
     {% include "emails/components/header.mjml" %}
@@ -10,7 +11,7 @@
 
         <mj-text>Bonjour {{ prenom }},</mj-text>
 
-        <mj-text>Pour finaliser votre signature{% if role == 'mandataire' %} en tant que mandataire{% endif %} sur le <strong>{{ document_type }}</strong>{% if adresse %} du logement situé au <strong>{{ adresse }}</strong>{% endif %}, saisissez le code suivant :</mj-text>
+        <mj-text>Pour signer électroniquement <strong>{{ document_type|avec_le }}</strong>{% if role == 'mandataire' %} en tant que mandataire{% endif %} via Hestia, veuillez saisir le code de vérification ci-dessous :</mj-text>
 
         <!-- Code OTP -->
         <mj-text align="center">
@@ -23,17 +24,15 @@
           </table>
         </mj-text>
 
-        <mj-text>⏱️ Ce code est personnel et valable <strong>10 minutes</strong>.</mj-text>
+        <mj-text>⏱️ Ce code est valable <strong>10 minutes</strong> et doit rester confidentiel.</mj-text>
 
-        <mj-text>Cette étape garantit que <strong>vous êtes bien l'auteur de la signature</strong>.</mj-text>
-
-        <mj-text>Votre signature électronique est <strong>100% sécurisée</strong> et conforme à la loi.</mj-text>
+        <mj-text>Cette étape garantit la sécurité de la signature et la conformité légale du document.</mj-text>
 
         <mj-text>
           <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px;" class="box-info">
             <tr>
               <td style="padding: 15px; font-size: 16px;" class="box-info">
-                <span class="text-muted">👉 Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer ce message.</span>
+                👉 Si vous n'avez pas demandé ce code, merci d'ignorer ce message.
               </td>
             </tr>
           </table>

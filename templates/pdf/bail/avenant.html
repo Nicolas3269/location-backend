@@ -212,9 +212,6 @@
     <div class="identifiant-fiscal-box">
       Numéro d'identifiant fiscal du logement : {{ avenant.identifiant_fiscal }}
     </div>
-    <p>
-      Cette information est annexée au présent avenant et complète le contrat initial.
-    </p>
   </div>
   {% endif %}
 
@@ -250,6 +247,11 @@
       les termes.
     </p>
   </div>
+
+  <!-- FAIT LE / DATE -->
+  <p style="margin-top: 3em; margin-bottom: 2em; text-align: right;">
+    Fait le <strong>{{ date_generation|date:"d F Y" }}</strong>
+  </p>
 
   <!-- SIGNATURES - Réutilise le composant bail -->
   {% if mandataire_doit_signer %}

@@ -97,6 +97,7 @@ def get_signature_request_generic(request, token, model_class):
         signer_email = sig_req.get_signataire_email()
 
         # Préparer la réponse dans le nouveau format unifié
+        # Note: On utilise is_locataire (français) pour cohérence avec is_mandataire et is_bailleur
         response_data.update(
             {
                 "success": True,
@@ -106,7 +107,7 @@ def get_signature_request_generic(request, token, model_class):
                     "last_name": person.lastName if person else "",
                 },
                 "otp_sent": should_send_otp,
-                "is_tenant": bool(sig_req.locataire),
+                "is_locataire": bool(sig_req.locataire),
                 "is_mandataire": bool(sig_req.mandataire),
                 "is_bailleur": bool(sig_req.bailleur_signataire),
             }

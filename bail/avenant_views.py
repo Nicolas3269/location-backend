@@ -4,6 +4,7 @@ Vues pour la gestion des avenants au bail.
 
 import json
 import logging
+from datetime import date
 
 from django.core.files.base import ContentFile
 from django.http import HttpResponse, QueryDict
@@ -21,7 +22,13 @@ from signature.certification_flow import certify_document_hestia
 from signature.document_status import DocumentStatus
 from signature.document_types import SignableDocumentType
 
-from .models import Avenant, AvenantMotif, AvenantSignatureRequest, Document, DocumentType
+from .models import (
+    Avenant,
+    AvenantMotif,
+    AvenantSignatureRequest,
+    Document,
+    DocumentType,
+)
 from .utils import (
     create_avenant_signature_requests,
     get_avenant_with_access_check,
@@ -256,6 +263,8 @@ def generate_avenant_pdf(request, avenant_id):
         "has_permis_de_louer": has_permis_de_louer,
         # Numéro de l'article final
         "final_article_number": final_article_number,
+        # Date de génération du document
+        "date_generation": date.today(),
     }
 
     # 3. Générer le PDF HTML

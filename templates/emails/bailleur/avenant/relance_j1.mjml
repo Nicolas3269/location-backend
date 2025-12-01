@@ -14,7 +14,8 @@
 
         <mj-text>
           {% if manque_ddt %}• Le <strong>Dossier de Diagnostics Techniques (DDT)</strong>, qui inclut le DPE<br/>{% endif %}
-          {% if manque_numero_fiscal %}• Le <strong>numéro fiscal du logement</strong> (identifiant fiscal servant aux déclarations) — <a href="{{ lien_tuto_fiscal }}" style="color: #2680eb;">retrouver mon numéro fiscal</a>{% endif %}
+          {% if manque_numero_fiscal %}• Le <strong>numéro fiscal du logement</strong> (identifiant fiscal servant aux déclarations) — <a href="{{ lien_tuto_fiscal }}" style="color: #2680eb;">retrouver mon numéro fiscal</a><br/>{% endif %}
+          {% if manque_permis_louer %}• Le <strong>permis de louer</strong>, obligatoire dans certaines communes{% endif %}
         </mj-text>
 
         <mj-text>
@@ -23,7 +24,8 @@
               <td style="padding: 20px; font-size: 16px;" class="box-warning">
                 <span style="font-weight: 600; color: #e65100;" class="text-warning">👉 Ces informations sont obligatoires :</span><br/><br/>
                 {% if manque_ddt %}• Le DDT doit être annexé à tout bail (loi du 6 juillet 1989, décret n°2006-1147)<br/>{% endif %}
-                {% if manque_numero_fiscal %}• Le numéro fiscal doit figurer dans le bail (loi de finances 2020, art. 1418){% endif %}
+                {% if manque_numero_fiscal %}• Le numéro fiscal doit figurer dans le bail (loi de finances 2020, art. 1418)<br/>{% endif %}
+                {% if manque_permis_louer %}• Le permis de louer est obligatoire dans certaines zones (loi ALUR, art. 92){% endif %}
               </td>
             </tr>
           </table>

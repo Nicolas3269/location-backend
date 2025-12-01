@@ -19,7 +19,8 @@
                 <span style="font-weight: 600; color: #e65100;" class="text-warning">⚠️ Sans lui, votre bail reste incomplet.</span><br/><br/>
                 En le signant, vous vous assurez d'avoir toutes les garanties :<br/><br/>
                 {% if manque_ddt %}✓ Les diagnostics obligatoires (DDT) à jour<br/>{% endif %}
-                {% if manque_numero_fiscal %}✓ Le numéro fiscal du logement, indispensable pour certaines démarches{% endif %}
+                {% if manque_numero_fiscal %}✓ Le numéro fiscal du logement, indispensable pour certaines démarches<br/>{% endif %}
+                {% if manque_permis_louer %}✓ Le permis de louer, obligatoire dans certaines communes{% endif %}
               </td>
             </tr>
           </table>

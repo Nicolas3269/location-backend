@@ -12,7 +12,14 @@
 
         <mj-text>Les autres parties ont signé l'avenant à votre bail.</mj-text>
 
-        <mj-text>Cet avenant intègre {% if manque_ddt and manque_numero_fiscal %}le <strong>Dossier de Diagnostic Technique (DDT)</strong> et le <strong>numéro fiscal du logement</strong>, informations utiles{% elif manque_ddt %}le <strong>Dossier de Diagnostic Technique (DDT)</strong>, information utile{% else %}le <strong>numéro fiscal du logement</strong>, information utile{% endif %} pour sécuriser votre contrat.</mj-text>
+        <mj-text>Cet avenant intègre :
+          <ul style="margin: 10px 0; padding-left: 20px;">
+            {% if manque_ddt %}<li>le <strong>Dossier de Diagnostic Technique (DDT)</strong></li>{% endif %}
+            {% if manque_numero_fiscal %}<li>le <strong>numéro fiscal du logement</strong></li>{% endif %}
+            {% if manque_permis_louer %}<li>le <strong>permis de louer</strong></li>{% endif %}
+          </ul>
+          Ces informations sont utiles pour sécuriser votre contrat.
+        </mj-text>
 
         <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer mon avenant</mj-button>
 

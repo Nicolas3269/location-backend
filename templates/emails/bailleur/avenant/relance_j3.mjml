@@ -14,7 +14,8 @@
 
         <mj-text>
           {% if manque_ddt %}• Le <strong>Dossier de Diagnostics Techniques</strong><br/>{% endif %}
-          {% if manque_numero_fiscal %}• Le <strong>numéro fiscal du logement</strong>{% endif %}
+          {% if manque_numero_fiscal %}• Le <strong>numéro fiscal du logement</strong><br/>{% endif %}
+          {% if manque_permis_louer %}• Le <strong>permis de louer</strong>{% endif %}
         </mj-text>
 
         <mj-text>

@@ -12,7 +12,14 @@
 
         <mj-text>Ceci est notre <strong>dernier rappel</strong> concernant l'avenant à votre bail.</mj-text>
 
-        <mj-text>Il contient {% if manque_ddt and manque_numero_fiscal %}le <strong>DDT</strong> et le <strong>numéro fiscal du logement</strong>{% elif manque_ddt %}le <strong>DDT</strong>{% else %}le <strong>numéro fiscal du logement</strong>{% endif %}, des éléments indispensables pour garantir la <strong>validité et la sécurité</strong> de votre contrat.</mj-text>
+        <mj-text>Il contient :
+          <ul style="margin: 10px 0; padding-left: 20px;">
+            {% if manque_ddt %}<li>le <strong>DDT</strong></li>{% endif %}
+            {% if manque_numero_fiscal %}<li>le <strong>numéro fiscal du logement</strong></li>{% endif %}
+            {% if manque_permis_louer %}<li>le <strong>permis de louer</strong></li>{% endif %}
+          </ul>
+          Ces éléments sont indispensables pour garantir la <strong>validité et la sécurité</strong> de votre contrat.
+        </mj-text>
 
         <mj-text>
           <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #ffebee; border-radius: 8px;" class="box-error">

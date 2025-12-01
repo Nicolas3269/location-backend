@@ -12,7 +12,14 @@
 
         <mj-text>Un <strong>avenant à votre bail</strong> a été généré via Hestia.</mj-text>
 
-        <mj-text>Cet avenant concerne l'ajout {% if manque_ddt and manque_numero_fiscal %}du <strong>Dossier de Diagnostic Technique (DDT)</strong> et du <strong>numéro fiscal du logement</strong>, éléments nécessaires{% elif manque_ddt %}du <strong>Dossier de Diagnostic Technique (DDT)</strong>, élément nécessaire{% else %}du <strong>numéro fiscal du logement</strong>, élément nécessaire{% endif %} pour compléter et sécuriser votre contrat.</mj-text>
+        <mj-text>Cet avenant concerne l'ajout :
+          <ul style="margin: 10px 0; padding-left: 20px;">
+            {% if manque_ddt %}<li>du <strong>Dossier de Diagnostic Technique (DDT)</strong></li>{% endif %}
+            {% if manque_numero_fiscal %}<li>du <strong>numéro fiscal du logement</strong></li>{% endif %}
+            {% if manque_permis_louer %}<li>du <strong>permis de louer</strong></li>{% endif %}
+          </ul>
+          Ces éléments sont nécessaires pour compléter et sécuriser votre contrat.
+        </mj-text>
 
         <mj-text>Il ne tient plus qu'à vous de signer et finaliser le document.</mj-text>
 

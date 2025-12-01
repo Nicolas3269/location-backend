@@ -15,6 +15,7 @@ from algo.signature.main import (
 )
 from backend.storage_utils import get_local_file_path, save_file_to_storage
 from signature.document_status import DocumentStatus
+from signature.services import send_document_signed_emails
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +231,19 @@ def process_signature_generic(signature_request, signature_data_url, request=Non
                     document.status = DocumentStatus.SIGNED.value
                     document.save(update_fields=["status"])
                     logger.info("✅ Status mis à jour : SIGNED")
+
+                    # Envoyer les emails de notification à toutes les parties
+                    first_sig = sig_requests.first()
+                    document_type = first_sig.get_document_type()
+                    try:
+                        send_document_signed_emails(document, document_type)
+                        logger.info(
+                            f"📧 Emails 'document signé' envoyés pour {document_type}"
+                        )
+                    except Exception as email_error:
+                        logger.warning(
+                            f"⚠️ Erreur envoi emails de finalisation: {email_error}"
+                        )
 
                 logger.info(
                     "✅ Document complet : Certification Hestia + Signatures users + TSA final + Journal"

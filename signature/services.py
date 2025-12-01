@@ -34,21 +34,29 @@ def _get_document_config(document_type: str) -> dict:
             "display": "bail",
             "folder": "bail",
             "url_path": "bail",
+            "signed_template": "bail_signe",
         },
         "etat_lieux": {
             "display": "état des lieux",
             "folder": "edl",
             "url_path": "etat-lieux",
+            "signed_template": "signe",
         },
         "avenant": {
             "display": "avenant",
             "folder": "avenant",
             "url_path": "avenant",
+            "signed_template": "signe",
         },
     }
     return configs.get(
         document_type,
-        {"display": document_type, "folder": document_type, "url_path": document_type},
+        {
+            "display": document_type,
+            "folder": document_type,
+            "url_path": document_type,
+            "signed_template": "signe",
+        },
     )
 
 
@@ -174,6 +182,55 @@ def send_otp_email(signature_request, document_type="document"):
         logger.error(f"Erreur lors de l'envoi de l'email OTP à {email}")
 
     return success
+
+
+def send_document_signed_emails(document, document_type="bail"):
+    """
+    Envoie un email à toutes les parties pour les informer que le document est signé.
+
+    Args:
+        document: Instance du document signable (Bail, EtatLieux, etc.)
+        document_type: Type de document ("bail", "etat_lieux", "avenant")
+    """
+    config = _get_document_config(document_type)
+    base_url = settings.FRONTEND_URL
+
+    # Récupérer toutes les demandes de signature pour ce document
+    signature_requests = document.signature_requests.all()
+
+    for sig_request in signature_requests:
+        email = sig_request.get_signataire_email()
+        if not email:
+            continue
+
+        role = _get_signataire_role(sig_request)
+        template = f"{role}/{config['folder']}/{config['signed_template']}"
+
+        # Contexte de base
+        context = {
+            "prenom": sig_request.get_signataire_first_name(),
+            "lien_espace": f"{base_url}/mon-compte",
+        }
+
+        # Contexte spécifique selon le rôle
+        if role in ["bailleur", "mandataire"]:
+            context["lien_edl"] = f"{base_url}/etat-lieux"
+        elif role == "locataire":
+            context["lien_partenaires"] = f"{base_url}/partenaires"
+
+        subject = get_subject(template)
+
+        success = EmailService.send(
+            to=email,
+            subject=subject,
+            template=template,
+            context=context,
+        )
+
+        if success:
+            logger.info(f"Email 'document signé' envoyé à {email} ({role})")
+        else:
+            logger.error(f"Erreur envoi email 'document signé' à {email}")
 
 
 def verify_signature_order(signature_request):

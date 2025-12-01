@@ -14,19 +14,9 @@
 
         <mj-text>👉 Le contrat est désormais <strong>valable juridiquement</strong>.</mj-text>
 
-        <!-- Box téléchargement -->
-        <mj-text>
-          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #e8f5e9; border-radius: 8px;" class="box-success">
-            <tr>
-              <td style="padding: 20px; font-size: 16px;" class="box-success">
-                <span style="font-weight: 600; color: #479965;" class="text-success">📄 Bail signé disponible</span><br/><br/>
-                Vous trouverez le bail signé par toutes les parties dans votre espace Hestia.
-              </td>
-            </tr>
-          </table>
-        </mj-text>
+        <mj-text> Vous trouverez le bail signé par toutes les parties dans votre espace Hestia. </mj-text>
 
-        <mj-button href="{{ lien_espace }}" background-color="#479965">Accéder au bail signé</mj-button>
+        <mj-button href="{{ lien_espace }}" background-color="#3e3c41">Accéder au bail signé</mj-button>
 
         <mj-divider border-color="#d0ccc5" css-class="divider" />
 
@@ -37,8 +27,8 @@
         <mj-text>L'outil vous guide étape par étape, avec :</mj-text>
 
         <mj-text>
-          ✓ des <strong>photos horodatées</strong> intégrées automatiquement<br/>
-          ✓ un <strong>parcours structuré</strong> pour ne rien oublier<br/>
+          ✓ des <strong>photos horodatées</strong> intégrées automatiquement<br />
+          ✓ un <strong>parcours structuré</strong> pour ne rien oublier<br />
           ✓ une <strong>signature électronique gratuite</strong> conforme eIDAS
         </mj-text>
 

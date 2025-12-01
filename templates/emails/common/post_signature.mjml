@@ -13,62 +13,37 @@
 
         <mj-text>Votre signature{% if role == 'mandataire' %} en tant que mandataire{% elif role == 'bailleur' %} en tant que bailleur{% endif %} a bien été prise en compte — merci !</mj-text>
 
-        <mj-text>Voici un point complet sur l'avancement des signatures :</mj-text>
+        <mj-text font-weight="600" padding-bottom="5px">Avancement des signatures :</mj-text>
 
-        <!-- Signataires ayant signé -->
-        <mj-text>
-          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #e8f5e9; border-radius: 8px;" class="box-success">
-            <tr>
-              <td style="padding: 20px; font-size: 16px;" class="box-success">
-                <span style="font-weight: 600;" class="text-success">✅ Déjà signé :</span><br/><br/>
-                {% for signataire in signataires_signes %}• {{ signataire.nom }}{% if signataire.date %} ({{ signataire.date }}){% endif %}<br/>{% endfor %}
-              </td>
-            </tr>
-          </table>
-        </mj-text>
-
-        {% if signataires_restants %}
-        <!-- Signataires restants -->
-        <mj-text>
-          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fff8e1; border-radius: 8px;" class="box-warning">
-            <tr>
-              <td style="padding: 20px; font-size: 16px;" class="box-warning">
-                <span style="font-weight: 600; color: #f59e0b;" class="text-warning">✍️ Encore à signer :</span><br/><br/>
-                {% for signataire in signataires_restants %}• {{ signataire.nom }}<br/>{% endfor %}
-              </td>
-            </tr>
-          </table>
-        </mj-text>
+        <!-- Liste des signataires -->
+        <mj-text padding-top="0">{% for signataire in signataires_signes %}<span style="color: #479965">✓</span> {{ signataire.nom }}{% if signataire.date %} <span style="color: #6c6b70">({{ signataire.date }})</span>{% endif %}<br/>{% endfor %}{% if signataires_restants %}{% for signataire in signataires_restants %}<span style="color: #d0ccc5">○</span> {{ signataire.nom }} <span style="color: #6c6b70">(en attente)</span><br/>{% endfor %}{% endif %}</mj-text>
 
         {% if prochain_signataire %}
-        <mj-text>👉 <strong>Prochain signataire : {{ prochain_signataire.nom }}</strong></mj-text>
-        <mj-text>Un lien sécurisé vient de lui être envoyé automatiquement.</mj-text>
-        {% endif %}
+        <mj-text>
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #e8f4fd; border-radius: 8px;" class="box-info">
+            <tr>
+              <td style="padding: 15px;" class="box-info">
+                <span style="color: #2680eb;">👉 Prochain signataire : <strong>{{ prochain_signataire.nom }}</strong></span><br/>
+                <span style="color: #6c6b70;">Un lien sécurisé vient de lui être envoyé automatiquement.</span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
         {% endif %}
 
         <mj-divider border-color="#d0ccc5" css-class="divider" />
 
-        <mj-text>Pour votre information, vous pouvez à tout moment :</mj-text>
+        <mj-text>Vous pouvez à tout moment :</mj-text>
 
-        <mj-text>
-          📄 <strong>Télécharger le document actuel</strong> (version provisoire)<br/>
-          👀 <strong>Suivre l'avancement des signatures</strong> en temps réel{% if role == 'bailleur' or role == 'mandataire' %}<br/>
-          🗂️ <strong>Retrouver tous vos documents</strong> (bail, annexes, pièces justificatives){% endif %}
+        <mj-text padding-top="0">
+          • Télécharger le document actuel (version provisoire)<br/>
+          • Suivre l'avancement des signatures en temps réel{% if role == 'bailleur' or role == 'mandataire' %}<br/>
+          • Retrouver tous vos documents{% endif %}
         </mj-text>
 
         <mj-button href="{{ lien_espace }}" css-class="btn-primary">Accéder à mon espace</mj-button>
 
-        <mj-text>
-          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fff3e0; border-radius: 8px;" class="box-warning">
-            <tr>
-              <td style="padding: 15px; font-size: 16px;" class="box-warning">
-                <span style="color: #e65100;" class="text-warning">⚠️ <strong>Rappel :</strong> {{ document_type|avec_le }} ne sera juridiquement valable qu'une fois toutes les signatures apposées.</span>
-              </td>
-            </tr>
-          </table>
-        </mj-text>
-
-        <mj-text>Vous recevrez un mail dès que la procédure sera entièrement finalisée.</mj-text>
+        <mj-text>{{ document_type|avec_le|capfirst }} ne sera juridiquement valable qu'une fois toutes les signatures apposées. Vous recevrez un email de confirmation dès que la procédure sera finalisée.</mj-text>
 
         {% include "emails/components/signature.mjml" %}
       </mj-column>

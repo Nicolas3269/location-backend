@@ -10,6 +10,7 @@ from core.email_service import EmailService
 from core.email_subjects import get_subject
 from location.models import Bien
 from location.templatetags.french_grammar import avec_de
+from signature.models import AbstractSignatureRequest
 
 logger = logging.getLogger(__name__)
 
@@ -305,6 +306,80 @@ def send_signature_cancelled_emails(signature_requests, document, document_type=
             logger.info(f"Email 'signature annulée' envoyé à {email}")
         else:
             logger.error(f"Erreur envoi email 'signature annulée' à {email}")
+
+
+def send_signature_confirmation_email(
+    signature_request, document, document_type="bail"
+):
+    """
+    Envoie un email de confirmation après signature.
+    NE PAS appeler pour le dernier signataire (il recevra l'email "document signé").
+
+    Args:
+        signature_request: Instance de SignatureRequest qui vient de signer
+        document: Instance du document signable (Bail, EtatLieux, etc.)
+        document_type: Type de document ("bail", "etat_lieux", "avenant")
+    """
+    email = signature_request.get_signataire_email()
+    if not email:
+        return
+
+    config = _get_document_config(document_type)
+    base_url = settings.FRONTEND_URL
+    role = _get_signataire_role(signature_request)
+
+    # Récupérer toutes les signature requests du document
+    sig_requests: list[AbstractSignatureRequest] = (
+        document.signature_requests.all().order_by("order")
+    )
+
+    # Construire la liste des signataires ayant signé
+    signataires_signes = []
+    for sig in sig_requests.filter(signed=True):
+        signataire_info = {
+            "nom": sig.get_signataire_name(),
+        }
+        if sig.signed_at:
+            signataire_info["date"] = sig.signed_at.strftime("%d/%m/%Y à %H:%M")
+        signataires_signes.append(signataire_info)
+
+    # Construire la liste des signataires restants
+    signataires_restants = []
+    prochain_signataire = None
+    for sig in sig_requests.filter(signed=False).order_by("order"):
+        signataire_info = {
+            "nom": sig.get_signataire_name(),
+        }
+        signataires_restants.append(signataire_info)
+        if prochain_signataire is None:
+            prochain_signataire = signataire_info
+
+    context = {
+        "prenom": signature_request.get_signataire_first_name(),
+        "role": role,
+        "document_type": config["display"],
+        "signataires_signes": signataires_signes,
+        "signataires_restants": signataires_restants,
+        "prochain_signataire": prochain_signataire,
+        "lien_espace": f"{base_url}/mon-compte",
+    }
+
+    subject = get_subject(
+        "common/post_signature",
+        document_type=avec_de(config["display"]),
+    )
+
+    success = EmailService.send(
+        to=email,
+        subject=subject,
+        template="common/post_signature",
+        context=context,
+    )
+
+    if success:
+        logger.info(f"Email 'confirmation signature' envoyé à {email}")
+    else:
+        logger.error(f"Erreur envoi email 'confirmation signature' à {email}")
 
 
 def verify_signature_order(signature_request):

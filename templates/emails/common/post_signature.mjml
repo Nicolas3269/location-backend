@@ -1,5 +1,6 @@
 <mjml>
   {% include "emails/components/head.mjml" %}
+  {% load french_grammar %}
 
   <mj-body background-color="#f5f7f9" css-class="body-wrapper">
     {% include "emails/components/header.mjml" %}
@@ -19,7 +20,7 @@
           <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #e8f5e9; border-radius: 8px;" class="box-success">
             <tr>
               <td style="padding: 20px; font-size: 16px;" class="box-success">
-                <span style="font-weight: 600; color: #479965;" class="text-success">✅ Déjà signé :</span><br/><br/>
+                <span style="font-weight: 600;" class="text-success">✅ Déjà signé :</span><br/><br/>
                 {% for signataire in signataires_signes %}• {{ signataire.nom }}{% if signataire.date %} ({{ signataire.date }}){% endif %}<br/>{% endfor %}
               </td>
             </tr>
@@ -61,7 +62,7 @@
           <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #fff3e0; border-radius: 8px;" class="box-warning">
             <tr>
               <td style="padding: 15px; font-size: 16px;" class="box-warning">
-                <span style="color: #e65100;" class="text-warning">⚠️ <strong>Rappel :</strong> le bail ne sera juridiquement valable qu'une fois toutes les signatures apposées.</span>
+                <span style="color: #e65100;" class="text-warning">⚠️ <strong>Rappel :</strong> {{ document_type|avec_le }} ne sera juridiquement valable qu'une fois toutes les signatures apposées.</span>
               </td>
             </tr>
           </table>

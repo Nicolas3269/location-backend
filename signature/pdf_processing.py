@@ -15,7 +15,7 @@ from algo.signature.main import (
 )
 from backend.storage_utils import get_local_file_path, save_file_to_storage
 from signature.document_status import DocumentStatus
-from signature.services import send_document_signed_emails
+from signature.services import send_document_signed_emails, send_signature_confirmation_email
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +140,21 @@ def process_signature_generic(signature_request, signature_data_url, request=Non
             logger.info(
                 f"📝 Signatures : {completed_signatures}/{total_signatures} complétées"
             )
+
+            # Envoyer email de confirmation SI ce n'est PAS le dernier signataire
+            # (le dernier recevra l'email "document signé" à la place)
+            if completed_signatures < total_signatures:
+                try:
+                    first_sig = sig_requests.first()
+                    document_type = first_sig.get_document_type()
+                    send_signature_confirmation_email(
+                        signature_request, document, document_type
+                    )
+                    logger.info(f"📧 Email de confirmation envoyé au signataire")
+                except Exception as email_error:
+                    logger.warning(
+                        f"⚠️ Erreur envoi email de confirmation: {email_error}"
+                    )
 
             # Si toutes les signatures utilisateurs sont complètes → Finalisation
             if total_signatures > 0 and completed_signatures == total_signatures:

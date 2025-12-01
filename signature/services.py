@@ -204,7 +204,21 @@ def send_document_signed_emails(document, document_type="bail"):
             continue
 
         role = _get_signataire_role(sig_request)
-        template = f"{role}/{config['folder']}/{config['signed_template']}"
+
+        # Template spécifique pour locataire/EDL (entrée vs sortie)
+        if role == "locataire" and document_type == "etat_lieux":
+            from etat_lieux.models import EtatLieuxType
+
+            if document.type_etat_lieux == EtatLieuxType.ENTREE:
+                template_name = "entree_signe"
+            elif document.type_etat_lieux == EtatLieuxType.SORTIE:
+                template_name = "sortie_signe"
+            else:
+                raise ValueError(f"Type EDL inconnu: {document.type_etat_lieux}")
+        else:
+            template_name = config["signed_template"]
+
+        template = f"{role}/{config['folder']}/{template_name}"
 
         # Contexte de base
         context = {
@@ -212,9 +226,12 @@ def send_document_signed_emails(document, document_type="bail"):
             "lien_espace": f"{base_url}/mon-compte",
         }
 
-        # Contexte spécifique selon le rôle
+        # Contexte spécifique selon le rôle et le type de document
         if role in ["bailleur", "mandataire"]:
-            context["lien_edl"] = f"{base_url}/etat-lieux"
+            if document_type == "bail":
+                context["lien_edl"] = f"{base_url}/etat-lieux"
+            else:
+                context["lien_services"] = f"{base_url}/services"
         elif role == "locataire":
             context["lien_partenaires"] = f"{base_url}/partenaires"
 

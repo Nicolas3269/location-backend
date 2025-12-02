@@ -33,7 +33,7 @@ class EmailService:
         """
         # Ajouter les variables communes
         context.setdefault("frontend_url", settings.FRONTEND_URL)
-        context.setdefault("logo_url", "https://hestia.software/icons/logo-hestia-200.svg")
+        context.setdefault("logo_url", "https://hestia.software/icons/logo-hestia-whatsapp.png")
         context.setdefault("current_year", "2025")
 
         # Render le template Django (avec variables)

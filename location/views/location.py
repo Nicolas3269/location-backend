@@ -135,21 +135,25 @@ def get_location_detail(request, location_id):
         serializer = LocationReadSerializer(location, context={"user": request.user})
         location_data = serializer.data
 
-        # Ajouter le status (calculé depuis baux)
-        bail_actif = (
+        # Ajouter le status et bail_actif_id (calculés depuis baux)
+        bail_signe = (
             Bail.objects.filter(
                 location=location,
                 status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED],
             )
             .order_by("-created_at")
             .first()
-        ) or Bail.objects.filter(location=location).order_by("-created_at").first()
+        )
+        bail_actif = bail_signe or Bail.objects.filter(
+            location=location
+        ).order_by("-created_at").first()
 
         location_data["status"] = (
             bail_actif.get_status_display()
             if bail_actif
             else DocumentStatus.DRAFT.label
         )
+        location_data["bail_actif_id"] = str(bail_signe.id) if bail_signe else None
 
         return JsonResponse({"success": True, "location": location_data})
 
@@ -719,6 +723,17 @@ def get_location_documents(request, location_id):
 
         serializer = LocationReadSerializer(location, context={"user": request.user})
         location_info = serializer.data
+
+        # Ajouter bail_actif_id pour le frontend (bouton avenant)
+        bail_actif = (
+            Bail.objects.filter(
+                location=location,
+                status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED],
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        location_info["bail_actif_id"] = str(bail_actif.id) if bail_actif else None
 
         return JsonResponse(
             {

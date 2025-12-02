@@ -42,7 +42,7 @@ def send_quittance_email(quittance: Quittance, pdf_url: str, sender_email: str):
         "adresse": bien.adresse,
         "pdf_url": pdf_url,
         "lien_espace": f"{settings.FRONTEND_URL}/mon-compte/mes-locations",
-        "lien_services": f"{settings.FRONTEND_URL}/services",
+        "lien_services": f"{settings.FRONTEND_URL}/me-notifier?role=locataire",
     }
 
     success = EmailService.send(

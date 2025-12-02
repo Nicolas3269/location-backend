@@ -28,6 +28,35 @@ class NotificationRequestSerializer(serializers.ModelSerializer):
         return value
 
 
+class BulkNotificationRequestSerializer(serializers.Serializer):
+    """
+    Serializer pour créer plusieurs demandes de notification en une fois.
+    Accepte une liste de features.
+    """
+
+    email = serializers.EmailField()
+    features = serializers.ListField(
+        child=serializers.CharField(),
+        min_length=1,
+        help_text="Liste des fonctionnalités demandées",
+    )
+    role = serializers.ChoiceField(choices=NotificationRequest.ROLE_CHOICES)
+
+    def validate_email(self, value):
+        """Normalise l'email en minuscules"""
+        return value.lower()
+
+    def validate_features(self, value):
+        """Validation des fonctionnalités"""
+        valid_features = [choice[0] for choice in NotificationRequest.FEATURE_CHOICES]
+        invalid = [f for f in value if f not in valid_features]
+        if invalid:
+            raise serializers.ValidationError(
+                f"Fonctionnalités invalides: {invalid}. Options valides: {valid_features}"
+            )
+        return list(set(value))  # Déduplique
+
+
 class NotificationRequestListSerializer(serializers.ModelSerializer):
     """
     Serializer pour la liste des demandes (avec infos supplémentaires)

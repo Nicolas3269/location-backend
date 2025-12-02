@@ -2,14 +2,19 @@
 Constantes pour le module location
 """
 
+from enum import StrEnum
 
-class UserRole:
+
+class UserRole(StrEnum):
     """
     Rôles utilisateurs pour les formulaires de location.
-    Utilisé pour déterminer le parcours du formulaire et les permissions.
+    Utilisé pour déterminer le parcours du formulaire, les permissions,
+    et la construction des URLs.
     """
+
     BAILLEUR = "bailleur"
     MANDATAIRE = "mandataire"
+    LOCATAIRE = "locataire"
 
     @classmethod
     def choices(cls):
@@ -17,9 +22,10 @@ class UserRole:
         return [
             (cls.BAILLEUR, "Bailleur"),
             (cls.MANDATAIRE, "Mandataire"),
+            (cls.LOCATAIRE, "Locataire"),
         ]
 
     @classmethod
     def values(cls):
         """Retourne la liste des valeurs valides"""
-        return [cls.BAILLEUR, cls.MANDATAIRE]
+        return [cls.BAILLEUR, cls.MANDATAIRE, cls.LOCATAIRE]

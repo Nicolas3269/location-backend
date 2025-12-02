@@ -42,7 +42,7 @@
           </table>
         </mj-text>
 
-        <mj-button href="{{ lien_assurances }}" background-color="#3e3c41">Découvrir mes assurances bailleur</mj-button>
+        <mj-button href="{{ frontend_url }}/me-notifier?topic=assurance&role=proprietaire" background-color="#3e3c41">Découvrir mes assurances bailleur</mj-button>
 
         <mj-text>Merci de votre confiance.</mj-text>
 

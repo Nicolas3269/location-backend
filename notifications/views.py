@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from .models import NotificationRequest
 from .serializers import (
+    BulkNotificationRequestSerializer,
     NotificationRequestListSerializer,
     NotificationRequestSerializer,
 )
@@ -59,6 +60,73 @@ def create_notification_request(request):
     return Response(
         {"success": False, "message": "Données invalides", "errors": serializer.errors},
         status=status.HTTP_400_BAD_REQUEST,
+    )
+
+
+@api_view(["POST"])
+@permission_classes([permissions.AllowAny])
+def create_bulk_notification_request(request):
+    """
+    Créer plusieurs demandes de notification en une fois.
+
+    POST /api/notifications/bulk/
+    {
+        "email": "user@example.com",
+        "features": ["assurance", "demenagement", "energie"],
+        "role": "proprietaire"
+    }
+
+    Retourne:
+    - created: liste des features nouvellement créées
+    - already_registered: liste des features où l'email était déjà inscrit
+    """
+    serializer = BulkNotificationRequestSerializer(data=request.data)
+
+    if not serializer.is_valid():
+        return Response(
+            {"success": False, "message": "Données invalides", "errors": serializer.errors},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    email = serializer.validated_data["email"]
+    features = serializer.validated_data["features"]
+    role = serializer.validated_data["role"]
+
+    created = []
+    already_registered = []
+
+    for feature in features:
+        try:
+            NotificationRequest.objects.create(
+                email=email,
+                feature=feature,
+                role=role,
+            )
+            created.append(feature)
+        except IntegrityError:
+            already_registered.append(feature)
+
+    # Déterminer le statut de réponse
+    if not created and already_registered:
+        # Toutes les features étaient déjà enregistrées
+        return Response(
+            {
+                "success": True,
+                "message": "Vous êtes déjà inscrit pour tous ces services",
+                "created": [],
+                "already_registered": already_registered,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    return Response(
+        {
+            "success": True,
+            "message": f"{len(created)} inscription(s) enregistrée(s)",
+            "created": created,
+            "already_registered": already_registered,
+        },
+        status=status.HTTP_201_CREATED,
     )
 
 

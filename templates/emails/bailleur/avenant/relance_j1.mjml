@@ -14,7 +14,7 @@
 
         <mj-text>
           {% if manque_ddt %}• Le <strong>Dossier de Diagnostics Techniques (DDT)</strong>, qui inclut le DPE<br/>{% endif %}
-          {% if manque_numero_fiscal %}• Le <strong>numéro fiscal du logement</strong> (identifiant fiscal servant aux déclarations) — <a href="{{ lien_tuto_fiscal }}" style="color: #2680eb;">retrouver mon numéro fiscal</a><br/>{% endif %}
+          {% if manque_numero_fiscal %}• Le <strong>numéro fiscal du logement</strong> (identifiant fiscal servant aux déclarations) — <a href="https://cfrapp.impots.gouv.fr/BienImmobilier/accueil" style="color: #2680eb;">retrouver mon numéro fiscal</a><br/>{% endif %}
           {% if manque_permis_louer %}• Le <strong>permis de louer</strong>, obligatoire dans certaines communes{% endif %}
         </mj-text>
 

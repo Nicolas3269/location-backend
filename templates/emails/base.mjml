@@ -41,7 +41,7 @@
           © {{ current_year }} Hestia — Gestion locative simplifiée
         </mj-text>
         <mj-text align="center" font-size="12px" color="#6c6b70">
-          Cet email a été envoyé automatiquement. Besoin d'aide ? <a href="{{ frontend_url }}/contact">Contactez-nous</a>
+          Cet email a été envoyé automatiquement. Besoin d'aide ? <a href="mailto:contact@hestia.software">Contactez-nous</a>
         </mj-text>
       </mj-column>
     </mj-section>

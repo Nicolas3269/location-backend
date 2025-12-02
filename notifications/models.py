@@ -10,6 +10,11 @@ class NotificationRequest(models.Model):
 
     FEATURE_CHOICES = [
         ("assurance", "Comparateur d'assurances"),
+        ("demenagement", "Service déménagement"),
+        ("stockage", "Box de stockage"),
+        ("energie", "Énergie (électricité/gaz)"),
+        ("eau", "Fournisseur d'eau"),
+        ("internet", "Internet/Box"),
     ]
 
     ROLE_CHOICES = [

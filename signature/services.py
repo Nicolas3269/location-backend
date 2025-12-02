@@ -8,6 +8,11 @@ from django.conf import settings
 
 from core.email_service import EmailService
 from core.email_subjects import get_subject
+from core.url_builders import (
+    get_bailleur_id_from_location,
+    get_location_url,
+)
+from location.constants import UserRole
 from location.models import Bien
 from location.templatetags.french_grammar import avec_de
 from signature.models import AbstractSignatureRequest
@@ -15,18 +20,18 @@ from signature.models import AbstractSignatureRequest
 logger = logging.getLogger(__name__)
 
 
-def _get_signataire_role(signature_request) -> str:
+def _get_signataire_role(signature_request) -> UserRole:
     """Détermine le rôle du signataire (bailleur, mandataire, locataire)."""
     if (
         hasattr(signature_request, "bailleur_signataire")
         and signature_request.bailleur_signataire
     ):
-        return "bailleur"
+        return UserRole.BAILLEUR
     elif hasattr(signature_request, "mandataire") and signature_request.mandataire:
-        return "mandataire"
+        return UserRole.MANDATAIRE
     elif hasattr(signature_request, "locataire") and signature_request.locataire:
-        return "locataire"
-    return "bailleur"  # Fallback
+        return UserRole.LOCATAIRE
+    return UserRole.BAILLEUR  # Fallback
 
 
 def _get_document_config(document_type: str) -> dict:
@@ -197,6 +202,12 @@ def send_document_signed_emails(document, document_type="bail"):
     config = _get_document_config(document_type)
     base_url = settings.FRONTEND_URL
 
+    # Récupérer les IDs pour construire les liens
+    location = document.location
+    location_id = str(location.id) if location else None
+    bien_id = str(location.bien.id) if location and location.bien else None
+    bailleur_id = get_bailleur_id_from_location(location)
+
     # Récupérer toutes les demandes de signature pour ce document
     signature_requests = document.signature_requests.all()
 
@@ -208,7 +219,7 @@ def send_document_signed_emails(document, document_type="bail"):
         role = _get_signataire_role(sig_request)
 
         # Template spécifique pour locataire/EDL (entrée vs sortie)
-        if role == "locataire" and document_type == "etat_lieux":
+        if role == UserRole.LOCATAIRE and document_type == "etat_lieux":
             from etat_lieux.models import EtatLieuxType
 
             if document.type_etat_lieux == EtatLieuxType.ENTREE:
@@ -222,20 +233,30 @@ def send_document_signed_emails(document, document_type="bail"):
 
         template = f"{role}/{config['folder']}/{template_name}"
 
-        # Contexte de base
+        # Construire le lien vers l'espace selon le rôle
+        lien_espace = get_location_url(role, location_id, bien_id, bailleur_id)
+
         context = {
             "prenom": sig_request.get_signataire_first_name(),
-            "lien_espace": f"{base_url}/mon-compte",
+            "lien_espace": lien_espace,
         }
 
         # Contexte spécifique selon le rôle et le type de document
-        if role in ["bailleur", "mandataire"]:
-            if document_type == "bail":
-                context["lien_edl"] = f"{base_url}/etat-lieux"
-            else:
+        if role in (UserRole.BAILLEUR, UserRole.MANDATAIRE):
+            if document_type == "bail" and location_id:
+                # Lien vers la page documents où le bouton EDL est disponible
+                context["lien_edl"] = lien_espace
+            elif role == UserRole.MANDATAIRE:
+                # Lien vers la page services pour les mandataires
                 context["lien_services"] = f"{base_url}/services"
-        elif role == "locataire":
-            context["lien_partenaires"] = f"{base_url}/partenaires"
+            else:
+                # Lien vers la page assurances pour les bailleurs
+                context["lien_services"] = f"{base_url}/assurances"
+        elif role == UserRole.LOCATAIRE:
+            # Offres partenaires (déménagement, etc.) → page de notification
+            context["lien_partenaires"] = (
+                f"{base_url}/me-notifier?topic=demenagement&role={UserRole.LOCATAIRE}"
+            )
 
         subject = get_subject(template)
 
@@ -266,8 +287,13 @@ def send_signature_cancelled_emails(signature_requests, document, document_type=
         document_type: Type de document ("bail", "etat_lieux", "avenant")
     """
     config = _get_document_config(document_type)
-    base_url = settings.FRONTEND_URL
     adresse = _get_adresse_logement(document)
+
+    # Récupérer les IDs pour construire les liens
+    location = document.location
+    location_id = str(location.id) if location else None
+    bien_id = str(location.bien.id) if location and location.bien else None
+    bailleur_id = get_bailleur_id_from_location(location)
 
     # Trouver le prochain signataire en attente (celui qui a reçu le lien)
     next_signer = signature_requests.filter(signed=False).order_by("order").first()
@@ -283,11 +309,16 @@ def send_signature_cancelled_emails(signature_requests, document, document_type=
         if not email:
             continue
 
+        role = _get_signataire_role(sig_request)
+
+        # Construire le lien vers l'espace selon le rôle
+        lien_espace = get_location_url(role, location_id, bien_id, bailleur_id)
+
         context = {
             "prenom": sig_request.get_signataire_first_name(),
             "document_type": config["display"],
             "adresse": adresse,
-            "lien_espace": f"{base_url}/mon-compte",
+            "lien_espace": lien_espace,
         }
 
         subject = get_subject(
@@ -325,8 +356,13 @@ def send_signature_confirmation_email(
         return
 
     config = _get_document_config(document_type)
-    base_url = settings.FRONTEND_URL
     role = _get_signataire_role(signature_request)
+
+    # Récupérer les IDs pour construire les liens
+    location = document.location
+    location_id = str(location.id) if location else None
+    bien_id = str(location.bien.id) if location and location.bien else None
+    bailleur_id = get_bailleur_id_from_location(location)
 
     # Récupérer toutes les signature requests du document
     sig_requests: list[AbstractSignatureRequest] = (
@@ -354,6 +390,9 @@ def send_signature_confirmation_email(
         if prochain_signataire is None:
             prochain_signataire = signataire_info
 
+    # Construire le lien vers l'espace selon le rôle
+    lien_espace = get_location_url(role, location_id, bien_id, bailleur_id)
+
     context = {
         "prenom": signature_request.get_signataire_first_name(),
         "role": role,
@@ -361,7 +400,7 @@ def send_signature_confirmation_email(
         "signataires_signes": signataires_signes,
         "signataires_restants": signataires_restants,
         "prochain_signataire": prochain_signataire,
-        "lien_espace": f"{base_url}/mon-compte",
+        "lien_espace": lien_espace,
     }
 
     subject = get_subject(

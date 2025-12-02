@@ -38,7 +38,7 @@
           </table>
         </mj-text>
 
-        <mj-button href="{{ lien_assurances }}" background-color="#3e3c41">Découvrir les offres MRH</mj-button>
+        <mj-button href="{{ frontend_url }}/me-notifier?topic=assurance&role=locataire" background-color="#3e3c41">Découvrir les offres MRH</mj-button>
 
         <mj-text>Bonne installation !</mj-text>
 

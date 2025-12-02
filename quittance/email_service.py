@@ -7,6 +7,8 @@ import logging
 from django.conf import settings
 
 from core.email_service import EmailService
+from core.url_builders import get_user_space_url
+from location.constants import UserRole
 from location.models import Bien, Locataire
 from quittance.models import Quittance
 
@@ -41,7 +43,7 @@ def send_quittance_email(quittance: Quittance, pdf_url: str, sender_email: str):
         "montant_charges": quittance.montant_charges,
         "adresse": bien.adresse,
         "pdf_url": pdf_url,
-        "lien_espace": f"{settings.FRONTEND_URL}/mon-compte/mes-locations",
+        "lien_espace": get_user_space_url(UserRole.LOCATAIRE),
         "lien_services": f"{settings.FRONTEND_URL}/me-notifier?role=locataire",
     }
 

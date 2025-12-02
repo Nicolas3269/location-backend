@@ -11,6 +11,28 @@ from django.conf import settings
 
 from location.constants import UserRole
 
+# Routes de base par rôle
+USER_SPACE_PATHS = {
+    UserRole.BAILLEUR: "/mon-compte/mes-biens",
+    UserRole.MANDATAIRE: "/mon-compte/mes-mandats",
+    UserRole.LOCATAIRE: "/mon-compte/mes-locations",
+}
+
+
+def get_user_space_url(role: UserRole | str) -> str:
+    """
+    Retourne l'URL de l'espace utilisateur (page d'accueil) selon le rôle.
+
+    Args:
+        role: UserRole ou string
+
+    Returns:
+        URL complète vers l'espace utilisateur
+    """
+    base_url = settings.FRONTEND_URL
+    path = USER_SPACE_PATHS.get(role, "/mon-compte")
+    return f"{base_url}{path}"
+
 
 def get_location_url(
     role: UserRole | str,
@@ -30,78 +52,16 @@ def get_location_url(
     Returns:
         URL complète vers la page de location
     """
-    base_url = settings.FRONTEND_URL
+    base = get_user_space_url(role)
 
     if role == UserRole.MANDATAIRE and bailleur_id and bien_id and location_id:
-        return (
-            f"{base_url}/mon-compte/mes-mandats/{bailleur_id}"
-            f"/biens/{bien_id}/locations/{location_id}/documents"
-        )
+        return f"{base}/{bailleur_id}/biens/{bien_id}/locations/{location_id}/documents"
     elif role == UserRole.BAILLEUR and bien_id and location_id:
-        return f"{base_url}/mon-compte/mes-biens/{bien_id}/locations/{location_id}/documents"
+        return f"{base}/{bien_id}/locations/{location_id}/documents"
     elif role == UserRole.LOCATAIRE and location_id:
-        return f"{base_url}/mon-compte/mes-locations/{location_id}"
+        return f"{base}/{location_id}"
     else:
-        return f"{base_url}/mon-compte"
-
-
-def get_location_path(
-    role: UserRole | str,
-    location_id: str | None = None,
-    bien_id: str | None = None,
-    bailleur_id: str | None = None,
-) -> str:
-    """
-    Construit le path (sans base_url) vers la page de location selon le rôle.
-    Utile pour les returnUrl.
-
-    Args:
-        role: UserRole ou string ("bailleur", "mandataire", "locataire")
-        location_id: UUID de la location
-        bien_id: UUID du bien (requis pour bailleur/mandataire)
-        bailleur_id: UUID du bailleur (requis pour mandataire)
-
-    Returns:
-        Path vers la page de location (ex: /mon-compte/mes-biens/...)
-    """
-    if role == UserRole.MANDATAIRE and bailleur_id and bien_id and location_id:
-        return (
-            f"/mon-compte/mes-mandats/{bailleur_id}"
-            f"/biens/{bien_id}/locations/{location_id}/documents"
-        )
-    elif role == UserRole.BAILLEUR and bien_id and location_id:
-        return f"/mon-compte/mes-biens/{bien_id}/locations/{location_id}/documents"
-    elif role == UserRole.LOCATAIRE and location_id:
-        return f"/mon-compte/mes-locations/{location_id}"
-    else:
-        return "/mon-compte"
-
-
-def get_edl_creation_url(
-    role: UserRole | str,
-    location_id: str,
-    bien_id: str | None = None,
-    bailleur_id: str | None = None,
-) -> str:
-    """
-    Construit l'URL pour créer un état des lieux depuis une location.
-
-    Args:
-        role: UserRole (BAILLEUR ou MANDATAIRE)
-        location_id: UUID de la location source
-        bien_id: UUID du bien
-        bailleur_id: UUID du bailleur (pour mandataire)
-
-    Returns:
-        URL complète vers /etat-lieux avec les paramètres de contexte
-    """
-    base_url = settings.FRONTEND_URL
-    return_url = get_location_path(role, location_id, bien_id, bailleur_id)
-
-    return (
-        f"{base_url}/etat-lieux?mode=location_actuelle"
-        f"&sourceId={location_id}&returnUrl={return_url}"
-    )
+        return base
 
 
 def get_bailleur_id_from_location(location) -> str | None:

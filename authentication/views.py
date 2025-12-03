@@ -38,7 +38,10 @@ logger = logging.getLogger(__name__)
 
 
 # Décorateur pour limiter les requêtes (prévention contre les abus)
+# Désactivé en mode DEBUG pour permettre les tests E2E parallèles
 def rate_limit(view_func):
+    if settings.DEBUG:
+        return view_func  # Pas de rate limit en dev/test
     return ratelimit(key="ip", rate="5/m", method="POST", block=True)(view_func)
 
 

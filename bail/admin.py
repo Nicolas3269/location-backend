@@ -63,7 +63,14 @@ class AvenantSignatureRequestInline(admin.TabularInline):
 
     model = AvenantSignatureRequest
     extra = 0
-    fields = ("order", "bailleur_signataire", "locataire", "mandataire", "signed", "signed_at")
+    fields = (
+        "order",
+        "bailleur_signataire",
+        "locataire",
+        "mandataire",
+        "signed",
+        "signed_at",
+    )
     readonly_fields = ("link_token", "signed_at")
 
 
@@ -179,7 +186,18 @@ class AvenantSignatureRequestAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
-        (None, {"fields": ("avenant", "order", "bailleur_signataire", "locataire", "mandataire")}),
+        (
+            None,
+            {
+                "fields": (
+                    "avenant",
+                    "order",
+                    "bailleur_signataire",
+                    "locataire",
+                    "mandataire",
+                )
+            },
+        ),
         (
             "Authentification",
             {
@@ -203,7 +221,9 @@ class AvenantSignatureRequestAdmin(admin.ModelAdmin):
 
     def avenant_display(self, obj):
         """Affichage de l'avenant"""
-        return f"Avenant n°{obj.avenant.numero} - {obj.avenant.bail.location.bien.adresse}"
+        return (
+            f"Avenant n°{obj.avenant.numero} - {obj.avenant.bail.location.bien.adresse}"
+        )
 
     avenant_display.short_description = "Avenant"
 
@@ -245,6 +265,7 @@ class BailAdmin(admin.ModelAdmin):
         "status",
         "display_documents_status",
         "cancelled_at",
+        "created_at",
     )
     list_filter = ("status", "cancelled_at")
     search_fields = (
@@ -253,6 +274,7 @@ class BailAdmin(admin.ModelAdmin):
         "location__locataires__firstName",
     )
     date_hierarchy = "created_at"
+    ordering = ["-created_at"]
     inlines = [DocumentInline, BailSignatureRequestInline, AvenantInline]
     readonly_fields = (
         "date_signature_display",
@@ -397,7 +419,10 @@ class BailAdmin(admin.ModelAdmin):
         # On va utiliser une URL relative
         from django.urls import reverse
 
-        url = reverse("serve_static_pdf_iframe", kwargs={"file_path": "bails/notice_information.pdf"})
+        url = reverse(
+            "serve_static_pdf_iframe",
+            kwargs={"file_path": "bails/notice_information.pdf"},
+        )
         return format_html(
             '<a href="{}" target="_blank">📋 Notice d\'information (statique)</a>', url
         )

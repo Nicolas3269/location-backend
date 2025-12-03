@@ -205,8 +205,15 @@ class BienAdmin(admin.ModelAdmin):
 class LocataireAdmin(admin.ModelAdmin):
     """Interface d'administration pour les locataires"""
 
-    list_display = ("get_lastName", "get_firstName", "email", "count_locations")
+    list_display = (
+        "get_lastName",
+        "get_firstName",
+        "email",
+        "count_locations",
+        "created_at",
+    )
     search_fields = ("lastName", "firstName", "email")
+    ordering = ["-created_at"]
 
     fieldsets = (
         (
@@ -500,6 +507,7 @@ class RentTermsAdmin(admin.ModelAdmin):
     def display_depot_garantie(self, obj):
         """Affiche le dépôt de garantie (calculé ou override)"""
         return f"{obj.depot_garantie}€" if obj.depot_garantie else "-"
+
     display_depot_garantie.short_description = "Dépôt garantie"
 
     fieldsets = (

@@ -37,6 +37,8 @@ class QuittanceAdmin(admin.ModelAdmin):
         "location__bien__bailleurs__societe__raison_sociale",
     ]
 
+    ordering = ["-created_at"]
+
     readonly_fields = [
         "id",
         "created_at",
@@ -98,9 +100,7 @@ class QuittanceAdmin(admin.ModelAdmin):
         """Affiche l'UUID raccourci avec lien vers le détail"""
         detail_url = reverse("admin:quittance_quittance_change", args=[obj.pk])
         return format_html(
-            '<a href="{}" title="Voir le détail">{}</a>',
-            detail_url,
-            str(obj.id)[:8]
+            '<a href="{}" title="Voir le détail">{}</a>', detail_url, str(obj.id)[:8]
         )
 
     id_short.short_description = "ID"
@@ -115,6 +115,7 @@ class QuittanceAdmin(admin.ModelAdmin):
 
         # Chercher s'il y a un bail actif (SIGNING ou SIGNED) pour cette location
         from signature.document_status import DocumentStatus
+
         bail = obj.location.bails.filter(
             status__in=[DocumentStatus.SIGNING, DocumentStatus.SIGNED]
         ).first()
@@ -157,8 +158,13 @@ class QuittanceAdmin(admin.ModelAdmin):
         else:
             # Sinon, afficher tous les locataires de la location
             location_locataires = obj.location.locataires.all()
-            locataires_list = [f"{loc.firstName} {loc.lastName}" for loc in location_locataires]
-            return format_html("<br>".join(locataires_list) + "<br><small>(Tous les locataires de la location)</small>")
+            locataires_list = [
+                f"{loc.firstName} {loc.lastName}" for loc in location_locataires
+            ]
+            return format_html(
+                "<br>".join(locataires_list)
+                + "<br><small>(Tous les locataires de la location)</small>"
+            )
 
     locataires_display.short_description = "Locataire(s) concerné(s)"
 

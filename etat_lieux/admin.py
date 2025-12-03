@@ -63,6 +63,8 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         "location__locataires__firstName",
     )
 
+    ordering = ["-created_at"]
+
     readonly_fields = (
         "id",
         "created_at",
@@ -73,13 +75,24 @@ class EtatLieuxAdmin(admin.ModelAdmin):
     )
 
     fieldsets = (
-        (None, {"fields": ("id", "location", "type_etat_lieux", "date_etat_lieux", "status")}),
+        (
+            None,
+            {
+                "fields": (
+                    "id",
+                    "location",
+                    "type_etat_lieux",
+                    "date_etat_lieux",
+                    "status",
+                )
+            },
+        ),
         (
             "Inventaire",
             {
                 "fields": ("nombre_cles", "compteurs", "commentaires_generaux"),
                 "classes": ("collapse",),
-            }
+            },
         ),
         (
             "PDF",
@@ -93,10 +106,9 @@ class EtatLieuxAdmin(admin.ModelAdmin):
                 ),
                 "classes": ("collapse",),
                 "description": (
-                    "La grille de vétusté est toujours disponible "
-                    "(document statique)"
+                    "La grille de vétusté est toujours disponible (document statique)"
                 ),
-            }
+            },
         ),
         (
             "Métadonnées",
@@ -107,17 +119,19 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         ),
     )
 
-    inlines = [EtatLieuxPieceInline, EtatLieuxEquipementInline, EtatLieuxSignatureRequestInline]
+    inlines = [
+        EtatLieuxPieceInline,
+        EtatLieuxEquipementInline,
+        EtatLieuxSignatureRequestInline,
+    ]
 
     def location_info(self, obj):
         """Affiche les informations de la location"""
         bien_adresse = obj.location.bien.adresse
-        locataires = ", ".join([f"{loc.firstName} {loc.lastName}" for loc in obj.location.locataires.all()])
-        return format_html(
-            "{}<br><small>{}</small>",
-            bien_adresse,
-            locataires
+        locataires = ", ".join(
+            [f"{loc.firstName} {loc.lastName}" for loc in obj.location.locataires.all()]
         )
+        return format_html("{}<br><small>{}</small>", bien_adresse, locataires)
 
     location_info.short_description = "Location"
 
@@ -135,7 +149,8 @@ class EtatLieuxAdmin(admin.ModelAdmin):
         """Affiche un lien vers le PDF signé s'il existe"""
         if obj.latest_pdf:
             return format_html(
-                '<a href="{}" target="_blank">Télécharger PDF Signé</a>', obj.latest_pdf.url
+                '<a href="{}" target="_blank">Télécharger PDF Signé</a>',
+                obj.latest_pdf.url,
             )
         return "Pas de PDF signé"
 

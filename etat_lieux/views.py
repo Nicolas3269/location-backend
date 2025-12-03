@@ -233,37 +233,43 @@ def update_or_create_etat_lieux(location_id, form_data, uploaded_photos, user):
         # ✅ Détacher les photos AVANT toute suppression (grâce à SET_NULL)
         # Cela permet de conserver les photos uploadées via /upload-photo/
         from etat_lieux.models import EtatLieuxPhoto
-        existing_draft = EtatLieux.objects.filter(
+
+        # ✅ FIX: Récupérer TOUS les drafts existants (pas juste le premier)
+        # Évite les erreurs "duplicate key" si plusieurs drafts existent
+        existing_drafts = EtatLieux.objects.filter(
             location_id=location_id,
             type_etat_lieux=etat_lieux_type,
             status=DocumentStatus.DRAFT,
-        ).first()
+        )
 
-        if existing_draft:
+        drafts_count = existing_drafts.count()
+        if drafts_count > 0:
             logger.info(
-                f"DRAFT existant trouvé : {existing_draft.id}, "
+                f"{drafts_count} DRAFT(s) existant(s) trouvé(s), "
                 f"détachement des photos avant suppression"
             )
 
-            # ✅ Détacher toutes les photos (equipment=None)
+            # ✅ Détacher toutes les photos de TOUS les drafts
             orphaned_count = EtatLieuxPhoto.objects.filter(
-                equipment__etat_lieux=existing_draft
+                equipment__etat_lieux__in=existing_drafts
             ).update(equipment=None)
 
             logger.info(
                 f"{orphaned_count} photos détachées et conservées en orphelines"
             )
 
-            # Supprimer le PDF
-            if existing_draft.pdf:
-                try:
-                    existing_draft.pdf.delete(save=False)
-                except Exception as e:
-                    logger.warning(f"Impossible de supprimer le PDF: {e}")
+            # Supprimer les PDFs de tous les drafts
+            for draft in existing_drafts:
+                if draft.pdf:
+                    try:
+                        draft.pdf.delete(save=False)
+                    except Exception as e:
+                        logger.warning(f"Impossible de supprimer le PDF {draft.id}: {e}")
 
-            # Supprimer le DRAFT (pièces/équipements en CASCADE, photos préservées)
-            existing_draft.delete()
-            logger.info(f"DRAFT {existing_draft.id} supprimé")
+            # ✅ Supprimer TOUS les DRAFTs (pièces/équipements en CASCADE, photos préservées)
+            draft_ids = list(existing_drafts.values_list("id", flat=True))
+            existing_drafts.delete()
+            logger.info(f"{drafts_count} DRAFT(s) supprimé(s): {draft_ids}")
 
         # Créer le nouvel état des lieux
         etat_lieux, equipment_id_map = create_etat_lieux_from_form_data(

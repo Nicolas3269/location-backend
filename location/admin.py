@@ -402,12 +402,20 @@ class RentTermsInline(admin.StackedInline):
         "type_charges",
         "montant_charges",
         "jour_paiement",
-        "depot_garantie",
+        "display_depot_garantie",
+        "depot_garantie_override",
         "zone_tendue",
         "permis_de_louer",
         "rent_price_id",
         "justificatif_complement_loyer",
     )
+    readonly_fields = ("display_depot_garantie",)
+
+    @admin.display(description="Dépôt de garantie (calculé)")
+    def display_depot_garantie(self, obj):
+        if obj.pk:
+            return f"{obj.depot_garantie}€" if obj.depot_garantie else "-"
+        return "-"
 
 
 @admin.register(Location)

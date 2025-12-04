@@ -117,7 +117,9 @@ class BienAdmin(admin.ModelAdmin):
         "display_nombre_pieces_principales",
         "meuble",
         "display_dpe_class",
+        "created_at",
     )
+    ordering = ("-created_at",)
     list_filter = (
         "type_bien",
         "meuble",

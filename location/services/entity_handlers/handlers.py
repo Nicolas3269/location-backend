@@ -908,10 +908,9 @@ def create_new_location(data, serializer_class, location_id, document_type):
     # Créer les bailleurs (commun aux deux parcours)
     bailleur_principal, autres_bailleurs = create_or_get_bailleur(data)
 
-    # Associer les bailleurs au bien
-    bien.bailleurs.add(bailleur_principal)
-    for autre_bailleur in autres_bailleurs:
-        bien.bailleurs.add(autre_bailleur)
+    # Associer les bailleurs au bien (utiliser set() pour éviter les doublons)
+    bailleurs_list = [bailleur_principal] + autres_bailleurs
+    bien.bailleurs.set(bailleurs_list)
 
     logger.info(
         f"Bailleur principal et {len(autres_bailleurs)} co-bailleur(s) associés"

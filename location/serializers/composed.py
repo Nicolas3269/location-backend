@@ -254,7 +254,7 @@ class ModalitesFinancieresSerializer(serializers.Serializer):
         choices=["provisionnelles", "forfaitaires"], default="provisionnelles"
     )
     depot_garantie = serializers.DecimalField(
-        max_digits=10, decimal_places=2, required=False
+        max_digits=10, decimal_places=2, required=False, allow_null=True
     )
     jour_paiement = serializers.IntegerField(min_value=1, max_value=31, default=1)
 
@@ -271,7 +271,7 @@ class ModalitesZoneTendueSerializer(serializers.Serializer):
         max_length=7, required=False, allow_null=True, help_text="Format YYYY-MM (ex: 2024-03)"
     )
     justificatif_complement_loyer = serializers.CharField(
-        required=False, allow_blank=True
+        required=False, allow_blank=True, allow_null=True
     )
 
 

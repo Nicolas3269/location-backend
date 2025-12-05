@@ -42,11 +42,35 @@ def get_signature_request_generic(request, token, model_class):
         token: Token de signature
         model_class: Classe du modèle de signature
     """
-    try:
-        sig_req: AbstractSignatureRequest = get_object_or_404(
-            model_class, link_token=token
+    # Chercher avec all_objects (inclut les annulés) pour distinguer les cas
+    sig_req: AbstractSignatureRequest | None = model_class.all_objects.filter(
+        link_token=token
+    ).first()
+
+    if sig_req is None:
+        # Token vraiment inexistant
+        return JsonResponse(
+            {
+                "error": "Ce lien de signature n'est plus valide.",
+                "token_not_found": True,
+            },
+            status=404,
         )
 
+    if sig_req.is_cancelled:
+        # Demande annulée (soft deleted)
+        contact_info = sig_req.get_contact_info()
+        return JsonResponse(
+            {
+                "error": "Cette demande de signature a été annulée.",
+                "cancelled": True,
+                "contact": contact_info,
+            },
+            status=410,  # 410 Gone - ressource n'existe plus
+        )
+
+    # À partir d'ici, sig_req existe - les erreurs sont de vraies erreurs techniques
+    try:
         if sig_req.signed:
             return JsonResponse(
                 {
@@ -463,20 +487,25 @@ def cancel_signature_generic(request, document_id, document_model):
         # Récupérer toutes les signature requests liées au document
         # Via la relation inverse (related_name="signature_requests")
         signature_requests = document.signature_requests.all()
-        deleted_count = signature_requests.count()
+        cancelled_count = signature_requests.count()
 
-        # Envoyer les emails d'annulation AVANT suppression
-        if deleted_count > 0:
+        # Envoyer les emails d'annulation AVANT le soft delete
+        if cancelled_count > 0:
             first_sig = signature_requests.first()
             document_type = first_sig.get_document_type()
             try:
-                send_signature_cancelled_emails(signature_requests, document, document_type)
+                send_signature_cancelled_emails(
+                    signature_requests, document, document_type
+                )
                 logger.info(f"📧 Emails d'annulation envoyés pour {document_type}")
             except Exception as email_error:
                 logger.warning(f"⚠️ Erreur envoi emails d'annulation: {email_error}")
 
-        # Supprimer les signature requests
-        signature_requests.delete()
+        # Soft delete des signature requests (au lieu de hard delete)
+        # Cela permet de garder l'historique et d'afficher un message approprié
+        # si un utilisateur accède à un ancien lien de signature
+        for sig_req in signature_requests:
+            sig_req.cancel(user=user)
 
         # Supprimer les SignatureMetadata associées (preuves forensiques)
         # Important: évite les orphelins qui faussent le count de est_signe
@@ -500,7 +529,7 @@ def cancel_signature_generic(request, document_id, document_model):
 
         logger.info(
             f"Signature annulée pour {document_model.__name__} {document_id} "
-            f"par {user.email}. {deleted_count} signature request(s) supprimée(s)."
+            f"par {user.email}. {cancelled_count} signature request(s) annulée(s)."
         )
 
         return JsonResponse(
@@ -508,7 +537,7 @@ def cancel_signature_generic(request, document_id, document_model):
                 "success": True,
                 "message": "La signature a été annulée avec succès",
                 "document_id": str(document_id),
-                "deleted_signature_requests": deleted_count,
+                "cancelled_signature_requests": cancelled_count,
             }
         )
 

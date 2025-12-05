@@ -454,16 +454,8 @@ def send_quittance_email(request, quittance_id):
 
         # Vérifier que l'utilisateur a accès (est bailleur ou mandataire)
         user_email = request.user.email
-        is_bailleur = any(
-            bailleur.email == user_email
-            for bailleur in quittance.location.bien.bailleurs.all()
-        )
-        is_mandataire = (
-            quittance.location.mandataire
-            and quittance.location.mandataire.signataire.email == user_email
-        )
-
-        if not is_bailleur and not is_mandataire:
+        roles = get_user_role_for_location(quittance.location, user_email=user_email)
+        if not roles["is_bailleur"] and not roles["is_mandataire"]:
             return JsonResponse(
                 {"success": False, "error": "Vous n'avez pas accès à cette quittance"},
                 status=403,

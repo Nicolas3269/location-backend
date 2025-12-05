@@ -9,6 +9,82 @@ from location.models import Bailleur, Bien, Location, Mandataire
 if TYPE_CHECKING:
     from django.db.models import QuerySet
 
+    from location.models import Personne
+
+
+class UserLocationInfo:
+    """Informations sur le rôle et la personne d'un utilisateur pour une location."""
+
+    def __init__(
+        self,
+        is_mandataire: bool = False,
+        is_bailleur: bool = False,
+        is_locataire: bool = False,
+        personne: "Personne | None" = None,
+    ):
+        self.is_mandataire = is_mandataire
+        self.is_bailleur = is_bailleur
+        self.is_locataire = is_locataire
+        self.personne = personne
+
+    def to_dict(self) -> dict[str, bool]:
+        """Retourne les rôles sous forme de dict (rétrocompatibilité)."""
+        return {
+            "is_mandataire": self.is_mandataire,
+            "is_bailleur": self.is_bailleur,
+            "is_locataire": self.is_locataire,
+        }
+
+
+def get_user_info_for_location(
+    location: Location, user_email: str
+) -> UserLocationInfo:
+    """
+    Retourne les rôles et la Personne d'un utilisateur pour une location.
+
+    Args:
+        location: Instance de Location
+        user_email: Email de l'utilisateur à vérifier
+
+    Returns:
+        UserLocationInfo avec is_mandataire, is_bailleur, is_locataire, personne
+    """
+    user_email_lower = user_email.lower()
+    personne: "Personne | None" = None
+
+    # Vérifier si l'utilisateur est mandataire pour cette location
+    is_mandataire = False
+    if location.mandataire and location.mandataire.signataire:
+        if location.mandataire.signataire.email.lower() == user_email_lower:
+            is_mandataire = True
+            personne = location.mandataire.signataire
+
+    # Vérifier si l'utilisateur est bailleur (utilise la property email du modèle)
+    is_bailleur = False
+    if not personne:  # Si pas déjà trouvé comme mandataire
+        for bailleur in location.bien.bailleurs.all():
+            try:
+                if bailleur.email.lower() == user_email_lower:
+                    is_bailleur = True
+                    personne = bailleur.personne or bailleur.signataire
+                    break
+            except ValueError:
+                # Bailleur invalide (pas de personne ni signataire)
+                continue
+
+    # Vérifier si l'utilisateur est un des locataires
+    is_locataire = any(
+        locataire.email.lower() == user_email_lower
+        for locataire in location.locataires.all()
+    )
+
+    return UserLocationInfo(
+        is_mandataire=is_mandataire,
+        is_bailleur=is_bailleur,
+        is_locataire=is_locataire,
+        personne=personne,
+    )
+
 
 def get_user_role_for_location(location: Location, user_email: str) -> dict[str, bool]:
     """
@@ -21,32 +97,26 @@ def get_user_role_for_location(location: Location, user_email: str) -> dict[str,
     Returns:
         Dict avec is_mandataire, is_bailleur, is_locataire
     """
-    user_email_lower = user_email.lower()
+    return get_user_info_for_location(location, user_email).to_dict()
 
-    # Vérifier si l'utilisateur est mandataire pour cette location
-    is_mandataire = (
-        location.mandataire
-        and location.mandataire.signataire
-        and location.mandataire.signataire.email.lower() == user_email_lower
-    )
 
-    # Vérifier si l'utilisateur est bailleur
-    is_bailleur = any(
-        bailleur.signataire and bailleur.signataire.email.lower() == user_email_lower
-        for bailleur in location.bien.bailleurs.all()
-    )
+def get_personne_for_user_on_location(
+    location: Location, user_email: str
+) -> "Personne | None":
+    """
+    Retourne la Personne associée à un utilisateur pour une location donnée.
 
-    # Vérifier si l'utilisateur est un des locataires
-    is_locataire = any(
-        locataire.email.lower() == user_email_lower
-        for locataire in location.locataires.all()
-    )
+    Cherche dans l'ordre : mandataire, bailleur.
+    (Les locataires ne sont pas des Personne mais des Locataire)
 
-    return {
-        "is_mandataire": is_mandataire,
-        "is_bailleur": is_bailleur,
-        "is_locataire": is_locataire,
-    }
+    Args:
+        location: Instance de Location
+        user_email: Email de l'utilisateur
+
+    Returns:
+        Personne ou None si non trouvé
+    """
+    return get_user_info_for_location(location, user_email).personne
 
 
 def user_has_location_access(location: Location, user_email: str) -> bool:

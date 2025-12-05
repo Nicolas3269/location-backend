@@ -2,16 +2,50 @@
 Modèles abstraits et utilitaires pour la signature de documents
 """
 
+from __future__ import annotations
+
+import logging
 import uuid
 from abc import abstractmethod
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
+from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils import timezone
 
+from location.constants import UserRole
 from location.models import BaseModel, Locataire, Mandataire, Personne
+
+if TYPE_CHECKING:
+    from bail.models import Avenant, Bail
+    from etat_lieux.models import EtatLieux
+
+    # Type alias pour les documents signables
+    SignableDocument = Bail | EtatLieux | Avenant
+
+logger = logging.getLogger(__name__)
+
+
+class SignatureRequestManager(models.Manager):
+    """
+    Manager par défaut qui exclut les demandes de signature annulées.
+    Utiliser .all_objects pour accéder à toutes les entrées (y compris annulées).
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().filter(cancelled_at__isnull=True)
+
+
+class AllSignatureRequestManager(models.Manager):
+    """
+    Manager qui inclut toutes les demandes de signature, y compris les annulées.
+    Utile pour l'admin, les audits, et la recherche de tokens annulés.
+    """
+
+    pass
 
 
 class AbstractSignatureRequest(BaseModel):
@@ -62,6 +96,25 @@ class AbstractSignatureRequest(BaseModel):
 
     # Image de la signature (optionnel)
     signature_image = models.ImageField(upload_to="signatures/", null=True, blank=True)
+
+    # Soft delete pour les signatures annulées
+    cancelled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Date d'annulation de la demande de signature",
+    )
+    cancelled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="%(class)s_cancelled",
+        help_text="Utilisateur ayant annulé la demande de signature",
+    )
+
+    # Managers : objects exclut les annulés, all_objects inclut tout
+    objects = SignatureRequestManager()
+    all_objects = AllSignatureRequestManager()
 
     class Meta:
         abstract = True
@@ -128,14 +181,86 @@ class AbstractSignatureRequest(BaseModel):
 
         self.otp = str(random.randint(100000, 999999))
         self.otp_generated_at = timezone.now()
-        self.save(update_fields=["otp", "otp_generated_at"])
+        # updated_at requis car auto_now ignoré avec update_fields
+        self.save(update_fields=["otp", "otp_generated_at", "updated_at"])
         return self.otp
 
     def mark_as_signed(self):
         """Marque la demande comme signée"""
         self.signed = True
         self.signed_at = timezone.now()
-        self.save(update_fields=["signed", "signed_at"])
+        # updated_at requis car auto_now ignoré avec update_fields
+        self.save(update_fields=["signed", "signed_at", "updated_at"])
+
+    def cancel(self, user=None):
+        """
+        Annule la demande de signature (soft delete).
+
+        Args:
+            user: L'utilisateur qui annule (optionnel)
+        """
+        self.cancelled_at = timezone.now()
+        self.cancelled_by = user
+        # updated_at requis car auto_now ignoré avec update_fields
+        self.save(update_fields=["cancelled_at", "cancelled_by", "updated_at"])
+
+    @property
+    def is_cancelled(self):
+        """Retourne True si la demande a été annulée"""
+        return self.cancelled_at is not None
+
+    def get_contact_info(self):
+        """
+        Retourne les informations de contact de la personne qui a annulé.
+        Utilisé quand un utilisateur accède à un lien annulé.
+
+        Returns:
+            dict: Informations de contact (nom, email, type) ou None
+        """
+        from location.services.access_utils import get_user_info_for_location
+
+        # Utiliser cancelled_by si disponible (le User qui a annulé)
+        if not self.cancelled_by:
+            logger.warning(f"SignatureRequest {self.id} annulée sans cancelled_by")
+            return None
+
+        user = self.cancelled_by
+        document: SignableDocument = self.get_document()
+
+        if not document:
+            logger.error(f"SignatureRequest {self.id} sans document associé")
+            return None
+
+        if not hasattr(document, "location") or not document.location:
+            logger.error(
+                f"Document {type(document).__name__} {document.id} sans location"
+            )
+            return None
+
+        location = document.location
+
+        # Récupérer rôle et personne en un seul appel
+        user_info = get_user_info_for_location(location, user.email)
+
+        if user_info.is_mandataire:
+            contact_type = UserRole.MANDATAIRE
+        elif user_info.is_bailleur:
+            contact_type = UserRole.BAILLEUR
+        else:
+            # Anomalie : seul bailleur/mandataire peut annuler
+            logger.error(
+                f"SignatureRequest {self.id} annulée par {user.email} "
+                f"qui n'est ni bailleur ni mandataire pour location {location.id}"
+            )
+            return None
+
+        name = user_info.personne.full_name if user_info.personne else user.email
+
+        return {
+            "type": contact_type,
+            "name": name,
+            "email": user.email,
+        }
 
     @abstractmethod
     def get_document_name(self):

@@ -106,7 +106,7 @@ def send_signature_email(signature_request, document_type="document"):
         "prenom": signature_request.get_signataire_first_name(),
         "signature_url": signature_url,
         "document_type": config["display"],
-        "adresse_logement": _get_adresse_logement(document),
+        "adresse": _get_adresse_logement(document),
         "lien_espace": f"{base_url}/mon-compte",
     }
 

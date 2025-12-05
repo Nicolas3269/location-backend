@@ -11,7 +11,7 @@
 
         <mj-text>Bonjour {{ prenom }},</mj-text>
 
-        <mj-text>Vous êtes invité(e) à <strong>signer {{ document_type|avec_le }}</strong> concernant le logement situé au <strong>{{ adresse_logement }}</strong>.</mj-text>
+        <mj-text>Vous êtes invité(e) à <strong>signer {{ document_type|avec_le }}</strong> concernant le logement situé au <strong>{{ adresse }}</strong>.</mj-text>
 
         <mj-button href="{{ signature_url }}" css-class="btn-primary">Signer {{ document_type|avec_le }}</mj-button>
 

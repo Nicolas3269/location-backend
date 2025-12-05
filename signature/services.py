@@ -512,7 +512,8 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             f"{type(document)} dans {signature_request_model}"
         )
 
-    # Supprimer les anciennes demandes de signature
+    # Supprimer les anciennes demandes de signature NON annulées
+    # Les annulées sont gardées pour afficher "Signature annulée" aux utilisateurs
     signature_request_model.objects.filter(**{document_field_name: document}).delete()
 
     # Déduire la location depuis le document

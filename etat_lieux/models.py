@@ -383,10 +383,25 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
     class Meta:
         verbose_name = "Demande signature état des lieux"
         verbose_name_plural = "Demandes signature état des lieux"
-        unique_together = [
-            ("etat_lieux", "bailleur_signataire"),
-            ("etat_lieux", "locataire"),
-            ("etat_lieux", "mandataire"),
+        # Contraintes uniques PARTIELLES : seulement pour les non-annulées
+        # Permet de garder les anciennes signature requests annulées (soft delete)
+        # tout en créant de nouvelles pour le même etat_lieux/signataire
+        constraints = [
+            models.UniqueConstraint(
+                fields=["etat_lieux", "bailleur_signataire"],
+                condition=models.Q(cancelled_at__isnull=True),
+                name="unique_edl_bailleur_signataire_active"
+            ),
+            models.UniqueConstraint(
+                fields=["etat_lieux", "locataire"],
+                condition=models.Q(cancelled_at__isnull=True),
+                name="unique_edl_locataire_active"
+            ),
+            models.UniqueConstraint(
+                fields=["etat_lieux", "mandataire"],
+                condition=models.Q(cancelled_at__isnull=True),
+                name="unique_edl_mandataire_active"
+            ),
         ]
         ordering = ["order"]
 

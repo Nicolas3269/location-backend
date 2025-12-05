@@ -216,10 +216,25 @@ class BailSignatureRequest(AbstractSignatureRequest):
     )
 
     class Meta:
-        unique_together = [
-            ("bail", "bailleur_signataire"),
-            ("bail", "locataire"),
-            ("bail", "mandataire"),
+        # Contraintes uniques PARTIELLES : seulement pour les non-annulées
+        # Permet de garder les anciennes signature requests annulées (soft delete)
+        # tout en créant de nouvelles pour le même bail/signataire
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bail", "bailleur_signataire"],
+                condition=models.Q(cancelled_at__isnull=True),
+                name="unique_bail_bailleur_signataire_active"
+            ),
+            models.UniqueConstraint(
+                fields=["bail", "locataire"],
+                condition=models.Q(cancelled_at__isnull=True),
+                name="unique_bail_locataire_active"
+            ),
+            models.UniqueConstraint(
+                fields=["bail", "mandataire"],
+                condition=models.Q(cancelled_at__isnull=True),
+                name="unique_bail_mandataire_active"
+            ),
         ]
         ordering = ["order"]
 
@@ -395,10 +410,23 @@ class AvenantSignatureRequest(AbstractSignatureRequest):
 
     class Meta:
         db_table = "bail_avenant_signature_request"
-        unique_together = [
-            ("avenant", "bailleur_signataire"),
-            ("avenant", "locataire"),
-            ("avenant", "mandataire"),
+        # Contraintes uniques PARTIELLES : seulement pour les non-annulées
+        constraints = [
+            models.UniqueConstraint(
+                fields=["avenant", "bailleur_signataire"],
+                condition=models.Q(cancelled_at__isnull=True),
+                name="unique_avenant_bailleur_signataire_active"
+            ),
+            models.UniqueConstraint(
+                fields=["avenant", "locataire"],
+                condition=models.Q(cancelled_at__isnull=True),
+                name="unique_avenant_locataire_active"
+            ),
+            models.UniqueConstraint(
+                fields=["avenant", "mandataire"],
+                condition=models.Q(cancelled_at__isnull=True),
+                name="unique_avenant_mandataire_active"
+            ),
         ]
         ordering = ["order"]
 

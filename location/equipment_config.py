@@ -532,8 +532,8 @@ EQUIPEMENTS_SPECIFIQUES = {
                 "is_countable": True,
             },
             {
-                "id": "alaise",
-                "label": "Alaises",
+                "id": "alese",
+                "label": "Alèses",
                 "icon": "🛏️",
                 "furnished_only": True,
                 "is_countable": True,
@@ -827,8 +827,8 @@ EQUIPEMENTS_SPECIFIQUES = {
                 "is_countable": True,
             },
             {
-                "id": "alaise",
-                "label": "Alaises",
+                "id": "alese",
+                "label": "Alèses",
                 "icon": "🛏️",
                 "furnished_only": True,
                 "is_countable": True,
@@ -1078,8 +1078,8 @@ EQUIPEMENTS_SPECIFIQUES = {
                 "is_countable": True,
             },
             {
-                "id": "alaise",
-                "label": "Alaises",
+                "id": "alese",
+                "label": "Alèses",
                 "icon": "🛏️",
                 "furnished_only": True,
                 "is_countable": True,

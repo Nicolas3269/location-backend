@@ -5,7 +5,7 @@ Définit les règles métier et validations pour les formulaires français.
 
 from rest_framework import serializers
 
-from location.models import Bien, HonoraireMandataire, Location, RentTerms
+from location.models import Adresse, Bien, HonoraireMandataire, Location, RentTerms
 
 from .composed import (
     BailleurInfoSerializer,
@@ -30,11 +30,18 @@ from .composed import (
 ADRESSE_STEPS = [
     {
         "id": "bien.localisation.adresse",
-        "required_fields": ["bien.localisation.adresse"],
+        # Seul champ obligatoire de Adresse
+        "required_fields": ["bien.localisation.ville"],
         "fields": {
-            "bien.localisation.adresse": Bien.adresse,
-            "bien.localisation.latitude": Bien.latitude,
-            "bien.localisation.longitude": Bien.longitude,
+            # Adresse structurée (FK vers modèle Adresse)
+            "bien.localisation.numero": Adresse.numero,
+            "bien.localisation.voie": Adresse.voie,
+            "bien.localisation.complement": Adresse.complement,
+            "bien.localisation.code_postal": Adresse.code_postal,
+            "bien.localisation.ville": Adresse.ville,
+            "bien.localisation.pays": Adresse.pays,
+            "bien.localisation.latitude": Adresse.latitude,
+            "bien.localisation.longitude": Adresse.longitude,
             "bien.localisation.area_id": RentTerms.rent_price_id,
         },
     },

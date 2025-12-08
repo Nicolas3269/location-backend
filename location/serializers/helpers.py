@@ -29,14 +29,26 @@ def serialize_personne_to_dict(instance: Personne) -> Dict[str, Any]:
         instance: Instance de Personne
 
     Returns:
-        Dict avec id, firstName, lastName, email, adresse
+        Dict avec id, firstName, lastName, email, adresse (structurée)
     """
+    # Adresse structurée (FK vers Adresse) - frontend construit le formaté
+    adresse_data = None
+    if instance.adresse:
+        adresse_data = {
+            "numero": instance.adresse.numero,
+            "voie": instance.adresse.voie,
+            "complement": instance.adresse.complement,
+            "code_postal": instance.adresse.code_postal,
+            "ville": instance.adresse.ville,
+            "pays": instance.adresse.pays,
+        }
+
     return {
         "id": str(instance.id),  # ✅ ID de la personne
         "firstName": instance.firstName,
         "lastName": instance.lastName,
         "email": instance.email,
-        "adresse": instance.adresse,
+        "adresse": adresse_data,
     }
 
 
@@ -49,14 +61,26 @@ def serialize_societe_to_dict(instance: Societe) -> Dict[str, Any]:
         instance: Instance de Societe
 
     Returns:
-        Dict avec id, raison_sociale, siret, forme_juridique, adresse, email
+        Dict avec id, raison_sociale, siret, forme_juridique, adresse (structurée), email
     """
+    # Adresse structurée (FK vers Adresse) - frontend construit le formaté
+    adresse_data = None
+    if instance.adresse:
+        adresse_data = {
+            "numero": instance.adresse.numero,
+            "voie": instance.adresse.voie,
+            "complement": instance.adresse.complement,
+            "code_postal": instance.adresse.code_postal,
+            "ville": instance.adresse.ville,
+            "pays": instance.adresse.pays,
+        }
+
     return {
         "id": str(instance.id),  # ✅ ID de la société
         "raison_sociale": instance.raison_sociale,
         "siret": instance.siret,
         "forme_juridique": instance.forme_juridique,
-        "adresse": instance.adresse,
+        "adresse": adresse_data,
         "email": instance.email,
     }
 
@@ -250,10 +274,16 @@ def restructure_bien_to_nested_format(
     """
     from rent_control.views import check_zone_status_via_ban, get_rent_control_info
 
-    # Calcul de area_id (toujours depuis GPS si coords disponibles)
+    # Extraire l'adresse structurée (depuis AdresseReadSerializer)
+    # bien_data["adresse"] est un dict avec {id, numero, voie, latitude, longitude...}
+    adresse_data = bien_data.get("adresse")
+    latitude = adresse_data.get("latitude") if adresse_data else None
+    longitude = adresse_data.get("longitude") if adresse_data else None
+
+    # Calcul de area_id (depuis GPS de l'adresse)
     area_id = None
-    if bien_data.get("latitude") and bien_data.get("longitude"):
-        _, area = get_rent_control_info(bien_data["latitude"], bien_data["longitude"])
+    if latitude and longitude:
+        _, area = get_rent_control_info(latitude, longitude)
         if area:
             area_id = area.id
 
@@ -262,15 +292,9 @@ def restructure_bien_to_nested_format(
     if zone_reglementaire_override is not None:
         # Cas 1 : Depuis RentTerms (Location existante)
         zone_reglementaire = zone_reglementaire_override
-    elif (
-        calculate_zone_from_gps
-        and bien_data.get("latitude")
-        and bien_data.get("longitude")
-    ):
+    elif calculate_zone_from_gps and latitude and longitude:
         # Cas 2 : Calculé depuis GPS (Prefill nouveau bail)
-        zone_status = check_zone_status_via_ban(
-            bien_data["latitude"], bien_data["longitude"]
-        )
+        zone_status = check_zone_status_via_ban(latitude, longitude)
         if zone_status:
             zone_reglementaire = {
                 "zone_tendue": zone_status.get("is_zone_tendue", False),
@@ -281,16 +305,29 @@ def restructure_bien_to_nested_format(
                 "permis_de_louer": zone_status.get("is_permis_de_louer", False),
             }
 
+    # Construire localisation_data depuis adresse structurée
+    if not isinstance(adresse_data, dict):
+        raise ValueError(
+            f"Un bien doit avoir une adresse (dict attendu, reçu {type(adresse_data).__name__})"
+        )
+
+    localisation_data = {
+        "numero": adresse_data.get("numero"),
+        "voie": adresse_data.get("voie"),
+        "complement": adresse_data.get("complement"),
+        "code_postal": adresse_data.get("code_postal"),
+        "ville": adresse_data.get("ville"),
+        "pays": adresse_data.get("pays", "FR"),
+        "latitude": latitude,
+        "longitude": longitude,
+        "area_id": area_id,
+    }
+
     # Structure nested (UNE SEULE FOIS !)
     # IMPORTANT : Conserver les champs de metadata au root level (id, created_at, etc.)
     return {
         "id": bien_data.get("id"),  # CRITIQUE : UUID nécessaire pour navigation frontend
-        "localisation": {
-            "adresse": bien_data.get("adresse"),
-            "latitude": bien_data.get("latitude"),
-            "longitude": bien_data.get("longitude"),
-            "area_id": area_id,
-        },
+        "localisation": localisation_data,
         "caracteristiques": {
             "superficie": bien_data.get("superficie"),
             "type_bien": bien_data.get("type_bien"),

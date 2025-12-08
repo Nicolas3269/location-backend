@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict, Optional
 
 from django.utils import timezone
 
@@ -6,6 +7,7 @@ from bail.models import Bail
 from bail.utils import create_bien_from_form_data
 from location.constants import UserRole
 from location.models import (
+    Adresse,
     Bailleur,
     BailleurType,
     Bien,
@@ -28,6 +30,62 @@ from signature.document_status import DocumentStatus
 logger = logging.getLogger(__name__)
 
 
+def _get_or_create_adresse(adresse_data: Dict[str, Any]) -> Optional[Adresse]:
+    """
+    Récupère ou crée une Adresse depuis un dictionnaire structuré.
+
+    Args:
+        adresse_data: Dict avec numero, voie, code_postal, ville, pays (optionnel)
+
+    Returns:
+        Instance d'Adresse existante ou nouvelle, None si données insuffisantes
+    """
+    if not adresse_data or not isinstance(adresse_data, dict):
+        return None
+
+    voie = adresse_data.get("voie")
+    ville = adresse_data.get("ville")
+
+    # Minimum requis: ville (voie optionnelle pour ZI/ZA)
+    if not ville:
+        logger.debug("Adresse incomplète, ignorée (ville manquante)")
+        return None
+
+    numero = adresse_data.get("numero")
+    code_postal = adresse_data.get("code_postal")
+    pays = adresse_data.get("pays") or "FR"
+    complement = adresse_data.get("complement")
+    latitude = adresse_data.get("latitude")
+    longitude = adresse_data.get("longitude")
+
+    # Chercher adresse existante pour éviter doublons
+    existing = Adresse.objects.filter(
+        numero=numero,
+        voie=voie,
+        code_postal=code_postal,
+        ville=ville,
+        pays=pays,
+    ).first()
+
+    if existing:
+        logger.debug(f"Adresse existante réutilisée: {existing.id}")
+        return existing
+
+    # Créer nouvelle adresse
+    adresse = Adresse.objects.create(
+        numero=numero,
+        voie=voie,
+        complement=complement,
+        code_postal=code_postal,
+        ville=ville,
+        pays=pays,
+        latitude=latitude,
+        longitude=longitude,
+    )
+    logger.info(f"Adresse créée: {adresse.id}")
+    return adresse
+
+
 def _update_personne_if_changed(personne: Personne, personne_data: dict) -> bool:
     """
     Met à jour une Personne si les données ont changé.
@@ -37,7 +95,8 @@ def _update_personne_if_changed(personne: Personne, personne_data: dict) -> bool
         True si des changements ont été effectués, False sinon
     """
     changed = False
-    fields_to_check = ["lastName", "firstName", "email", "adresse", "iban"]
+    # Champs simples (pas adresse qui est maintenant FK)
+    fields_to_check = ["lastName", "firstName", "email", "iban"]
 
     for field in fields_to_check:
         new_value = personne_data.get(field, "")
@@ -46,6 +105,15 @@ def _update_personne_if_changed(personne: Personne, personne_data: dict) -> bool
             setattr(personne, field, new_value)
             changed = True
             logger.debug(f"  {field}: '{current_value}' → '{new_value}'")
+
+    # Gérer l'adresse FK séparément
+    adresse_value = personne_data.get("adresse")
+    if adresse_value and isinstance(adresse_value, dict):
+        adresse_obj = _get_or_create_adresse(adresse_value)
+        if adresse_obj and personne.adresse != adresse_obj:
+            personne.adresse = adresse_obj
+            changed = True
+            logger.debug(f"  adresse: → '{adresse_obj}'")
 
     if changed:
         personne.save()
@@ -61,7 +129,8 @@ def _update_societe_if_changed(societe: Societe, societe_data: dict) -> bool:
         True si des changements ont été effectués, False sinon
     """
     changed = False
-    fields_to_check = ["raison_sociale", "forme_juridique", "siret", "adresse", "email"]
+    # Champs simples (pas adresse qui est maintenant FK)
+    fields_to_check = ["raison_sociale", "forme_juridique", "siret", "email"]
 
     for field in fields_to_check:
         new_value = societe_data.get(field, "")
@@ -70,6 +139,15 @@ def _update_societe_if_changed(societe: Societe, societe_data: dict) -> bool:
             setattr(societe, field, new_value)
             changed = True
             logger.debug(f"  {field}: '{current_value}' → '{new_value}'")
+
+    # Gérer l'adresse FK séparément
+    adresse_value = societe_data.get("adresse")
+    if adresse_value and isinstance(adresse_value, dict):
+        adresse_obj = _get_or_create_adresse(adresse_value)
+        if adresse_obj and societe.adresse != adresse_obj:
+            societe.adresse = adresse_obj
+            changed = True
+            logger.debug(f"  adresse: → '{adresse_obj}'")
 
     if changed:
         societe.save()
@@ -82,7 +160,7 @@ def _create_or_get_personne(personne_data: dict, include_iban: bool = True) -> P
 
     Args:
         personne_data: Dict avec id (optionnel), lastName, firstName,
-                       email, adresse, iban
+                       email, adresse (structurée), iban
         include_iban: Si True, inclut le champ IBAN (pour bailleur).
                       Si False, l'exclut (pour signataire).
 
@@ -96,8 +174,14 @@ def _create_or_get_personne(personne_data: dict, include_iban: bool = True) -> P
         "lastName": personne_data["lastName"],
         "firstName": personne_data["firstName"],
         "email": personne_data["email"],
-        "adresse": personne_data.get("adresse", ""),
     }
+
+    # Gérer l'adresse : dict structuré → créer FK Adresse
+    adresse_value = personne_data.get("adresse")
+    if adresse_value and isinstance(adresse_value, dict):
+        adresse_obj = _get_or_create_adresse(adresse_value)
+        if adresse_obj:
+            create_data["adresse"] = adresse_obj
 
     # Ajouter IBAN seulement si demandé
     if include_iban:
@@ -122,7 +206,7 @@ def _create_or_get_societe(societe_data: dict) -> Societe:
 
     Args:
         societe_data: Dict avec id (optionnel), raison_sociale,
-                      forme_juridique, siret, adresse, email
+                      forme_juridique, siret, adresse (structurée), email
 
     Returns:
         Instance de Societe (réutilisée ou créée)
@@ -133,9 +217,15 @@ def _create_or_get_societe(societe_data: dict) -> Societe:
         "raison_sociale": societe_data["raison_sociale"],
         "forme_juridique": societe_data["forme_juridique"],
         "siret": societe_data["siret"],
-        "adresse": societe_data["adresse"],
         "email": societe_data.get("email", ""),
     }
+
+    # Gérer l'adresse : dict structuré → créer FK Adresse
+    adresse_value = societe_data.get("adresse")
+    if adresse_value and isinstance(adresse_value, dict):
+        adresse_obj = _get_or_create_adresse(adresse_value)
+        if adresse_obj:
+            create_data["adresse"] = adresse_obj
 
     if societe_id:
         try:
@@ -345,25 +435,38 @@ def create_mandataire(data):
 
     # 1. Créer le signataire (personne physique qui signe pour l'agence)
     signataire_data = validated["signataire"]
-    signataire = Personne.objects.create(
-        lastName=signataire_data["lastName"],
-        firstName=signataire_data["firstName"],
-        email=signataire_data["email"],
-        adresse=signataire_data.get("adresse"),
-    )
+    signataire_create_data = {
+        "lastName": signataire_data["lastName"],
+        "firstName": signataire_data["firstName"],
+        "email": signataire_data["email"],
+    }
+    # Gérer l'adresse : dict structuré → créer FK Adresse
+    adresse_signataire = signataire_data.get("adresse")
+    if adresse_signataire and isinstance(adresse_signataire, dict):
+        adresse_obj = _get_or_create_adresse(adresse_signataire)
+        if adresse_obj:
+            signataire_create_data["adresse"] = adresse_obj
+
+    signataire = Personne.objects.create(**signataire_create_data)
 
     # 2. Créer la société (agence)
     agence_data = validated["agence"]
-    agence = Societe.objects.create(
-        raison_sociale=agence_data["raison_sociale"],
-        forme_juridique=agence_data["forme_juridique"],
-        siret=agence_data["siret"],
-        adresse=agence_data["adresse"],
-        email=agence_data.get("email") or "",
-    )
+    agence_create_data = {
+        "raison_sociale": agence_data["raison_sociale"],
+        "forme_juridique": agence_data["forme_juridique"],
+        "siret": agence_data["siret"],
+        "email": agence_data.get("email") or "",
+    }
+    # Gérer l'adresse : dict structuré → créer FK Adresse
+    adresse_agence = agence_data.get("adresse")
+    if adresse_agence and isinstance(adresse_agence, dict):
+        adresse_obj = _get_or_create_adresse(adresse_agence)
+        if adresse_obj:
+            agence_create_data["adresse"] = adresse_obj
+
+    agence = Societe.objects.create(**agence_create_data)
 
     # 3. Créer le mandataire
-
     mandataire = Mandataire.objects.create(
         societe=agence,
         signataire=signataire,
@@ -483,12 +586,18 @@ def create_locataires(data):
             "lastName": validated["lastName"],
             "firstName": validated["firstName"],
             "email": validated["email"],
-            "adresse": validated.get("adresse") or "",
             "date_naissance": validated.get("date_naissance"),
             "profession": validated.get("profession") or "",
             "revenu_mensuel": validated.get("revenus_mensuels"),
             "caution_requise": validated.get("cautionRequise", False),
         }
+
+        # Gérer l'adresse : dict structuré → créer FK Adresse
+        adresse_value = validated.get("adresse")
+        if adresse_value and isinstance(adresse_value, dict):
+            adresse_obj = _get_or_create_adresse(adresse_value)
+            if adresse_obj:
+                locataire_data["adresse"] = adresse_obj
 
         if frontend_id:
             import uuid as uuid_module
@@ -540,14 +649,22 @@ def create_garants(data):
     garants = []
 
     for validated in garants_data:
-        garant = Personne.objects.create(
-            lastName=validated["lastName"],
-            firstName=validated["firstName"],
-            email=validated["email"],
-            adresse=validated.get("adresse") or "",
-            date_naissance=validated.get("date_naissance"),
-            telephone=validated.get("telephone") or "",
-        )
+        garant_data = {
+            "lastName": validated["lastName"],
+            "firstName": validated["firstName"],
+            "email": validated["email"],
+            "date_naissance": validated.get("date_naissance"),
+            "telephone": validated.get("telephone") or "",
+        }
+
+        # Gérer l'adresse : dict structuré → créer FK Adresse
+        adresse_value = validated.get("adresse")
+        if adresse_value and isinstance(adresse_value, dict):
+            adresse_obj = _get_or_create_adresse(adresse_value)
+            if adresse_obj:
+                garant_data["adresse"] = adresse_obj
+
+        garant = Personne.objects.create(**garant_data)
         garants.append(garant)
 
     return garants
@@ -590,6 +707,7 @@ def _extract_rent_terms_data(data, location: Location, serializer_class):
 
     # Si zone_tendue, zone_tres_tendue, zone_tendue_touristique ou permis_de_louer ne sont pas dans les données extraites,
     # les calculer depuis les coordonnées GPS
+    adresse: Adresse = location.bien.adresse
     if (
         (
             "zone_tendue" not in rent_terms_data
@@ -597,12 +715,11 @@ def _extract_rent_terms_data(data, location: Location, serializer_class):
             or "zone_tendue_touristique" not in rent_terms_data
             or "permis_de_louer" not in rent_terms_data
         )
-        and location.bien.latitude
-        and location.bien.longitude
+        and adresse
+        and adresse.latitude
+        and adresse.longitude
     ):
-        ban_result = check_zone_status_via_ban(
-            location.bien.latitude, location.bien.longitude
-        )
+        ban_result = check_zone_status_via_ban(adresse.latitude, adresse.longitude)
 
         # Ajouter seulement si pas déjà présent
         if "zone_tendue" not in rent_terms_data:

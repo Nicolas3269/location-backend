@@ -50,6 +50,7 @@ ruff = "^0.11.1"
 faker = "^37.1.0"
 pytest = "^8.4.2"
 pytest-django = "^4.11.1"
+googlemaps = "^4.10.0"
 
 [build-system]
 requires = ["poetry-core"]

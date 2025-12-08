@@ -1,45 +1,50 @@
-location/backend/.vscode/launch.json
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-    
-        {
-            "name": "Python Debugger: Current File",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Django: Run & Debug",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "args": ["runserver", "127.0.0.1:8003"],
-            "django": true,
-            "justMyCode": false
-        },
-        {
-            "name": "Django: Custom Command",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/manage.py",
-            "args": ["${input:djangoCommand}"],
-            "django": true,
-            "justMyCode": false,
-            "env": {
-                "PYTHONUNBUFFERED": "1"
-            }
-        }
-    ],
-    "inputs": [
-        {
-            "id": "djangoCommand",
-            "type": "promptString",
-            "description": "Django command to execute (e.g. migrate, makemigrations)"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Django: Run & Debug",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/manage.py",
+      "args": ["runserver", "127.0.0.1:8003"],
+      "envFile": "${workspaceFolder}/.env",
+      "django": true,
+      "justMyCode": false
+    },
+    {
+      "name": "Django: Migrate Legacy Addresses",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/manage.py",
+      "args": ["migrate_legacy_addresses", "--dry-run"],
+      "envFile": "${workspaceFolder}/.env",
+      "django": true,
+      "justMyCode": false
+    },
+    {
+      "name": "Django: Gunicorn (E2E Tests)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "gunicorn",
+      "args": [
+        "backend.wsgi:application",
+        "--bind",
+        "0.0.0.0:8003",
+        "--workers",
+        "6",
+        "--threads",
+        "4",
+        "--timeout",
+        "120",
+        "--access-logfile",
+        "-"
+      ],
+      "envFile": "${workspaceFolder}/.env",
+      "env": {
+        "OBJC_DISABLE_INITIALIZE_FORK_SAFETY": "YES"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ]
 }

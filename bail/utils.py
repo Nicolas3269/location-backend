@@ -170,13 +170,25 @@ def create_bien_from_form_data(validated_data, serializer_class, save=True):
     Returns:
         Instance de Bien
     """
-    # Utiliser le mapping automatique du serializer
-    from location.models import Bien
+    from location.models import Adresse, Bien
 
     bien_fields = serializer_class.extract_model_data(Bien, validated_data)
 
     # Enlever les valeurs None pour éviter les erreurs
     bien_fields = {k: v for k, v in bien_fields.items() if v is not None}
+
+    # Gérer l'adresse FK : créer un objet Adresse depuis les données structurées
+    # Extraire depuis bien.localisation (envoyé par le frontend)
+    localisation = validated_data.get("bien", {}).get("localisation", {})
+    if not localisation or not isinstance(localisation, dict):
+        raise ValueError("Un bien doit avoir une adresse (localisation manquante)")
+
+    adresse_obj = _create_adresse_from_localisation(localisation, save=save)
+    if not adresse_obj:
+        raise ValueError(
+            "Impossible de créer l'adresse: données insuffisantes (ville requise)"
+        )
+    bien_fields["adresse"] = adresse_obj
 
     bien = Bien(**bien_fields)
 
@@ -184,3 +196,63 @@ def create_bien_from_form_data(validated_data, serializer_class, save=True):
         bien.save()
 
     return bien
+
+
+def _create_adresse_from_localisation(localisation: dict, save=True):
+    """
+    Crée un objet Adresse depuis les données de localisation du formulaire.
+
+    Args:
+        localisation: Dict contenant les champs structurés (numero, voie, etc.)
+        save: Si True, sauvegarde l'objet en base
+
+    Returns:
+        Instance d'Adresse ou None si données insuffisantes
+    """
+    from location.models import Adresse
+
+    # Extraire les champs structurés (nullable, pas de default vide)
+    numero = localisation.get("numero")
+    voie = localisation.get("voie")
+    complement = localisation.get("complement")
+    code_postal = localisation.get("code_postal")
+    ville = localisation.get("ville")
+    pays = localisation.get("pays") or "FR"
+    latitude = localisation.get("latitude")
+    longitude = localisation.get("longitude")
+
+    # Vérifier qu'on a au moins la ville (voie optionnelle pour ZI/ZA)
+    if not ville:
+        logger.warning(f"Données adresse insuffisantes: ville manquante")
+        return None
+
+    # Chercher une adresse existante identique pour éviter les doublons
+    existing = Adresse.objects.filter(
+        numero=numero,
+        voie=voie,
+        code_postal=code_postal,
+        ville=ville,
+        pays=pays,
+    ).first()
+
+    if existing:
+        logger.info(f"Adresse existante réutilisée: {existing.id}")
+        return existing
+
+    # Créer nouvelle adresse
+    adresse = Adresse(
+        numero=numero,
+        voie=voie,
+        complement=complement,
+        code_postal=code_postal,
+        ville=ville,
+        pays=pays,
+        latitude=latitude,
+        longitude=longitude,
+    )
+
+    if save:
+        adresse.save()
+        logger.info(f"Adresse créée: {adresse.id}")
+
+    return adresse

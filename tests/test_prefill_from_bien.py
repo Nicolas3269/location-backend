@@ -37,9 +37,12 @@ class TestPrefillFromBien:
         """Test que l'API retourne les bonnes données de prefill depuis un bien."""
         # 1. Créer un bien avec un bailleur
         bien = BienFactory(
-            adresse="12 Rue Eugénie Eboué, 75012 Paris, France",
-            latitude=48.8566,
-            longitude=2.3522,
+            adresse__voie="Rue Eugénie Eboué",
+            adresse__numero="12",
+            adresse__code_postal="75012",
+            adresse__ville="Paris",
+            adresse__latitude=48.8566,
+            adresse__longitude=2.3522,
             type_bien="appartement",
             superficie=45.5,
             meuble=False,
@@ -79,8 +82,11 @@ class TestPrefillFromBien:
         assert "bien" in prefill, "bien manquant dans prefill_data"
         assert "localisation" in prefill["bien"], "localisation manquant dans prefill_data.bien"
         assert "adresse" in prefill["bien"]["localisation"], "adresse manquant dans prefill_data.bien.localisation"
-        assert prefill["bien"]["localisation"]["adresse"] == bien.adresse, \
-            f"Expected adresse={bien.adresse}, got {prefill['bien']['localisation']['adresse']}"
+        # L'adresse dans prefill est maintenant un objet structuré
+        assert "ville" in prefill["bien"]["localisation"]["adresse"], \
+            f"ville manquant dans adresse: {prefill['bien']['localisation']['adresse']}"
+        assert prefill["bien"]["localisation"]["adresse"]["ville"] == bien.adresse.ville, \
+            f"Expected ville={bien.adresse.ville}, got {prefill['bien']['localisation']['adresse']['ville']}"
 
         # Vérifier les locked_steps
         locked_steps = set(data["locked_steps"])
@@ -144,7 +150,7 @@ class TestPrefillFromBien:
             # Bien (champs requis pour validation, mais bien_id sera utilisé)
             "bien": {
                 "localisation": {
-                    "adresse": bien.adresse,  # Reprendre l'adresse du bien (locked)
+                    "adresse": str(bien.adresse),  # Adresse formatée (locked)
                 },
                 "caracteristiques": {
                     "type_bien": "appartement",
@@ -257,7 +263,7 @@ class TestPrefillFromBien:
             "bailleur_id": data["bailleur_id"],  # IMPORTANT
             "location_id": data["formData"]["location_id"],
             "bien": {
-                "localisation": {"adresse": bien.adresse},
+                "localisation": {"adresse": str(bien.adresse)},
                 "caracteristiques": {
                     "type_bien": "appartement",
                     "superficie": 50.0,
@@ -350,7 +356,7 @@ class TestPrefillFromBien:
         locked_steps = set(data["locked_steps"])
 
         # 3. Vérifier que les champs lockés SONT dans prefill_data
-        assert prefill["bien"]["localisation"]["adresse"] == bien.adresse, \
+        assert "ville" in prefill["bien"]["localisation"]["adresse"], \
             "L'adresse devrait être dans prefill_data"
 
         # 4. Vérifier que ces champs SONT dans locked_steps
@@ -458,7 +464,7 @@ class TestDebugAdresseReset:
         assert data.get("bien_id") == str(bien.id), "bien_id incorrect"
         assert "adresse" in prefill.get("bien", {}).get("localisation", {}), \
             "❌ PROBLÈME: adresse manquante dans prefill_data!"
-        assert prefill["bien"]["localisation"]["adresse"] == bien.adresse, \
+        assert "ville" in prefill["bien"]["localisation"]["adresse"], \
             "❌ PROBLÈME: adresse incorrecte dans prefill_data!"
 
         print("\n✅ Adresse présente dans prefill_data")

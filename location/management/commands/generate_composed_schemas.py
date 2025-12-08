@@ -52,9 +52,10 @@ class Command(BaseCommand):
         )
         # Importer les serializers READ
         from location.serializers.read import (
-            LocationReadSerializer,
-            BienReadSerializer,
+            AdresseReadSerializer,
             BailleurReadSerializer,
+            BienReadSerializer,
+            LocationReadSerializer,
             MandataireReadSerializer,
             RentTermsReadSerializer,
         )
@@ -99,7 +100,9 @@ class Command(BaseCommand):
         ]
 
         # Serializers READ (pour les réponses API)
+        # Note: AdresseReadSerializer en premier car BienReadSerializer l'utilise
         serializers_read = [
+            AdresseReadSerializer,
             RentTermsReadSerializer,
             BailleurReadSerializer,
             MandataireReadSerializer,
@@ -454,7 +457,12 @@ class Command(BaseCommand):
                 "    source: data.source || 'manual',",
                 "    bien: {",
                 "      localisation: {",
-                "        adresse: data.adresse,",
+                "        numero: data.numero,",
+                "        voie: data.voie,",
+                "        complement: data.complement,",
+                "        code_postal: data.code_postal,",
+                "        ville: data.ville,",
+                "        pays: data.pays,",
                 "        latitude: data.latitude,",
                 "        longitude: data.longitude,",
                 "        area_id: data.area_id,",

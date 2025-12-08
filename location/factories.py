@@ -24,6 +24,7 @@ from django.utils import timezone
 from datetime import date, timedelta
 
 from location.models import (
+    Adresse,
     Personne,
     Societe,
     Bailleur,
@@ -35,6 +36,26 @@ from location.models import (
 from bail.models import Bail
 from signature.document_status import DocumentStatus
 from rent_control.choices import PropertyType, ConstructionPeriod, RegimeJuridique
+
+
+# ==============================
+# ADRESSE
+# ==============================
+
+
+class AdresseFactory(DjangoModelFactory):
+    """Factory pour créer une adresse structurée."""
+
+    class Meta:
+        model = Adresse
+
+    voie = factory.Faker("street_name", locale="fr_FR")
+    numero = factory.Faker("building_number")
+    code_postal = factory.Faker("postcode", locale="fr_FR")
+    ville = factory.Faker("city", locale="fr_FR")
+    pays = "FR"
+    latitude = factory.Faker("latitude")
+    longitude = factory.Faker("longitude")
 
 
 # ==============================
@@ -141,15 +162,14 @@ class BienFactory(DjangoModelFactory):
         bien = BienFactory(bailleurs__count=2)
 
         # Bien avec adresse spécifique
-        bien = BienFactory(adresse="12 Rue Eugénie Eboué, 75012 Paris, France")
+        bien = BienFactory(adresse__voie="Rue de la Paix", adresse__ville="Paris")
     """
 
     class Meta:
         model = Bien
 
-    adresse = factory.Faker("address", locale="fr_FR")
-    latitude = factory.Faker("latitude")
-    longitude = factory.Faker("longitude")
+    # FK vers Adresse (contient latitude/longitude)
+    adresse = factory.SubFactory(AdresseFactory)
     type_bien = PropertyType.APARTMENT
     superficie = factory.Faker("pydecimal", left_digits=3, right_digits=2, positive=True, min_value=15, max_value=150)
     regime_juridique = RegimeJuridique.MONOPROPRIETE

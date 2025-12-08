@@ -6,7 +6,7 @@ Architecture refactorisée - Coordonne les services spécialisés.
 import uuid
 from typing import Any, Dict, List, Optional
 
-from location.models import Bailleur, Bien, Location, RentTerms
+from location.models import Adresse, Bailleur, Bien, Location, RentTerms
 from location.services.bailleur_utils import (
     get_primary_bailleur_for_user,
     serialize_bailleur,
@@ -166,9 +166,7 @@ class FormOrchestrator:
                     self.data_fetcher.fetch_location_data(source_id, user) or {}
                 )
             elif form_state.source_type == "bien":
-                source_data = (
-                    self.data_fetcher.fetch_bien_data(source_id, user) or {}
-                )
+                source_data = self.data_fetcher.fetch_bien_data(source_id, user) or {}
             elif form_state.source_type == "bailleur":
                 source_data = self.data_fetcher.fetch_bailleur_data(source_id) or {}
             else:
@@ -185,8 +183,7 @@ class FormOrchestrator:
             # Renouvellement (document signé → nouveau location_id)
             previous_location_id = str(form_state.previous_location_id)
             existing_data = (
-                self.data_fetcher.fetch_location_data(previous_location_id, user)
-                or {}
+                self.data_fetcher.fetch_location_data(previous_location_id, user) or {}
             )
             final_location_id = str(uuid.uuid4())
             is_new = True
@@ -302,7 +299,9 @@ class FormOrchestrator:
                     if location.bien:
                         result["bien_id"] = str(location.bien.id)
                         # Priorité au user connecté
-                        bailleur = get_primary_bailleur_for_user(location.bien.bailleurs, user)
+                        bailleur = get_primary_bailleur_for_user(
+                            location.bien.bailleurs, user
+                        )
                         if bailleur:
                             result["bailleur_id"] = str(bailleur.id)
                 except Location.DoesNotExist:
@@ -442,14 +441,15 @@ class FormOrchestrator:
         }
 
         # Données du bien (même logique que _extract_location_data)
-        if bien.adresse:
-            data["bien"]["localisation"]["adresse"] = bien.adresse
-            if bien.latitude:
-                data["bien"]["localisation"]["latitude"] = bien.latitude
-            if bien.longitude:
-                data["bien"]["localisation"]["longitude"] = bien.longitude
+        adresse: Adresse = bien.adresse
+        if adresse:
+            data["bien"]["localisation"]["adresse"] = adresse
+            if adresse.latitude:
+                data["bien"]["localisation"]["latitude"] = adresse.latitude
+            if adresse.longitude:
+                data["bien"]["localisation"]["longitude"] = adresse.longitude
                 # Ajouter area_id
-                _, area = get_rent_control_info(bien.latitude, bien.longitude)
+                _, area = get_rent_control_info(adresse.latitude, adresse.longitude)
                 if area:
                     data["bien"]["localisation"]["area_id"] = area.id
 
@@ -519,7 +519,9 @@ class FormOrchestrator:
 
         return data
 
-    def _extract_location_data(self, location: Location, user: Optional[Any] = None) -> Dict[str, Any]:
+    def _extract_location_data(
+        self, location: Location, user: Optional[Any] = None
+    ) -> Dict[str, Any]:
         """
         Extrait les données d'une Location pour pré-remplissage.
         Format aligné avec les serializers (priorité au user connecté pour le bailleur).
@@ -559,13 +561,14 @@ class FormOrchestrator:
             # Localisation
             if bien.adresse:
                 data["bien"]["localisation"]["adresse"] = bien.adresse
-                if bien.latitude:
-                    data["bien"]["localisation"]["latitude"] = bien.latitude
-                if bien.longitude:
-                    data["bien"]["localisation"]["longitude"] = bien.longitude
-                # Ajouter area_id
-                if bien.latitude and bien.longitude:
-                    _, area = get_rent_control_info(bien.latitude, bien.longitude)
+                if bien.adresse.latitude:
+                    data["bien"]["localisation"]["latitude"] = bien.adresse.latitude
+                if bien.adresse.longitude:
+                    data["bien"]["localisation"]["longitude"] = bien.adresse.longitude
+                    # Ajouter area_id
+                    _, area = get_rent_control_info(
+                        bien.adresse.latitude, bien.adresse.longitude
+                    )
                     if area:
                         data["bien"]["localisation"]["area_id"] = area.id
 
@@ -649,14 +652,16 @@ class FormOrchestrator:
 
         # Données du bailleur (priorité au user connecté)
         if location.bien and location.bien.bailleurs.exists():
-            bailleur: Bailleur = get_primary_bailleur_for_user(location.bien.bailleurs, user)
+            bailleur: Bailleur = get_primary_bailleur_for_user(
+                location.bien.bailleurs, user
+            )
             if bailleur:
                 # Utiliser serialize_bailleur pour éviter la duplication
                 bailleur_serialized = serialize_bailleur(bailleur)
                 data["bailleur"].update(bailleur_serialized)
 
                 # Extraire les co-bailleurs (tous sauf celui sélectionné comme principal)
-                all_bailleurs = location.bien.bailleurs.order_by('created_at')
+                all_bailleurs = location.bien.bailleurs.order_by("created_at")
                 co_bailleurs = all_bailleurs.exclude(id=bailleur.id)
                 if co_bailleurs.exists():
                     # Il y a des co-bailleurs

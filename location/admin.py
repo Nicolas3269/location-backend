@@ -136,7 +136,7 @@ class BienAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ("Bailleurs", {"fields": ("bailleurs",)}),
-        ("Localisation", {"fields": ("adresse", "latitude", "longitude")}),
+        ("Localisation", {"fields": ("adresse",)}),
         (
             "Caractéristiques",
             {

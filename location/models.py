@@ -51,8 +51,148 @@ class DPEClass(models.TextChoices):
 
 class BailleurType(models.TextChoices):
     """Types de bailleur"""
+
     PHYSIQUE = "physique", "Personne physique"
     MORALE = "morale", "Personne morale"
+
+
+# ==============================
+# MODÈLE ADRESSE
+# ==============================
+
+
+def format_address(
+    numero: str = "",
+    voie: str = "",
+    complement: str = "",
+    code_postal: str = "",
+    ville: str = "",
+    pays: str = "FR",
+) -> str:
+    """
+    Formate une adresse structurée en string lisible.
+    IMPORTANT: Logique IDENTIQUE à formatAddress() dans frontend/src/utils/address-utils.ts
+
+    Ex: "123 Rue de la Paix, Apt 4B, 75001 Paris, France"
+    """
+    parts: list[str] = []
+
+    # Numéro + voie
+    if numero and voie:
+        parts.append(f"{numero} {voie}")
+    elif voie:
+        parts.append(voie)
+
+    # Complément
+    if complement:
+        parts.append(complement)
+
+    # Code postal + ville
+    if code_postal and ville:
+        parts.append(f"{code_postal} {ville}")
+    elif ville:
+        parts.append(ville)
+
+    # Pays (nom complet)
+    pays_map = {"FR": "France", "BE": "Belgique", "CH": "Suisse", "LU": "Luxembourg"}
+    pays_name = pays_map.get(pays, pays)
+    if pays_name:
+        parts.append(pays_name)
+
+    return ", ".join(parts) if parts else ""
+
+
+class Adresse(BaseModel):
+    """
+    Modèle d'adresse structurée réutilisable.
+
+    Stockage granulaire aligné sur Google Places et INSEE/SIRENE.
+    La conversion vers formats partenaires (Mila, etc.) se fait via adapters.
+
+    Mapping des sources:
+        Google Places:
+            street_number → numero
+            route → voie
+            locality → ville
+            postal_code → code_postal
+            country (short_name) → pays
+
+        INSEE/SIRENE:
+            numeroVoieEtablissement → numero
+            typeVoieEtablissement + libelleVoieEtablissement → voie
+            codePostalEtablissement → code_postal
+            libelleCommuneEtablissement → ville
+    """
+
+    # Champs granulaires (source of truth)
+    # Seuls ville et pays sont obligatoires
+    numero = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Numéro",
+        help_text="Ex: 123, 123 bis, 123-125",
+    )
+    voie = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Voie",
+        help_text="Ex: Rue de la Paix, Avenue des Champs-Élysées",
+    )
+    complement = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Complément",
+        help_text="Ex: Bâtiment A, Apt 4B, Étage 3",
+    )
+    code_postal = models.CharField(
+        max_length=10,
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Code postal",
+    )
+    ville = models.CharField(max_length=100, verbose_name="Ville")
+    pays = models.CharField(
+        max_length=2,
+        default="FR",
+        verbose_name="Pays",
+        help_text="Code ISO 3166-1 alpha-2 (ex: FR, BE, CH)",
+    )
+
+    # Coordonnées GPS (pour geocoding et calculs de zone)
+    latitude = models.FloatField(null=True, blank=True, default=None)
+    longitude = models.FloatField(null=True, blank=True, default=None)
+
+    class Meta:
+        verbose_name = "Adresse"
+        verbose_name_plural = "Adresses"
+
+    def __str__(self) -> str:
+        """
+        Adresse complète formatée sur une ligne.
+        IMPORTANT: Logique identique à formatAddress() dans frontend/src/utils/address-utils.ts
+        """
+        return format_address(
+            numero=self.numero,
+            voie=self.voie,
+            complement=self.complement,
+            code_postal=self.code_postal,
+            ville=self.ville,
+            pays=self.pays,
+        )
+
+    @property
+    def rue(self) -> str:
+        """Numéro + voie combinés (pour affichage et partenaires)."""
+        if self.numero:
+            return f"{self.numero} {self.voie}"
+        return self.voie
 
 
 # ==============================
@@ -79,7 +219,20 @@ class Personne(BaseModel):
         null=True, blank=True, default=None
     )  # Optionnel pour certains cas
     email = models.EmailField()
-    adresse = models.TextField(blank=True, null=True, default=None)
+
+    # Adresse structurée (FK vers Adresse)
+    adresse = models.ForeignKey(
+        Adresse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="personnes",
+        help_text="Adresse structurée de la personne",
+    )
+    # Legacy: ancien champ texte (pour migration)
+    _adresse_legacy = models.TextField(
+        blank=True, null=True, default=None, db_column="adresse_legacy"
+    )
 
     # Informations bancaires (pour les propriétaires)
     iban = models.CharField(max_length=34, blank=True, null=True, default=None)
@@ -128,8 +281,21 @@ class Societe(BaseModel):
     siret = models.CharField(max_length=14)
     raison_sociale = models.CharField(max_length=200)
     forme_juridique = models.CharField(max_length=100)
-    adresse = models.TextField()
     email = models.EmailField()
+
+    # Adresse structurée (FK vers Adresse)
+    adresse = models.ForeignKey(
+        Adresse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="societes",
+        help_text="Adresse du siège social",
+    )
+    # Legacy: ancien champ texte (pour migration)
+    _adresse_legacy = models.TextField(
+        blank=True, null=True, default=None, db_column="adresse_legacy"
+    )
 
     # Informations bancaires (pour les sociétés propriétaires)
     iban = models.CharField(max_length=34, blank=True, null=True, default=None)
@@ -276,24 +442,25 @@ class HonoraireMandataire(BaseModel):
     Pour changer les tarifs, créer un nouvel enregistrement avec une nouvelle date_debut
     et fermer l'ancien en mettant date_fin.
     """
+
     location = models.ForeignKey(
-        'Location',  # Forward reference car Location défini après
+        "Location",  # Forward reference car Location défini après
         on_delete=models.CASCADE,
-        related_name="honoraires_mandataire_history"
+        related_name="honoraires_mandataire_history",
     )
 
     # Période de validité
     date_debut = models.DateField(
         db_index=True,
         verbose_name="Date de début de validité",
-        help_text="Date à partir de laquelle ces tarifs s'appliquent"
+        help_text="Date à partir de laquelle ces tarifs s'appliquent",
     )
     date_fin = models.DateField(
         null=True,
         blank=True,
         db_index=True,
         verbose_name="Date de fin de validité",
-        help_text="Laissez vide si tarifs actuellement en vigueur"
+        help_text="Laissez vide si tarifs actuellement en vigueur",
     )
 
     # Honoraires BAIL
@@ -308,7 +475,7 @@ class HonoraireMandataire(BaseModel):
             "Tarif des honoraires de bail au m² (€/m²). "
             "Plafonds légaux : 12€/m² (zone très tendue), "
             "10€/m² (zone tendue), 8€/m² (zone normale)."
-        )
+        ),
     )
     honoraires_bail_part_bailleur_pct = models.DecimalField(
         max_digits=5,
@@ -320,14 +487,14 @@ class HonoraireMandataire(BaseModel):
         help_text=(
             "Pourcentage des honoraires de bail à la charge du bailleur "
             "(0-100%). La part locataire ne peut excéder 50%."
-        )
+        ),
     )
 
     # Honoraires ÉTAT DES LIEUX
     mandataire_fait_edl = models.BooleanField(
         default=False,
         verbose_name="Le mandataire fait les EDL",
-        help_text="Indique si le mandataire réalise les états des lieux"
+        help_text="Indique si le mandataire réalise les états des lieux",
     )
     honoraires_edl_par_m2 = models.DecimalField(
         max_digits=5,
@@ -337,9 +504,8 @@ class HonoraireMandataire(BaseModel):
         default=None,
         verbose_name="Honoraires EDL par m²",
         help_text=(
-            "Tarif des honoraires d'état des lieux au m² (€/m²). "
-            "Maximum 3€/m²."
-        )
+            "Tarif des honoraires d'état des lieux au m² (€/m²). Maximum 3€/m²."
+        ),
     )
     honoraires_edl_part_bailleur_pct = models.DecimalField(
         max_digits=5,
@@ -351,14 +517,14 @@ class HonoraireMandataire(BaseModel):
         help_text=(
             "Pourcentage des honoraires EDL à la charge du bailleur "
             "(0-100%). Répartition libre entre bailleur et locataire."
-        )
+        ),
     )
 
     # Métadonnées
     raison_changement = models.TextField(
         blank=True,
         verbose_name="Raison du changement",
-        help_text="Pourquoi ces tarifs ont changé (optionnel)"
+        help_text="Pourquoi ces tarifs ont changé (optionnel)",
     )
 
     class Meta:
@@ -369,16 +535,16 @@ class HonoraireMandataire(BaseModel):
         constraints = [
             models.CheckConstraint(
                 check=(
-                    models.Q(date_fin__isnull=True) |
-                    models.Q(date_fin__gte=models.F('date_debut'))
+                    models.Q(date_fin__isnull=True)
+                    | models.Q(date_fin__gte=models.F("date_debut"))
                 ),
-                name="date_fin_after_date_debut"
+                name="date_fin_after_date_debut",
             )
         ]
         indexes = [
             models.Index(
-                fields=['location', 'date_debut', 'date_fin'],
-                name='honoraires_location_dates_idx'
+                fields=["location", "date_debut", "date_fin"],
+                name="honoraires_location_dates_idx",
             ),
         ]
 
@@ -394,14 +560,11 @@ class HonoraireMandataire(BaseModel):
         from django.core.exceptions import ProtectedError
 
         # Vérifier si utilisé (existe() plus rapide que count())
-        if hasattr(self, 'bails') and self.bails.exists():
-            msg = (
-                f"Cannot delete HonoraireMandataire {self.id}: "
-                f"used by bail documents"
-            )
+        if hasattr(self, "bails") and self.bails.exists():
+            msg = f"Cannot delete HonoraireMandataire {self.id}: used by bail documents"
             raise ProtectedError(msg, [self])
 
-        if hasattr(self, 'etats_lieux') and self.etats_lieux.exists():
+        if hasattr(self, "etats_lieux") and self.etats_lieux.exists():
             msg = (
                 f"Cannot delete HonoraireMandataire {self.id}: "
                 f"used by etat des lieux documents"
@@ -428,17 +591,20 @@ class HonoraireMandataire(BaseModel):
         if isinstance(target_date, datetime):
             target_date = target_date.date()
 
-        return cls.objects.filter(
-            location=location,
-            date_debut__lte=target_date
-        ).filter(
-            models.Q(date_fin__isnull=True) | models.Q(date_fin__gte=target_date)
-        ).order_by('-date_debut').first()
+        return (
+            cls.objects.filter(location=location, date_debut__lte=target_date)
+            .filter(
+                models.Q(date_fin__isnull=True) | models.Q(date_fin__gte=target_date)
+            )
+            .order_by("-date_debut")
+            .first()
+        )
 
     @classmethod
     def get_current(cls, location):
         """Récupère les honoraires actuellement en vigueur"""
         from datetime import date
+
         return cls.get_at_date(location, date.today())
 
 
@@ -580,9 +746,26 @@ class Bien(BaseModel):
         help_text="Un ou plusieurs bailleurs pour ce bien",
     )
 
-    adresse = models.CharField(max_length=255)
-    latitude = models.FloatField(null=True, blank=True, default=None)
-    longitude = models.FloatField(null=True, blank=True, default=None)
+    # Nouvelle FK vers Adresse (nullable pendant migration)
+    adresse = models.ForeignKey(
+        Adresse,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="biens",
+        verbose_name="Adresse",
+    )
+    # Ancien champ conservé temporairement pour migration
+    _adresse_legacy = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        default=None,
+        db_column="adresse_legacy",
+        help_text="DEPRECATED: Ancienne adresse texte, à migrer vers FK Adresse",
+    )
+    # GPS supprimés de Bien, maintenant sur Adresse
+    # Les coordonnées sont accessibles via bien.adresse.latitude / bien.adresse.longitude
     identifiant_fiscal = models.CharField(
         max_length=50,
         blank=True,
@@ -607,6 +790,7 @@ class Bien(BaseModel):
         blank=True,
         default=None,
     )
+    # A fixer pour Mila en integer
     etage = models.CharField(max_length=10, blank=True)
     porte = models.CharField(max_length=10, blank=True)
     # To do : le mettre a terme pour les assurances
@@ -710,7 +894,12 @@ class Bien(BaseModel):
         return chambres + sejours
 
     def __str__(self):
-        return f"{self.type_bien} - {self.adresse}"
+        adresse_str = (
+            str(self.adresse)
+            if self.adresse
+            else self._adresse_legacy or "Sans adresse"
+        )
+        return f"{self.type_bien} - {adresse_str}"
 
 
 class Locataire(Personne):
@@ -915,7 +1104,11 @@ class RentTerms(BaseModel):
 
         # Vérifier si le bien est meublé
         try:
-            meuble = self.location.bien.meuble if self.location and self.location.bien else False
+            meuble = (
+                self.location.bien.meuble
+                if self.location and self.location.bien
+                else False
+            )
         except Exception:
             meuble = False
 
@@ -931,8 +1124,8 @@ class RentTerms(BaseModel):
         from rent_control.utils import get_rent_price_for_bien
 
         if not self.rent_price_id:
-            bien: Bien = self.location.bien
-            _, area = get_rent_control_info(bien.latitude, bien.longitude)
+            adresse: Adresse = self.location.bien.adresse
+            _, area = get_rent_control_info(adresse.latitude, adresse.longitude)
             if not area:
                 return None
             self.rent_price_id = area.id

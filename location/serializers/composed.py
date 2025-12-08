@@ -13,9 +13,30 @@ from location.models import BailleurType
 
 
 class AdresseSerializer(serializers.Serializer):
-    """Serializer pour une adresse avec géolocalisation"""
+    """
+    Serializer pour une adresse structurée.
 
-    adresse = serializers.CharField(required=True, max_length=255)
+    Stockage granulaire aligné sur Google Places et INSEE/SIRENE.
+    Seule 'ville' est obligatoire (ZI/ZA/hameaux n'ont pas forcément de voie).
+    """
+
+    # Champs granulaires (alignés sur Google Places / INSEE)
+    numero = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, max_length=20
+    )
+    voie = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, max_length=255
+    )
+    complement = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, max_length=255
+    )
+    code_postal = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, max_length=10
+    )
+    ville = serializers.CharField(required=True, max_length=100)
+    pays = serializers.CharField(required=False, max_length=2, default="FR")
+
+    # Géolocalisation
     latitude = serializers.FloatField(required=False, allow_null=True)
     longitude = serializers.FloatField(required=False, allow_null=True)
     area_id = serializers.IntegerField(required=False, allow_null=True)
@@ -30,9 +51,18 @@ class CaracteristiquesBienSerializer(serializers.Serializer):
     type_bien = serializers.ChoiceField(
         choices=["appartement", "maison"], required=False, default="appartement"
     )
-    etage = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
-    porte = serializers.CharField(required=False, allow_blank=True, allow_null=True, default="")
-    dernier_etage = serializers.BooleanField(required=False, allow_null=True, default=None)
+    etage = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, default=""
+    )
+    # Pour plus tard:
+    # etage = serializers.IntegerField(required=False, allow_null=True, default=None, help_text="0=RDC, 1, 2...")
+
+    porte = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, default=""
+    )
+    dernier_etage = serializers.BooleanField(
+        required=False, allow_null=True, default=None
+    )
     meuble = serializers.BooleanField(required=False, allow_null=True, default=None)
     pieces_info = serializers.JSONField(
         required=False,
@@ -84,8 +114,12 @@ class RegimeJuridiqueSerializer(serializers.Serializer):
     regime_juridique = serializers.ChoiceField(
         choices=["monopropriete", "copropriete"], required=False, allow_null=True
     )
-    identifiant_fiscal = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    periode_construction = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    identifiant_fiscal = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    periode_construction = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
 
 
 class ZoneReglementaireSerializer(serializers.Serializer):
@@ -105,24 +139,34 @@ class ZoneReglementaireSerializer(serializers.Serializer):
 class PersonneSerializer(serializers.Serializer):
     """Serializer pour une personne (bailleur, locataire, signataire)"""
 
-    id = serializers.UUIDField(required=False, allow_null=True, help_text="UUID généré côté frontend")
+    id = serializers.UUIDField(
+        required=False, allow_null=True, help_text="UUID généré côté frontend"
+    )
     lastName = serializers.CharField(max_length=100)
     firstName = serializers.CharField(max_length=100)
     email = serializers.EmailField()
     date_naissance = serializers.DateField(required=False, allow_null=True)
-    telephone = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
-    adresse = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    iban = serializers.CharField(max_length=34, required=False, allow_blank=True, allow_null=True)
+    telephone = serializers.CharField(
+        max_length=20, required=False, allow_blank=True, allow_null=True
+    )
+    adresse = AdresseSerializer(required=False, allow_null=True)
+    iban = serializers.CharField(
+        max_length=34, required=False, allow_blank=True, allow_null=True
+    )
 
 
 class SocieteSerializer(serializers.Serializer):
     """Serializer pour une société"""
 
-    id = serializers.UUIDField(required=False, allow_null=True, help_text="UUID de la société (pour réutilisation)")
+    id = serializers.UUIDField(
+        required=False,
+        allow_null=True,
+        help_text="UUID de la société (pour réutilisation)",
+    )
     raison_sociale = serializers.CharField(max_length=200)
     siret = serializers.CharField(max_length=14, min_length=14)
     forme_juridique = serializers.CharField(max_length=100)
-    adresse = serializers.CharField()
+    adresse = AdresseSerializer(required=False, allow_null=True)
     telephone = serializers.CharField(max_length=20, required=False, allow_blank=True)
     email = serializers.EmailField(required=False, allow_blank=True)
 
@@ -130,7 +174,11 @@ class SocieteSerializer(serializers.Serializer):
 class BailleurInfoSerializer(serializers.Serializer):
     """Informations du bailleur principal (physique ou morale)"""
 
-    id = serializers.UUIDField(required=False, allow_null=True, help_text="UUID du bailleur (pour réutilisation)")
+    id = serializers.UUIDField(
+        required=False,
+        allow_null=True,
+        help_text="UUID du bailleur (pour réutilisation)",
+    )
     bailleur_type = serializers.ChoiceField(
         choices=BailleurType.choices, default=BailleurType.PHYSIQUE.value
     )
@@ -176,7 +224,11 @@ class BailleurInfoSerializer(serializers.Serializer):
             personne = data.get("personne", {})
             if not personne.get("adresse"):
                 raise serializers.ValidationError(
-                    {"personne": {"adresse": "L'adresse est requise pour un bailleur personne physique"}}
+                    {
+                        "personne": {
+                            "adresse": "L'adresse est requise pour un bailleur personne physique"
+                        }
+                    }
                 )
             # Nettoyer les champs non pertinents
             data.pop("societe", None)
@@ -193,7 +245,7 @@ class BailleurInfoSerializer(serializers.Serializer):
                 )
             # Nettoyer le champ personne
             data.pop("personne", None)
-            
+
         return data
 
 
@@ -207,22 +259,20 @@ class MandataireInfoSerializer(serializers.Serializer):
     signataire = PersonneSerializer(
         required=True,
         help_text=(
-            "Signataire du mandataire "
-            "(personne physique qui va recevoir la signature)"
-        )
+            "Signataire du mandataire (personne physique qui va recevoir la signature)"
+        ),
     )
 
     # Informations de l'agence
     agence = SocieteSerializer(
-        required=True,
-        help_text="Société de l'agence immobilière"
+        required=True, help_text="Société de l'agence immobilière"
     )
 
     # Numéro de carte professionnelle (CPI)
     numero_carte_professionnelle = serializers.CharField(
         required=False,
         allow_blank=True,
-        help_text="Numéro de carte professionnelle (CPI) du mandataire"
+        help_text="Numéro de carte professionnelle (CPI) du mandataire",
     )
 
 
@@ -262,13 +312,20 @@ class ModalitesFinancieresSerializer(serializers.Serializer):
 class ModalitesZoneTendueSerializer(serializers.Serializer):
     """Modalités spécifiques zone tendue"""
 
-    premiere_mise_en_location = serializers.BooleanField(required=False, allow_null=True)
-    locataire_derniers_18_mois = serializers.BooleanField(required=False, allow_null=True)
+    premiere_mise_en_location = serializers.BooleanField(
+        required=False, allow_null=True
+    )
+    locataire_derniers_18_mois = serializers.BooleanField(
+        required=False, allow_null=True
+    )
     dernier_montant_loyer = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
     dernier_loyer_periode = serializers.CharField(
-        max_length=7, required=False, allow_null=True, help_text="Format YYYY-MM (ex: 2024-03)"
+        max_length=7,
+        required=False,
+        allow_null=True,
+        help_text="Format YYYY-MM (ex: 2024-03)",
     )
     justificatif_complement_loyer = serializers.CharField(
         required=False, allow_blank=True, allow_null=True
@@ -388,7 +445,9 @@ class BienEtatLieuxSerializer(serializers.Serializer):
     performance_energetique = PerformanceEnergetiqueSerializer(required=False)
     equipements = EquipementsSerializer()  # Décommenté pour accepter les équipements
     energie = EnergieSerializer()
-    regime = RegimeJuridiqueSerializer(required=False)  # Ajouté pour sauvegarder regime_juridique et periode_construction
+    regime = RegimeJuridiqueSerializer(
+        required=False
+    )  # Ajouté pour sauvegarder regime_juridique et periode_construction
     zone_reglementaire = ZoneReglementaireSerializer(required=False)
 
 
@@ -422,5 +481,3 @@ class BienBailSerializer(serializers.Serializer):
 # sont maintenant importés directement depuis france.py dans views.py
 # pour éviter l'import circulaire.
 # ============================================
-
-

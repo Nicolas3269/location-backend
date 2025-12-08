@@ -209,14 +209,11 @@ def check_zone(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            address = data.get("address", "")
-            lat = data.get("lat", "")
-            lng = data.get("lng", "")
+            lat = data.get("lat")
+            lng = data.get("lng")
 
-            logger.info(f"🔍 Adresse reçue : {address}")
-
-            if not address:
-                return JsonResponse({"message": "Adresse requise"}, status=400)
+            if lat is None or lng is None:
+                return JsonResponse({"message": "lat et lng requis"}, status=400)
 
             # Récupérer les options disponibles ET l'area
             options, area = get_rent_control_info(lat, lng)

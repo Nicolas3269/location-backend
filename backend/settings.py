@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "quittance",
     "signature",
     "tsa",  # Time Stamping Authority
+    "partenaires",  # Partenaires externes (assurances, services, etc.)
 ]
 
 MIDDLEWARE = [
@@ -384,3 +385,5 @@ if SENTRY_DSN and not DEBUG:
         # https://docs.sentry.io/platforms/python/data-management/data-collected/
         send_default_pii=True,
     )
+
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")

@@ -596,6 +596,7 @@ def get_company_data(request):
             adresse["ville"] = adresse_etablissement["libelleCommuneEtablissement"]
 
         if adresse:
+            adresse["pays"] = "FR"  # INSEE = toujours France
             company_data["adresse"] = adresse
 
         return JsonResponse(company_data)

@@ -65,13 +65,16 @@ bien = BienFactory()
 bien = BienFactory(bailleurs__count=2)
 
 # Bien avec adresse spécifique
-bien = BienFactory(adresse="12 Rue de la Paix, 75002 Paris")
+bien = BienFactory(adresse__voie="Rue de la Paix", adresse__ville="Paris")
 
 # Bien complet personnalisé
 bien = BienFactory(
-    adresse="123 Avenue des Champs-Élysées, 75008 Paris",
-    latitude=48.8698,
-    longitude=2.3318,
+    adresse__voie="Avenue des Champs-Élysées",
+    adresse__numero="123",
+    adresse__code_postal="75008",
+    adresse__ville="Paris",
+    adresse__latitude=48.8698,
+    adresse__longitude=2.3318,
     type_bien="appartement",
     superficie=85.5,
     meuble=True,
@@ -221,8 +224,8 @@ import pytest
 @pytest.mark.django_db
 def test_with_existing_bien(bien_paris):
     """Test avec un bien existant à Paris"""
-    assert "Paris" in bien_paris.adresse
-    assert bien_paris.latitude is not None
+    assert "Paris" in bien_paris.adresse.ville
+    assert bien_paris.adresse.latitude is not None
 
 @pytest.mark.django_db
 def test_create_custom_bail(create_bail):

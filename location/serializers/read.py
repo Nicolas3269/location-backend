@@ -8,6 +8,7 @@ from typing import Any, Dict
 from rest_framework import serializers
 
 from location.models import (
+    Adresse,
     Bailleur,
     Bien,
     Location,
@@ -24,22 +25,44 @@ from location.serializers.helpers import (
 )
 
 
+class AdresseReadSerializer(serializers.ModelSerializer):
+    """
+    Serializer READ pour Adresse.
+    Retourne uniquement les champs structurés (frontend construit le formaté).
+    """
+
+    class Meta:
+        model = Adresse
+        fields = [
+            "id",
+            "numero",
+            "voie",
+            "complement",
+            "code_postal",
+            "ville",
+            "pays",
+            "latitude",
+            "longitude",
+        ]
+
+
 class BienReadSerializer(serializers.ModelSerializer):
     """
     Serializer READ pour Bien.
     Retourne tous les champs nécessaires pour pré-remplir un formulaire.
     """
 
+    # Adresse FK (required) - typé pour génération Zod
+    adresse = AdresseReadSerializer(read_only=True)
+
     class Meta:
         model = Bien
         fields = [
             "id",
-            "adresse",
+            "adresse",  # Contient latitude/longitude via AdresseReadSerializer
             "type_bien",
             "superficie",
             "meuble",
-            "latitude",
-            "longitude",
             "etage",
             "porte",
             "dernier_etage",

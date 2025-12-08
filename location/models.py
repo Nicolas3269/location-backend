@@ -229,10 +229,6 @@ class Personne(BaseModel):
         related_name="personnes",
         help_text="Adresse structurée de la personne",
     )
-    # Legacy: ancien champ texte (pour migration)
-    _adresse_legacy = models.TextField(
-        blank=True, null=True, default=None, db_column="adresse_legacy"
-    )
 
     # Informations bancaires (pour les propriétaires)
     iban = models.CharField(max_length=34, blank=True, null=True, default=None)
@@ -291,10 +287,6 @@ class Societe(BaseModel):
         blank=True,
         related_name="societes",
         help_text="Adresse du siège social",
-    )
-    # Legacy: ancien champ texte (pour migration)
-    _adresse_legacy = models.TextField(
-        blank=True, null=True, default=None, db_column="adresse_legacy"
     )
 
     # Informations bancaires (pour les sociétés propriétaires)
@@ -755,15 +747,6 @@ class Bien(BaseModel):
         related_name="biens",
         verbose_name="Adresse",
     )
-    # Ancien champ conservé temporairement pour migration
-    _adresse_legacy = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        default=None,
-        db_column="adresse_legacy",
-        help_text="DEPRECATED: Ancienne adresse texte, à migrer vers FK Adresse",
-    )
     # GPS supprimés de Bien, maintenant sur Adresse
     # Les coordonnées sont accessibles via bien.adresse.latitude / bien.adresse.longitude
     identifiant_fiscal = models.CharField(
@@ -894,11 +877,7 @@ class Bien(BaseModel):
         return chambres + sejours
 
     def __str__(self):
-        adresse_str = (
-            str(self.adresse)
-            if self.adresse
-            else self._adresse_legacy or "Sans adresse"
-        )
+        adresse_str = str(self.adresse) if self.adresse else "Sans adresse"
         return f"{self.type_bien} - {adresse_str}"
 
 

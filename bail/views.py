@@ -4,6 +4,7 @@ import os
 import uuid
 
 import requests
+from pyproj import Transformer
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
@@ -48,6 +49,9 @@ from signature.views import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Transformer Lambert-93 (EPSG:2154) → WGS84 (EPSG:4326) pour les coordonnées SIRENE
+_lambert_to_wgs84 = Transformer.from_crs("EPSG:2154", "EPSG:4326", always_xy=True)
 
 INDICE_IRL = 145.47
 
@@ -597,6 +601,28 @@ def get_company_data(request):
 
         if adresse:
             adresse["pays"] = "FR"  # INSEE = toujours France
+
+            # Coordonnées GPS (conversion Lambert-93 → WGS84)
+            lambert_x = adresse_etablissement.get(
+                "coordonneeLambertAbscisseEtablissement"
+            )
+            lambert_y = adresse_etablissement.get(
+                "coordonneeLambertOrdonneeEtablissement"
+            )
+
+            if lambert_x and lambert_y:
+                try:
+                    lng, lat = _lambert_to_wgs84.transform(
+                        float(lambert_x), float(lambert_y)
+                    )
+                    adresse["longitude"] = round(lng, 7)
+                    adresse["latitude"] = round(lat, 7)
+                except (ValueError, TypeError):
+                    logger.error(
+                        f"Coordonnées Lambert-93 invalides pour SIRET {siret}: "
+                        f"x={lambert_x}, y={lambert_y}"
+                    )
+
             company_data["adresse"] = adresse
 
         return JsonResponse(company_data)

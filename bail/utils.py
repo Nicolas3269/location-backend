@@ -223,7 +223,7 @@ def _create_adresse_from_localisation(localisation: dict, save=True):
 
     # Vérifier qu'on a au moins la ville (voie optionnelle pour ZI/ZA)
     if not ville:
-        logger.warning(f"Données adresse insuffisantes: ville manquante")
+        logger.error("Données adresse insuffisantes: ville manquante")
         return None
 
     # Chercher une adresse existante identique pour éviter les doublons

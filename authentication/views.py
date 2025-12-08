@@ -395,7 +395,7 @@ def get_user_profile_stats(request):
 
     except Exception as e:
         error_msg = f"Erreur récupération biens pour {user.email}: {e}"
-        logger.warning(error_msg)
+        logger.error(error_msg)
         stats_data["biens"] = []
 
     # Statistiques Locataire : Liste des locations avec bails
@@ -473,7 +473,7 @@ def get_user_profile_stats(request):
 
     except Exception as e:
         error_msg = f"Erreur récupération locations pour {user.email}: {e}"
-        logger.warning(error_msg)
+        logger.error(error_msg)
         stats_data["locations"] = []
 
     # Statistiques Mandataire : Nombre de biens/bailleurs gérés
@@ -502,6 +502,6 @@ def get_user_profile_stats(request):
 
     except Exception as e:
         error_msg = f"Erreur stats mandataire pour {user.email}: {e}"
-        logger.warning(error_msg)
+        logger.error(error_msg)
 
     return JsonResponse({"success": True, **stats_data})

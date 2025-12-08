@@ -221,7 +221,7 @@ class AbstractSignatureRequest(BaseModel):
 
         # Utiliser cancelled_by si disponible (le User qui a annulé)
         if not self.cancelled_by:
-            logger.warning(f"SignatureRequest {self.id} annulée sans cancelled_by")
+            logger.error(f"SignatureRequest {self.id} annulée sans cancelled_by")
             return None
 
         user = self.cancelled_by

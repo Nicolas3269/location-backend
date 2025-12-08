@@ -180,7 +180,7 @@ def get_or_create_quittance_for_location(location, validated_data):
             f"Quittance créée pour {len(locataires_selectionnes)} locataire(s): {locataires_names}"
         )
     else:
-        logger.warning("Aucun locataire pour cette quittance")
+        logger.error("Aucun locataire pour cette quittance")
 
     logger.info(f"Quittance créée: {quittance.id}")
     return str(quittance.id)

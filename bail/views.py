@@ -4,12 +4,12 @@ import os
 import uuid
 
 import requests
-from pyproj import Transformer
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from pyproj import Transformer
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from weasyprint import HTML
@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 # Transformer Lambert-93 (EPSG:2154) → WGS84 (EPSG:4326) pour les coordonnées SIRENE
 _lambert_to_wgs84 = Transformer.from_crs("EPSG:2154", "EPSG:4326", always_xy=True)
 
-INDICE_IRL = 145.47
+INDICE_IRL = 145.77
 
 
 @api_view(["POST"])

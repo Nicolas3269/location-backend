@@ -51,12 +51,12 @@ class CaracteristiquesBienSerializer(serializers.Serializer):
     type_bien = serializers.ChoiceField(
         choices=["appartement", "maison"], required=False, default="appartement"
     )
-    etage = serializers.CharField(
-        required=False, allow_blank=True, allow_null=True, default=""
+    etage = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text="0=RDC, 1=1er étage, etc. Requis pour appartement",
     )
-    # Pour plus tard:
-    # etage = serializers.IntegerField(required=False, allow_null=True, default=None, help_text="0=RDC, 1, 2...")
-
     porte = serializers.CharField(
         required=False, allow_blank=True, allow_null=True, default=""
     )
@@ -69,6 +69,18 @@ class CaracteristiquesBienSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Détail des pièces: chambres, sallesDeBain, cuisines, etc.",
     )
+
+    def validate(self, data):
+        """Valide que l'étage est renseigné pour un appartement."""
+        type_bien = data.get("type_bien")
+        etage = data.get("etage")
+
+        if type_bien == "appartement" and etage is None:
+            raise serializers.ValidationError(
+                {"etage": "L'étage est requis pour un appartement."}
+            )
+
+        return data
 
 
 class PerformanceEnergetiqueSerializer(serializers.Serializer):

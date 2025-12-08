@@ -22,6 +22,20 @@
       "justMyCode": false
     },
     {
+      "name": "Django: Test Mila",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/manage.py",
+      "args": [
+        "test_mila",
+        "--location",
+        "${input:locationUuid}"
+      ],
+      "envFile": "${workspaceFolder}/.env",
+      "django": true,
+      "justMyCode": false
+    },
+    {
       "name": "Django: Gunicorn (E2E Tests)",
       "type": "debugpy",
       "request": "launch",
@@ -45,6 +59,13 @@
       },
       "console": "integratedTerminal",
       "justMyCode": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "locationUuid",
+      "type": "promptString",
+      "description": "UUID de la location à tester"
     }
   ]
 }

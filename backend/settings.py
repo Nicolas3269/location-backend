@@ -387,3 +387,10 @@ if SENTRY_DSN and not DEBUG:
     )
 
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
+
+# =============================================================================
+# Mila API (Assurance MRH Locataire)
+# =============================================================================
+MILA_API_URL = os.getenv("MILA_API_URL")
+MILA_API_USERNAME = os.getenv("MILA_API_USERNAME")
+MILA_API_PASSWORD = os.getenv("MILA_API_PASSWORD")

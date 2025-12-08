@@ -1,3 +1,4 @@
+{% load french_grammar %}
 {# Composant : Affichage Bailleur + Locataire #}
 <div class="info-grid">
     <div class="info-section">
@@ -26,10 +27,10 @@
             <span class="label">Adresse du bien :</span>
             <span class="value">
                 {{ adresse_bien }}
-                {% if bien_etage or bien_porte %}
+                {% if bien_etage is not None or bien_porte %}
                     <br>
-                    {% if bien_etage %}Étage {{ bien_etage }}{% endif %}
-                    {% if bien_etage and bien_porte %}, {% endif %}
+                    {% if bien_etage is not None %}Étage {{ bien_etage|format_etage }}{% endif %}
+                    {% if bien_etage is not None and bien_porte %}, {% endif %}
                     {% if bien_porte %}Porte {{ bien_porte }}{% endif %}
                 {% endif %}
             </span>

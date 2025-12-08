@@ -1,4 +1,4 @@
-{% load compteurs_tags %}
+{% load compteurs_tags french_grammar %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -481,7 +481,7 @@
     <div class="info-section" style="padding: 20px;">
         <h2>Adresse du logement</h2>
         <div style="font-size: 13pt; color: #3e3c41; font-weight: 600; margin-bottom: 15px;">
-            {{ etat_lieux.location.bien.adresse }}{% if etat_lieux.location.bien.etage or etat_lieux.location.bien.porte %}<br><span style="font-size: 11pt; color: #6c6b70;">{% if etat_lieux.location.bien.etage %}Étage {{ etat_lieux.location.bien.etage }}{% endif %}{% if etat_lieux.location.bien.etage and etat_lieux.location.bien.porte %}, {% endif %}{% if etat_lieux.location.bien.porte %}Porte {{ etat_lieux.location.bien.porte }}{% endif %}</span>{% endif %}
+            {{ etat_lieux.location.bien.adresse }}{% if etat_lieux.location.bien.etage is not None or etat_lieux.location.bien.porte %}<br><span style="font-size: 11pt; color: #6c6b70;">{% if etat_lieux.location.bien.etage is not None %}Étage {{ etat_lieux.location.bien.etage|format_etage }}{% endif %}{% if etat_lieux.location.bien.etage is not None and etat_lieux.location.bien.porte %}, {% endif %}{% if etat_lieux.location.bien.porte %}Porte {{ etat_lieux.location.bien.porte }}{% endif %}</span>{% endif %}
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 10pt;">
             <div>

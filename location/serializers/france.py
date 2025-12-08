@@ -58,6 +58,7 @@ TYPE_BIEN_STEPS = [
             "bien.caracteristiques.porte": Bien.porte,
             "bien.caracteristiques.dernier_etage": Bien.dernier_etage,
         },
+        "business_rules": ["appartementNeedsFloor"],  # Étage requis pour appartement
     },
 ]
 SUPERFICIE_STEPS = [

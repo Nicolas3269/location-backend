@@ -3,6 +3,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from bail.models import Bail
 from location.models import Bien, RentTerms
 from location.services.honoraires_utils import get_honoraires_mandataire_for_location
+from location.templatetags.french_grammar import format_etage
 from rent_control.choices import PropertyType, RegimeJuridique, SystemType
 
 
@@ -38,7 +39,11 @@ La présente location est régie par les dispositions du titre Ier (articles 1er
     @staticmethod
     def article_duree_contrat(bien: Bien):
         if bien.type_bien == PropertyType.APARTMENT:
-            line_1 = f"l’appartement situé au {bien.adresse}, étage {bien.etage}, porte {bien.porte}"
+            etage_str = format_etage(bien.etage)
+            porte_str = f", porte {bien.porte}" if bien.porte else ""
+            line_1 = (
+                f"l'appartement situé au {bien.adresse}, étage {etage_str}{porte_str}"
+            )
         else:
             line_1 = f"la maison située au {bien.adresse}"
 

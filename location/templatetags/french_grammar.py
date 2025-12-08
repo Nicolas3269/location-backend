@@ -76,3 +76,30 @@ def avec_a(value: str) -> str:
     if commence_par_voyelle(value):
         return f"à l'{value}"
     return f"au {value}"
+
+
+def format_etage(value) -> str:
+    """
+    Formate l'étage pour l'affichage (0 → "RDC", autres → numéro).
+
+    Utilisable directement en Python ou comme filtre Django.
+
+    Exemples:
+        format_etage(0)       → "RDC"
+        format_etage(1)       → "1"
+        {{ 5|format_etage }}  → "5"
+    """
+    if value is None or value == "":
+        return ""
+
+    try:
+        etage = int(value)
+        if etage == 0:
+            return "RDC"
+        return str(etage)
+    except (ValueError, TypeError):
+        return str(value)
+
+
+# Enregistrer comme filtre Django
+register.filter(name="format_etage")(format_etage)

@@ -1,4 +1,3 @@
-# Mila API services
-from .adapters import AdresseToMilaAdapter, BienToMilaAdapter
-
-__all__ = ["AdresseToMilaAdapter", "BienToMilaAdapter"]
+# Mila API services - import directly from submodules:
+#   from partenaires.services.mila.client import MilaMRHClient
+#   from partenaires.services.mila.types import RealEstateLotType

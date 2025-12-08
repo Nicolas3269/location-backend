@@ -773,10 +773,14 @@ class Bien(BaseModel):
         blank=True,
         default=None,
     )
-    # A fixer pour Mila en integer
-    etage = models.CharField(max_length=10, blank=True)
+    etage = models.IntegerField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="Étage",
+        help_text="0=RDC, 1=1er étage, etc.",
+    )
     porte = models.CharField(max_length=10, blank=True)
-    # To do : le mettre a terme pour les assurances
     dernier_etage = models.BooleanField(null=True, blank=True, default=None)
 
     periode_construction = models.CharField(

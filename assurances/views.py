@@ -720,6 +720,44 @@ def get_cgv_document(request: Request) -> Response:
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
+def get_dipa_document(request: Request) -> Response:
+    """
+    Retourne l'URL du DIPA (Document d'Information sur le Produit d'Assurance).
+
+    Le DIPA est un document réglementaire statique stocké dans static/pdfs/assurances/.
+    Même mécanisme que la notice d'information pour les baux.
+
+    Query params (optionnel):
+        product: Type de produit (MRH, PNO, GLI, défaut: MRH)
+
+    Returns:
+        {"url": "http://localhost:8003/pdf/static/assurances/dipa_mrh.pdf"}
+    """
+    from backend.pdf_utils import get_static_pdf_iframe_url
+
+    product = request.query_params.get("product", "MRH").upper()
+
+    if product not in ["MRH", "PNO", "GLI"]:
+        product = "MRH"
+
+    # Mapping des fichiers DIPA par produit (dans static/pdfs/assurances/)
+    dipa_files = {
+        "MRH": "assurances/dipa_mrh.pdf",
+        # TODO: Ajouter PNO et GLI quand disponibles
+        "PNO": "assurances/dipa_mrh.pdf",
+        "GLI": "assurances/dipa_mrh.pdf",
+    }
+
+    pdf_path = dipa_files.get(product, dipa_files["MRH"])
+
+    # Utiliser le même mécanisme que la notice d'information
+    full_url = get_static_pdf_iframe_url(request, pdf_path)
+
+    return Response({"url": full_url})
+
+
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_devis_document(request: Request) -> HttpResponse:
     """

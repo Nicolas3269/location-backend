@@ -33,6 +33,7 @@ urlpatterns = [
     ),
     # === Documents ===
     path("documents/cgv/", views.get_cgv_document, name="documents-cgv"),
+    path("documents/dipa/", views.get_dipa_document, name="documents-dipa"),
     path("documents/devis/", views.get_devis_document, name="documents-devis"),
     # === Webhook ===
     path("webhooks/stripe/", webhooks.stripe_webhook, name="stripe-webhook"),

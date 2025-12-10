@@ -15,12 +15,40 @@ from django.core.files.base import ContentFile
 from django.template.loader import render_to_string
 from weasyprint import HTML
 
-from backend.pdf_utils import get_logo_pdf_base64_data_uri
+from backend.pdf_utils import (
+    get_hestia_signature_base64_data_uri,
+    get_logo_pdf_base64_data_uri,
+    get_mila_signature_base64_data_uri,
+)
+from location.models import Bien, Location
 
 if TYPE_CHECKING:
     from assurances.models import InsurancePolicy
 
 logger = logging.getLogger(__name__)
+
+
+def _calculate_garantie_limits(bien: Bien) -> dict[str, int]:
+    """
+    Calcule les limites de garantie basées sur le nombre de pièces.
+
+    Args:
+        bien: Le bien assuré
+
+    Returns:
+        Dict avec nb_pieces, limite_mobilier, limite_objets_valeur
+
+    Raises:
+        ValueError: Si le bien n'a pas de nombre de pièces défini
+    """
+    if not bien or not bien.nombre_pieces_principales:
+        raise ValueError("Le bien doit avoir un nombre de pièces principales défini")
+    nb_pieces = bien.nombre_pieces_principales
+    return {
+        "nb_pieces": nb_pieces,
+        "limite_mobilier": 8000 + (nb_pieces - 1) * 3000,
+        "limite_objets_valeur": 2500 + (nb_pieces - 1) * 1000,
+    }
 
 
 class InsuranceDocumentService:
@@ -42,7 +70,7 @@ class InsuranceDocumentService:
             Contenu PDF en bytes
         """
         quotation = policy.quotation
-        location = quotation.location
+        location: Location = quotation.location
         bien = location.bien if location else None
         subscriber = policy.subscriber
 
@@ -50,6 +78,9 @@ class InsuranceDocumentService:
         locataire = None
         if location:
             locataire = location.locataires.first()
+
+        # Calculer les limites de garantie
+        limites = _calculate_garantie_limits(bien)
 
         context = {
             "policy": policy,
@@ -60,6 +91,9 @@ class InsuranceDocumentService:
             "locataire": locataire,
             "adresse": bien.adresse if bien else None,
             "logo_base64_uri": get_logo_pdf_base64_data_uri(),
+            "mila_signature_base64_uri": get_mila_signature_base64_data_uri(),
+            "hestia_signature_base64_uri": get_hestia_signature_base64_data_uri(),
+            **limites,
         }
 
         # Template selon le produit
@@ -151,10 +185,15 @@ class InsuranceDocumentService:
             Contenu PDF en bytes
         """
 
+        # Générer un numéro de police prévisualisation
+        from .policy_number import generate_policy_number
+        product = quotation_data.get("product", "MRH")
+        preview_policy_number = generate_policy_number(product)
+
         # Créer un objet "policy-like" pour le template
         class PolicyPreview:
-            def __init__(self, q_data: dict, f_data: dict):
-                self.policy_number = "DRAFT"  # Numéro provisoire
+            def __init__(self, q_data: dict, f_data: dict, policy_num: str):
+                self.policy_number = policy_num
                 self.product = q_data.get("product", "MRH")
                 self.formula_label = f_data.get("label", "")
                 self.formula_code = f_data.get("code", "")
@@ -174,8 +213,13 @@ class InsuranceDocumentService:
             def selected_formula(self):
                 return self._selected_formula
 
-        policy_preview = PolicyPreview(quotation_data, formula_data)
+        policy_preview = PolicyPreview(
+            quotation_data, formula_data, preview_policy_number
+        )
         quotation_preview = QuotationPreview(quotation_data, formula_data)
+
+        # Calculer les limites de garantie
+        limites = _calculate_garantie_limits(bien)
 
         context = {
             "policy": policy_preview,
@@ -186,7 +230,10 @@ class InsuranceDocumentService:
             "locataire": locataire,  # Pour le marqueur de signature
             "adresse": bien.adresse if bien else None,
             "logo_base64_uri": get_logo_pdf_base64_data_uri(),
+            "mila_signature_base64_uri": get_mila_signature_base64_data_uri(),
+            "hestia_signature_base64_uri": get_hestia_signature_base64_data_uri(),
             "is_preview": True,  # Flag pour afficher "PROJET" dans le template
+            **limites,
         }
 
         product = quotation_data.get("product", "MRH").lower()
@@ -248,7 +295,9 @@ class InsuranceDocumentService:
         Args:
             policy: Police assurance
         """
-        logger.info(f"📄 Starting document generation for policy {policy.policy_number}")
+        logger.info(
+            f"📄 Starting document generation for policy {policy.policy_number}"
+        )
 
         # Log context pour debug
         quotation = policy.quotation
@@ -275,7 +324,9 @@ class InsuranceDocumentService:
         try:
             logger.info(f"📄 Generating attestation for {policy.policy_number}...")
             attestation_pdf = self.generate_attestation(policy)
-            logger.info(f"📄 Attestation PDF generated, size={len(attestation_pdf)} bytes")
+            logger.info(
+                f"📄 Attestation PDF generated, size={len(attestation_pdf)} bytes"
+            )
             policy.attestation_document.save(
                 f"attestation_{policy.policy_number}.pdf",
                 ContentFile(attestation_pdf),
@@ -288,4 +339,6 @@ class InsuranceDocumentService:
             raise
 
         policy.save()
-        logger.info(f"✅ All documents generated and saved for policy {policy.policy_number}")
+        logger.info(
+            f"✅ All documents generated and saved for policy {policy.policy_number}"
+        )

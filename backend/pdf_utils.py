@@ -49,6 +49,38 @@ def get_logo_pdf_base64_data_uri():
     return f"data:image/svg+xml;base64,{base64_encoded}"
 
 
+def get_mila_signature_base64_data_uri():
+    """
+    Génère l'URI data en base64 de la signature Mila pour les PDF assurance.
+
+    Returns:
+        str: URI data complète (data:image/png;base64,...)
+    """
+    signature_path = Path(settings.BASE_DIR) / "static" / "images" / "sign_mila.png"
+
+    with open(signature_path, "rb") as f:
+        image_bytes = f.read()
+
+    base64_encoded = base64.b64encode(image_bytes).decode("utf-8")
+    return f"data:image/png;base64,{base64_encoded}"
+
+
+def get_hestia_signature_base64_data_uri():
+    """
+    Génère l'URI data en base64 de la signature Hestia pour les PDF assurance.
+
+    Returns:
+        str: URI data complète (data:image/png;base64,...)
+    """
+    signature_path = Path(settings.BASE_DIR) / "static" / "images" / "sign_hestia.png"
+
+    with open(signature_path, "rb") as f:
+        image_bytes = f.read()
+
+    base64_encoded = base64.b64encode(image_bytes).decode("utf-8")
+    return f"data:image/png;base64,{base64_encoded}"
+
+
 def get_static_pdf_iframe_url(request, pdf_path):
     """
     Convertit un chemin PDF statique en URL utilisable pour iframe.

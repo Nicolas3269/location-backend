@@ -3,14 +3,14 @@
 {% block title %}Conditions Particulières - {{ policy.policy_number }}{% endblock %}
 
 {% block extra_css %}
-/* ===== Variables de couleurs Mila ===== */
+/* ===== Variables de couleurs Hestia (alignées avec CG) ===== */
 :root {
-    --mila-coral: #e07860;
-    --mila-coral-light: #f5d5ce;
-    --mila-text: #3e3c41;
-    --mila-text-light: #6c6b70;
-    --mila-border: #e3e5e8;
-    --mila-bg: #fafbfc;
+    --hestia-primary: #2680eb;
+    --hestia-primary-dark: #1c5fb0;
+    --hestia-text: #3e3c41;
+    --hestia-text-light: #6c6b70;
+    --hestia-border: #e3e5e8;
+    --hestia-bg: #fafbfc;
 }
 
 /* ===== En-tête parties ===== */
@@ -22,14 +22,14 @@
 }
 
 .partie-section h3 {
-    color: var(--mila-coral);
+    color: var(--hestia-primary);
     font-size: 11pt;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin: 0 0 12px 0;
     padding-bottom: 8px;
-    border-bottom: 2px solid var(--mila-coral);
+    border-bottom: 2px solid var(--hestia-primary);
 }
 
 .partie-row {
@@ -39,25 +39,25 @@
 }
 
 .partie-label {
-    color: var(--mila-text-light);
+    color: var(--hestia-text-light);
     min-width: 80px;
 }
 
 .partie-value {
-    color: var(--mila-text);
+    color: var(--hestia-text);
     font-weight: 500;
 }
 
 /* ===== Sections avec header coral ===== */
 .section-box {
-    border: 2px solid var(--mila-coral);
+    border: 2px solid var(--hestia-primary);
     border-radius: 8px;
     margin-bottom: 20px;
     overflow: hidden;
 }
 
 .section-header {
-    background: var(--mila-coral);
+    background: var(--hestia-primary);
     color: white;
     padding: 10px 15px;
     font-size: 12pt;
@@ -80,7 +80,7 @@
 }
 
 .contrat-col h4 {
-    color: var(--mila-coral);
+    color: var(--hestia-primary);
     font-size: 10pt;
     font-weight: 600;
     text-transform: uppercase;
@@ -94,23 +94,23 @@
 }
 
 .contrat-label {
-    color: var(--mila-text-light);
+    color: var(--hestia-text-light);
     min-width: 160px;
 }
 
 .contrat-value {
-    color: var(--mila-text);
+    color: var(--hestia-text);
 }
 
 /* ===== Typologie ===== */
 .typologie-section {
     margin-top: 20px;
     padding-top: 15px;
-    border-top: 1px solid var(--mila-border);
+    border-top: 1px solid var(--hestia-border);
 }
 
 .typologie-section h4 {
-    color: var(--mila-coral);
+    color: var(--hestia-primary);
     font-size: 10pt;
     font-weight: 600;
     text-transform: uppercase;
@@ -119,7 +119,7 @@
 
 .typologie-text {
     font-size: 9.5pt;
-    color: var(--mila-text);
+    color: var(--hestia-text);
     line-height: 1.5;
 }
 
@@ -131,7 +131,7 @@
 }
 
 .tarif-section h4 {
-    color: var(--mila-coral);
+    color: var(--hestia-primary);
     font-size: 10pt;
     font-weight: 600;
     text-transform: uppercase;
@@ -141,26 +141,26 @@
 .tarif-amount {
     font-size: 18pt;
     font-weight: 700;
-    color: var(--mila-coral);
+    color: var(--hestia-primary);
     margin-bottom: 5px;
 }
 
 .tarif-detail {
     font-size: 9pt;
-    color: var(--mila-text-light);
+    color: var(--hestia-text-light);
     margin-bottom: 3px;
 }
 
 .tarif-monthly {
     font-size: 11pt;
     font-weight: 600;
-    color: var(--mila-coral);
+    color: var(--hestia-primary);
     margin-top: 8px;
 }
 
 .cotisation-info {
     font-size: 9pt;
-    color: var(--mila-text);
+    color: var(--hestia-text);
     line-height: 1.6;
 }
 
@@ -174,19 +174,183 @@
 }
 
 .text-section h3 {
-    color: var(--mila-coral);
+    color: var(--hestia-primary);
     font-size: 11pt;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin: 0 0 10px 0;
+    border-bottom: 2px solid var(--hestia-primary);
+    padding-bottom: 5px;
 }
 
 .text-section p {
-    font-size: 9.5pt;
-    color: var(--mila-text);
-    line-height: 1.6;
+    font-size: 9pt;
+    color: var(--hestia-text);
+    line-height: 1.5;
     margin: 0;
+    text-align: justify;
+}
+
+.text-section ul {
+    font-size: 9pt;
+    color: var(--hestia-text);
+    line-height: 1.5;
+    margin: 8px 0;
+    padding-left: 20px;
+    text-align: justify;
+}
+
+.text-section li {
+    margin-bottom: 4px;
+}
+
+/* ===== Exclusion Box (Rouge) ===== */
+.exclusion-box {
+    background-color: #fff5f5;
+    border: 1px solid #d96c63;
+    border-left: 4px solid #d96c63;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.exclusion-box h4 {
+    color: #d96c63;
+    margin: 0 0 10px 0;
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.exclusion-box ul {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 8.5pt;
+    line-height: 1.5;
+    list-style-type: disc;
+}
+
+.exclusion-box li {
+    margin-bottom: 3px;
+}
+
+/* ===== Prevention Box (Vert) ===== */
+.prevention-box {
+    background-color: #f0f9f4;
+    border: 1px solid #479965;
+    border-left: 4px solid #479965;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.prevention-box h4 {
+    color: #479965;
+    margin: 0 0 10px 0;
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.prevention-box p {
+    font-size: 9pt;
+    line-height: 1.5;
+    margin: 0 0 8px 0;
+    text-align: justify;
+}
+
+.prevention-box ul {
+    margin: 8px 0;
+    padding-left: 20px;
+    font-size: 8.5pt;
+    line-height: 1.5;
+    list-style-type: disc;
+}
+
+.prevention-box li {
+    margin-bottom: 4px;
+}
+
+.prevention-box .warning {
+    font-weight: 600;
+    font-size: 9pt;
+    color: #8b5a00;
+    background-color: #fff8e6;
+    border: 1px solid #f2c94c;
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-top: 12px;
+}
+
+/* ===== Alert Box (Jaune) ===== */
+.alert-box {
+    background-color: #fff8e6;
+    border: 1px solid #f2c94c;
+    border-left: 4px solid #f2c94c;
+    border-radius: 4px;
+    padding: 12px 15px;
+    margin: 15px 0;
+}
+
+.alert-box p {
+    margin: 0;
+    font-size: 9pt;
+    color: #8b7000;
+}
+
+.alert-box strong {
+    color: #6b5a00;
+}
+
+/* ===== Info Box (Bleu) ===== */
+.info-box {
+    background-color: #f0f7ff;
+    border: 1px solid #2680eb;
+    border-left: 4px solid #2680eb;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.info-box h4 {
+    color: #2680eb;
+    margin: 0 0 10px 0;
+    font-size: 10pt;
+    font-weight: 600;
+}
+
+.info-box p {
+    font-size: 9pt;
+    line-height: 1.5;
+    margin: 0 0 8px 0;
+}
+
+/* ===== Contact Grid ===== */
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.contact-box {
+    background-color: #f5f7f9;
+    border-radius: 6px;
+    padding: 15px;
+    border: 1px solid var(--hestia-border);
+}
+
+.contact-box h5 {
+    color: var(--hestia-primary);
+    margin: 0 0 10px 0;
+    font-size: 10pt;
+    font-weight: 600;
+}
+
+.contact-box p {
+    margin: 3px 0;
+    font-size: 9pt;
 }
 
 /* ===== Tableau garanties ===== */
@@ -198,22 +362,22 @@
 }
 
 .table-garanties th {
-    background-color: var(--mila-coral);
+    background-color: var(--hestia-primary);
     color: white;
     font-weight: 600;
     padding: 10px;
     text-align: left;
-    border: 1px solid var(--mila-coral);
+    border: 1px solid var(--hestia-primary);
 }
 
 .table-garanties td {
     padding: 8px 10px;
-    border: 1px solid var(--mila-border);
-    color: var(--mila-text);
+    border: 1px solid var(--hestia-border);
+    color: var(--hestia-text);
 }
 
 .table-garanties tr:nth-child(even) {
-    background-color: var(--mila-bg);
+    background-color: var(--hestia-bg);
 }
 
 .table-garanties .check {
@@ -230,35 +394,101 @@
 /* ===== Footer note ===== */
 .footer-note {
     font-size: 8pt;
-    color: var(--mila-text-light);
+    color: var(--hestia-text-light);
     margin-top: 15px;
     padding-top: 10px;
-    border-top: 1px solid var(--mila-border);
+    border-top: 1px solid var(--hestia-border);
 }
 
 /* ===== Signatures ===== */
-.signature-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
+.signature-section {
     margin-top: 30px;
 }
 
-.signature-box {
-    border: 1px solid var(--mila-border);
-    border-radius: 6px;
-    padding: 15px;
-    min-height: 100px;
+.signature-section h3 {
+    color: var(--hestia-primary);
+    font-size: 11pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 15px 0;
 }
 
-.signature-box h4 {
-    margin: 0 0 10px 0;
-    color: var(--mila-text-light);
+.signature-group {
+    margin-bottom: 25px;
+}
+
+.signature-group h4 {
+    color: var(--hestia-text);
     font-size: 10pt;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+}
+
+.signature-block {
+    width: 230px;
+    height: 180px;
+    text-align: left;
+    margin-bottom: 15px;
+    background-color: white;
+    padding: 10px;
+    border: 1px solid var(--hestia-border);
+    border-radius: 4px;
+}
+
+.signature-block p {
+    margin: 0;
+    font-size: 9pt;
+}
+
+.signature-block img {
+    height: 50px;
+    margin-top: 10px;
+}
+
+/* ===== En-tête document ===== */
+.document-header {
+    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
+    color: white;
+    padding: 30px;
+    margin: -1.5cm -1.5cm 25px -1.5cm;
+    text-align: center;
+}
+
+.document-header h1 {
+    color: white;
+    font-size: 18pt;
+    margin: 0 0 5px 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.document-header .subtitle {
+    font-size: 14pt;
+    font-weight: 400;
+    opacity: 0.95;
+}
+
+.document-header .reference-badge {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 8px 20px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 15px;
+    font-size: 11pt;
+    font-weight: 500;
 }
 {% endblock %}
 
 {% block content %}
+<!-- ===== EN-TÊTE DOCUMENT ===== -->
+<div class="document-header">
+    <h1>Assurance Multirisque Habitation Locataire</h1>
+    <div class="subtitle">Conditions Particulières</div>
+    <div class="reference-badge">Police {{ policy.policy_number }}</div>
+</div>
+
 <!-- ===== PARTIES AU CONTRAT ===== -->
 <div class="parties-grid">
     <div class="partie-section">
@@ -270,10 +500,8 @@
         <div class="partie-row">
             <span class="partie-label">Adresse :</span>
             <span class="partie-value">
-                {% if locataire and locataire.adresse %}
-                    {{ locataire.adresse.formatted_address }}
-                {% elif adresse %}
-                    {{ adresse.formatted_address }}
+                {% if adresse %}
+                    {{ adresse }}
                 {% else %}
                     -
                 {% endif %}
@@ -285,15 +513,19 @@
         <h3>Votre Distributeur</h3>
         <div class="partie-row">
             <span class="partie-label">Nom :</span>
-            <span class="partie-value">Hestia</span>
+            <span class="partie-value">Hestia (HB CONSULTING)</span>
         </div>
         <div class="partie-row">
             <span class="partie-label">Adresse :</span>
-            <span class="partie-value">-</span>
+            <span class="partie-value">25 Rue Saint Michel, 62000 ARRAS</span>
+        </div>
+        <div class="partie-row">
+            <span class="partie-label">RCS :</span>
+            <span class="partie-value">ARRAS 900207218</span>
         </div>
         <div class="partie-row">
             <span class="partie-label">N° ORIAS :</span>
-            <span class="partie-value">-</span>
+            <span class="partie-value">25009004</span>
         </div>
     </div>
 </div>
@@ -324,7 +556,7 @@
                 </div>
                 <div class="contrat-row">
                     <span class="contrat-label">Fractionnement de paiement :</span>
-                    <span class="contrat-value">Annuel</span>
+                    <span class="contrat-value">Mensuel</span>
                 </div>
                 <div class="contrat-row">
                     <span class="contrat-label">Durée :</span>
@@ -376,6 +608,16 @@
                         {% endif %}
                     </span>
                 </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Surface :</span>
+                    <span class="contrat-value">
+                        {% if bien and bien.superficie %}
+                            {{ bien.superficie }} m²
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
             </div>
         </div>
 
@@ -384,8 +626,7 @@
             <h4>Typologie de Logement</h4>
             <p class="typologie-text">
                 Logement à usage d'habitation principale et ses dépendances dont la surface est de
-                {% if bien and bien.superficie %}{{ bien.superficie }}{% else %}50{% endif %} m² maximum
-                (cave, parking et garage).
+                50 m² maximum (cave, parking et garage).
             </p>
         </div>
     </div>
@@ -412,17 +653,12 @@
             <div class="cotisation-info">
                 <p>Le tarif annuel TTC hors taxe attentat inclut :</p>
                 <p>• 85 % de cotisations d'assurance TTC,</p>
-                <p>• 15 % de frais de services de Mila Services,</p>
-                <p>• xxx € de frais de courtage*</p>
+                <p>• 15 % de frais de services de Mila Services.</p>
                 <p style="margin-top: 12px;">La taxe attentat de 6,50 € est payable annuellement.</p>
             </div>
         </div>
     </div>
 </div>
-
-<p class="footer-note">
-    *Les frais de courtage sont collectés par Mila Services au nom et pour le compte de votre Distributeur par votre distributeur.
-</p>
 
 <!-- ===== PAIEMENT DES COTISATIONS ===== -->
 <div class="text-section">
@@ -448,21 +684,34 @@
 <table class="table-garanties">
     <thead>
         <tr>
-            <th>Garantie</th>
-            <th>Essentielle</th>
-            <th>Sérénité</th>
+            <th style="width: 30%;">Garanties</th>
+            <th style="width: 15%; text-align: center;">Formule Essentielle</th>
+            <th style="width: 15%; text-align: center;">Formule Sérénité</th>
+            <th style="width: 40%;">Limites de garantie et franchises</th>
         </tr>
     </thead>
     <tbody>
-        <tr>
-            <td>Responsabilité civile locative et privée</td>
-            <td class="check">✓</td>
-            <td class="check">✓</td>
-        </tr>
-        <tr>
-            <td>Dégâts des eaux, gel</td>
-            <td class="check">✓</td>
-            <td class="check">✓</td>
+        <!-- Catégorie: Garanties Dommages aux biens -->
+        <tr class="category-row">
+            <td colspan="3" style="background-color: #f5f7f9; font-weight: 600;">Garanties Dommages aux biens</td>
+            <td rowspan="14" style="vertical-align: top; font-size: 8.5pt; line-height: 1.5; padding: 10px;">
+                <p style="margin: 0 0 10px 0;">La somme versée à l'assuré ne pourra en aucun cas excéder <strong>3 000 000 €</strong> par sinistre, tous postes de préjudice confondus (dont mobilier).</p>
+
+                <p style="margin: 0 0 5px 0;"><strong>Limite contractuelle de garantie mobilier* :</strong></p>
+                <p style="margin: 0 0 3px 0;"><strong>{{ limite_mobilier }} €</strong></p>
+                <p style="margin: 0 0 3px 0; font-size: 8pt; color: #6c6b70;">- 8 000 € pour la première pièce</p>
+                <p style="margin: 0 0 10px 0; font-size: 8pt; color: #6c6b70;">- 3 000 € pour chaque pièce en plus</p>
+
+                <p style="margin: 0 0 5px 0;"><strong>Dont limite contractuelle pour les objets de valeur* :</strong></p>
+                <p style="margin: 0 0 3px 0;"><strong>{{ limite_objets_valeur }} €</strong></p>
+                <p style="margin: 0 0 3px 0; font-size: 8pt; color: #6c6b70;">- 2 500 € pour la première pièce</p>
+                <p style="margin: 0 0 10px 0; font-size: 8pt; color: #6c6b70;">- 1 000 € pour chaque pièce en plus</p>
+
+                <p style="margin: 0 0 5px 0;"><strong>Franchise pour toutes les garanties :</strong> {{ quotation.deductible }} €</p>
+                <p style="margin: 0; font-size: 8pt;"><strong>sauf</strong><br>
+                Catastrophes naturelles et technologiques : franchise légale<br>
+                Garantie responsabilité civile vie privé, pour les appareils nomades, informatiques, multimédia, téléphonie et Hifi : Franchise de 500 €</p>
+            </td>
         </tr>
         <tr>
             <td>Incendie, explosion, implosion, enfumage</td>
@@ -470,59 +719,204 @@
             <td class="check">✓</td>
         </tr>
         <tr>
-            <td>Catastrophes naturelles et technologiques</td>
+            <td>Attentat et acte de terrorisme</td>
             <td class="check">✓</td>
             <td class="check">✓</td>
         </tr>
         <tr>
-            <td>Attentats et actes de terrorisme</td>
+            <td>Dégât des eaux, gel</td>
             <td class="check">✓</td>
             <td class="check">✓</td>
         </tr>
         <tr>
-            <td>Événements climatiques</td>
+            <td>Évènement climatique</td>
             <td class="check">✓</td>
             <td class="check">✓</td>
         </tr>
         <tr>
-            <td>Vol et vandalisme</td>
-            <td class="cross">✗</td>
+            <td>Catastrophe naturelle</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Catastrophe technologique</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Vol</td>
+            <td class="cross"></td>
             <td class="check">✓</td>
         </tr>
         <tr>
             <td>Bris de glace</td>
-            <td class="cross">✗</td>
+            <td class="cross"></td>
             <td class="check">✓</td>
         </tr>
         <tr>
-            <td>Dommages électriques</td>
-            <td class="cross">✗</td>
+            <td>Dommage électrique</td>
+            <td class="cross"></td>
             <td class="check">✓</td>
         </tr>
         <tr>
-            <td>Assistance 24/7 (serrurerie, vitrerie, électricité)</td>
-            <td class="cross">✗</td>
+            <td>Garantie assistance :<br>
+                <span style="padding-left: 10px;">- Serrurerie</span><br>
+                <span style="padding-left: 10px;">- Vitrerie</span><br>
+                <span style="padding-left: 10px;">- Électricité</span><br>
+                <span style="padding-left: 10px;">- Domicile sinistré</span>
+            </td>
+            <td class="cross"></td>
+            <td class="check">✓</td>
+        </tr>
+        <!-- Catégorie: Garantie Responsabilité Civile -->
+        <tr class="category-row">
+            <td style="background-color: #f5f7f9; font-weight: 600; border-right: none;">Garantie Responsabilité Civile</td>
+            <td style="background-color: #f5f7f9; border-left: none; border-right: none;"></td>
+            <td style="background-color: #f5f7f9; border-left: none;"></td>
+        </tr>
+        <tr>
+            <td>Responsabilité civile risques locatifs</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Responsabilité civile privée</td>
+            <td class="check">✓</td>
             <td class="check">✓</td>
         </tr>
     </tbody>
 </table>
 
-<!-- ===== FRANCHISE ===== -->
+<p style="font-size: 8pt; color: var(--hestia-text-light); margin-top: 10px;">
+    *Seuls les biens mobiliers d'une valeur inférieure à 4 000 € sont garantis. La valeur du bien s'entend au jour de la souscription. Les objets de valeur évalués à un montant supérieur à 4 000 € ne sont pas garantis.
+</p>
+<p style="font-size: 8pt; color: var(--hestia-text-light); margin-top: 5px;">
+    Seule les garanties cochées ✓ dans le tableau ci-dessus, sont couvertes par le présent contrat.
+</p>
+
+<!-- ===== GESTIONNAIRE DU CONTRAT ===== -->
 <div class="text-section">
-    <h3>Franchise</h3>
+    <h3>Gestionnaire du Contrat</h3>
     <p>
-        Une franchise de <strong>{{ quotation.deductible }} €</strong> reste à la charge de l'assuré pour chaque sinistre.
-        Cette franchise ne s'applique pas à la garantie Responsabilité Civile.
+        Mila Services – Gestion : 150 boulevard Joffre, 17000 La Rochelle Tél : 05.19.88.08.88.<br>
+        Pour toute déclaration de sinistre, contactez le service client par email : contact@mila.fr ou par courrier à l'adresse visée ci-dessus.
+    </p>
+    <p style="margin-top: 10px;">
+        La garantie assistance est gérée par AXA via INTER PARTNER ASSISTANCE, Société Anonyme de droit belge au capital de 130 702 613 €, entreprise d'assurance non-vie agréée par la Banque Nationale de Belgique (0487), immatriculée au Registre des Personnes Morales de Bruxelles sous le numéro 415 591 055, dont le siège social est situé 7, Boulevard du Régent - 1000 Brussels - Belgique, prise au travers de sa succursale française immatriculée au Registre du Commerce et des Sociétés de Nanterre sous le numéro 316 139 500 et située 8-10 rue Paul Vaillant Couturier 92240 Malakoff. Tél. 01 55 92 23 91.
     </p>
 </div>
 
-<!-- ===== DÉCLARATION DE SINISTRE ===== -->
+<!-- ===== PRINCIPALES EXCLUSIONS ===== -->
+<div class="exclusion-box">
+    <h4>Principales Exclusions</h4>
+    <p style="font-size: 9pt; margin-bottom: 10px;">L'assuré déclare avoir pris connaissance des exclusions précisées dans les conditions générales valant notice d'information dont les exclusions suivantes :</p>
+    <ul>
+        <li>tous dommages dus à un défaut de réparation ou d'entretien caractérisé qui incombe à l'assuré</li>
+        <li>les biens mis en sous location par l'assuré</li>
+        <li>les biens à usage de stockage</li>
+        <li>les biens mobiliers utilisés pour l'exercice d'une profession</li>
+    </ul>
+</div>
+
+<!-- ===== MESURES DE PRÉVENTION ===== -->
+<div class="prevention-box">
+    <h4>Mesures Obligatoires de Prévention</h4>
+    <p>L'assuré déclare avoir pris connaissance de l'ensemble des mesures obligatoires de prévention des risques, décrites ci-dessous et pouvant conduire, en cas de non-respect, à une réduction de l'indemnité versée en cas de sinistre :</p>
+    <ul>
+        <li>A l'exception des portes fenêtres s'ouvrant uniquement de l'intérieur, toutes les portes d'accès de l'habitation et des dépendances doivent comporter au moins une serrure ou un verrou de sûreté ou pouvoir être fermées par tous moyens automatisés (commande à distance, digicode, badge). En cas d'absence de l'assuré, les fenêtres doivent être fermées, les portes doivent l'être à clef.</li>
+        <li>En cas d'inoccupation de l'habitation assurée pendant plus de 8 jours consécutifs, la distribution d'eau doit être coupée.</li>
+        <li>En période de gel, si l'habitation est inoccupée pendant plus de trois jours et le chauffage est arrêté : la distribution d'eau doit être coupée et les conduites, réservoirs et appareils à effet d'eau ainsi que les installations de chauffage central non pourvues d'antigel en quantité suffisante doivent être vidangées.</li>
+        <li>L'assuré doit être en mesure de justifier de l'entretien et le renouvellement des détecteurs incendie et de l'entretien de la chaudière par un professionnel agréé une fois par an.</li>
+        <li>L'assuré doit être en mesure de justifier du respect de ses obligations annuelle de ramonage (dispositions applicables définies par le règlement sanitaire départemental de la commune de l'adresse du bien assuré), sauf s'il est indiqué dans le contrat de bail que le ramonage est une charge du bailleur.</li>
+        <li>L'assuré doit respecter ses obligations de débroussaillage (articles L131-4, L131-8, L131-12, L131-14 à L131-18, L134-4 à L134-12, L135-2, L162-2, L163-4 à L163-6 du nouveau code forestier) si elles sont indiquées dans le contrat de bail être à la charge de l'assuré.</li>
+        <li>En cas d'inoccupation du bien assuré pendant plus de 8 jours, les arrivées de gaz doivent être coupées.</li>
+        <li>Aucun feu de cheminée ne peut être fait sans présence humaine, sans accord de la copropriété et/ou du propriétaire le cas échéant.</li>
+        <li>Toute recharge de batterie au lithium doit être fait en présence humaine. Le chargeur de batterie doit être adapté à ce type de recharge et doit être équipé d'un système de protection contre la surcharge et la décharge excessive.</li>
+    </ul>
+    <p>En cas de sinistre dont l'origine est causée par le non-respect d'une mesure de prévention, l'assuré conservera à sa charge une franchise de 50% du montant des dommages.</p>
+</div>
+
+<!-- ===== CONCLUSIONS ET SIGNATURE DU CONTRAT ===== -->
 <div class="text-section">
-    <h3>Déclaration de Sinistre</h3>
+    <h3>Conclusions et Signature du Contrat</h3>
     <p>
-        L'assuré doit déclarer tout sinistre dans un délai de 5 jours ouvrés à compter de la date à laquelle
-        il en a eu connaissance (2 jours ouvrés en cas de vol). La déclaration peut être effectuée via
-        l'espace client Hestia ou par courrier recommandé.
+        Le souscripteur déclare que les informations contenues dans ce document sont exactes, complètes et sincères. Le souscripteur s'engage à informer l'assureur de toute modification des informations mentionnées dans ce document et de tout sinistre survenu entre la date d'établissement des conditions particulières et la date d'effet du contrat.
+    </p>
+    <p style="margin-top: 10px;">
+        Le souscripteur reconnait :
+    </p>
+    <ul style="font-size: 9pt; color: var(--hestia-text); margin: 10px 0; padding-left: 20px; line-height: 1.5; list-style-type: disc;">
+        <li style="margin-bottom: 6px;">avoir été informé du caractère obligatoire des réponses aux questions posées dans le cadre de sa demande de souscription ainsi que des conséquences qui pourraient résulter d'une omission ou d'une fausse déclaration prévue aux articles L.113.8 (nullité du contrat d'assurance) et L.113.9 (majoration de la cotisation et application de la règle proportionnelle) du code des assurances.</li>
+        <li style="margin-bottom: 6px;">que les présentes conditions particulières ont été établies conformément aux réponses qu'il a effectuées aux questions posées dans le formulaire du parcours digital de l'assureur préalablement à la souscription de son contrat intégré dans le devis.</li>
+        <li style="margin-bottom: 6px;">avoir reçu et pris connaissance avant la souscription de son contrat, du document d'information sur le produit d'assurance (DIPA), de l'exemplaire des conditions générales valant notice d'information (référence indiquée ci-dessus) et du devis. Ces documents lui ont été remis lors de son parcours digital de souscription.</li>
+        <li style="margin-bottom: 6px;">avoir été informé que le service fourni dans le cadre de ce contrat est de nature exclusivement électronique et que la relation commerciale se poursuivra sur un support durable autre que le papier.</li>
+        <li style="margin-bottom: 6px;">qu'en souscrivant à ce contrat, il accepte que l'ensemble des informations, documents et communications destinés à la souscription et l'exécution de ce contrat lui seront envoyés sous forme électronique.</li>
+        <li style="margin-bottom: 6px;">avoir reçu, pris connaissance et accepter le processus de souscription électronique ainsi que les modalités de la relation électronique décrits dans les conditions générales (processus de souscription électronique et la relation électronique).</li>
+    </ul>
+    <p style="margin-top: 10px;">
+        Le souscripteur certifie sur l'honneur que les sommes qui sont ou seront versées au titre de ce contrat n'ont pas une origine délictueuse au sens des articles 562 et suivants du code monétaire et financier, 324-1 et suivants et 421-1 du code pénal relatifs au blanchiment des capitaux.
+    </p>
+    <p style="margin-top: 10px;">
+        Le souscripteur déclare être pleinement informé que Mila Services SAS et MILA SA sont soumises aux obligations légales issues principalement du code monétaire et financier en matière de lutte contre le blanchiment des capitaux et notamment à une obligation de déclaration auprès du service Tracfin en cas de soupçon.
+    </p>
+</div>
+
+<!-- ===== RÉCLAMATIONS ===== -->
+<div class="text-section">
+    <h3>Réclamations</h3>
+    <p>En cas de réclamation concernant le contrat, l'Assuré peut s'adresser à Mila ou à AXA aux adresses indiquées ci-dessous.</p>
+    <p style="margin-top: 10px;">Afin de faciliter le traitement de la demande, nous l'invitons à privilégier :</p>
+    <p style="margin-top: 10px;"><strong>Pour les demandes en lien avec :</strong></p>
+    <ul style="list-style-type: disc; margin: 10px 0; padding-left: 20px;">
+        <li style="margin-bottom: 10px;">
+            <strong>L'assurance, la souscription et la gestion du contrat :</strong><br>
+            Mila – Service qualité<br>
+            150 boulevard Joffre<br>
+            17000 La Rochelle<br>
+            Ou par email à : service.qualite@mila.fr
+        </li>
+        <li style="margin-bottom: 10px;">
+            <strong>La fourniture des prestations d'assistance :</strong><br>
+            AXA Partners - Service Gestion Relation Clientèle<br>
+            8-10 rue Paul Vaillant Couturier - 92240 Malakoff<br>
+            Ou sur le site internet à partir de la rubrique « contact » : www.axa-assistance.fr/contact
+        </li>
+    </ul>
+    <p style="margin-top: 10px;">AXA et Mila s'engagent à accuser réception sous dix (10) jours ouvrables, sauf si une réponse est apportée dans ce délai. Une réponse sera adressée dans un délai maximum de deux (2) mois.</p>
+    <p style="margin-top: 15px;">Dès deux (2) mois à compter de la première réclamation écrite, l'Assuré peut faire appel au Médiateur, personnalité indépendante en écrivant à l'adresse suivante :</p>
+    <p style="margin-top: 10px;">
+        <strong>La Médiation de l'Assurance</strong><br>
+        TSA 50110 - 75441 Paris Cedex 09<br>
+        Ou en complétant le formulaire de saisine directement sur le site internet : www.mediation-assurance.org
+    </p>
+    <p style="margin-top: 10px; font-size: 8.5pt; color: var(--hestia-text-light);">Ce recours est gratuit. L'avis du Médiateur ne s'impose pas et laissera toute liberté à l'Assuré pour saisir éventuellement le Tribunal français compétent. Le Médiateur formulera un avis dans un délai de quatre-vingt-dix (90) jours à compter de la réception du dossier complet.</p>
+</div>
+
+<!-- ===== PROTECTION DES DONNÉES ===== -->
+<div class="text-section">
+    <h3>Protection des Données</h3>
+    <p>
+        Les données à caractère personnel de l'assuré collectées par l'assureur directement ou indirectement (réseau d'intermédiaires en assurance et partenaires) sont susceptibles, en tout ou partie, d'être utilisées pour la passation, la gestion et l'exécution du contrat. Elles seront également susceptibles d'être utilisées (i) dans le cadre de contentieux, (ii) pour la lutte contre le blanchiment des capitaux et le financement du terrorisme, (iii) afin de se conformer à une règlementation applicable, ou (iv) pour l'analyse de tout ou partie des données, concernant l'assuré, collectées au sein de Mila, éventuellement croisées avec celles de partenaires choisis, afin d'améliorer ses produits (recherche et développement), évaluer la situation de l'assuré ou la prédire (scores d'appétence) et personnaliser son parcours en tant qu'assuré.
+    </p>
+    <p style="margin-top: 10px;">
+        Pour les finalités indiquées précédemment, tout ou partie de ces données pourront être utilisées par différents services de l'assureur et pourront le cas échéant être transmises à ses intermédiaires en assurance, partenaires, réassureurs, organismes professionnels, sous-traitants missionnés ainsi qu'aux organismes d'assurance des personnes impliquées et aux organismes et autorités publics.
+    </p>
+    <p style="margin-top: 10px;">
+        Les responsables de traitement sont : l'assureur ou l'intermédiaire en assurance pour les activités qui lui sont déléguées dans le cadre de la présentation, proposition, conclusion, souscription exécution du contrat, de la relation avec le souscripteur et de la gestion des sinistres.
+    </p>
+    <p style="margin-top: 10px;">
+        Ces données seront conservées le temps nécessaire à ces différentes opérations, ou pour la durée spécifiquement prévue par la CNIL (normes pour le secteur de l'assurance) ou la loi (prescriptions légales).
+    </p>
+</div>
+
+<!-- ===== DROIT DE RENONCIATION ===== -->
+<div class="text-section">
+    <h3>Droit de Renonciation</h3>
+    <p>
+        Si le contrat a été souscrit à des fins non-professionnelles, le souscripteur dispose d'une faculté de renonciation prévue par l'article L.112-10 du Code des assurances et rappelée dans les Conditions Générales valant notice d'information. Il peut renoncer à son contrat dans un délai de trente (30) jours calendaires à compter de la date de souscription ou du premier paiement en cas de période de gratuité.
+    </p>
+    <p style="margin-top: 10px;">
+        Si le contrat a une durée supérieure à un mois et qu'il a été souscrit à distance ou dans le cadre d'un démarchage à domicile, il bénéficie de la faculté de renonciation dans un délai de quatorze (14) jours calendaires prévue par les articles L.112-2-1, L.112-2-2 et L.112-9 du Code des assurances.
     </p>
 </div>
 
@@ -530,45 +924,52 @@
 <div class="text-section">
     <h3>Résiliation</h3>
     <p>
-        Le contrat peut être résilié à tout moment après la première année d'assurance, avec un préavis d'un mois,
-        conformément à la loi Hamon. La résiliation prend effet un mois après réception de la demande.
+        Le présent contrat est renouvelé chaque année, par tacite reconduction. Si ce contrat a été souscrit à des fins non-professionnelles, le souscripteur bénéficie de la faculté de le résilier à tout moment, sans frais ni pénalité, à l'expiration d'un délai d'un an à compter de la souscription.
+    </p>
+</div>
+
+<!-- ===== AUTORITÉ DE CONTRÔLE ===== -->
+<div class="text-section">
+    <h3>Autorité de Contrôle</h3>
+    <p>
+        Mila et AXA sont soumises au contrôle de l'ACPR, l'Autorité de contrôle prudentiel et de résolution (ACPR) sise 4 Place de Budapest – CS 92459 – 75436 Paris Cedex 09
     </p>
 </div>
 
 <!-- ===== SIGNATURES ===== -->
-<div class="signature-grid">
-    <div class="signature-box">
-        <h4>L'Assuré</h4>
-        <p style="margin: 0; font-size: 10pt;">
-            Fait à ______________, le {{ quotation.effective_date|date:"d/m/Y" }}
-        </p>
-        <p style="margin: 10px 0 0 0; font-size: 9pt; color: #6c6b70;">
-            Signature précédée de la mention "Lu et approuvé"
-        </p>
-        <!-- Marqueur de signature pour le système générique -->
-        {% if locataire %}
-        <p style="margin: 15px 0 0 0; font-size: 1pt; color: white;">ID_SIGNATURE_LOC_{{ locataire.id }}</p>
-        {% endif %}
+<div class="signature-section" style="page-break-inside: avoid;">
+    <h3>Signatures</h3>
+    <p style="margin: 0 0 20px 0; font-size: 10pt; color: var(--hestia-text);">
+        Fait à Paris, le {{ quotation.effective_date|date:"d/m/Y" }}
+    </p>
+
+    <!-- Souscripteur -->
+    <div class="signature-group">
+        <h4>Pour le Souscripteur</h4>
+        <div class="signature-block">
+            <!-- Marqueur de signature invisible pour PyHanko -->
+            {% if locataire %}
+            <p style="color: white; margin: 0; font-size: 1pt; white-space: nowrap;">ID_SIGNATURE_LOC_{{ locataire.id }}</p>
+            {% endif %}
+        </div>
     </div>
 
-    <div class="signature-box">
-        <h4>Pour l'Assureur</h4>
-        <p style="margin: 0; font-size: 10pt;">
-            Hestia, courtier en assurances
-        </p>
-        <p style="margin: 30px 0 0 0; font-size: 9pt; color: #6c6b70;">
-            Signature électronique
-        </p>
+    <!-- Mila Services -->
+    <div class="signature-group">
+        <h4>Pour Mila Services</h4>
+        <div class="signature-block">
+            <p>Président<br>Gérard Deray</p>
+            <img src="{{ mila_signature_base64_uri }}" alt="Signature Mila">
+        </div>
     </div>
-</div>
 
-<!-- ===== Footer ===== -->
-<div class="footer">
-    <p style="margin: 0 0 5px 0; font-size: 9pt;">
-        Document généré le {{ "now"|date:"d/m/Y à H:i" }} • Police {{ policy.policy_number }}
-    </p>
-    <p style="margin: 0; font-size: 8pt;">
-        Hestia - Courtier en assurances • Partenaire Mila Assurances
-    </p>
+    <!-- Hestia (HB Consulting) -->
+    <div class="signature-group">
+        <h4>Pour Hestia (HB Consulting)</h4>
+        <div class="signature-block">
+            <p>Président<br>Nicolas Havard</p>
+            <img src="{{ hestia_signature_base64_uri }}" alt="Signature Hestia">
+        </div>
+    </div>
 </div>
 {% endblock %}

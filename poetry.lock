@@ -3074,6 +3074,25 @@ dev = ["build"]
 doc = ["sphinx"]
 
 [[package]]
+name = "stripe"
+version = "14.0.1"
+description = "Python bindings for the Stripe API"
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "stripe-14.0.1-py3-none-any.whl", hash = "sha256:ff25c5e5f085beaa98b6b9c2c729d22ad99068196cbd83fdf82669fd08311b76"},
+    {file = "stripe-14.0.1.tar.gz", hash = "sha256:f2d56345bf5d41c1f21f814b00174a3173a0b5eb4e8fc46a8f779e3d7a2efc6e"},
+]
+
+[package.dependencies]
+requests = {version = ">=2.20", markers = "python_version >= \"3.0\""}
+typing_extensions = {version = ">=4.5.0", markers = "python_version >= \"3.7\""}
+
+[package.extras]
+async = ["httpx"]
+
+[[package]]
 name = "text-unidecode"
 version = "1.3"
 description = "The most basic Text::Unidecode port"
@@ -3410,4 +3429,4 @@ test = ["pytest"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "d9843ddcdf678c465b030a9dd438a201379e0a311b90aa090a4bd625b14383a4"
+content-hash = "0fcbf1e329d830cb12280c1d79f7ef9f68541c3c46512f44e9a8c2cc9a4dacbb"

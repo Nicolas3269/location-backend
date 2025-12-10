@@ -69,8 +69,8 @@ def login_with_google(request):
             email=email,
             defaults={
                 "username": email,
-                "first_name": id_info.get("given_name"),
-                "last_name": id_info.get("family_name"),
+                "first_name": id_info.get("given_name") or "",
+                "last_name": id_info.get("family_name") or "",
                 "is_active": True,
             },
         )
@@ -263,8 +263,8 @@ def google_redirect_callback(request):
             email=email,
             defaults={
                 "username": email,
-                "first_name": id_info.get("given_name"),
-                "last_name": id_info.get("family_name"),
+                "first_name": id_info.get("given_name") or "",
+                "last_name": id_info.get("family_name") or "",
                 "is_active": True,
             },
         )

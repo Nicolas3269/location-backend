@@ -1,0 +1,33 @@
+{# Composant : Réclamations MRH #}
+{# Variables optionnelles : is_article (bool), article_number (str) #}
+{# Usage CG : {% with is_article=True article_number="11. " %}{% include ... %}{% endwith %} #}
+{# Usage CP/Devis : {% include ... %} (défaut: text-section avec h3) #}
+<div class="{% if is_article %}article{% else %}text-section{% endif %}">
+    {% if is_article %}<h4>{{ article_number }}Réclamations</h4>{% else %}<h3>Réclamations</h3>{% endif %}
+    <p>En cas de réclamation concernant le contrat, l'Assuré peut s'adresser à Mila ou à AXA aux adresses indiquées ci-dessous.</p>
+    <p>Afin de faciliter le traitement de la demande, nous l'invitons à privilégier :</p>
+    <p><strong>Pour les demandes en lien avec :</strong></p>
+    <ul{% if not is_article %} class="reclamations-list"{% endif %}>
+        <li>
+            <strong>L'assurance, la souscription et la gestion du contrat :</strong><br>
+            Mila – Service qualité<br>
+            150 boulevard Joffre<br>
+            17000 La Rochelle<br>
+            Ou par email à : {% if is_article %}<strong>service.qualite@mila.fr</strong>{% else %}service.qualite@mila.fr{% endif %}
+        </li>
+        <li>
+            <strong>La fourniture des prestations d'assistance :</strong><br>
+            AXA Partners - Service Gestion Relation Clientèle<br>
+            8-10 rue Paul Vaillant Couturier - 92240 Malakoff<br>
+            Ou sur le site internet à partir de la rubrique « contact » : {% if is_article %}<strong>www.axa-assistance.fr/contact</strong>{% else %}www.axa-assistance.fr/contact{% endif %}
+        </li>
+    </ul>
+    <p>AXA et Mila s'engagent à accuser réception sous dix (10) jours ouvrables, sauf si une réponse est apportée dans ce délai. Une réponse sera adressée dans un délai maximum de deux (2) mois.</p>
+    <p>Dès deux (2) mois à compter de la première réclamation écrite, l'Assuré peut faire appel au Médiateur, personnalité indépendante en écrivant à l'adresse suivante :</p>
+    <p{% if is_article %} style="text-align: center; margin: 15px 0;"{% endif %}>
+        <strong>La Médiation de l'Assurance</strong><br>
+        TSA 50110 - 75441 Paris Cedex 09<br>
+        Ou en complétant le formulaire de saisine directement sur le site internet : {% if is_article %}<strong>www.mediation-assurance.org</strong>{% else %}www.mediation-assurance.org{% endif %}
+    </p>
+    <p{% if not is_article %} class="footer-note-inline"{% endif %}>Ce recours est gratuit. L'avis du Médiateur ne s'impose pas et laissera toute liberté à l'Assuré pour saisir éventuellement le Tribunal français compétent. Le Médiateur formulera un avis dans un délai de quatre-vingt-dix (90) jours à compter de la réception du dossier complet.</p>
+</div>

@@ -1,0 +1,177 @@
+{# CSS de base pour tous les documents MRH (CG, CP, Devis) #}
+
+/* ===== Variables de couleurs Hestia ===== */
+:root {
+    --hestia-primary: #2680eb;
+    --hestia-primary-dark: #1c5fb0;
+    --hestia-text: #3e3c41;
+    --hestia-text-light: #6c6b70;
+    --hestia-border: #e3e5e8;
+    --hestia-bg: #fafbfc;
+    --hestia-success: #479965;
+    --hestia-danger: #d96c63;
+    --hestia-warning: #f2c94c;
+}
+
+/* ===== Exclusion Box (Rouge) ===== */
+.exclusion-box {
+    background-color: #fff5f5;
+    border: 1px solid var(--hestia-danger);
+    border-left: 4px solid var(--hestia-danger);
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.exclusion-box h4, .exclusion-box h5 {
+    color: var(--hestia-danger);
+    margin: 0 0 10px 0;
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-bottom: none;
+}
+
+.exclusion-box p {
+    font-size: 9pt;
+    margin-bottom: 10px;
+}
+
+.exclusion-box ul {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 8.5pt;
+    line-height: 1.5;
+    list-style-type: disc;
+}
+
+.exclusion-box li {
+    margin-bottom: 3px;
+}
+
+/* ===== Prevention Box (Vert) ===== */
+.prevention-box {
+    background-color: #f0f9f4;
+    border: 1px solid var(--hestia-success);
+    border-left: 4px solid var(--hestia-success);
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.prevention-box h4, .prevention-box h5 {
+    color: var(--hestia-success);
+    margin: 0 0 10px 0;
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.prevention-box p {
+    font-size: 9pt;
+    line-height: 1.5;
+    margin: 0 0 8px 0;
+    text-align: justify;
+}
+
+.prevention-box ul {
+    margin: 8px 0;
+    padding-left: 20px;
+    font-size: 8.5pt;
+    line-height: 1.5;
+    list-style-type: disc;
+}
+
+.prevention-box li {
+    margin-bottom: 4px;
+}
+
+.prevention-box .warning {
+    font-weight: 600;
+    font-size: 9pt;
+    color: #8b5a00;
+    background-color: #fff8e6;
+    border: 1px solid var(--hestia-warning);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-top: 12px;
+}
+
+/* ===== Alert Box (Jaune) ===== */
+.alert-box {
+    background-color: #fff8e6;
+    border: 1px solid var(--hestia-warning);
+    border-left: 4px solid var(--hestia-warning);
+    border-radius: 4px;
+    padding: 12px 15px;
+    margin: 15px 0;
+}
+
+.alert-box p {
+    margin: 0;
+    font-size: 9pt;
+    color: #8b7000;
+}
+
+.alert-box strong {
+    color: #6b5a00;
+}
+
+/* ===== Info Box (Bleu) ===== */
+.info-box {
+    background-color: #f0f7ff;
+    border: 1px solid var(--hestia-primary);
+    border-left: 4px solid var(--hestia-primary);
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.info-box h4, .info-box h5 {
+    color: var(--hestia-primary);
+    margin: 0 0 10px 0;
+    font-size: 10pt;
+    font-weight: 600;
+}
+
+.info-box p {
+    font-size: 9pt;
+    line-height: 1.5;
+    margin: 0 0 8px 0;
+}
+
+/* ===== Contact Grid ===== */
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.contact-box {
+    background-color: #f5f7f9;
+    border-radius: 6px;
+    padding: 15px;
+    border: 1px solid var(--hestia-border);
+}
+
+.contact-box h5 {
+    color: var(--hestia-primary);
+    margin: 0 0 10px 0;
+    font-size: 10pt;
+    font-weight: 600;
+}
+
+.contact-box p {
+    margin: 3px 0;
+    font-size: 9pt;
+}
+
+/* ===== Footer note ===== */
+.footer-note {
+    font-size: 8pt;
+    color: var(--hestia-text-light);
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid var(--hestia-border);
+}

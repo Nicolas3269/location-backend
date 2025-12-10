@@ -1,0 +1,114 @@
+{# Composant : Tableau des garanties MRH #}
+{# Variables attendues : limite_mobilier, limite_objets_valeur, deductible (ou quotation.deductible pour CP) #}
+<table class="table-garanties">
+    <thead>
+        <tr>
+            <th style="width: 30%;">Garanties</th>
+            <th style="width: 15%; text-align: center;">Formule Essentielle</th>
+            <th style="width: 15%; text-align: center;">Formule Sérénité</th>
+            <th style="width: 40%;">Limites de garantie et franchises</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Catégorie: Garanties Dommages aux biens -->
+        <tr class="category-row">
+            <td colspan="3" style="background-color: #f5f7f9; font-weight: 600;">Garanties Dommages aux biens</td>
+            <td rowspan="14" style="vertical-align: top; font-size: 8.5pt; line-height: 1.5; padding: 10px;">
+                <p style="margin: 0 0 10px 0;">La somme versée à l'assuré ne pourra en aucun cas excéder <strong>3 000 000 €</strong> par sinistre, tous postes de préjudice confondus (dont mobilier).</p>
+
+                <p style="margin: 0 0 5px 0;"><strong>Limite contractuelle de garantie mobilier* :</strong></p>
+                <p style="margin: 0 0 3px 0;"><strong>{{ limite_mobilier|default:"xxx" }} €</strong></p>
+                <p style="margin: 0 0 3px 0; font-size: 8pt; color: #6c6b70;">- 8 000 € pour la première pièce</p>
+                <p style="margin: 0 0 10px 0; font-size: 8pt; color: #6c6b70;">- 3 000 € pour chaque pièce en plus</p>
+
+                <p style="margin: 0 0 5px 0;"><strong>Dont limite contractuelle pour les objets de valeur* :</strong></p>
+                <p style="margin: 0 0 3px 0;"><strong>{{ limite_objets_valeur|default:"xxx" }} €</strong></p>
+                <p style="margin: 0 0 3px 0; font-size: 8pt; color: #6c6b70;">- 2 500 € pour la première pièce</p>
+                <p style="margin: 0 0 10px 0; font-size: 8pt; color: #6c6b70;">- 1 000 € pour chaque pièce en plus</p>
+
+                <p style="margin: 0 0 5px 0;"><strong>Franchise pour toutes les garanties :</strong> {% if quotation.deductible %}{{ quotation.deductible }}{% else %}{{ deductible }}{% endif %} €</p>
+                <p style="margin: 0; font-size: 8pt;"><strong>sauf</strong><br>
+                Catastrophes naturelles et technologiques : franchise légale<br>
+                Garantie responsabilité civile vie privé, pour les appareils nomades, informatiques, multimédia, téléphonie et Hifi : Franchise de 500 €</p>
+            </td>
+        </tr>
+        <tr>
+            <td>Incendie, explosion, implosion, enfumage</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Attentat et acte de terrorisme</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Dégât des eaux, gel</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Évènement climatique</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Catastrophe naturelle</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Catastrophe technologique</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Vol</td>
+            <td class="cross"></td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Bris de glace</td>
+            <td class="cross"></td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Dommage électrique</td>
+            <td class="cross"></td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Garantie assistance :<br>
+                <span style="padding-left: 10px;">- Serrurerie</span><br>
+                <span style="padding-left: 10px;">- Vitrerie</span><br>
+                <span style="padding-left: 10px;">- Électricité</span><br>
+                <span style="padding-left: 10px;">- Domicile sinistré</span>
+            </td>
+            <td class="cross"></td>
+            <td class="check">✓</td>
+        </tr>
+        <!-- Catégorie: Garantie Responsabilité Civile -->
+        <tr class="category-row">
+            <td style="background-color: #f5f7f9; font-weight: 600; border-right: none;">Garantie Responsabilité Civile</td>
+            <td style="background-color: #f5f7f9; border-left: none; border-right: none;"></td>
+            <td style="background-color: #f5f7f9; border-left: none;"></td>
+        </tr>
+        <tr>
+            <td>Responsabilité civile risques locatifs</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Responsabilité civile privée</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+    </tbody>
+</table>
+
+<p style="font-size: 8pt; color: var(--hestia-text-light); margin-top: 10px;">
+    *Seuls les biens mobiliers d'une valeur inférieure à 4 000 € sont garantis. La valeur du bien s'entend au jour de la souscription. Les objets de valeur évalués à un montant supérieur à 4 000 € ne sont pas garantis.
+</p>
+<p style="font-size: 8pt; color: var(--hestia-text-light); margin-top: 5px;">
+    Seule les garanties cochées ✓ dans le tableau ci-dessus, sont couvertes par le présent contrat.
+</p>

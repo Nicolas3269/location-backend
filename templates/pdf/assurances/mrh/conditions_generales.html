@@ -3,6 +3,9 @@
 {% block title %}Conditions Générales MRH - {{ reference }}{% endblock %}
 
 {% block extra_css %}
+{# CSS de base partagé (variables, boxes, contact-grid) #}
+{% include "pdf/assurances/mrh/components/_css_base.html" %}
+
 /* En-tête spécifique CGV */
 .cgv-header {
     background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
@@ -224,98 +227,23 @@
     margin-bottom: 4px;
 }
 
-/* Exclusions */
+/* Overrides spécifiques CG pour les boxes */
 .exclusion-box {
-    background-color: #fff5f5;
-    border: 1px solid #d96c63;
-    border-radius: 6px;
-    padding: 15px;
-    margin: 15px 0;
+    border-left: none;  /* CG sans border-left */
+    border-radius: 6px; /* CG avec border-radius plus grand */
 }
 
 .exclusion-box h4 {
-    color: #d96c63;
-    margin: 0 0 10px 0;
-    font-size: 10pt;
-    border-bottom: none;
+    border-bottom: none; /* Pas de border sous h4 */
 }
 
 .exclusion-box ul {
-    margin: 0;
-    padding-left: 15px;
-    font-size: 8pt;
-}
-
-.exclusion-box li {
-    margin-bottom: 3px;
-}
-
-/* Alertes */
-.alert-box {
-    background-color: #fff8e6;
-    border: 1px solid #f2c94c;
-    border-left: 4px solid #f2c94c;
-    border-radius: 4px;
-    padding: 12px 15px;
-    margin: 15px 0;
-}
-
-.alert-box p {
-    margin: 0;
-    font-size: 9pt;
-    color: #8b7000;
-}
-
-.alert-box strong {
-    color: #6b5a00;
-}
-
-/* Prévention */
-.prevention-box {
-    background-color: #f0f9f4;
-    border: 1px solid #479965;
-    border-left: 4px solid #479965;
-    border-radius: 4px;
-    padding: 12px 15px;
-    margin: 15px 0;
+    padding-left: 15px;  /* CG avec padding plus petit */
+    font-size: 8pt;      /* CG avec font plus petite */
 }
 
 .prevention-box h5 {
-    color: #479965;
-    margin: 0 0 8px 0;
-    font-size: 9pt;
-}
-
-.prevention-box ul {
-    margin: 0;
-    padding-left: 15px;
-    font-size: 8pt;
-}
-
-/* Contacts */
-.contact-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin: 15px 0;
-}
-
-.contact-box {
-    background-color: #f5f7f9;
-    border-radius: 6px;
-    padding: 15px;
-    border: 1px solid #e3e5e8;
-}
-
-.contact-box h5 {
-    color: #2680eb;
-    margin: 0 0 10px 0;
-    font-size: 10pt;
-}
-
-.contact-box p {
-    margin: 3px 0;
-    font-size: 9pt;
+    font-size: 9pt;      /* CG avec font plus petite */
 }
 
 /* Footer de page */
@@ -1455,37 +1383,9 @@
 </div>
 
 <!-- 11. RÉCLAMATIONS -->
-<div class="article">
-    <h4>11. Réclamations</h4>
-    <p>En cas de réclamation concernant le contrat, l'Assuré peut s'adresser à Mila ou à AXA aux adresses indiquées ci-dessous :</p>
-
-    <p>Afin de faciliter le traitement de la demande, nous l'invitons à privilégier :</p>
-    <p><strong>Pour les demandes en lien avec :</strong></p>
-    <ul>
-        <li><strong>l'assurance, la souscription et la gestion du contrat :</strong><br>
-            Mila – Service qualité<br>
-            150 boulevard Joffre<br>
-            17000 La Rochelle<br>
-            Ou par email à : <strong>service.qualite@mila.fr</strong>
-        </li>
-        <li><strong>la fourniture des prestations d'assistance :</strong><br>
-            AXA Partners - Service Gestion Relation Clientèle<br>
-            8-10 rue Paul Vaillant Couturier - 92240 Malakoff<br>
-            Ou sur le site internet à partir de la rubrique « contact » : <strong>www.axa-assistance.fr/contact</strong>
-        </li>
-    </ul>
-
-    <p>AXA et Mila s'engagent à accuser réception sous dix (10) jours ouvrables, sauf si une réponse est apportée dans ce délai. Une réponse sera adressée dans un délai maximum de deux (2) mois.</p>
-
-    <p>Dès deux (2) mois à compter de la première réclamation écrite, l'Assuré peut faire appel au Médiateur, personnalité indépendante en écrivant à l'adresse suivante :</p>
-    <p style="text-align: center; margin: 15px 0;">
-        <strong>La Médiation de l'Assurance</strong><br>
-        TSA 50110 - 75441 Paris Cedex 09<br>
-        Ou en complétant le formulaire de saisine directement sur le site internet : <strong>www.mediation-assurance.org</strong>
-    </p>
-
-    <p>Ce recours est gratuit. L'avis du Médiateur ne s'impose pas et laissera toute liberté à l'Assuré pour saisir éventuellement le Tribunal français compétent. Le Médiateur formulera un avis dans un délai de quatre-vingt-dix (90) jours à compter de la réception du dossier complet.</p>
-</div>
+{% with is_article=True article_number="11. " %}
+{% include "pdf/assurances/mrh/components/_reclamations.html" %}
+{% endwith %}
 
 <!-- 12. PROTECTION DES DONNÉES -->
 <div class="article">

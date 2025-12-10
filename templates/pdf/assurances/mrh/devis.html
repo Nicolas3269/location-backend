@@ -3,120 +3,37 @@
 {% block title %}Devis MRH - {{ quotation.id|slice:":8" }}{% endblock %}
 
 {% block extra_css %}
-/* En-tête spécifique Devis */
-.devis-header {
-    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
-}
+{% include "pdf/assurances/mrh/components/_css_common.html" %}
 
-.devis-badge {
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 8px 20px;
-    border-radius: 20px;
-    display: inline-block;
-    margin-top: 15px;
-    font-size: 11pt;
-    font-weight: 500;
-}
-
-/* Validité */
+/* ===== Validité (spécifique devis) ===== */
 .validity-banner {
     background-color: #f0f9f4;
     border: 1px solid #479965;
-    border-radius: 6px;
+    border-left: 4px solid #479965;
+    border-radius: 4px;
     padding: 12px 20px;
-    text-align: center;
     margin: 20px 0;
 }
 
 .validity-banner p {
     margin: 0;
     color: #2d6b42;
-    font-weight: 500;
+    font-size: 10pt;
 }
 
-/* Parties */
-.parties-grid {
+/* ===== Formules cards (spécifique devis) ===== */
+.formulas-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     margin: 20px 0;
 }
 
-/* Risque déclaré */
-.risk-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 15px 0;
-}
-
-.risk-table th {
-    background-color: #f5f7f9;
-    color: #6c6b70;
-    font-weight: 600;
-    padding: 10px;
-    text-align: left;
-    border: 1px solid #e3e5e8;
-    width: 40%;
-}
-
-.risk-table td {
-    padding: 10px;
-    border: 1px solid #e3e5e8;
-}
-
-/* Prix */
-.pricing-section {
-    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
-    color: white;
-    border-radius: 8px;
-    padding: 25px;
-    text-align: center;
-    margin: 25px 0;
-}
-
-.pricing-main {
-    font-size: 32pt;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
-
-.pricing-monthly {
-    font-size: 14pt;
-    opacity: 0.9;
-    margin-bottom: 15px;
-}
-
-.pricing-details {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-radius: 6px;
-    padding: 15px;
-    margin-top: 15px;
-    text-align: left;
-    font-size: 9pt;
-}
-
-.pricing-details ul {
-    margin: 0;
-    padding-left: 15px;
-}
-
-.pricing-details li {
-    margin-bottom: 3px;
-    opacity: 0.9;
-}
-
-/* Formules */
 .formula-card {
-    border: 2px solid #e3e5e8;
+    border: 2px solid var(--hestia-border);
     border-radius: 8px;
     padding: 20px;
-    margin: 15px 0;
-    position: relative;
-}
-
-.formula-card.selected {
-    border-color: #2680eb;
-    background-color: #f5f9ff;
+    background: white;
 }
 
 .formula-card.serenite {
@@ -127,7 +44,7 @@
 .formula-name {
     font-size: 14pt;
     font-weight: 700;
-    color: #2680eb;
+    color: var(--hestia-primary);
     margin: 0 0 5px 0;
 }
 
@@ -136,36 +53,43 @@
 }
 
 .formula-desc {
-    font-size: 10pt;
-    color: #6c6b70;
-    margin-bottom: 10px;
+    font-size: 9pt;
+    color: var(--hestia-text-light);
+    margin-bottom: 15px;
 }
 
 .formula-price {
-    font-size: 18pt;
+    font-size: 20pt;
     font-weight: 700;
-    color: #3e3c41;
+    color: var(--hestia-primary);
     text-align: center;
-    padding: 10px;
+    padding: 15px;
     background-color: rgba(38, 128, 235, 0.1);
-    border-radius: 4px;
+    border-radius: 6px;
     margin: 10px 0;
 }
 
 .formula-card.serenite .formula-price {
     background-color: rgba(242, 201, 76, 0.2);
+    color: #b8860b;
+}
+
+.formula-price-monthly {
+    font-size: 10pt;
+    font-weight: 400;
+    color: var(--hestia-text-light);
 }
 
 .formula-features {
     list-style: none;
     padding: 0;
-    margin: 10px 0 0 0;
+    margin: 15px 0 0 0;
 }
 
 .formula-features li {
-    padding: 4px 0;
+    padding: 5px 0;
     font-size: 9pt;
-    color: #3e3c41;
+    color: var(--hestia-text);
 }
 
 .formula-features li::before {
@@ -174,137 +98,14 @@
     font-weight: bold;
 }
 
-/* Garanties tableau */
-.guarantee-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 15px 0;
-    font-size: 9pt;
-}
-
-.guarantee-table th {
-    background-color: #2680eb;
-    color: white;
-    padding: 10px;
-    text-align: center;
-    font-weight: 600;
-}
-
-.guarantee-table th:first-child {
-    text-align: left;
-}
-
-.guarantee-table td {
-    padding: 8px 10px;
-    border: 1px solid #e3e5e8;
-    vertical-align: top;
-}
-
-.guarantee-table tr:nth-child(even) {
-    background-color: #fafbfc;
-}
-
-.guarantee-table .check {
-    color: #479965;
-    text-align: center;
-    font-weight: bold;
-}
-
-.guarantee-table .limits {
-    font-size: 8pt;
-    color: #6c6b70;
-}
-
-/* Mesures prévention */
-.prevention-section {
-    background-color: #fff8e6;
-    border: 1px solid #f2c94c;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 20px 0;
-}
-
-.prevention-section h3 {
-    color: #b8860b;
-    margin-top: 0;
-}
-
-.prevention-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-}
-
-.prevention-item h4 {
-    color: #6b5a00;
-    font-size: 10pt;
-    margin: 0 0 8px 0;
-}
-
-.prevention-item ul {
-    margin: 0;
-    padding-left: 15px;
-    font-size: 8pt;
-}
-
-.prevention-item li {
-    margin-bottom: 3px;
-}
-
-/* Exclusions */
-.exclusions-box {
-    background-color: #f5f7f9;
-    border-radius: 6px;
-    padding: 15px;
-    margin: 15px 0;
-}
-
-.exclusions-box h4 {
-    color: #d96c63;
-    margin: 0 0 10px 0;
-    font-size: 10pt;
-}
-
-.exclusions-box ul {
-    margin: 0;
-    padding-left: 15px;
-    font-size: 8pt;
-    color: #6c6b70;
-}
-
-/* Contact */
-.contact-section {
-    background-color: #f5f7f9;
-    border-radius: 8px;
-    padding: 20px;
-    margin: 20px 0;
-}
-
-.contact-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-.contact-box h5 {
-    color: #2680eb;
-    margin: 0 0 10px 0;
-    font-size: 10pt;
-}
-
-.contact-box p {
-    margin: 3px 0;
-    font-size: 9pt;
-}
-
-/* Mentions légales */
+/* ===== Legal notice (spécifique devis) ===== */
 .legal-notice {
     background-color: #f5f7f9;
     border-radius: 6px;
     padding: 15px;
     margin: 20px 0;
     font-size: 8pt;
-    color: #6c6b70;
+    color: var(--hestia-text-light);
 }
 
 .legal-notice p {
@@ -314,326 +115,205 @@
 {% endblock %}
 
 {% block content %}
-<!-- En-tête -->
-<div class="document-header devis-header">
-    <h1>Devis d'Assurance</h1>
-    <div class="subtitle">Multirisque Habitation Locataire</div>
-    <div class="devis-badge">Devis n° {{ quotation.id|slice:":8"|upper }}</div>
+<!-- ===== EN-TÊTE DOCUMENT ===== -->
+<div class="document-header">
+    <h1>Assurance Multirisque Habitation Locataire</h1>
+    <div class="subtitle">Devis</div>
+    <div class="reference-badge">Devis n° {{ quotation.id|slice:":8"|upper }}</div>
 </div>
 
-<!-- Validité -->
+<!-- ===== VALIDITÉ ===== -->
 <div class="validity-banner">
-    <p>Ce devis est valable <strong>2 mois</strong> à compter du {{ quotation.created_at|date:"d/m/Y" }}</p>
+    <p><strong>Ce devis est valable 2 mois</strong> à compter de la date d'émission ({{ quotation.created_at|date:"d/m/Y" }}).</p>
 </div>
 
-<!-- Parties -->
+<!-- ===== PARTIES AU CONTRAT ===== -->
 <div class="parties-grid">
-    <div class="info-section">
+    <div class="partie-section">
         <h3>Souscripteur</h3>
-        <div class="info-row">
-            <span class="label">Nom</span>
-            <span class="value"><strong>{{ subscriber.first_name }} {{ subscriber.last_name }}</strong></span>
+        <div class="partie-row">
+            <span class="partie-label">Nom :</span>
+            <span class="partie-value">{{ subscriber.first_name }} {{ subscriber.last_name }}</span>
         </div>
-        {% if subscriber.email %}
-        <div class="info-row">
-            <span class="label">Email</span>
-            <span class="value">{{ subscriber.email }}</span>
+        <div class="partie-row">
+            <span class="partie-label">Adresse :</span>
+            <span class="partie-value">
+                {% if adresse %}
+                    {{ adresse }}
+                {% else %}
+                    -
+                {% endif %}
+            </span>
         </div>
-        {% endif %}
     </div>
 
-    <div class="info-section">
+    <div class="partie-section">
         <h3>Votre Distributeur</h3>
-        <div class="info-row">
-            <span class="label">Société</span>
-            <span class="value"><strong>Hestia</strong></span>
+        <div class="partie-row">
+            <span class="partie-label">Nom :</span>
+            <span class="partie-value">Hestia (HB CONSULTING)</span>
         </div>
-        <div class="info-row">
-            <span class="label">Courtier</span>
-            <span class="value">Partenaire Mila Assurances</span>
+        <div class="partie-row">
+            <span class="partie-label">Adresse :</span>
+            <span class="partie-value">25 Rue Saint Michel, 62000 ARRAS</span>
+        </div>
+        <div class="partie-row">
+            <span class="partie-label">N° ORIAS :</span>
+            <span class="partie-value">25009004</span>
         </div>
     </div>
 </div>
 
-<!-- Risque déclaré -->
-<h2>Votre Situation - Risque Déclaré</h2>
+<!-- ===== VOTRE SITUATION ===== -->
+<div class="section-box">
+    <div class="section-header">Votre Situation</div>
+    <div class="section-content">
+        <div class="contrat-grid">
+            <!-- Colonne gauche : RISQUE DÉCLARÉ -->
+            <div class="contrat-col">
+                <h4>Risque Déclaré</h4>
+                <div class="contrat-row">
+                    <span class="contrat-label">Adresse :</span>
+                    <span class="contrat-value">
+                        {% if adresse %}
+                            {{ adresse.rue }}{% if adresse.complement %}, {{ adresse.complement }}{% endif %}<br>
+                            {{ adresse.code_postal }} {{ adresse.ville }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <p class="typologie-text" style="margin-top: 15px;">
+                    Logement à usage d'habitation principale et ses dépendances dont la surface est de
+                    50 m² maximum (cave, parking et garage).
+                </p>
+            </div>
 
-<table class="risk-table">
-    {% if adresse %}
-    <tr>
-        <th>Adresse du bien</th>
-        <td>{{ adresse.rue }}{% if adresse.complement %}, {{ adresse.complement }}{% endif %}, {{ adresse.code_postal }} {{ adresse.ville }}</td>
-    </tr>
-    {% endif %}
-    <tr>
-        <th>Type de logement</th>
-        <td>{{ bien.type_bien|default:"Appartement"|title }}</td>
-    </tr>
-    {% if bien.superficie %}
-    <tr>
-        <th>Surface</th>
-        <td>{{ bien.superficie }} m²</td>
-    </tr>
-    {% endif %}
-    {% if bien.nombre_pieces %}
-    <tr>
-        <th>Nombre de pièces</th>
-        <td>{{ bien.nombre_pieces }} pièce{{ bien.nombre_pieces|pluralize }}</td>
-    </tr>
-    {% endif %}
-    {% if bien.etage is not None %}
-    <tr>
-        <th>Étage</th>
-        <td>{% if bien.etage == 0 %}Rez-de-chaussée{% else %}{{ bien.etage }}{% endif %}</td>
-    </tr>
-    {% endif %}
-    <tr>
-        <th>Usage</th>
-        <td>Habitation principale et dépendances (cave, parking, garage) dont la surface est de 50m² maximum</td>
-    </tr>
-    <tr>
-        <th>Franchise souhaitée</th>
-        <td>{{ deductible }} €</td>
-    </tr>
-    <tr>
-        <th>Date d'effet souhaitée</th>
-        <td>{{ effective_date|date:"d/m/Y" }}</td>
-    </tr>
-</table>
-
-<!-- Formules proposées -->
-<h2>Nos Formules</h2>
-
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-    {% for formula in formulas %}
-    <div class="formula-card {% if formula.code == 'MRHIND_SER' %}serenite{% endif %}">
-        <h3 class="formula-name">{{ formula.label }}</h3>
-        <p class="formula-desc">{{ formula.description }}</p>
-
-        <div class="formula-price">
-            {{ formula.pricing_monthly|floatformat:2 }} €<span style="font-size: 10pt; font-weight: 400;">/mois</span>
+            <!-- Colonne droite : DÉTAILS -->
+            <div class="contrat-col">
+                <h4>&nbsp;</h4>
+                <div class="contrat-row">
+                    <span class="contrat-label">Nombre de pièces :</span>
+                    <span class="contrat-value">
+                        {% if bien and bien.nombre_pieces_principales %}
+                            {{ bien.nombre_pieces_principales }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Appartement/Maison :</span>
+                    <span class="contrat-value">
+                        {% if bien %}
+                            {{ bien.type_bien|title }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Étage :</span>
+                    <span class="contrat-value">
+                        {% if bien and bien.etage is not None %}
+                            {% if bien.etage == 0 %}Rez-de-chaussée{% else %}{{ bien.etage }}{% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Franchise souhaitée :</span>
+                    <span class="contrat-value">{{ deductible }} €</span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Date d'effet souhaitée :</span>
+                    <span class="contrat-value">{{ effective_date|date:"d/m/Y" }}</span>
+                </div>
+            </div>
         </div>
-        <p style="text-align: center; font-size: 9pt; color: #6c6b70; margin: 5px 0;">
-            soit {{ formula.pricing_annual|floatformat:2 }} €/an TTC
-        </p>
+    </div>
+</div>
 
-        <ul class="formula-features">
-            {% for feature in formula.features %}
-            <li>{{ feature }}</li>
+<!-- ===== NOTRE PROPOSITION ===== -->
+<div class="section-box">
+    <div class="section-header">Notre Proposition*</div>
+    <div class="section-content">
+        <div class="formulas-grid">
+            {% for formula in formulas %}
+            <div class="formula-card {% if formula.code == 'MRHIND_SER' %}serenite{% endif %}">
+                <h3 class="formula-name">{{ formula.label }}</h3>
+                <p class="formula-desc">{{ formula.description }}</p>
+
+                <div class="formula-price">
+                    {{ formula.pricing_annual|floatformat:2 }} € TTC<br>
+                    <span class="formula-price-monthly">soit {{ formula.pricing_monthly|floatformat:2 }} € par mois</span>
+                </div>
+
+                <ul class="formula-features">
+                    {% for feature in formula.features %}
+                    <li>{{ feature }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
             {% endfor %}
-        </ul>
+        </div>
+
+        <div class="cotisation-info" style="margin-top: 15px;">
+            <p>Le tarif annuel TTC hors taxe attentat inclut :</p>
+            <p>• 85 % de cotisations d'assurance TTC,</p>
+            <p>• 15 % de frais de services de Mila Services.</p>
+            <p style="margin-top: 12px;">La taxe attentat de 6,50 € est payable annuellement.</p>
+        </div>
     </div>
-    {% endfor %}
 </div>
 
-<!-- Tableau récapitulatif des garanties -->
-<div class="page-break"></div>
-<h2>Tableau des Garanties</h2>
-
-<table class="guarantee-table">
-    <tr>
-        <th style="width: 40%;">Garanties</th>
-        <th style="width: 15%;">Essentielle</th>
-        <th style="width: 15%;">Sérénité</th>
-        <th style="width: 30%;">Limites et franchises</th>
-    </tr>
-    <tr style="background-color: #f5f7f9;">
-        <td colspan="4"><strong>Garanties Dommages aux biens</strong></td>
-    </tr>
-    <tr>
-        <td>Incendie, explosion, implosion, enfumage</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-        <td rowspan="6" class="limits">
-            <strong>Limite mobilier :</strong><br>
-            • 8 000 € pour la 1ère pièce<br>
-            • 3 000 € par pièce supplémentaire<br><br>
-            <strong>Objets de valeur :</strong><br>
-            • 2 500 € pour la 1ère pièce<br>
-            • 1 000 € par pièce supplémentaire
-        </td>
-    </tr>
-    <tr>
-        <td>Attentat et acte de terrorisme</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Dégât des eaux, gel</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Événement climatique</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Catastrophe naturelle</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Catastrophe technologique</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Vol</td>
-        <td></td>
-        <td class="check">✓</td>
-        <td rowspan="3" class="limits">
-            <strong>Franchise :</strong> {{ deductible }} €<br><br>
-            <strong>Sauf :</strong><br>
-            • Cat. nat./tech. : franchise légale<br>
-            • RC appareils nomades : 500 €
-        </td>
-    </tr>
-    <tr>
-        <td>Bris de glace</td>
-        <td></td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Dommage électrique</td>
-        <td></td>
-        <td class="check">✓</td>
-    </tr>
-    <tr style="background-color: #f5f7f9;">
-        <td colspan="4"><strong>Garantie Assistance (Sérénité uniquement)</strong></td>
-    </tr>
-    <tr>
-        <td>Serrurerie, vitrerie, électricité</td>
-        <td></td>
-        <td class="check">✓</td>
-        <td class="limits">Intervention sous 4h</td>
-    </tr>
-    <tr>
-        <td>Domicile sinistré (hébergement)</td>
-        <td></td>
-        <td class="check">✓</td>
-        <td class="limits">80€/nuit (max 3 nuits)</td>
-    </tr>
-    <tr style="background-color: #f5f7f9;">
-        <td colspan="4"><strong>Garantie Responsabilité Civile</strong></td>
-    </tr>
-    <tr>
-        <td>RC risques locatifs</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-        <td rowspan="2" class="limits">
-            Plafond : 3 000 000 € par sinistre
-        </td>
-    </tr>
-    <tr>
-        <td>RC privée</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-</table>
-
-<p style="font-size: 8pt; color: #6c6b70;">
-    * Seuls les biens mobiliers d'une valeur inférieure à 4 000 € sont garantis. Les objets de valeur > 4 000 € ne sont pas garantis.
+<p style="font-size: 8pt; color: var(--hestia-text-light); margin-top: 5px;">
+    *Le montant de la cotisation d'assurance est susceptible de varier en fonction des taxes fiscales et contributions obligatoires applicables à la date d'effet du contrat.
 </p>
 
-<!-- Mesures de prévention -->
-<div class="prevention-section">
-    <h3>Mesures de Prévention Obligatoires</h3>
-    <p style="font-size: 9pt; margin-bottom: 15px;">
-        Le non-respect de ces mesures peut entraîner une <strong>réduction de 50%</strong> de l'indemnité versée en cas de sinistre.
+<!-- ===== FORMULE ET GARANTIES DEMANDÉES ===== -->
+<div class="text-section">
+    <h3>Formule et Garanties Demandées</h3>
+    <p>
+        Le contrat couvre les garanties telles que présentées dans les conditions générales CG-MRH-I-2024061
+        valant notice d'information, dans la limite contractuelle de 3 000 000 € par sinistre, tous postes
+        de préjudice confondus (dont mobilier).
     </p>
-
-    <div class="prevention-grid">
-        <div class="prevention-item">
-            <h4>Sécurité des accès</h4>
-            <ul>
-                <li>Toutes portes avec serrure ou verrou de sûreté</li>
-                <li>En cas d'absence : fenêtres fermées, portes à clef</li>
-            </ul>
-        </div>
-
-        <div class="prevention-item">
-            <h4>Inoccupation > 8 jours</h4>
-            <ul>
-                <li>Distribution d'eau coupée</li>
-                <li>Arrivées de gaz coupées</li>
-            </ul>
-        </div>
-
-        <div class="prevention-item">
-            <h4>Période de gel (> 3 jours)</h4>
-            <ul>
-                <li>Distribution d'eau coupée</li>
-                <li>Conduites et appareils vidangés</li>
-            </ul>
-        </div>
-
-        <div class="prevention-item">
-            <h4>Entretien obligatoire</h4>
-            <ul>
-                <li>Détecteurs incendie : entretien et renouvellement</li>
-                <li>Chaudière : entretien annuel</li>
-                <li>Ramonage : obligations annuelles</li>
-            </ul>
-        </div>
-    </div>
 </div>
 
-<!-- Exclusions principales -->
-<div class="exclusions-box">
-    <h4>Principales Exclusions</h4>
-    <ul>
-        <li>Tous dommages dûs à un défaut de réparation ou d'entretien caractérisé incombant à l'assuré</li>
-        <li>Les biens mis en sous-location par l'assuré</li>
-        <li>Les biens à usage de stockage</li>
-        <li>Les biens mobiliers utilisés pour l'exercice d'une profession</li>
-    </ul>
-</div>
+<!-- ===== TABLEAU DES GARANTIES ===== -->
+{% include "pdf/assurances/mrh/components/_tableau_garanties.html" %}
 
-<!-- Contacts -->
-<div class="contact-section">
-    <h3 style="margin-top: 0;">Gestionnaire du Contrat</h3>
-    <div class="contact-grid">
-        <div class="contact-box">
-            <h5>Mila Services – Gestion</h5>
-            <p>150 boulevard Joffre, 17000 La Rochelle</p>
-            <p>Tél : 05 19 88 08 88</p>
-            <p>Email : contact@mila.fr</p>
-        </div>
+<!-- ===== PRINCIPALES EXCLUSIONS ===== -->
+{% include "pdf/assurances/mrh/components/_exclusions.html" %}
 
-        <div class="contact-box">
-            <h5>Garantie Assistance (Sérénité)</h5>
-            <p><strong>AXA - Inter Partner Assistance</strong></p>
-            <p>8-10 rue Paul Vaillant Couturier, 92240 Malakoff</p>
-            <p>Tél : <strong>01 55 92 23 91</strong></p>
-        </div>
-    </div>
-</div>
+<!-- ===== MESURES DE PRÉVENTION ===== -->
+{% include "pdf/assurances/mrh/components/_prevention.html" %}
 
-<!-- Mentions légales -->
-<div class="legal-notice">
+<!-- ===== GESTIONNAIRE DU CONTRAT ===== -->
+{% include "pdf/assurances/mrh/components/_gestionnaire.html" %}
+
+<!-- ===== DOCUMENT NON CONTRACTUEL ===== -->
+<div class="alert-box">
     <p><strong>Ce devis est un document non contractuel.</strong> Il est établi en fonction de vos déclarations. Les garanties s'entendent dans les limites et conditions du contrat au jour de la délivrance du présent devis.</p>
-    <p>Le montant de la cotisation d'assurance est susceptible de varier en fonction des taxes fiscales et contributions obligatoires applicables à la date d'effet du contrat.</p>
-    <p><strong>Conditions Générales de référence :</strong> CG-MRH-I-2024061</p>
 </div>
 
-<!-- Réclamations -->
-<div class="info-section">
-    <h3>Réclamations et Médiation</h3>
-    <p style="font-size: 9pt;">
-        <strong>Réclamations :</strong> Mila – Service qualité, 150 boulevard Joffre, 17000 La Rochelle • service.qualite@mila.fr<br>
-        <strong>Délais :</strong> Accusé de réception sous 10 jours, réponse sous 2 mois maximum<br>
-        <strong>Médiation :</strong> La Médiation de l'Assurance, TSA 50110 - 75441 Paris Cedex 09 • www.mediation-assurance.org
-    </p>
-</div>
+<!-- ===== PROTECTION DES DONNÉES ===== -->
+{% with is_devis=True %}
+{% include "pdf/assurances/mrh/components/_protection_donnees.html" %}
+{% endwith %}
 
-<!-- Footer -->
-<div class="footer">
-    <p style="margin: 0 0 5px 0;">
-        Devis émis le {{ quotation.created_at|date:"d/m/Y" }} • Valable jusqu'au {{ quotation.expires_at|date:"d/m/Y" }}
+<!-- ===== RÉCLAMATIONS ===== -->
+{% include "pdf/assurances/mrh/components/_reclamations.html" %}
+
+<!-- ===== VALIDITÉ DU DEVIS ===== -->
+<div class="footer-note" style="text-align: center; margin-top: 30px;">
+    <p style="margin: 0 0 5px 0; font-size: 10pt; color: var(--hestia-text);">
+        <strong>Devis émis le {{ quotation.created_at|date:"d/m/Y" }}</strong>
     </p>
-    <p style="margin: 0; font-size: 8pt;">
-        Pour souscrire, contactez Hestia ou rendez-vous sur votre espace client.
+    <p style="margin: 0; font-size: 9pt;">
+        Devis valable deux mois à compter de la date d'émission.
     </p>
 </div>
 {% endblock %}

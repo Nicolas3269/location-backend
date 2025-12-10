@@ -1,0 +1,38 @@
+{# Composant : Protection des Données MRH - Version différente pour devis vs CP #}
+<div class="text-section">
+    <h3>Protection des Données</h3>
+    {% if is_devis %}
+    {# Version courte pour le devis #}
+    <p>
+        Vos données personnelles sont traitées par Mila et les autres destinataires intervenant pour les finalités : passation, gestion et exécution des contrats, relation commerciale, lutte anti-fraude, lutte anti-blanchiment.
+    </p>
+    <p>
+        Vous pouvez exercer vos droits en vous adressant :
+    </p>
+    <p>
+        <strong>Pour la partie Assurance :</strong><br>
+        Délégué à la Protection des Données : Mila. Paris & Co. 1, parvis de la Défense. Grande Arche de la Défense 92800 Puteaux. Pour en savoir plus sur l'usage de vos données et vos droits, consultez la rubrique « Protection des données personnelles » des Conditions Générales du contrat.
+    </p>
+    <p>
+        <strong>Pour la partie Assistance :</strong><br>
+        Délégué à la Protection des Données : AXA – 8-10 rue Paul Vaillant Couturier 92240 Malakoff ou par email, à l'adresse suivante : dpo.axapartnersfrance@axa-assistance.com.
+    </p>
+    <p>
+        Vous avez la faculté de vous inscrire sur la liste d'opposition au démarchage téléphonique sur www.bloctel.gouv.fr. Néanmoins, nous pouvons toujours vous téléphoner, dès lors que vous êtes titulaire auprès de nous d'un contrat en vigueur ou que vous avez demandé à être recontacté.
+    </p>
+    {% else %}
+    {# Version complète pour les Conditions Particulières #}
+    <p>
+        Les données à caractère personnel de l'assuré collectées par l'assureur directement ou indirectement (réseau d'intermédiaires en assurance et partenaires) sont susceptibles, en tout ou partie, d'être utilisées pour la passation, la gestion et l'exécution du contrat. Elles seront également susceptibles d'être utilisées (i) dans le cadre de contentieux, (ii) pour la lutte contre le blanchiment des capitaux et le financement du terrorisme, (iii) afin de se conformer à une règlementation applicable, ou (iv) pour l'analyse de tout ou partie des données, concernant l'assuré, collectées au sein de Mila, éventuellement croisées avec celles de partenaires choisis, afin d'améliorer ses produits (recherche et développement), évaluer la situation de l'assuré ou la prédire (scores d'appétence) et personnaliser son parcours en tant qu'assuré.
+    </p>
+    <p>
+        Pour les finalités indiquées précédemment, tout ou partie de ces données pourront être utilisées par différents services de l'assureur et pourront le cas échéant être transmises à ses intermédiaires en assurance, partenaires, réassureurs, organismes professionnels, sous-traitants missionnés ainsi qu'aux organismes d'assurance des personnes impliquées et aux organismes et autorités publics.
+    </p>
+    <p>
+        Les responsables de traitement sont : l'assureur ou l'intermédiaire en assurance pour les activités qui lui sont déléguées dans le cadre de la présentation, proposition, conclusion, souscription exécution du contrat, de la relation avec le souscripteur et de la gestion des sinistres.
+    </p>
+    <p>
+        Ces données seront conservées le temps nécessaire à ces différentes opérations, ou pour la durée spécifiquement prévue par la CNIL (normes pour le secteur de l'assurance) ou la loi (prescriptions légales).
+    </p>
+    {% endif %}
+</div>

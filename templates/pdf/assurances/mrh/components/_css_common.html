@@ -1,0 +1,289 @@
+{# CSS commun pour les documents MRH (devis et CP) #}
+{# Inclut le CSS de base partagé avec CG #}
+{% include "pdf/assurances/mrh/components/_css_base.html" %}
+
+/* ===== En-tête document (spécifique CP/Devis) ===== */
+.document-header {
+    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
+    color: white;
+    padding: 30px;
+    margin: -1.5cm -1.5cm 25px -1.5cm;
+    text-align: center;
+}
+
+.document-header h1 {
+    color: white;
+    font-size: 18pt;
+    margin: 0 0 5px 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.document-header .subtitle {
+    font-size: 14pt;
+    font-weight: 400;
+    opacity: 0.95;
+}
+
+.document-header .reference-badge {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 8px 20px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 15px;
+    font-size: 11pt;
+    font-weight: 500;
+}
+
+/* ===== Parties ===== */
+.parties-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 25px;
+}
+
+.partie-section h3 {
+    color: var(--hestia-primary);
+    font-size: 11pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--hestia-primary);
+}
+
+.partie-row {
+    display: flex;
+    margin-bottom: 6px;
+    font-size: 10pt;
+}
+
+.partie-label {
+    color: var(--hestia-text-light);
+    min-width: 80px;
+}
+
+.partie-value {
+    color: var(--hestia-text);
+    font-weight: 500;
+}
+
+/* ===== Sections avec header ===== */
+.section-box {
+    border: 2px solid var(--hestia-primary);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.section-header {
+    background: var(--hestia-primary);
+    color: white;
+    padding: 10px 15px;
+    font-size: 12pt;
+    font-weight: 600;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.section-content {
+    padding: 20px;
+    background: white;
+}
+
+/* ===== Contrat grid (2 colonnes) ===== */
+.contrat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.contrat-col h4 {
+    color: var(--hestia-primary);
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0 0 12px 0;
+}
+
+.contrat-row {
+    display: flex;
+    margin-bottom: 8px;
+    font-size: 9.5pt;
+}
+
+.contrat-label {
+    color: var(--hestia-text-light);
+    min-width: 160px;
+}
+
+.contrat-value {
+    color: var(--hestia-text);
+}
+
+/* ===== Typologie ===== */
+.typologie-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--hestia-border);
+}
+
+.typologie-section h4 {
+    color: var(--hestia-primary);
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0 0 10px 0;
+}
+
+.typologie-text {
+    font-size: 9.5pt;
+    color: var(--hestia-text);
+    line-height: 1.5;
+}
+
+/* ===== Cotisation grid ===== */
+.cotisation-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.tarif-section h4 {
+    color: var(--hestia-primary);
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0 0 10px 0;
+}
+
+.tarif-amount {
+    font-size: 18pt;
+    font-weight: 700;
+    color: var(--hestia-primary);
+    margin-bottom: 5px;
+}
+
+.tarif-detail {
+    font-size: 9pt;
+    color: var(--hestia-text-light);
+    margin-bottom: 3px;
+}
+
+.tarif-monthly {
+    font-size: 11pt;
+    font-weight: 600;
+    color: var(--hestia-primary);
+    margin-top: 8px;
+}
+
+.cotisation-info {
+    font-size: 9pt;
+    color: var(--hestia-text);
+    line-height: 1.6;
+}
+
+.cotisation-info p {
+    margin: 0 0 8px 0;
+}
+
+/* ===== Section texte simple ===== */
+.text-section {
+    margin-bottom: 20px;
+}
+
+.text-section h3 {
+    color: var(--hestia-primary);
+    font-size: 11pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 10px 0;
+    border-bottom: 2px solid var(--hestia-primary);
+    padding-bottom: 5px;
+}
+
+.text-section p {
+    font-size: 9pt;
+    color: var(--hestia-text);
+    line-height: 1.5;
+    margin: 0;
+    text-align: justify;
+}
+
+.text-section p + p {
+    margin-top: 10px;
+}
+
+.text-section ul {
+    font-size: 9pt;
+    color: var(--hestia-text);
+    line-height: 1.5;
+    margin: 8px 0;
+    padding-left: 20px;
+    text-align: justify;
+}
+
+.text-section li {
+    margin-bottom: 4px;
+}
+
+/* Liste spéciale pour réclamations (li plus espacés) */
+.text-section .reclamations-list {
+    list-style-type: disc;
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.text-section .reclamations-list li {
+    margin-bottom: 10px;
+}
+
+/* Note de bas de section (texte plus petit, gris) */
+.text-section .footer-note-inline {
+    font-size: 8.5pt;
+    color: var(--hestia-text-light);
+}
+
+/* ===== Tableau garanties (spécifique CP/Devis) ===== */
+.table-garanties {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 9pt;
+}
+
+.table-garanties th {
+    background-color: var(--hestia-primary);
+    color: white;
+    font-weight: 600;
+    padding: 10px;
+    text-align: left;
+    border: 1px solid var(--hestia-primary);
+}
+
+.table-garanties td {
+    padding: 8px 10px;
+    border: 1px solid var(--hestia-border);
+    color: var(--hestia-text);
+}
+
+.table-garanties tr:nth-child(even) {
+    background-color: var(--hestia-bg);
+}
+
+.table-garanties .check {
+    color: #479965;
+    font-weight: bold;
+    text-align: center;
+}
+
+.table-garanties .cross {
+    color: #d96c63;
+    text-align: center;
+}
+

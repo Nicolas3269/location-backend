@@ -447,7 +447,7 @@ def get_user_profile_stats(request):
 
                     location_data = {
                         "id": str(location.id),
-                        "bien_adresse": location.bien.adresse,
+                        "bien_adresse": str(location.bien.adresse) if location.bien.adresse else "",
                         "bien_type": location.bien.get_type_bien_display(),
                         "date_debut": location.date_debut.isoformat()
                         if location.date_debut

@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "signature",
     "tsa",  # Time Stamping Authority
     "partenaires",  # Partenaires externes (assurances, services, etc.)
+    "assurances",  # Assurances: MRH, PNO, GLI (via Mila)
 ]
 
 MIDDLEWARE = [
@@ -394,3 +395,10 @@ GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
 MILA_API_URL = os.getenv("MILA_API_URL")
 MILA_API_USERNAME = os.getenv("MILA_API_USERNAME")
 MILA_API_PASSWORD = os.getenv("MILA_API_PASSWORD")
+
+# =============================================================================
+# Stripe API (Paiements et abonnements)
+# =============================================================================
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_PUBLISHABLE_KEY = os.getenv("STRIPE_PUBLISHABLE_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")

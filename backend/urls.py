@@ -40,6 +40,7 @@ urlpatterns = [
     path("api/notifications/", include("notifications.urls")),
     path("api/etat_lieux/", include("etat_lieux.urls")),
     path("api/quittance/", include("quittance.urls")),
+    path("api/assurances/", include("assurances.urls")),  # Assurances: MRH, PNO, GLI
     # Routes pour servir les PDFs en iframe sans X-Frame-Options
     path("pdf/static/<path:file_path>", serve_static_pdf_for_iframe, name="serve_static_pdf_iframe"),  # Templates statiques
     path("pdf/<path:file_path>", serve_pdf_for_iframe, name="serve_pdf_iframe"),  # Uploads S3

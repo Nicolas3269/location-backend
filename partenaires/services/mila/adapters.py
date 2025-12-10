@@ -31,16 +31,26 @@ class AdresseToMilaAdapter:
                 "address_line2": "Apt 4B" | None,
                 "postal_code": "75001",
                 "city": "Paris",
-                "country_code": "FR"
+                "country_code": "FR",
+                "latitude": 48.8566 | None,
+                "longitude": 2.3522 | None
             }
         """
-        return {
+        result = {
             "address_line1": adresse.rue,  # propriété: numero + voie
             "address_line2": adresse.complement or None,
             "postal_code": adresse.code_postal,
             "city": adresse.ville,
             "country_code": adresse.pays,
         }
+
+        # Ajouter coordonnées GPS si disponibles
+        if adresse.latitude is not None:
+            result["latitude"] = adresse.latitude
+        if adresse.longitude is not None:
+            result["longitude"] = adresse.longitude
+
+        return result
 
 
 class BienToMilaAdapter:

@@ -1,0 +1,90 @@
+{% extends "emails/base.mjml" %}
+
+{% block title %}Votre attestation d'assurance MRH{% endblock %}
+{% block preview %}Votre assurance habitation est active - Police {{ policy.policy_number }}{% endblock %}
+
+{% block content %}
+<mj-text font-size="24px" font-weight="600" color="#479965">
+  Votre assurance habitation est active !
+</mj-text>
+
+<mj-text padding-top="20px">
+  Bonjour {{ subscriber.first_name }},
+</mj-text>
+
+<mj-text>
+  Félicitations ! Votre assurance Multirisque Habitation est maintenant active.
+  Vous êtes protégé(e) à partir du <strong>{{ policy.effective_date|date:"d/m/Y" }}</strong>.
+</mj-text>
+
+<mj-divider border-color="#e3e5e8" padding="20px 0" />
+
+<mj-text font-size="14px" font-weight="600" color="#2680eb" text-transform="uppercase">
+  Récapitulatif de votre contrat
+</mj-text>
+
+<mj-table padding-top="10px">
+  <tr style="border-bottom: 1px solid #e3e5e8;">
+    <td style="padding: 10px 0; color: #6c6b70;">Numéro de police</td>
+    <td style="padding: 10px 0; font-weight: 600; text-align: right;">{{ policy.policy_number }}</td>
+  </tr>
+  <tr style="border-bottom: 1px solid #e3e5e8;">
+    <td style="padding: 10px 0; color: #6c6b70;">Formule</td>
+    <td style="padding: 10px 0; font-weight: 600; text-align: right;">{{ policy.formula_label }}</td>
+  </tr>
+  <tr style="border-bottom: 1px solid #e3e5e8;">
+    <td style="padding: 10px 0; color: #6c6b70;">Prime annuelle</td>
+    <td style="padding: 10px 0; font-weight: 600; text-align: right;">{{ policy.pricing_annual }} €</td>
+  </tr>
+  <tr style="border-bottom: 1px solid #e3e5e8;">
+    <td style="padding: 10px 0; color: #6c6b70;">Franchise</td>
+    <td style="padding: 10px 0; font-weight: 600; text-align: right;">{{ policy.deductible }} €</td>
+  </tr>
+  <tr>
+    <td style="padding: 10px 0; color: #6c6b70;">Statut</td>
+    <td style="padding: 10px 0; text-align: right;">
+      <span style="background-color: #479965; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">Active</span>
+    </td>
+  </tr>
+</mj-table>
+
+{% if adresse %}
+<mj-divider border-color="#e3e5e8" padding="20px 0" />
+
+<mj-text font-size="14px" font-weight="600" color="#2680eb" text-transform="uppercase">
+  Bien assuré
+</mj-text>
+
+<mj-text padding-top="10px">
+  {{ adresse.rue }}{% if adresse.complement %}, {{ adresse.complement }}{% endif %}<br/>
+  {{ adresse.code_postal }} {{ adresse.ville }}
+</mj-text>
+{% endif %}
+
+<mj-divider border-color="#e3e5e8" padding="20px 0" />
+
+<mj-text font-size="14px" font-weight="600" color="#3e3c41">
+  Documents joints
+</mj-text>
+
+<mj-text padding-top="10px" font-size="14px">
+  📄 Attestation d'assurance (PDF)<br/>
+  📄 Conditions Particulières (PDF)
+</mj-text>
+
+<mj-text padding-top="20px" padding-bottom="20px" background-color="#e8f4fd" border-radius="8px" padding-left="15px" padding-right="15px">
+  <strong>Conseil :</strong> Conservez votre attestation d'assurance. Vous pourrez la présenter à votre bailleur comme justificatif d'assurance habitation.
+</mj-text>
+
+<mj-text>
+  Vous pouvez accéder à tous vos documents et gérer votre contrat depuis votre espace client Hestia.
+</mj-text>
+
+<mj-button href="{{ frontend_url }}/mes-documents" padding-top="20px">
+  Accéder à mes documents
+</mj-button>
+
+<mj-text align="center" font-size="12px" color="#6c6b70" padding-top="30px">
+  Assurance distribuée par Mila Assurances
+</mj-text>
+{% endblock %}

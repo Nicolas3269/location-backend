@@ -910,10 +910,15 @@ class FormOrchestrator:
                 for doc in caution_docs
             ]
 
+            # Nom complet du signataire (locataire)
+            signataire_full_name = f"{locataire.firstName} {locataire.lastName}"
+
             # Préparer formData
             form_data = {
                 "locataire_id": str(locataire.id),
+                "location_id": str(sig_req.bail.location_id),  # Pour l'assurance MRH
                 "caution_requise": locataire.caution_requise,
+                "signataire": signataire_full_name,  # Pour le SignaturePad
                 "tenant_documents": {
                     "attestation_mrh": mrh_files,
                     "caution_solidaire": caution_files
@@ -926,7 +931,7 @@ class FormOrchestrator:
                 "steps": steps,
                 "formData": form_data,
                 "is_new": len(mrh_files) == 0,
-                "signataire": f"{locataire.firstName} {locataire.lastName}",
+                "signataire": signataire_full_name,
                 "location_id": location_id,  # UUID de la signature request
             }
 

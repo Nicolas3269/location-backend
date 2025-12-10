@@ -1,0 +1,201 @@
+{% extends "base/pdf_base.html" %}
+
+{% block title %}Attestation d'assurance MRH - {{ policy.policy_number }}{% endblock %}
+
+{% block extra_css %}
+.attestation-header {
+    background: linear-gradient(135deg, #479965 0%, #2d6b42 100%);
+}
+
+.policy-number {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 8px 20px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 15px;
+    font-size: 12pt;
+    font-weight: 500;
+}
+
+.validity-badge {
+    background-color: #479965;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 4px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.coverage-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.coverage-item {
+    background-color: #f5f7f9;
+    border-radius: 6px;
+    padding: 10px 12px;
+    border-left: 3px solid #479965;
+}
+
+.coverage-item .icon {
+    color: #479965;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.important-notice {
+    background-color: #fff8e6;
+    border: 1px solid #f2c94c;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.important-notice h4 {
+    color: #b8860b;
+    margin: 0 0 10px 0;
+    font-size: 11pt;
+}
+
+.qr-section {
+    text-align: center;
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f5f7f9;
+    border-radius: 8px;
+}
+{% endblock %}
+
+{% block content %}
+<!-- En-tête vert (assurance) -->
+<div class="document-header attestation-header">
+    <h1>Attestation d'Assurance</h1>
+    <div class="subtitle">Multirisque Habitation Locataire</div>
+    <div class="policy-number">{{ policy.policy_number }}</div>
+</div>
+
+<!-- Validité -->
+<div class="align-center" style="margin-bottom: 20px;">
+    <span class="validity-badge">POLICE ACTIVE</span>
+</div>
+
+<!-- Informations assuré et bien -->
+<div class="info-grid">
+    <div class="info-section">
+        <h3>Assuré</h3>
+        <div class="info-row">
+            <span class="label">Nom</span>
+            <span class="value">{{ subscriber.first_name }} {{ subscriber.last_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Email</span>
+            <span class="value">{{ subscriber.email }}</span>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h3>Bien assuré</h3>
+        {% if adresse %}
+        <div class="info-row">
+            <span class="label">Adresse</span>
+            <span class="value">{{ adresse.rue }}</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Ville</span>
+            <span class="value">{{ adresse.code_postal }} {{ adresse.ville }}</span>
+        </div>
+        {% if bien.etage is not None %}
+        <div class="info-row">
+            <span class="label">Étage</span>
+            <span class="value">{% if bien.etage == 0 %}RDC{% else %}{{ bien.etage }}{% endif %}</span>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Détails du contrat -->
+<div class="info-section">
+    <h3>Détails du contrat</h3>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
+        <div>
+            <div class="info-row">
+                <span class="label">Formule</span>
+                <span class="value"><strong>{{ policy.formula_label }}</strong></span>
+            </div>
+        </div>
+        <div>
+            <div class="info-row">
+                <span class="label">Date d'effet</span>
+                <span class="value">{{ policy.effective_date|date:"d/m/Y" }}</span>
+            </div>
+        </div>
+        <div>
+            <div class="info-row">
+                <span class="label">Franchise</span>
+                <span class="value">{{ policy.deductible }} €</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Garanties -->
+<h3 style="color: #479965;">Garanties incluses</h3>
+<div class="coverage-grid">
+    <div class="coverage-item">
+        <span class="icon">✓</span>Responsabilité civile locative et privée
+    </div>
+    <div class="coverage-item">
+        <span class="icon">✓</span>Dégâts des eaux, gel
+    </div>
+    <div class="coverage-item">
+        <span class="icon">✓</span>Incendie, explosion, enfumage
+    </div>
+    <div class="coverage-item">
+        <span class="icon">✓</span>Catastrophes naturelles et technologiques
+    </div>
+    <div class="coverage-item">
+        <span class="icon">✓</span>Événements climatiques
+    </div>
+    <div class="coverage-item">
+        <span class="icon">✓</span>Attentats et terrorisme
+    </div>
+    {% if "Sérénité" in policy.formula_label or "MRHIND_SER" in policy.formula_code %}
+    <div class="coverage-item">
+        <span class="icon">✓</span>Vol et vandalisme
+    </div>
+    <div class="coverage-item">
+        <span class="icon">✓</span>Bris de glace
+    </div>
+    <div class="coverage-item">
+        <span class="icon">✓</span>Dommages électriques
+    </div>
+    <div class="coverage-item">
+        <span class="icon">✓</span>Assistance 24/7
+    </div>
+    {% endif %}
+</div>
+
+<!-- Notice importante -->
+<div class="important-notice">
+    <h4>Important</h4>
+    <p style="margin: 0; font-size: 10pt;">
+        Cette attestation est délivrée pour servir et valoir ce que de droit.
+        Elle ne constitue pas une preuve de paiement de la prime.
+        Pour toute déclaration de sinistre, contactez notre service client.
+    </p>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+    <p style="margin: 0 0 5px 0;">
+        Attestation générée le {{ "now"|date:"d/m/Y à H:i" }}
+    </p>
+    <p style="margin: 0; font-size: 9pt;">
+        Contrat souscrit via Hestia • Partenaire Mila Assurances
+    </p>
+</div>
+{% endblock %}

@@ -13,7 +13,7 @@ from core.url_builders import (
     get_location_url,
 )
 from location.constants import UserRole
-from location.models import Bien
+from location.models import Bailleur, Bien, Location
 from location.templatetags.french_grammar import avec_de
 from signature.models import AbstractSignatureRequest
 
@@ -53,6 +53,12 @@ def _get_document_config(document_type: str) -> dict:
             "display": "avenant",
             "folder": "avenant",
             "url_path": "avenant",
+            "signed_template": "signe",
+        },
+        "assurance": {
+            "display": "assurance",
+            "folder": "assurance",
+            "url_path": "assurance",
             "signed_template": "signe",
         },
     }
@@ -435,23 +441,21 @@ def verify_signature_order(signature_request):
     document = signature_request.get_document()
 
     # Déterminer le nom du champ de relation vers le document
+    # Chaque type de signature request doit être explicitement géré
     if hasattr(signature_request, "etat_lieux"):
         document_field = "etat_lieux"
     elif hasattr(signature_request, "bail"):
         document_field = "bail"
+    elif hasattr(signature_request, "avenant"):
+        document_field = "avenant"
+    elif hasattr(signature_request, "quotation"):
+        document_field = "quotation"
     else:
-        # Fallback - essayer de deviner le champ
-        for field in signature_request._meta.get_fields():
-            if field.is_relation and not field.many_to_many and not field.one_to_many:
-                if field.name not in [
-                    "bailleur_signataire",
-                    "locataire",
-                    "signature_image",
-                ]:
-                    document_field = field.name
-                    break
-        else:
-            raise ValueError("Impossible de déterminer le champ document")
+        raise ValueError(
+            f"Type de signature request non supporté: "
+            f"{type(signature_request).__name__}. "
+            "Ajouter le champ document dans verify_signature_order()."
+        )
 
     # Récupérer la première demande non signée
     next_request = (
@@ -480,10 +484,135 @@ def get_next_signer(signature_request):
     return signature_request.get_next_signature_request()
 
 
+# =============================================================================
+# Helpers pour la création de signature requests
+# =============================================================================
+
+
+def _get_document_field_name(document, signature_request_model) -> str:
+    """
+    Détermine le nom du champ FK vers le document dans le modèle SignatureRequest.
+
+    Args:
+        document: Instance du document signable
+        signature_request_model: Modèle de demande de signature
+
+    Returns:
+        Nom du champ (ex: 'bail', 'etat_lieux', 'quotation')
+
+    Raises:
+        ValueError si le champ n'est pas trouvé
+    """
+    for field in signature_request_model._meta.get_fields():
+        if field.is_relation and not field.many_to_many and not field.one_to_many:
+            if hasattr(
+                field.related_model, "_meta"
+            ) and field.related_model._meta.model is type(document):
+                return field.name
+
+    raise ValueError(
+        f"Impossible de trouver le champ de relation vers "
+        f"{type(document)} dans {signature_request_model}"
+    )
+
+
+def _create_one_signature_request(
+    signature_request_model,
+    document_field_name: str,
+    document,
+    order: int,
+    locataire=None,
+    bailleur_signataire=None,
+    mandataire=None,
+):
+    """
+    Crée UNE signature request (fonction interne).
+
+    Args:
+        signature_request_model: Modèle de demande de signature
+        document_field_name: Nom du champ FK vers le document
+        document: Instance du document signable
+        order: Ordre de signature
+        locataire: Instance de Locataire (optionnel)
+        bailleur_signataire: Instance de Personne signataire bailleur (optionnel)
+        mandataire: Instance de Mandataire (optionnel)
+
+    Returns:
+        SignatureRequest créée
+    """
+    kwargs = {document_field_name: document, "order": order, "otp": ""}
+
+    if locataire:
+        kwargs["locataire"] = locataire
+    elif bailleur_signataire:
+        kwargs["bailleur_signataire"] = bailleur_signataire
+    elif mandataire:
+        kwargs["mandataire"] = mandataire
+
+    return signature_request_model.objects.create(**kwargs)
+
+
+# =============================================================================
+# API publique
+# =============================================================================
+
+
+def create_single_signature_request(
+    document,
+    signature_request_model,
+    locataire=None,
+    bailleur_signataire=None,
+    mandataire=None,
+):
+    """
+    Crée ou récupère une demande de signature unique pour un document.
+    Pour les documents avec un seul signataire (ex: assurance MRH).
+
+    Le manager `objects` exclut automatiquement les demandes annulées.
+
+    Args:
+        document: Instance du document signable
+        signature_request_model: Modèle de demande de signature
+        locataire: Instance de Locataire (optionnel)
+        bailleur_signataire: Instance de Personne signataire bailleur (optionnel)
+        mandataire: Instance de Mandataire (optionnel)
+
+    Returns:
+        SignatureRequest créée ou existante
+    """
+    document_field_name = _get_document_field_name(document, signature_request_model)
+
+    # Vérifier si une demande existe déjà (le manager exclut les annulées)
+    existing = signature_request_model.objects.filter(
+        **{document_field_name: document}
+    ).first()
+    if existing:
+        logger.debug(
+            f"Signature request existante pour {type(document).__name__} {document.id}"
+        )
+        return existing
+
+    sig_request = _create_one_signature_request(
+        signature_request_model=signature_request_model,
+        document_field_name=document_field_name,
+        document=document,
+        order=1,
+        locataire=locataire,
+        bailleur_signataire=bailleur_signataire,
+        mandataire=mandataire,
+    )
+
+    logger.info(f"Créé signature request pour {type(document).__name__} {document.id}")
+
+    return sig_request
+
+
 def create_signature_requests_generic(document, signature_request_model, user=None):
     """
     Fonction générique pour créer des demandes de signature pour un document.
-    Fonctionne avec bail et état des lieux.
+    Fonctionne avec bail et état des lieux (multi-signataires).
+
+    Pour les documents à signataire unique, utiliser `create_single_signature_request`.
 
     Ordre de signature:
     1. User créateur (celui qui a généré le document) - order=1
@@ -496,31 +625,17 @@ def create_signature_requests_generic(document, signature_request_model, user=No
         signature_request_model: Modèle de demande de signature
         user: User qui a créé le document (sera le premier signataire)
     """
-    # Déterminer le champ de relation vers le document
-    document_field_name = None
-    for field in signature_request_model._meta.get_fields():
-        if field.is_relation and not field.many_to_many and not field.one_to_many:
-            if hasattr(
-                field.related_model, "_meta"
-            ) and field.related_model._meta.model is type(document):
-                document_field_name = field.name
-                break
-
-    if not document_field_name:
-        raise ValueError(
-            f"Impossible de trouver le champ de relation vers "
-            f"{type(document)} dans {signature_request_model}"
-        )
+    document_field_name = _get_document_field_name(document, signature_request_model)
 
     # Supprimer les anciennes demandes de signature NON annulées
     # Les annulées sont gardées pour afficher "Signature annulée" aux utilisateurs
     signature_request_model.objects.filter(**{document_field_name: document}).delete()
 
     # Déduire la location depuis le document
-    location = document.location
+    location: Location = document.location
 
     # IMPORTANT: Ordre déterministe (premier créé = principal)
-    bailleurs = location.bien.bailleurs.order_by("created_at")
+    bailleurs: list[Bailleur] = location.bien.bailleurs.order_by("created_at")
     bailleur_signataires = [
         bailleur.signataire for bailleur in bailleurs if bailleur.signataire
     ]
@@ -544,18 +659,17 @@ def create_signature_requests_generic(document, signature_request_model, user=No
             mandataire_doit_signer
             and location.mandataire.signataire.email.lower() == user_email
         ):
-            signature_request_model.objects.create(
-                **{
-                    document_field_name: document,
-                    "mandataire": location.mandataire,
-                    "order": order,
-                    "otp": "",
-                }
+            _create_one_signature_request(
+                signature_request_model=signature_request_model,
+                document_field_name=document_field_name,
+                document=document,
+                order=order,
+                mandataire=location.mandataire,
             )
             order += 1
             logger.info(
-                f"User créateur (mandataire) ajouté en premier signataire (order={order - 1}) "
-                f"pour {type(document).__name__} {document.id}"
+                f"User créateur (mandataire) ajouté en premier signataire "
+                f"(order={order - 1}) pour {type(document).__name__} {document.id}"
             )
         # Vérifier si c'est un bailleur
         elif any(
@@ -566,49 +680,46 @@ def create_signature_requests_generic(document, signature_request_model, user=No
                 for sig in bailleur_signataires
                 if sig and sig.email.lower() == user_email
             )
-            signature_request_model.objects.create(
-                **{
-                    document_field_name: document,
-                    "bailleur_signataire": signataire,
-                    "order": order,
-                    "otp": "",
-                }
+            _create_one_signature_request(
+                signature_request_model=signature_request_model,
+                document_field_name=document_field_name,
+                document=document,
+                order=order,
+                bailleur_signataire=signataire,
             )
             order += 1
             logger.info(
-                f"User créateur (bailleur) ajouté en premier signataire (order={order - 1}) "
-                f"pour {type(document).__name__} {document.id}"
+                f"User créateur (bailleur) ajouté en premier signataire "
+                f"(order={order - 1}) pour {type(document).__name__} {document.id}"
             )
         # Vérifier si c'est un locataire
         elif any(loc.email.lower() == user_email for loc in locataires):
             locataire = next(
                 loc for loc in locataires if loc.email.lower() == user_email
             )
-            signature_request_model.objects.create(
-                **{
-                    document_field_name: document,
-                    "locataire": locataire,
-                    "order": order,
-                    "otp": "",
-                }
+            _create_one_signature_request(
+                signature_request_model=signature_request_model,
+                document_field_name=document_field_name,
+                document=document,
+                order=order,
+                locataire=locataire,
             )
             order += 1
             logger.info(
-                f"User créateur (locataire) ajouté en premier signataire (order={order - 1}) "
-                f"pour {type(document).__name__} {document.id}"
+                f"User créateur (locataire) ajouté en premier signataire "
+                f"(order={order - 1}) pour {type(document).__name__} {document.id}"
             )
 
     # ÉTAPE 2: Mandataire (si pas déjà ajouté comme user créateur)
     if mandataire_doit_signer:
         mandataire_email = location.mandataire.signataire.email.lower()
         if not (user_email and mandataire_email == user_email):
-            signature_request_model.objects.create(
-                **{
-                    document_field_name: document,
-                    "mandataire": location.mandataire,
-                    "order": order,
-                    "otp": "",
-                }
+            _create_one_signature_request(
+                signature_request_model=signature_request_model,
+                document_field_name=document_field_name,
+                document=document,
+                order=order,
+                mandataire=location.mandataire,
             )
             order += 1
             logger.info(
@@ -621,13 +732,12 @@ def create_signature_requests_generic(document, signature_request_model, user=No
         if signataire:
             signataire_email = signataire.email.lower()
             if not (user_email and signataire_email == user_email):
-                signature_request_model.objects.create(
-                    **{
-                        document_field_name: document,
-                        "bailleur_signataire": signataire,
-                        "order": order,
-                        "otp": "",
-                    }
+                _create_one_signature_request(
+                    signature_request_model=signature_request_model,
+                    document_field_name=document_field_name,
+                    document=document,
+                    order=order,
+                    bailleur_signataire=signataire,
                 )
                 order += 1
 
@@ -635,13 +745,12 @@ def create_signature_requests_generic(document, signature_request_model, user=No
     for locataire in locataires:
         locataire_email = locataire.email.lower()
         if not (user_email and locataire_email == user_email):
-            signature_request_model.objects.create(
-                **{
-                    document_field_name: document,
-                    "locataire": locataire,
-                    "order": order,
-                    "otp": "",
-                }
+            _create_one_signature_request(
+                signature_request_model=signature_request_model,
+                document_field_name=document_field_name,
+                document=document,
+                order=order,
+                locataire=locataire,
             )
             order += 1
 

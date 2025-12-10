@@ -4,7 +4,7 @@ Utilitaires pour la vérification des droits d'accès aux locations et biens.
 from typing import TYPE_CHECKING
 
 from bail.models import Bail
-from location.models import Bailleur, Bien, Location, Mandataire
+from location.models import Bailleur, Bien, Locataire, Location, Mandataire
 
 if TYPE_CHECKING:
     from django.db.models import QuerySet
@@ -21,11 +21,13 @@ class UserLocationInfo:
         is_bailleur: bool = False,
         is_locataire: bool = False,
         personne: "Personne | None" = None,
+        locataire: "Locataire | None" = None,
     ):
         self.is_mandataire = is_mandataire
         self.is_bailleur = is_bailleur
         self.is_locataire = is_locataire
         self.personne = personne
+        self.locataire = locataire
 
     def to_dict(self) -> dict[str, bool]:
         """Retourne les rôles sous forme de dict (rétrocompatibilité)."""
@@ -73,16 +75,20 @@ def get_user_info_for_location(
                 continue
 
     # Vérifier si l'utilisateur est un des locataires
-    is_locataire = any(
-        locataire.email.lower() == user_email_lower
-        for locataire in location.locataires.all()
-    )
+    is_locataire = False
+    locataire_found: Locataire | None = None
+    for loc in location.locataires.all():
+        if loc.email.lower() == user_email_lower:
+            is_locataire = True
+            locataire_found = loc
+            break
 
     return UserLocationInfo(
         is_mandataire=is_mandataire,
         is_bailleur=is_bailleur,
         is_locataire=is_locataire,
         personne=personne,
+        locataire=locataire_found,
     )
 
 

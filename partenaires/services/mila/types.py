@@ -32,13 +32,26 @@ class Deductible(int, Enum):
 
 @dataclass
 class MilaAddress:
-    """Adresse au format Mila API."""
+    """
+    Adresse au format Mila API.
 
+    Champs requis: address_line1, postal_code, city, country_code
+    """
+
+    # Champs requis
     address_line1: str
     postal_code: str
     city: str
     country_code: str = "FR"
+
+    # Champs optionnels
     address_line2: str | None = None
+    address_line3: str | None = None
+    city_code: str | None = None  # Code INSEE
+    recipient: str | None = None  # Destinataire
+    main: bool | None = None  # Adresse principale
+    longitude: float | None = None  # -180 à 180
+    latitude: float | None = None  # -90 à 90
 
 
 @dataclass
@@ -83,11 +96,24 @@ class MRHQuotationRequest:
             },
         }
 
-        # Ajouter address_line2 si présent
-        if self.real_estate_lot.address.address_line2:
-            payload["real_estate_lot"]["address"]["address_line2"] = (
-                self.real_estate_lot.address.address_line2
-            )
+        # Ajouter champs d'adresse optionnels si présents
+        addr = self.real_estate_lot.address
+        addr_payload = payload["real_estate_lot"]["address"]
+
+        if addr.address_line2:
+            addr_payload["address_line2"] = addr.address_line2
+        if addr.address_line3:
+            addr_payload["address_line3"] = addr.address_line3
+        if addr.city_code:
+            addr_payload["city_code"] = addr.city_code
+        if addr.recipient:
+            addr_payload["recipient"] = addr.recipient
+        if addr.main is not None:
+            addr_payload["main"] = addr.main
+        if addr.longitude is not None:
+            addr_payload["longitude"] = addr.longitude
+        if addr.latitude is not None:
+            addr_payload["latitude"] = addr.latitude
 
         # Ajouter étage si présent (requis pour appartement)
         if self.real_estate_lot.floor is not None:

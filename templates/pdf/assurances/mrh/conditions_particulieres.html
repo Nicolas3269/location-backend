@@ -1,0 +1,308 @@
+{% extends "base/pdf_base.html" %}
+
+{% block title %}Conditions Particulières - {{ policy.policy_number }}{% endblock %}
+
+{% block extra_css %}
+.cp-header {
+    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
+}
+
+.policy-badge {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 8px 20px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 15px;
+    font-size: 12pt;
+    font-weight: 500;
+}
+
+.table-recap {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+}
+
+.table-recap th {
+    background-color: #f5f7f9;
+    color: #3e3c41;
+    font-weight: 600;
+    padding: 10px;
+    text-align: left;
+    border: 1px solid #e3e5e8;
+}
+
+.table-recap td {
+    padding: 10px;
+    border: 1px solid #e3e5e8;
+}
+
+.table-recap tr:nth-child(even) {
+    background-color: #fafbfc;
+}
+
+.premium-box {
+    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin: 20px 0;
+}
+
+.premium-amount {
+    font-size: 24pt;
+    font-weight: 700;
+}
+
+.premium-period {
+    font-size: 11pt;
+    opacity: 0.9;
+    margin-top: 5px;
+}
+
+.article {
+    margin-bottom: 20px;
+}
+
+.article h4 {
+    color: #2680eb;
+    margin: 0 0 10px 0;
+    font-size: 11pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.article p, .article ul {
+    font-size: 10pt;
+    color: #3e3c41;
+}
+
+.signature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.signature-box {
+    border: 1px solid #e3e5e8;
+    border-radius: 6px;
+    padding: 15px;
+    min-height: 100px;
+}
+
+.signature-box h4 {
+    margin: 0 0 10px 0;
+    color: #6c6b70;
+    font-size: 10pt;
+}
+{% endblock %}
+
+{% block content %}
+<!-- En-tête -->
+<div class="document-header cp-header">
+    <h1>Conditions Particulières</h1>
+    <div class="subtitle">Assurance Multirisque Habitation Locataire</div>
+    <div class="policy-badge">{{ policy.policy_number }}</div>
+</div>
+
+<!-- Parties au contrat -->
+<div class="info-grid">
+    <div class="info-section">
+        <h3>Assureur</h3>
+        <div class="info-row">
+            <span class="label">Société</span>
+            <span class="value">Mila Assurances</span>
+        </div>
+        <div class="info-row">
+            <span class="label">Courtier</span>
+            <span class="value">Hestia</span>
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h3>Assuré (Souscripteur)</h3>
+        <div class="info-row">
+            <span class="label">Nom</span>
+            <span class="value"><strong>{{ subscriber.first_name }} {{ subscriber.last_name }}</strong></span>
+        </div>
+        <div class="info-row">
+            <span class="label">Email</span>
+            <span class="value">{{ subscriber.email }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Bien assuré -->
+<div class="info-section">
+    <h3>Bien assuré</h3>
+    {% if adresse %}
+    <div class="info-row">
+        <span class="label">Adresse</span>
+        <span class="value">{{ adresse.rue }}{% if adresse.complement %}, {{ adresse.complement }}{% endif %}</span>
+    </div>
+    <div class="info-row">
+        <span class="label">Ville</span>
+        <span class="value">{{ adresse.code_postal }} {{ adresse.ville }}</span>
+    </div>
+    {% endif %}
+    {% if bien %}
+    <div class="info-row">
+        <span class="label">Type</span>
+        <span class="value">{{ bien.type_bien|title }}</span>
+    </div>
+    {% if bien.superficie %}
+    <div class="info-row">
+        <span class="label">Surface</span>
+        <span class="value">{{ bien.superficie }} m²</span>
+    </div>
+    {% endif %}
+    {% if bien.etage is not None %}
+    <div class="info-row">
+        <span class="label">Étage</span>
+        <span class="value">{% if bien.etage == 0 %}Rez-de-chaussée{% else %}{{ bien.etage }}{% endif %}</span>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Récapitulatif du contrat -->
+<h2>Récapitulatif du contrat</h2>
+
+<table class="table-recap">
+    <tr>
+        <th>Formule</th>
+        <td><strong>{{ policy.formula_label }}</strong></td>
+    </tr>
+    <tr>
+        <th>Numéro de police</th>
+        <td>{{ policy.policy_number }}</td>
+    </tr>
+    <tr>
+        <th>Date d'effet</th>
+        <td>{{ policy.effective_date|date:"d/m/Y" }}</td>
+    </tr>
+    <tr>
+        <th>Durée</th>
+        <td>1 an, renouvelable par tacite reconduction</td>
+    </tr>
+    <tr>
+        <th>Franchise</th>
+        <td>{{ policy.deductible }} € par sinistre</td>
+    </tr>
+</table>
+
+<!-- Prime -->
+<div class="premium-box">
+    <div class="premium-amount">{{ policy.pricing_annual }} €</div>
+    <div class="premium-period">Prime annuelle TTC</div>
+</div>
+
+<!-- Articles -->
+<div class="page-break"></div>
+
+<h2>Dispositions particulières</h2>
+
+<div class="article">
+    <h4>Article 1 - Objet du contrat</h4>
+    <p>
+        Le présent contrat a pour objet de garantir l'assuré contre les risques définis
+        aux Conditions Générales, dans les limites et conditions fixées aux présentes
+        Conditions Particulières, pour le bien désigné ci-dessus.
+    </p>
+</div>
+
+<div class="article">
+    <h4>Article 2 - Garanties souscrites</h4>
+    <p>Les garanties suivantes sont incluses dans la formule <strong>{{ policy.formula_label }}</strong> :</p>
+    <ul>
+        <li>✓ Responsabilité civile locative et privée</li>
+        <li>✓ Dégâts des eaux, gel</li>
+        <li>✓ Incendie, explosion, implosion, enfumage</li>
+        <li>✓ Catastrophes naturelles et technologiques</li>
+        <li>✓ Attentats et actes de terrorisme</li>
+        <li>✓ Événements climatiques</li>
+        {% if "Sérénité" in policy.formula_label or "MRHIND_SER" in policy.formula_code %}
+        <li>✓ Vol et vandalisme</li>
+        <li>✓ Bris de glace</li>
+        <li>✓ Dommages électriques</li>
+        <li>✓ Assistance 24/7 (serrurerie, vitrerie, électricité)</li>
+        {% endif %}
+    </ul>
+</div>
+
+<div class="article">
+    <h4>Article 3 - Franchise</h4>
+    <p>
+        Une franchise de <strong>{{ policy.deductible }} €</strong> reste à la charge de l'assuré
+        pour chaque sinistre. Cette franchise ne s'applique pas à la garantie Responsabilité
+        Civile.
+    </p>
+</div>
+
+<div class="article">
+    <h4>Article 4 - Paiement de la prime</h4>
+    <p>
+        La prime annuelle de <strong>{{ policy.pricing_annual }} €</strong> est payable d'avance.
+        Le défaut de paiement de la prime à son échéance peut entraîner la suspension
+        des garanties dans les conditions prévues par le Code des assurances.
+    </p>
+</div>
+
+<div class="article">
+    <h4>Article 5 - Déclaration de sinistre</h4>
+    <p>
+        L'assuré doit déclarer tout sinistre dans un délai de 5 jours ouvrés à compter
+        de la date à laquelle il en a eu connaissance (2 jours ouvrés en cas de vol).
+        La déclaration peut être effectuée via l'espace client Hestia ou par courrier
+        recommandé.
+    </p>
+</div>
+
+<div class="article">
+    <h4>Article 6 - Résiliation</h4>
+    <p>
+        Le contrat peut être résilié à tout moment après la première année d'assurance,
+        avec un préavis d'un mois, conformément à la loi Hamon. La résiliation prend
+        effet un mois après réception de la demande.
+    </p>
+</div>
+
+<!-- Signatures -->
+<div class="signature-grid">
+    <div class="signature-box">
+        <h4>L'Assuré</h4>
+        <p style="margin: 0; font-size: 10pt;">
+            Fait à ______________, le {{ policy.effective_date|date:"d/m/Y" }}
+        </p>
+        <p style="margin: 10px 0 0 0; font-size: 9pt; color: #6c6b70;">
+            Signature précédée de la mention "Lu et approuvé"
+        </p>
+        <!-- Marqueur de signature pour le système générique -->
+        {% if locataire %}
+        <p style="margin: 15px 0 0 0; font-size: 1pt; color: white;">ID_SIGNATURE_LOC_{{ locataire.id }}</p>
+        {% endif %}
+    </div>
+
+    <div class="signature-box">
+        <h4>Pour l'Assureur</h4>
+        <p style="margin: 0; font-size: 10pt;">
+            Hestia, courtier en assurances
+        </p>
+        <p style="margin: 30px 0 0 0; font-size: 9pt; color: #6c6b70;">
+            Signature électronique
+        </p>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+    <p style="margin: 0 0 5px 0; font-size: 9pt;">
+        Document généré le {{ "now"|date:"d/m/Y à H:i" }} • Police {{ policy.policy_number }}
+    </p>
+    <p style="margin: 0; font-size: 8pt;">
+        Hestia - Courtier en assurances • Partenaire Mila Assurances
+    </p>
+</div>
+{% endblock %}

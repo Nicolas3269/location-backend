@@ -1,0 +1,911 @@
+{% extends "base/pdf_base.html" %}
+
+{% block title %}Conditions Générales MRH - {{ reference }}{% endblock %}
+
+{% block extra_css %}
+/* En-tête spécifique CGV */
+.cgv-header {
+    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
+}
+
+.reference-badge {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 8px 20px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 15px;
+    font-size: 11pt;
+    font-weight: 500;
+}
+
+/* Table des matières */
+.toc {
+    background-color: #f5f7f9;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.toc h3 {
+    margin-top: 0;
+    color: #2680eb;
+}
+
+.toc ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.toc li {
+    padding: 5px 0;
+    border-bottom: 1px dotted #d0ccc5;
+}
+
+.toc li:last-child {
+    border-bottom: none;
+}
+
+.toc a {
+    color: #3e3c41;
+    text-decoration: none;
+}
+
+/* Sections principales */
+.part-header {
+    background-color: #2680eb;
+    color: white;
+    padding: 15px 20px;
+    margin: 30px -1.5cm;
+    margin-top: 0;
+}
+
+.part-header h2 {
+    color: white;
+    margin: 0;
+    font-size: 14pt;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Définitions */
+.definition-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 9pt;
+}
+
+.definition-table th {
+    background-color: #2680eb;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.definition-table td {
+    padding: 8px 10px;
+    border: 1px solid #e3e5e8;
+    vertical-align: top;
+}
+
+.definition-table tr:nth-child(even) {
+    background-color: #fafbfc;
+}
+
+.definition-table .term {
+    font-weight: 600;
+    width: 25%;
+    color: #2680eb;
+}
+
+/* Garanties */
+.guarantee-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 9pt;
+}
+
+.guarantee-table th {
+    background-color: #2680eb;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.guarantee-table th:first-child {
+    text-align: left;
+}
+
+.guarantee-table td {
+    padding: 8px 10px;
+    border: 1px solid #e3e5e8;
+    vertical-align: top;
+}
+
+.guarantee-table tr:nth-child(even) {
+    background-color: #fafbfc;
+}
+
+.guarantee-table .check {
+    color: #479965;
+    text-align: center;
+    font-weight: bold;
+    font-size: 12pt;
+}
+
+.guarantee-table .category {
+    background-color: #f5f7f9;
+    font-weight: 600;
+    color: #3e3c41;
+}
+
+/* Articles */
+.article {
+    margin-bottom: 15px;
+    page-break-inside: avoid;
+}
+
+.article h4 {
+    color: #2680eb;
+    margin: 0 0 8px 0;
+    font-size: 10pt;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #2680eb;
+    padding-bottom: 5px;
+}
+
+.article p, .article ul, .article li {
+    font-size: 9pt;
+    line-height: 1.5;
+    text-align: justify;
+}
+
+.article ul {
+    margin: 8px 0;
+    padding-left: 15px;
+}
+
+.article li {
+    margin-bottom: 4px;
+}
+
+/* Exclusions */
+.exclusion-box {
+    background-color: #fff5f5;
+    border: 1px solid #d96c63;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.exclusion-box h4 {
+    color: #d96c63;
+    margin: 0 0 10px 0;
+    font-size: 10pt;
+    border-bottom: none;
+}
+
+.exclusion-box ul {
+    margin: 0;
+    padding-left: 15px;
+    font-size: 8pt;
+}
+
+.exclusion-box li {
+    margin-bottom: 3px;
+}
+
+/* Alertes */
+.alert-box {
+    background-color: #fff8e6;
+    border: 1px solid #f2c94c;
+    border-left: 4px solid #f2c94c;
+    border-radius: 4px;
+    padding: 12px 15px;
+    margin: 15px 0;
+}
+
+.alert-box p {
+    margin: 0;
+    font-size: 9pt;
+    color: #8b7000;
+}
+
+.alert-box strong {
+    color: #6b5a00;
+}
+
+/* Prévention */
+.prevention-box {
+    background-color: #f0f9f4;
+    border: 1px solid #479965;
+    border-left: 4px solid #479965;
+    border-radius: 4px;
+    padding: 12px 15px;
+    margin: 15px 0;
+}
+
+.prevention-box h5 {
+    color: #479965;
+    margin: 0 0 8px 0;
+    font-size: 9pt;
+}
+
+.prevention-box ul {
+    margin: 0;
+    padding-left: 15px;
+    font-size: 8pt;
+}
+
+/* Contacts */
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.contact-box {
+    background-color: #f5f7f9;
+    border-radius: 6px;
+    padding: 15px;
+    border: 1px solid #e3e5e8;
+}
+
+.contact-box h5 {
+    color: #2680eb;
+    margin: 0 0 10px 0;
+    font-size: 10pt;
+}
+
+.contact-box p {
+    margin: 3px 0;
+    font-size: 9pt;
+}
+
+/* Footer de page */
+.page-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    font-size: 8pt;
+    color: #6c6b70;
+    text-align: center;
+    border-top: 1px solid #e3e5e8;
+    padding-top: 5px;
+}
+
+/* Assistance */
+.assistance-header {
+    background: linear-gradient(135deg, #479965 0%, #2d6b42 100%);
+}
+
+.assistance-header h2 {
+    color: white;
+}
+{% endblock %}
+
+{% block content %}
+<!-- En-tête -->
+<div class="document-header cgv-header">
+    <h1>Conditions Générales</h1>
+    <div class="subtitle">Assurance Multirisque Habitation Locataire</div>
+    <div class="reference-badge">{{ reference }}</div>
+</div>
+
+<!-- Table des matières -->
+<div class="toc">
+    <h3>Sommaire</h3>
+    <ul>
+        <li>Définitions</li>
+        <li>Partie 1 - Objet du Contrat</li>
+        <li>Partie 2 - Garanties</li>
+        <li>Partie 3 - La Vie du Contrat</li>
+        <li>Partie 4 - Souscription Électronique</li>
+        <li>Partie 5 - Garanties Assistance</li>
+    </ul>
+</div>
+
+<!-- ======================== DÉFINITIONS ======================== -->
+<div class="part-header">
+    <h2>Définitions</h2>
+</div>
+
+<table class="definition-table">
+    <tr>
+        <th>Terme</th>
+        <th>Définition</th>
+    </tr>
+    <tr>
+        <td class="term">Accident</td>
+        <td>Tout événement dommageable, soudain et fortuit, ne provenant pas d'un acte intentionnel de la part de son auteur ou de l'assuré.</td>
+    </tr>
+    <tr>
+        <td class="term">Assuré</td>
+        <td>Personne physique sur qui repose le risque et contractant du contrat d'assurance.</td>
+    </tr>
+    <tr>
+        <td class="term">Bâtiment</td>
+        <td>Construction couverte et close.</td>
+    </tr>
+    <tr>
+        <td class="term">Biens mobiliers</td>
+        <td>Actifs tangibles mobiles : électroménagers, objets de valeur, meubles, œuvres d'art, véhicules, vêtements...</td>
+    </tr>
+    <tr>
+        <td class="term">Cotisation</td>
+        <td>Somme à verser par l'assuré au titre de son contrat (tarif annuel TTC).</td>
+    </tr>
+    <tr>
+        <td class="term">Déchéance</td>
+        <td>Perte du droit à bénéficier des garanties du contrat.</td>
+    </tr>
+    <tr>
+        <td class="term">Dépendance</td>
+        <td>Cave, parking et garage (surface max 50m²).</td>
+    </tr>
+    <tr>
+        <td class="term">Dommage corporel</td>
+        <td>Dommage portant atteinte à l'intégrité physique d'une personne.</td>
+    </tr>
+    <tr>
+        <td class="term">Dommage matériel</td>
+        <td>Dommage correspondant à une atteinte à la structure ou à la substance d'une chose.</td>
+    </tr>
+    <tr>
+        <td class="term">Dommage immatériel</td>
+        <td>Dommage résultant de la privation de jouissance d'un droit ou de la perte de bénéfice.</td>
+    </tr>
+    <tr>
+        <td class="term">Embellissement</td>
+        <td>Peintures, vernis, miroirs fixés, revêtements, éléments de cuisine et salle de bains.</td>
+    </tr>
+    <tr>
+        <td class="term">Franchise</td>
+        <td>Part des dommages restant à la charge de l'assuré.</td>
+    </tr>
+    <tr>
+        <td class="term">Objet de valeur</td>
+        <td>Bijoux, montres, pierres précieuses, œuvres d'art, fourrures d'une valeur unitaire > 400€.</td>
+    </tr>
+    <tr>
+        <td class="term">Pièce</td>
+        <td>Pièce à vivre > 5m² (chambre, salon, bureau). Une pièce > 50m² compte pour deux.</td>
+    </tr>
+    <tr>
+        <td class="term">Sinistre</td>
+        <td>Événement susceptible de mettre en jeu les garanties souscrites.</td>
+    </tr>
+    <tr>
+        <td class="term">Vétusté</td>
+        <td>Dépréciation de la valeur du bien causée par l'usage ou le vieillissement.</td>
+    </tr>
+</table>
+
+<!-- ======================== PARTIE 1 ======================== -->
+<div class="page-break"></div>
+<div class="part-header">
+    <h2>Partie 1 - Objet du Contrat</h2>
+</div>
+
+<div class="article">
+    <h4>Article 1.1 - Nature du contrat</h4>
+    <p>
+        Le présent contrat a pour objet d'assurer les locaux loués à usage d'habitation principale,
+        dont l'assuré est le locataire ou co-locataire, ainsi que ses biens, pour les dommages
+        provoqués par les événements listés dans les présentes conditions.
+    </p>
+</div>
+
+<div class="article">
+    <h4>Article 1.2 - Territorialité</h4>
+    <p><strong>Pour les garanties d'assurance :</strong></p>
+    <ul>
+        <li>France métropolitaine (y compris Corse)</li>
+        <li>Événements couverts uniquement à l'adresse indiquée aux conditions particulières</li>
+    </ul>
+    <p><strong>Pour la garantie Responsabilité Civile privée :</strong></p>
+    <ul>
+        <li>France métropolitaine, Corse, DROM et COM</li>
+        <li>États membres de l'Union Européenne</li>
+        <li>Andorre, Liechtenstein, Monaco, Norvège, Royaume-Uni, Suisse, Vatican</li>
+        <li>Pour voyages/séjours non professionnels ≤ 3 mois consécutifs</li>
+    </ul>
+</div>
+
+<div class="article">
+    <h4>Article 1.3 - Personnes assurées</h4>
+    <p>Sont assurés au titre du contrat :</p>
+    <ul>
+        <li>L'assuré souscripteur du contrat</li>
+        <li>Le conjoint, partenaire PACS ou concubin cohabitant</li>
+        <li>Les enfants mineurs résidant au foyer</li>
+        <li>Les ascendants cohabitant</li>
+    </ul>
+    <p>Pour la garantie RC privée, sont également assurés :</p>
+    <ul>
+        <li>Les enfants poursuivant leurs études et fiscalement à charge</li>
+        <li>Les employés de maison dans l'exercice de leurs fonctions</li>
+    </ul>
+</div>
+
+<div class="article">
+    <h4>Article 1.4 - Biens assurés</h4>
+    <p><strong>Les bâtiments :</strong></p>
+    <ul>
+        <li>Appartements en copropriété et maisons individuelles à usage d'habitation principale</li>
+        <li>Dépendances (cave, parking, garage) ≤ 50m² situées au lieu d'assurance</li>
+    </ul>
+    <p><strong>Le mobilier :</strong></p>
+    <ul>
+        <li>Biens mobiliers à usage non professionnel appartenant au locataire</li>
+        <li>Situés dans les locaux assurés et dépendances attenantes</li>
+        <li>Embellissements effectués par le locataire</li>
+    </ul>
+</div>
+
+<!-- ======================== PARTIE 2 ======================== -->
+<div class="page-break"></div>
+<div class="part-header">
+    <h2>Partie 2 - Garanties</h2>
+</div>
+
+<h3>Tableau des garanties par formule</h3>
+
+<table class="guarantee-table">
+    <tr>
+        <th style="width: 50%;">Garanties</th>
+        <th style="width: 25%;">Essentielle</th>
+        <th style="width: 25%;">Sérénité</th>
+    </tr>
+    <tr class="category">
+        <td colspan="3"><strong>Garanties Dommages aux biens</strong></td>
+    </tr>
+    <tr>
+        <td>Incendie, explosion, implosion, enfumage</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Attentat et acte de terrorisme</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Dégât des eaux, gel</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Événement climatique</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Catastrophe naturelle</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Catastrophe technologique</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Vol</td>
+        <td></td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Bris de glace</td>
+        <td></td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Dommage électrique</td>
+        <td></td>
+        <td class="check">✓</td>
+    </tr>
+    <tr class="category">
+        <td colspan="3"><strong>Garantie Assistance</strong></td>
+    </tr>
+    <tr>
+        <td>Serrurerie d'urgence</td>
+        <td></td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Vitrerie d'urgence</td>
+        <td></td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Électricité d'urgence</td>
+        <td></td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Domicile sinistré</td>
+        <td></td>
+        <td class="check">✓</td>
+    </tr>
+    <tr class="category">
+        <td colspan="3"><strong>Garantie Responsabilité Civile</strong></td>
+    </tr>
+    <tr>
+        <td>Responsabilité civile risques locatifs</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+    </tr>
+    <tr>
+        <td>Responsabilité civile privée</td>
+        <td class="check">✓</td>
+        <td class="check">✓</td>
+    </tr>
+</table>
+
+<div class="article">
+    <h4>Article 2.1 - Incendie, explosion, implosion, enfumage</h4>
+    <p>L'assureur garantit les dommages causés aux biens assurés par :</p>
+    <ul>
+        <li>L'incendie (combustion avec flammes hors foyer normal)</li>
+        <li>L'explosion, l'implosion</li>
+        <li>L'enfumage (émission soudaine de fumées)</li>
+        <li>Les dommages causés par les secours</li>
+        <li>Le choc d'un véhicule à moteur ou appareil aérien</li>
+    </ul>
+
+    <div class="prevention-box">
+        <h5>Mesures de prévention obligatoires</h5>
+        <ul>
+            <li>Entretien et renouvellement des détecteurs incendie</li>
+            <li>Entretien annuel de la chaudière par professionnel agréé</li>
+            <li>Respect des obligations de ramonage</li>
+            <li>Arrivées de gaz coupées si inoccupation > 8 jours</li>
+            <li>Aucun feu de cheminée sans présence humaine</li>
+            <li>Recharge de batterie lithium uniquement en présence humaine</li>
+        </ul>
+    </div>
+
+    <div class="alert-box">
+        <p><strong>Non-respect des mesures de prévention :</strong> franchise de 50% du montant des dommages.</p>
+    </div>
+</div>
+
+<div class="article">
+    <h4>Article 2.2 - Dégâts des eaux, gel</h4>
+    <p>L'assureur garantit les dommages causés par :</p>
+    <ul>
+        <li>Fuites, ruptures, débordements de conduites d'eau non enterrées</li>
+        <li>Fuites, ruptures, débordements d'appareils à effet d'eau</li>
+        <li>Gel des installations intérieures</li>
+        <li>Frais de recherche de fuite sur conduites non enterrées</li>
+    </ul>
+
+    <div class="prevention-box">
+        <h5>Mesures de prévention obligatoires</h5>
+        <ul>
+            <li>En cas d'inoccupation > 8 jours : distribution d'eau coupée</li>
+            <li>En période de gel (inoccupation > 3 jours, chauffage arrêté) : eau coupée, conduites vidangées</li>
+        </ul>
+    </div>
+</div>
+
+<div class="article">
+    <h4>Article 2.3 - Vol (Formule Sérénité uniquement)</h4>
+    <p>L'assureur garantit :</p>
+    <ul>
+        <li>Vol par effraction ou escalade</li>
+        <li>Vol avec menaces ou violences</li>
+        <li>Dégradations immobilières consécutives</li>
+    </ul>
+
+    <div class="prevention-box">
+        <h5>Mesures de prévention obligatoires</h5>
+        <ul>
+            <li>Toutes portes d'accès : au moins une serrure ou verrou de sûreté</li>
+            <li>En cas d'absence : fenêtres fermées, portes fermées à clef</li>
+        </ul>
+    </div>
+</div>
+
+<div class="article">
+    <h4>Article 2.4 - Responsabilité civile</h4>
+    <p>
+        La garantie responsabilité civile couvre les dommages causés à des tiers qui engagent
+        la responsabilité de l'assuré en qualité de locataire et dans le cadre de sa vie privée.
+    </p>
+    <p><strong>RC relative au bien assuré :</strong></p>
+    <ul>
+        <li>Dommages causés au propriétaire</li>
+        <li>Recours des voisins et des tiers</li>
+    </ul>
+    <p><strong>RC privée :</strong></p>
+    <ul>
+        <li>Dommages causés par l'assuré et les personnes assurées</li>
+        <li>Dommages causés par les animaux de compagnie</li>
+        <li>Dommages causés lors d'activités de loisirs</li>
+    </ul>
+</div>
+
+<!-- EXCLUSIONS -->
+<div class="page-break"></div>
+<h3>Exclusions</h3>
+
+<div class="exclusion-box">
+    <h4>Exclusions communes à toutes les garanties</h4>
+    <ul>
+        <li>Dommages intentionnels par l'assuré ou avec sa complicité</li>
+        <li>Guerre, révolution, émeutes, mutinerie</li>
+        <li>Tremblements de terre, éruptions volcaniques (sauf catastrophe naturelle)</li>
+        <li>Effets de l'amiante, du plomb</li>
+        <li>Véhicules terrestres à moteur soumis à obligation d'assurance</li>
+        <li>Confiscation, nationalisation par autorité publique</li>
+        <li>Combustibles nucléaires, produits radioactifs</li>
+        <li>Virus informatiques, piratage</li>
+        <li>Défaut de réparation ou d'entretien incombant à l'assuré</li>
+        <li>Biens mobiliers à usage professionnel</li>
+    </ul>
+</div>
+
+<div class="exclusion-box">
+    <h4>Exclusions propres aux bâtiments</h4>
+    <ul>
+        <li>Locaux occupés sans droit ni titre ou squattés</li>
+        <li>Locaux en sous-location</li>
+        <li>Piscines, spas, jacuzzi et équipements</li>
+        <li>Bâtiments vétustes, en démolition ou construction</li>
+        <li>Bâtiments déclarés insalubres ou indécents</li>
+        <li>Locaux à usage de stockage</li>
+    </ul>
+</div>
+
+<!-- ======================== PARTIE 3 ======================== -->
+<div class="page-break"></div>
+<div class="part-header">
+    <h2>Partie 3 - La Vie du Contrat</h2>
+</div>
+
+<div class="article">
+    <h4>Article 3.1 - Prise d'effet et durée</h4>
+    <p>
+        Le contrat prend effet à la date indiquée aux conditions particulières.
+        Il est conclu pour une durée d'un an et se renouvelle par tacite reconduction.
+    </p>
+</div>
+
+<div class="article">
+    <h4>Article 3.2 - Déclaration de sinistre</h4>
+    <p>L'assuré doit déclarer tout sinistre dans les délais suivants :</p>
+    <table class="definition-table">
+        <tr>
+            <th>Garantie</th>
+            <th>Délai</th>
+        </tr>
+        <tr>
+            <td>Vol</td>
+            <td>2 jours ouvrés + dépôt de plainte</td>
+        </tr>
+        <tr>
+            <td>Catastrophe naturelle/technologique</td>
+            <td>10 jours ouvrés après publication de l'arrêté</td>
+        </tr>
+        <tr>
+            <td>Autres garanties</td>
+            <td>5 jours ouvrés</td>
+        </tr>
+    </table>
+
+    <div class="alert-box">
+        <p><strong>Non-respect des délais :</strong> déchéance de garantie sauf force majeure.</p>
+    </div>
+</div>
+
+<div class="article">
+    <h4>Article 3.3 - Cotisation</h4>
+    <p>
+        La cotisation annuelle est indiquée aux conditions particulières. Elle comprend :
+    </p>
+    <ul>
+        <li>Prime d'assurance TTC</li>
+        <li>Contribution aux catastrophes naturelles</li>
+        <li>Taxes et contributions légales</li>
+    </ul>
+    <p>
+        Le non-paiement de la cotisation entraîne une mise en demeure par lettre recommandée,
+        puis la suspension des garanties (10 jours après mise en demeure),
+        puis la résiliation (30 jours après suspension).
+    </p>
+</div>
+
+<div class="article">
+    <h4>Article 3.4 - Résiliation</h4>
+    <p><strong>Par l'assuré :</strong></p>
+    <ul>
+        <li>À tout moment après 1 an (loi Hamon), effet 1 mois après notification</li>
+        <li>À chaque échéance annuelle (préavis 2 mois)</li>
+        <li>Après sinistre (dans les 30 jours suivant indemnisation)</li>
+    </ul>
+    <p><strong>Par l'assureur :</strong></p>
+    <ul>
+        <li>Non-paiement des cotisations</li>
+        <li>Aggravation du risque</li>
+        <li>Omission ou inexactitude des déclarations</li>
+    </ul>
+</div>
+
+<div class="article">
+    <h4>Article 3.5 - Prescription</h4>
+    <p>
+        Toute action dérivant du contrat se prescrit par <strong>2 ans</strong> à compter
+        de l'événement qui y donne naissance, conformément à l'article L114-1 du Code des assurances.
+    </p>
+</div>
+
+<!-- ======================== PARTIE 4 ======================== -->
+<div class="page-break"></div>
+<div class="part-header">
+    <h2>Partie 4 - Souscription Électronique</h2>
+</div>
+
+<div class="article">
+    <h4>Article 4.1 - Signature électronique</h4>
+    <p>
+        La signature électronique utilisée constitue un procédé fiable d'identification
+        garantissant son lien avec l'acte auquel elle s'attache, conformément à l'article 1367 du Code civil.
+    </p>
+</div>
+
+<div class="article">
+    <h4>Article 4.2 - Moyens de preuve</h4>
+    <p>Les parties acceptent comme moyens de preuve :</p>
+    <ul>
+        <li>Les données de connexion</li>
+        <li>Les emails et accusés de réception</li>
+        <li>Les documents numérisés</li>
+    </ul>
+</div>
+
+<div class="article">
+    <h4>Article 4.3 - Archivage</h4>
+    <p>
+        Les documents contractuels sont archivés pendant une durée minimale de 10 ans
+        sur un support garantissant leur intégrité et leur intelligibilité.
+    </p>
+</div>
+
+<!-- ======================== PARTIE 5 ======================== -->
+<div class="page-break"></div>
+<div class="part-header assistance-header">
+    <h2>Partie 5 - Garanties Assistance (Formule Sérénité)</h2>
+</div>
+
+<div class="info-section">
+    <h3>Assureur Assistance</h3>
+    <div class="info-row">
+        <span class="label">Société</span>
+        <span class="value">Inter Partner Assistance SA - AXA</span>
+    </div>
+    <div class="info-row">
+        <span class="label">Adresse</span>
+        <span class="value">8-10 rue Paul Vaillant Couturier, 92240 Malakoff</span>
+    </div>
+    <div class="info-row">
+        <span class="label">Téléphone</span>
+        <span class="value"><strong>01 55 92 23 91</strong> (24h/24, 7j/7)</span>
+    </div>
+</div>
+
+<div class="article">
+    <h4>Article 5.1 - Territorialité</h4>
+    <p>
+        Les garanties assistance sont accordées en France métropolitaine,
+        hors Corse et îles non reliées au continent par un pont.
+    </p>
+</div>
+
+<div class="article">
+    <h4>Article 5.2 - Dépannage d'urgence</h4>
+    <p>En cas de sinistre, AXA organise l'intervention d'un professionnel dans un délai de 4 heures :</p>
+    <ul>
+        <li><strong>Serrurerie :</strong> ouverture de porte, remplacement provisoire</li>
+        <li><strong>Vitrerie :</strong> obturation provisoire</li>
+        <li><strong>Électricité :</strong> remise en état provisoire</li>
+    </ul>
+
+    <div class="alert-box">
+        <p><strong>Important :</strong> Appeler AXA AVANT toute intervention d'un professionnel pour bénéficier de la prise en charge.</p>
+    </div>
+</div>
+
+<div class="article">
+    <h4>Article 5.3 - Domicile sinistré</h4>
+    <p>Si le domicile devient inhabitable suite à un sinistre :</p>
+    <ul>
+        <li><strong>Effets personnels :</strong> 80€ par bénéficiaire (max 400€)</li>
+        <li><strong>Hébergement :</strong> 80€ par nuit par bénéficiaire (max 3 nuits, max 400€)</li>
+        <li><strong>Frais de liaison :</strong> téléphone, transport urgent</li>
+    </ul>
+</div>
+
+<!-- ======================== CONTACTS ======================== -->
+<div class="page-break"></div>
+<div class="part-header">
+    <h2>Contacts et Réclamations</h2>
+</div>
+
+<div class="contact-grid">
+    <div class="contact-box">
+        <h5>Gestionnaire du contrat</h5>
+        <p><strong>Mila Services – Gestion</strong></p>
+        <p>150 boulevard Joffre</p>
+        <p>17000 La Rochelle</p>
+        <p>Tél : 05 19 88 08 88</p>
+        <p>Email : contact@mila.fr</p>
+    </div>
+
+    <div class="contact-box">
+        <h5>Assistance (Sérénité)</h5>
+        <p><strong>AXA Assistance</strong></p>
+        <p>8-10 rue Paul Vaillant Couturier</p>
+        <p>92240 Malakoff</p>
+        <p>Tél : <strong>01 55 92 23 91</strong></p>
+        <p>(24h/24, 7j/7)</p>
+    </div>
+</div>
+
+<div class="contact-grid">
+    <div class="contact-box">
+        <h5>Réclamations Assurance</h5>
+        <p><strong>Mila – Service qualité</strong></p>
+        <p>150 boulevard Joffre</p>
+        <p>17000 La Rochelle</p>
+        <p>Email : service.qualite@mila.fr</p>
+    </div>
+
+    <div class="contact-box">
+        <h5>Réclamations Assistance</h5>
+        <p><strong>AXA Partners</strong></p>
+        <p>Service Gestion Relation Clientèle</p>
+        <p>8-10 rue Paul Vaillant Couturier</p>
+        <p>92240 Malakoff</p>
+    </div>
+</div>
+
+<div class="article">
+    <h4>Médiation</h4>
+    <p>
+        Après 2 mois sans réponse satisfaisante à votre réclamation, vous pouvez saisir gratuitement :
+    </p>
+    <p style="text-align: center; margin: 15px 0;">
+        <strong>La Médiation de l'Assurance</strong><br>
+        TSA 50110 - 75441 Paris Cedex 09<br>
+        www.mediation-assurance.org
+    </p>
+</div>
+
+<div class="article">
+    <h4>Autorité de contrôle</h4>
+    <p>
+        Mila et AXA sont soumises au contrôle de l'<strong>ACPR</strong>
+        (Autorité de Contrôle Prudentiel et de Résolution) :<br>
+        4 Place de Budapest – CS 92459 – 75436 Paris Cedex 09
+    </p>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+    <p style="margin: 0 0 5px 0;">
+        Conditions Générales {{ reference }}
+    </p>
+    <p style="margin: 0; font-size: 8pt;">
+        Document contractuel • Contrat distribué par Hestia • Assurance Mila
+    </p>
+</div>
+{% endblock %}

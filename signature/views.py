@@ -235,6 +235,11 @@ def get_signature_request_generic(request, token, model_class):
                 avenant, request
             )
 
+        elif hasattr(sig_req, "quotation"):
+            quotation = sig_req.quotation
+            response_data["quotation_id"] = str(quotation.id)
+            response_data["location_id"] = str(quotation.location_id)
+
         # Tenter d'authentifier automatiquement l'utilisateur
         User = get_user_model()
         try:

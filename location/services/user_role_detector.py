@@ -11,6 +11,8 @@ from django.contrib.auth import get_user_model
 
 from location.models import Bien, Location
 
+from .access_utils import get_user_info_for_location
+
 User = get_user_model()
 
 
@@ -24,19 +26,9 @@ def get_user_role_for_context(
     Détermine le rôle principal d'un utilisateur pour une location, bien ou bailleur.
 
     Hiérarchie de détection :
-    1. Si location_id fourni :
-       a. Mandataire de cette location
-       b. Bailleur du bien de cette location
-       c. Locataire de cette location
-
-    2. Si bien_id fourni (sans location_id) :
-       a. Mandataire d'une location existante sur ce bien
-       b. Bailleur de ce bien
-
-    3. Si bailleur_id fourni directement (cas from_bailleur) :
-       a. Vérifier si l'utilisateur est ce bailleur
-
-    4. None (pas de rôle détecté pour ce contexte)
+    1. Si location_id fourni → utilise get_user_info_for_location
+    2. Si bien_id fourni (sans location_id) → check mandataire/bailleur sur ce bien
+    3. Si bailleur_id fourni → vérifier si l'utilisateur est ce bailleur
 
     Args:
         user: Utilisateur Django
@@ -49,38 +41,28 @@ def get_user_role_for_context(
     """
     user_email = user.email
 
-    # Si location_id fourni, vérifier depuis la location
+    # Si location_id fourni, utiliser get_user_info_for_location
     if location_id:
         try:
             location = Location.objects.select_related(
                 "mandataire__signataire",
                 "bien",
             ).prefetch_related(
-                "bien__bailleurs__personne",  # Pour bailleur.email property
-                "bien__bailleurs__signataire",  # Pour bailleur.email property
+                "bien__bailleurs__personne",
+                "bien__bailleurs__signataire",
                 "locataires",
             ).get(id=location_id)
 
-            # 1. Vérifier mandataire
-            if location.mandataire and location.mandataire.signataire:
-                if location.mandataire.signataire.email == user_email:
-                    return "mandataire"
+            user_info = get_user_info_for_location(location, user_email)
 
-            # 2. Vérifier bailleur (utilise la property email du modèle)
-            for bailleur in location.bien.bailleurs.all():
-                try:
-                    if bailleur.email == user_email:
-                        return "bailleur"
-                except ValueError:
-                    # Bailleur invalide (pas de personne ni signataire), ignorer
-                    continue
+            if user_info.is_mandataire:
+                return "mandataire"
+            if user_info.is_bailleur:
+                return "bailleur"
+            if user_info.is_locataire:
+                return "locataire"
 
-            # 3. Vérifier locataire
-            for locataire in location.locataires.all():
-                if locataire.email == user_email:
-                    return "locataire"
-
-            # Si on a une location, extraire bien_id pour fallback
+            # Fallback: extraire bien_id pour check bailleur sans location
             bien_id = str(location.bien.id)
 
         except Location.DoesNotExist:
@@ -90,24 +72,23 @@ def get_user_role_for_context(
     if bien_id:
         try:
             bien = Bien.objects.prefetch_related(
-                "bailleurs__personne",  # Pour bailleur.email property
-                "bailleurs__signataire",  # Pour bailleur.email property
-                "locations__mandataire__signataire",  # Pour mandataire check
+                "bailleurs__personne",
+                "bailleurs__signataire",
+                "locations__mandataire__signataire",
             ).get(id=bien_id)
 
-            # 1. Vérifier si mandataire d'une location sur ce bien
-            for location in bien.locations.all():
-                if location.mandataire and location.mandataire.signataire:
-                    if location.mandataire.signataire.email == user_email:
+            # Vérifier si mandataire d'une location sur ce bien
+            for loc in bien.locations.all():
+                if loc.mandataire and loc.mandataire.signataire:
+                    if loc.mandataire.signataire.email == user_email:
                         return "mandataire"
 
-            # 2. Vérifier bailleur (utilise la property email du modèle)
+            # Vérifier bailleur
             for bailleur in bien.bailleurs.all():
                 try:
                     if bailleur.email == user_email:
                         return "bailleur"
                 except ValueError:
-                    # Bailleur invalide (pas de personne ni signataire), ignorer
                     continue
 
         except Bien.DoesNotExist:
@@ -119,20 +100,17 @@ def get_user_role_for_context(
             from location.models import Bailleur
 
             bailleur = Bailleur.objects.select_related(
-                "personne",  # Pour bailleur.email property
-                "signataire",  # Pour bailleur.email property
+                "personne",
+                "signataire",
             ).get(id=bailleur_id)
 
-            # Utiliser la property email du modèle
             try:
                 if bailleur.email == user_email:
                     return "bailleur"
             except ValueError:
-                # Bailleur invalide (pas de personne ni signataire)
                 pass
 
         except Bailleur.DoesNotExist:
             pass
 
-    # Aucun rôle détecté pour ce contexte
     return None

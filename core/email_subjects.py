@@ -73,6 +73,8 @@ EMAIL_SUBJECTS = {
     "locataire/avenant/signe": "Votre avenant est signé et valide",
     # === LOCATAIRE QUITTANCE ===
     "locataire/quittance/nouvelle": "Vous avez une nouvelle quittance de loyer",
+    # === ASSURANCES ===
+    "assurances/otp_signature": "🔏 Code {otp} - Signature de votre assurance {product_label}",
 }
 
 

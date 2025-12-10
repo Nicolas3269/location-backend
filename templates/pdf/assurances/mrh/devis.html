@@ -21,82 +21,6 @@
     font-size: 10pt;
 }
 
-/* ===== Formules cards (spécifique devis) ===== */
-.formulas-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin: 20px 0;
-}
-
-.formula-card {
-    border: 2px solid var(--hestia-border);
-    border-radius: 8px;
-    padding: 20px;
-    background: white;
-}
-
-.formula-card.serenite {
-    border-color: #f2c94c;
-    background: linear-gradient(135deg, #fffef5 0%, #fff8e6 100%);
-}
-
-.formula-name {
-    font-size: 14pt;
-    font-weight: 700;
-    color: var(--hestia-primary);
-    margin: 0 0 5px 0;
-}
-
-.formula-card.serenite .formula-name {
-    color: #b8860b;
-}
-
-.formula-desc {
-    font-size: 9pt;
-    color: var(--hestia-text-light);
-    margin-bottom: 15px;
-}
-
-.formula-price {
-    font-size: 20pt;
-    font-weight: 700;
-    color: var(--hestia-primary);
-    text-align: center;
-    padding: 15px;
-    background-color: rgba(38, 128, 235, 0.1);
-    border-radius: 6px;
-    margin: 10px 0;
-}
-
-.formula-card.serenite .formula-price {
-    background-color: rgba(242, 201, 76, 0.2);
-    color: #b8860b;
-}
-
-.formula-price-monthly {
-    font-size: 10pt;
-    font-weight: 400;
-    color: var(--hestia-text-light);
-}
-
-.formula-features {
-    list-style: none;
-    padding: 0;
-    margin: 15px 0 0 0;
-}
-
-.formula-features li {
-    padding: 5px 0;
-    font-size: 9pt;
-    color: var(--hestia-text);
-}
-
-.formula-features li::before {
-    content: "✓ ";
-    color: #479965;
-    font-weight: bold;
-}
 
 /* ===== Legal notice (spécifique devis) ===== */
 .legal-notice {
@@ -237,33 +161,30 @@
 
 <!-- ===== NOTRE PROPOSITION ===== -->
 <div class="section-box">
-    <div class="section-header">Notre Proposition*</div>
+    <div class="section-header">Notre Proposition* — Formule {% if formulas %}{{ formulas.0.label|upper }}{% else %}-{% endif %}</div>
     <div class="section-content">
-        <div class="formulas-grid">
-            {% for formula in formulas %}
-            <div class="formula-card {% if formula.code == 'MRHIND_SER' %}serenite{% endif %}">
-                <h3 class="formula-name">{{ formula.label }}</h3>
-                <p class="formula-desc">{{ formula.description }}</p>
-
-                <div class="formula-price">
-                    {{ formula.pricing_annual|floatformat:2 }} € TTC<br>
-                    <span class="formula-price-monthly">soit {{ formula.pricing_monthly|floatformat:2 }} € par mois</span>
-                </div>
-
-                <ul class="formula-features">
-                    {% for feature in formula.features %}
-                    <li>{{ feature }}</li>
-                    {% endfor %}
-                </ul>
+        <div class="cotisation-grid">
+            <!-- Colonne gauche : TARIF -->
+            <div class="tarif-section">
+                <h4>Tarif</h4>
+                {% if formulas %}
+                {% with formula=formulas.0 %}
+                <div class="tarif-amount">{{ formula.pricing_annual|floatformat:2 }} € TTC</div>
+                <div class="tarif-detail">dont garantie assistance de 6,02 € TTC</div>
+                <div class="tarif-monthly">soit {{ formula.pricing_monthly|floatformat:2 }} € par mois</div>
+                {% endwith %}
+                {% else %}
+                <div class="tarif-amount">- € TTC</div>
+                {% endif %}
             </div>
-            {% endfor %}
-        </div>
 
-        <div class="cotisation-info" style="margin-top: 15px;">
-            <p>Le tarif annuel TTC hors taxe attentat inclut :</p>
-            <p>• 85 % de cotisations d'assurance TTC,</p>
-            <p>• 15 % de frais de services de Mila Services.</p>
-            <p style="margin-top: 12px;">La taxe attentat de 6,50 € est payable annuellement.</p>
+            <!-- Colonne droite : Détails -->
+            <div class="cotisation-info">
+                <p>Le tarif annuel TTC hors taxe attentat inclut :</p>
+                <p>• 85 % de cotisations d'assurance TTC,</p>
+                <p>• 15 % de frais de services de Mila Services.</p>
+                <p style="margin-top: 15px;">La taxe attentat de 6,50 € est payable annuellement.</p>
+            </div>
         </div>
     </div>
 </div>

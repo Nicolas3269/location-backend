@@ -269,6 +269,9 @@ class InsuranceDocumentService:
 
         quotation = QuotationObj(quotation_data)
 
+        # Calculer les limites de garantie
+        limites = _calculate_garantie_limits(bien)
+
         context = {
             "quotation": quotation,
             "formulas": quotation_data.get("formulas", []),
@@ -278,6 +281,7 @@ class InsuranceDocumentService:
             "deductible": quotation_data.get("deductible", 170),
             "effective_date": quotation_data.get("effective_date"),
             "logo_base64_uri": get_logo_pdf_base64_data_uri(),
+            **limites,
         }
 
         product = quotation_data.get("product", "MRH").lower()

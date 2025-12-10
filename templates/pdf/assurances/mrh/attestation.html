@@ -3,199 +3,189 @@
 {% block title %}Attestation d'assurance MRH - {{ policy.policy_number }}{% endblock %}
 
 {% block extra_css %}
-.attestation-header {
-    background: linear-gradient(135deg, #479965 0%, #2d6b42 100%);
+{% include "pdf/assurances/mrh/components/_css_base.html" %}
+
+/* ===== En-tête document ===== */
+.document-header {
+    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
+    color: white;
+    padding: 30px;
+    margin: -1.5cm -1.5cm 25px -1.5cm;
+    text-align: center;
 }
 
-.policy-number {
+.document-header h1 {
+    color: white;
+    font-size: 18pt;
+    margin: 0 0 5px 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.document-header .subtitle {
+    font-size: 14pt;
+    font-weight: 400;
+    opacity: 0.95;
+}
+
+.document-header .reference-badge {
     background-color: rgba(255, 255, 255, 0.2);
     padding: 8px 20px;
     border-radius: 20px;
     display: inline-block;
     margin-top: 15px;
-    font-size: 12pt;
+    font-size: 11pt;
     font-weight: 500;
 }
 
+/* ===== Badge validité ===== */
+.validity-section {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
 .validity-badge {
-    background-color: #479965;
+    background-color: var(--hestia-primary);
     color: white;
-    padding: 5px 15px;
+    padding: 8px 20px;
     border-radius: 4px;
     font-weight: 600;
+    font-size: 11pt;
     display: inline-block;
 }
 
-.coverage-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin: 15px 0;
+/* ===== Section box ===== */
+.section-box {
+    border: 2px solid var(--hestia-primary);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
 }
 
-.coverage-item {
-    background-color: #f5f7f9;
-    border-radius: 6px;
-    padding: 10px 12px;
-    border-left: 3px solid #479965;
+.section-header {
+    background: var(--hestia-primary);
+    color: white;
+    padding: 10px 15px;
+    font-size: 12pt;
+    font-weight: 600;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.coverage-item .icon {
-    color: #479965;
-    font-weight: bold;
-    margin-right: 8px;
+.section-content {
+    padding: 20px;
+    background: white;
 }
 
-.important-notice {
-    background-color: #fff8e6;
-    border: 1px solid #f2c94c;
-    border-radius: 6px;
-    padding: 15px;
+/* ===== Info rows ===== */
+.info-row {
+    margin-bottom: 12px;
+    font-size: 10pt;
+}
+
+.info-row::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.info-label {
+    color: var(--hestia-text-light);
+    width: 180px;
+    float: left;
+    font-weight: 500;
+}
+
+.info-value {
+    color: var(--hestia-text);
+    font-weight: 600;
+    margin-left: 185px;
+}
+
+/* ===== Certification ===== */
+.certification-text {
+    font-size: 10pt;
+    color: var(--hestia-text);
+    line-height: 1.6;
+    text-align: justify;
     margin: 20px 0;
 }
 
-.important-notice h4 {
-    color: #b8860b;
-    margin: 0 0 10px 0;
-    font-size: 11pt;
+/* ===== Footer attestation ===== */
+.attestation-footer {
+    margin-top: 30px;
+    font-size: 9pt;
+    text-align: center;
+    color: var(--hestia-text-light);
+    border-top: 1px solid var(--hestia-border);
+    padding-top: 15px;
 }
 
-.qr-section {
+.attestation-footer p {
+    margin: 0 0 5px 0;
     text-align: center;
-    margin-top: 20px;
-    padding: 15px;
-    background-color: #f5f7f9;
-    border-radius: 8px;
 }
 {% endblock %}
 
 {% block content %}
-<!-- En-tête vert (assurance) -->
-<div class="document-header attestation-header">
+<!-- ===== EN-TÊTE DOCUMENT ===== -->
+<div class="document-header">
     <h1>Attestation d'Assurance</h1>
     <div class="subtitle">Multirisque Habitation Locataire</div>
-    <div class="policy-number">{{ policy.policy_number }}</div>
+    <div class="reference-badge">Police {{ policy.policy_number }}</div>
 </div>
 
-<!-- Validité -->
-<div class="align-center" style="margin-bottom: 20px;">
-    <span class="validity-badge">POLICE ACTIVE</span>
+<!-- ===== VALIDITÉ ===== -->
+<div class="validity-section">
+    <span class="validity-badge">CONTRAT EN COURS DE VALIDITÉ AU {% now "d/m/Y" %}</span>
 </div>
 
-<!-- Informations assuré et bien -->
-<div class="info-grid">
-    <div class="info-section">
-        <h3>Assuré</h3>
+<!-- ===== INFORMATIONS DU CONTRAT ===== -->
+<div class="section-box">
+    <div class="section-header">Informations du Contrat</div>
+    <div class="section-content">
         <div class="info-row">
-            <span class="label">Nom</span>
-            <span class="value">{{ subscriber.first_name }} {{ subscriber.last_name }}</span>
-        </div>
-        <div class="info-row">
-            <span class="label">Email</span>
-            <span class="value">{{ subscriber.email }}</span>
-        </div>
-    </div>
-
-    <div class="info-section">
-        <h3>Bien assuré</h3>
-        {% if adresse %}
-        <div class="info-row">
-            <span class="label">Adresse</span>
-            <span class="value">{{ adresse.rue }}</span>
+            <span class="info-label">N° de police :</span>
+            <span class="info-value">{{ policy.policy_number }}</span>
         </div>
         <div class="info-row">
-            <span class="label">Ville</span>
-            <span class="value">{{ adresse.code_postal }} {{ adresse.ville }}</span>
+            <span class="info-label">Assuré :</span>
+            <span class="info-value">{{ subscriber.first_name }} {{ subscriber.last_name }}</span>
         </div>
-        {% if bien.etage is not None %}
         <div class="info-row">
-            <span class="label">Étage</span>
-            <span class="value">{% if bien.etage == 0 %}RDC{% else %}{{ bien.etage }}{% endif %}</span>
+            <span class="info-label">Adresse du bien assuré :</span>
+            <span class="info-value">
+                {% if adresse %}
+                    {{ adresse.rue }}, {{ adresse.code_postal }} {{ adresse.ville }}
+                {% else %}
+                    -
+                {% endif %}
+            </span>
         </div>
-        {% endif %}
-        {% endif %}
-    </div>
-</div>
-
-<!-- Détails du contrat -->
-<div class="info-section">
-    <h3>Détails du contrat</h3>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px;">
-        <div>
-            <div class="info-row">
-                <span class="label">Formule</span>
-                <span class="value"><strong>{{ policy.formula_label }}</strong></span>
-            </div>
-        </div>
-        <div>
-            <div class="info-row">
-                <span class="label">Date d'effet</span>
-                <span class="value">{{ policy.effective_date|date:"d/m/Y" }}</span>
-            </div>
-        </div>
-        <div>
-            <div class="info-row">
-                <span class="label">Franchise</span>
-                <span class="value">{{ policy.deductible }} €</span>
-            </div>
+        <div class="info-row">
+            <span class="info-label">Date d'effet :</span>
+            <span class="info-value">{{ policy.quotation.effective_date|date:"d/m/Y" }}</span>
         </div>
     </div>
 </div>
 
-<!-- Garanties -->
-<h3 style="color: #479965;">Garanties incluses</h3>
-<div class="coverage-grid">
-    <div class="coverage-item">
-        <span class="icon">✓</span>Responsabilité civile locative et privée
-    </div>
-    <div class="coverage-item">
-        <span class="icon">✓</span>Dégâts des eaux, gel
-    </div>
-    <div class="coverage-item">
-        <span class="icon">✓</span>Incendie, explosion, enfumage
-    </div>
-    <div class="coverage-item">
-        <span class="icon">✓</span>Catastrophes naturelles et technologiques
-    </div>
-    <div class="coverage-item">
-        <span class="icon">✓</span>Événements climatiques
-    </div>
-    <div class="coverage-item">
-        <span class="icon">✓</span>Attentats et terrorisme
-    </div>
-    {% if "Sérénité" in policy.formula_label or "MRHIND_SER" in policy.formula_code %}
-    <div class="coverage-item">
-        <span class="icon">✓</span>Vol et vandalisme
-    </div>
-    <div class="coverage-item">
-        <span class="icon">✓</span>Bris de glace
-    </div>
-    <div class="coverage-item">
-        <span class="icon">✓</span>Dommages électriques
-    </div>
-    <div class="coverage-item">
-        <span class="icon">✓</span>Assistance 24/7
-    </div>
-    {% endif %}
+<!-- ===== CERTIFICATION ===== -->
+<p class="certification-text">
+    Nous certifions que l'assuré désigné ci-dessus bénéficie d'un contrat d'assurance Multirisque Habitation Locataire,
+    comprenant notamment la garantie Responsabilité Civile Locative et la garantie Responsabilité Civile Vie Privée,
+    conformément aux Conditions Générales référence CG-MRH-I-2024061 et aux Conditions Particulières de son contrat.
+</p>
+
+<!-- ===== NOTICE ===== -->
+<div class="alert-box">
+    <p><strong>Important :</strong> Cette attestation est délivrée pour servir et valoir ce que de droit. Elle ne constitue pas une preuve de paiement des cotisations. Pour toute information complémentaire, contactez Mila Services au 05.19.88.08.88 ou par email à contact@mila.fr</p>
 </div>
 
-<!-- Notice importante -->
-<div class="important-notice">
-    <h4>Important</h4>
-    <p style="margin: 0; font-size: 10pt;">
-        Cette attestation est délivrée pour servir et valoir ce que de droit.
-        Elle ne constitue pas une preuve de paiement de la prime.
-        Pour toute déclaration de sinistre, contactez notre service client.
-    </p>
-</div>
-
-<!-- Footer -->
-<div class="footer">
-    <p style="margin: 0 0 5px 0;">
-        Attestation générée le {{ "now"|date:"d/m/Y à H:i" }}
-    </p>
-    <p style="margin: 0; font-size: 9pt;">
-        Contrat souscrit via Hestia • Partenaire Mila Assurances
-    </p>
+<!-- ===== FOOTER ===== -->
+<div class="attestation-footer">
+    <p><strong>Attestation générée le {% now "d/m/Y à H:i" %}</strong></p>
+    <p>Contrat distribué par Hestia • Assurance Mila</p>
 </div>
 {% endblock %}

@@ -3,81 +3,240 @@
 {% block title %}Conditions Particulières - {{ policy.policy_number }}{% endblock %}
 
 {% block extra_css %}
-.cp-header {
-    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
+/* ===== Variables de couleurs Mila ===== */
+:root {
+    --mila-coral: #e07860;
+    --mila-coral-light: #f5d5ce;
+    --mila-text: #3e3c41;
+    --mila-text-light: #6c6b70;
+    --mila-border: #e3e5e8;
+    --mila-bg: #fafbfc;
 }
 
-.policy-badge {
-    background-color: rgba(255, 255, 255, 0.2);
-    padding: 8px 20px;
-    border-radius: 20px;
-    display: inline-block;
-    margin-top: 15px;
-    font-size: 12pt;
+/* ===== En-tête parties ===== */
+.parties-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 25px;
+}
+
+.partie-section h3 {
+    color: var(--mila-coral);
+    font-size: 11pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--mila-coral);
+}
+
+.partie-row {
+    display: flex;
+    margin-bottom: 6px;
+    font-size: 10pt;
+}
+
+.partie-label {
+    color: var(--mila-text-light);
+    min-width: 80px;
+}
+
+.partie-value {
+    color: var(--mila-text);
     font-weight: 500;
 }
 
-.table-recap {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 15px 0;
-}
-
-.table-recap th {
-    background-color: #f5f7f9;
-    color: #3e3c41;
-    font-weight: 600;
-    padding: 10px;
-    text-align: left;
-    border: 1px solid #e3e5e8;
-}
-
-.table-recap td {
-    padding: 10px;
-    border: 1px solid #e3e5e8;
-}
-
-.table-recap tr:nth-child(even) {
-    background-color: #fafbfc;
-}
-
-.premium-box {
-    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
-    color: white;
-    padding: 20px;
+/* ===== Sections avec header coral ===== */
+.section-box {
+    border: 2px solid var(--mila-coral);
     border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.section-header {
+    background: var(--mila-coral);
+    color: white;
+    padding: 10px 15px;
+    font-size: 12pt;
+    font-weight: 600;
     text-align: center;
-    margin: 20px 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.premium-amount {
-    font-size: 24pt;
+.section-content {
+    padding: 20px;
+    background: white;
+}
+
+/* ===== Contrat grid (2 colonnes) ===== */
+.contrat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.contrat-col h4 {
+    color: var(--mila-coral);
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0 0 12px 0;
+}
+
+.contrat-row {
+    display: flex;
+    margin-bottom: 8px;
+    font-size: 9.5pt;
+}
+
+.contrat-label {
+    color: var(--mila-text-light);
+    min-width: 160px;
+}
+
+.contrat-value {
+    color: var(--mila-text);
+}
+
+/* ===== Typologie ===== */
+.typologie-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--mila-border);
+}
+
+.typologie-section h4 {
+    color: var(--mila-coral);
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0 0 10px 0;
+}
+
+.typologie-text {
+    font-size: 9.5pt;
+    color: var(--mila-text);
+    line-height: 1.5;
+}
+
+/* ===== Cotisation grid ===== */
+.cotisation-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+.tarif-section h4 {
+    color: var(--mila-coral);
+    font-size: 10pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0 0 10px 0;
+}
+
+.tarif-amount {
+    font-size: 18pt;
     font-weight: 700;
+    color: var(--mila-coral);
+    margin-bottom: 5px;
 }
 
-.premium-period {
+.tarif-detail {
+    font-size: 9pt;
+    color: var(--mila-text-light);
+    margin-bottom: 3px;
+}
+
+.tarif-monthly {
     font-size: 11pt;
-    opacity: 0.9;
-    margin-top: 5px;
+    font-weight: 600;
+    color: var(--mila-coral);
+    margin-top: 8px;
 }
 
-.article {
+.cotisation-info {
+    font-size: 9pt;
+    color: var(--mila-text);
+    line-height: 1.6;
+}
+
+.cotisation-info p {
+    margin: 0 0 8px 0;
+}
+
+/* ===== Section texte simple ===== */
+.text-section {
     margin-bottom: 20px;
 }
 
-.article h4 {
-    color: #2680eb;
-    margin: 0 0 10px 0;
+.text-section h3 {
+    color: var(--mila-coral);
     font-size: 11pt;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    margin: 0 0 10px 0;
 }
 
-.article p, .article ul {
-    font-size: 10pt;
-    color: #3e3c41;
+.text-section p {
+    font-size: 9.5pt;
+    color: var(--mila-text);
+    line-height: 1.6;
+    margin: 0;
 }
 
+/* ===== Tableau garanties ===== */
+.table-garanties {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 9pt;
+}
+
+.table-garanties th {
+    background-color: var(--mila-coral);
+    color: white;
+    font-weight: 600;
+    padding: 10px;
+    text-align: left;
+    border: 1px solid var(--mila-coral);
+}
+
+.table-garanties td {
+    padding: 8px 10px;
+    border: 1px solid var(--mila-border);
+    color: var(--mila-text);
+}
+
+.table-garanties tr:nth-child(even) {
+    background-color: var(--mila-bg);
+}
+
+.table-garanties .check {
+    color: #479965;
+    font-weight: bold;
+    text-align: center;
+}
+
+.table-garanties .cross {
+    color: #d96c63;
+    text-align: center;
+}
+
+/* ===== Footer note ===== */
+.footer-note {
+    font-size: 8pt;
+    color: var(--mila-text-light);
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid var(--mila-border);
+}
+
+/* ===== Signatures ===== */
 .signature-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -86,7 +245,7 @@
 }
 
 .signature-box {
-    border: 1px solid #e3e5e8;
+    border: 1px solid var(--mila-border);
     border-radius: 6px;
     padding: 15px;
     min-height: 100px;
@@ -94,187 +253,294 @@
 
 .signature-box h4 {
     margin: 0 0 10px 0;
-    color: #6c6b70;
+    color: var(--mila-text-light);
     font-size: 10pt;
 }
 {% endblock %}
 
 {% block content %}
-<!-- En-tête -->
-<div class="document-header cp-header">
-    <h1>Conditions Particulières</h1>
-    <div class="subtitle">Assurance Multirisque Habitation Locataire</div>
-    <div class="policy-badge">{{ policy.policy_number }}</div>
+<!-- ===== PARTIES AU CONTRAT ===== -->
+<div class="parties-grid">
+    <div class="partie-section">
+        <h3>Souscripteur</h3>
+        <div class="partie-row">
+            <span class="partie-label">Nom :</span>
+            <span class="partie-value">{{ subscriber.first_name }} {{ subscriber.last_name }}</span>
+        </div>
+        <div class="partie-row">
+            <span class="partie-label">Adresse :</span>
+            <span class="partie-value">
+                {% if locataire and locataire.adresse %}
+                    {{ locataire.adresse.formatted_address }}
+                {% elif adresse %}
+                    {{ adresse.formatted_address }}
+                {% else %}
+                    -
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <div class="partie-section">
+        <h3>Votre Distributeur</h3>
+        <div class="partie-row">
+            <span class="partie-label">Nom :</span>
+            <span class="partie-value">Hestia</span>
+        </div>
+        <div class="partie-row">
+            <span class="partie-label">Adresse :</span>
+            <span class="partie-value">-</span>
+        </div>
+        <div class="partie-row">
+            <span class="partie-label">N° ORIAS :</span>
+            <span class="partie-value">-</span>
+        </div>
+    </div>
 </div>
 
-<!-- Parties au contrat -->
-<div class="info-grid">
-    <div class="info-section">
-        <h3>Assureur</h3>
-        <div class="info-row">
-            <span class="label">Société</span>
-            <span class="value">Mila Assurances</span>
-        </div>
-        <div class="info-row">
-            <span class="label">Courtier</span>
-            <span class="value">Hestia</span>
-        </div>
-    </div>
+<!-- ===== CONTRAT INDIVIDUEL ===== -->
+<div class="section-box">
+    <div class="section-header">Contrat Individuel</div>
+    <div class="section-content">
+        <div class="contrat-grid">
+            <!-- Colonne gauche : VOTRE CONTRAT -->
+            <div class="contrat-col">
+                <h4>Votre Contrat</h4>
+                <div class="contrat-row">
+                    <span class="contrat-label">N° de contrat :</span>
+                    <span class="contrat-value">{{ policy.policy_number }}</span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">N° conditions générales :</span>
+                    <span class="contrat-value">CG-MRH-I-2024061</span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Date de prise d'effet :</span>
+                    <span class="contrat-value">{{ quotation.effective_date|date:"d/m/Y" }}</span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Échéance principale :</span>
+                    <span class="contrat-value">{{ quotation.effective_date|date:"d/m" }}</span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Fractionnement de paiement :</span>
+                    <span class="contrat-value">Annuel</span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Durée :</span>
+                    <span class="contrat-value">1 an renouvelable par tacite reconduction</span>
+                </div>
+            </div>
 
-    <div class="info-section">
-        <h3>Assuré (Souscripteur)</h3>
-        <div class="info-row">
-            <span class="label">Nom</span>
-            <span class="value"><strong>{{ subscriber.first_name }} {{ subscriber.last_name }}</strong></span>
+            <!-- Colonne droite : RISQUE GARANTI -->
+            <div class="contrat-col">
+                <h4>Risque Garanti</h4>
+                <div class="contrat-row">
+                    <span class="contrat-label">Adresse :</span>
+                    <span class="contrat-value">
+                        {% if adresse %}
+                            {{ adresse.rue }}{% if adresse.complement %}, {{ adresse.complement }}{% endif %}<br>
+                            {{ adresse.code_postal }} {{ adresse.ville }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Nombre de pièces :</span>
+                    <span class="contrat-value">
+                        {% if bien and bien.nombre_pieces_principales %}
+                            {{ bien.nombre_pieces_principales }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Appartement/Maison :</span>
+                    <span class="contrat-value">
+                        {% if bien %}
+                            {{ bien.type_bien|title }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="contrat-row">
+                    <span class="contrat-label">Étage :</span>
+                    <span class="contrat-value">
+                        {% if bien and bien.etage is not None %}
+                            {% if bien.etage == 0 %}Rez-de-chaussée{% else %}{{ bien.etage }}{% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
         </div>
-        <div class="info-row">
-            <span class="label">Email</span>
-            <span class="value">{{ subscriber.email }}</span>
+
+        <!-- TYPOLOGIE DE LOGEMENT -->
+        <div class="typologie-section">
+            <h4>Typologie de Logement</h4>
+            <p class="typologie-text">
+                Logement à usage d'habitation principale et ses dépendances dont la surface est de
+                {% if bien and bien.superficie %}{{ bien.superficie }}{% else %}50{% endif %} m² maximum
+                (cave, parking et garage).
+            </p>
         </div>
     </div>
 </div>
 
-<!-- Bien assuré -->
-<div class="info-section">
-    <h3>Bien assuré</h3>
-    {% if adresse %}
-    <div class="info-row">
-        <span class="label">Adresse</span>
-        <span class="value">{{ adresse.rue }}{% if adresse.complement %}, {{ adresse.complement }}{% endif %}</span>
+<!-- ===== COTISATION ANNUELLE TTC ===== -->
+<div class="section-box">
+    <div class="section-header">Cotisation Annuelle TTC</div>
+    <div class="section-content">
+        <div class="cotisation-grid">
+            <!-- Colonne gauche : TARIF -->
+            <div class="tarif-section">
+                <h4>Tarif</h4>
+                {% if quotation.selected_formula %}
+                <div class="tarif-amount">{{ quotation.selected_formula.pricing_annual }} € TTC</div>
+                <div class="tarif-detail">dont garantie assistance de 6,02 € TTC</div>
+                <div class="tarif-monthly">soit {{ quotation.selected_formula.pricing_monthly }} € par mois</div>
+                {% else %}
+                <div class="tarif-amount">- € TTC</div>
+                {% endif %}
+            </div>
+
+            <!-- Colonne droite : Détails -->
+            <div class="cotisation-info">
+                <p>Le tarif annuel TTC hors taxe attentat inclut :</p>
+                <p>• 85 % de cotisations d'assurance TTC,</p>
+                <p>• 15 % de frais de services de Mila Services,</p>
+                <p>• xxx € de frais de courtage*</p>
+                <p style="margin-top: 12px;">La taxe attentat de 6,50 € est payable annuellement.</p>
+            </div>
+        </div>
     </div>
-    <div class="info-row">
-        <span class="label">Ville</span>
-        <span class="value">{{ adresse.code_postal }} {{ adresse.ville }}</span>
-    </div>
-    {% endif %}
-    {% if bien %}
-    <div class="info-row">
-        <span class="label">Type</span>
-        <span class="value">{{ bien.type_bien|title }}</span>
-    </div>
-    {% if bien.superficie %}
-    <div class="info-row">
-        <span class="label">Surface</span>
-        <span class="value">{{ bien.superficie }} m²</span>
-    </div>
-    {% endif %}
-    {% if bien.etage is not None %}
-    <div class="info-row">
-        <span class="label">Étage</span>
-        <span class="value">{% if bien.etage == 0 %}Rez-de-chaussée{% else %}{{ bien.etage }}{% endif %}</span>
-    </div>
-    {% endif %}
-    {% endif %}
 </div>
 
-<!-- Récapitulatif du contrat -->
-<h2>Récapitulatif du contrat</h2>
+<p class="footer-note">
+    *Les frais de courtage sont collectés par Mila Services au nom et pour le compte de votre Distributeur par votre distributeur.
+</p>
 
-<table class="table-recap">
-    <tr>
-        <th>Formule</th>
-        <td><strong>{{ policy.formula_label }}</strong></td>
-    </tr>
-    <tr>
-        <th>Numéro de police</th>
-        <td>{{ policy.policy_number }}</td>
-    </tr>
-    <tr>
-        <th>Date d'effet</th>
-        <td>{{ policy.effective_date|date:"d/m/Y" }}</td>
-    </tr>
-    <tr>
-        <th>Durée</th>
-        <td>1 an, renouvelable par tacite reconduction</td>
-    </tr>
-    <tr>
-        <th>Franchise</th>
-        <td>{{ policy.deductible }} € par sinistre</td>
-    </tr>
+<!-- ===== PAIEMENT DES COTISATIONS ===== -->
+<div class="text-section">
+    <h3>Paiement des Cotisations</h3>
+    <p>
+        Le paiement des cotisations s'effectuera par prélèvement automatique. Vous trouverez en annexe
+        votre échéancier comprenant les dates et les montants prélevés pour la première année.
+        Le paiement des cotisations s'effectuera par virement.
+    </p>
+</div>
+
+<!-- ===== GARANTIES ===== -->
+<div class="text-section">
+    <h3>Garanties</h3>
+    <p>
+        Le contrat couvre les garanties telles que présentées dans les conditions générales CG-MRH-I-2024061
+        valant notice d'information, dans la limite contractuelle de 3 000 000 € par sinistre, tous postes
+        de préjudice confondus (dont mobilier).
+    </p>
+</div>
+
+<!-- ===== TABLEAU DES GARANTIES ===== -->
+<table class="table-garanties">
+    <thead>
+        <tr>
+            <th>Garantie</th>
+            <th>Essentielle</th>
+            <th>Sérénité</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Responsabilité civile locative et privée</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Dégâts des eaux, gel</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Incendie, explosion, implosion, enfumage</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Catastrophes naturelles et technologiques</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Attentats et actes de terrorisme</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Événements climatiques</td>
+            <td class="check">✓</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Vol et vandalisme</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Bris de glace</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Dommages électriques</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+        </tr>
+        <tr>
+            <td>Assistance 24/7 (serrurerie, vitrerie, électricité)</td>
+            <td class="cross">✗</td>
+            <td class="check">✓</td>
+        </tr>
+    </tbody>
 </table>
 
-<!-- Prime -->
-<div class="premium-box">
-    <div class="premium-amount">{{ policy.pricing_annual }} €</div>
-    <div class="premium-period">Prime annuelle TTC</div>
-</div>
-
-<!-- Articles -->
-<div class="page-break"></div>
-
-<h2>Dispositions particulières</h2>
-
-<div class="article">
-    <h4>Article 1 - Objet du contrat</h4>
+<!-- ===== FRANCHISE ===== -->
+<div class="text-section">
+    <h3>Franchise</h3>
     <p>
-        Le présent contrat a pour objet de garantir l'assuré contre les risques définis
-        aux Conditions Générales, dans les limites et conditions fixées aux présentes
-        Conditions Particulières, pour le bien désigné ci-dessus.
+        Une franchise de <strong>{{ quotation.deductible }} €</strong> reste à la charge de l'assuré pour chaque sinistre.
+        Cette franchise ne s'applique pas à la garantie Responsabilité Civile.
     </p>
 </div>
 
-<div class="article">
-    <h4>Article 2 - Garanties souscrites</h4>
-    <p>Les garanties suivantes sont incluses dans la formule <strong>{{ policy.formula_label }}</strong> :</p>
-    <ul>
-        <li>✓ Responsabilité civile locative et privée</li>
-        <li>✓ Dégâts des eaux, gel</li>
-        <li>✓ Incendie, explosion, implosion, enfumage</li>
-        <li>✓ Catastrophes naturelles et technologiques</li>
-        <li>✓ Attentats et actes de terrorisme</li>
-        <li>✓ Événements climatiques</li>
-        {% if "Sérénité" in policy.formula_label or "MRHIND_SER" in policy.formula_code %}
-        <li>✓ Vol et vandalisme</li>
-        <li>✓ Bris de glace</li>
-        <li>✓ Dommages électriques</li>
-        <li>✓ Assistance 24/7 (serrurerie, vitrerie, électricité)</li>
-        {% endif %}
-    </ul>
-</div>
-
-<div class="article">
-    <h4>Article 3 - Franchise</h4>
+<!-- ===== DÉCLARATION DE SINISTRE ===== -->
+<div class="text-section">
+    <h3>Déclaration de Sinistre</h3>
     <p>
-        Une franchise de <strong>{{ policy.deductible }} €</strong> reste à la charge de l'assuré
-        pour chaque sinistre. Cette franchise ne s'applique pas à la garantie Responsabilité
-        Civile.
+        L'assuré doit déclarer tout sinistre dans un délai de 5 jours ouvrés à compter de la date à laquelle
+        il en a eu connaissance (2 jours ouvrés en cas de vol). La déclaration peut être effectuée via
+        l'espace client Hestia ou par courrier recommandé.
     </p>
 </div>
 
-<div class="article">
-    <h4>Article 4 - Paiement de la prime</h4>
+<!-- ===== RÉSILIATION ===== -->
+<div class="text-section">
+    <h3>Résiliation</h3>
     <p>
-        La prime annuelle de <strong>{{ policy.pricing_annual }} €</strong> est payable d'avance.
-        Le défaut de paiement de la prime à son échéance peut entraîner la suspension
-        des garanties dans les conditions prévues par le Code des assurances.
+        Le contrat peut être résilié à tout moment après la première année d'assurance, avec un préavis d'un mois,
+        conformément à la loi Hamon. La résiliation prend effet un mois après réception de la demande.
     </p>
 </div>
 
-<div class="article">
-    <h4>Article 5 - Déclaration de sinistre</h4>
-    <p>
-        L'assuré doit déclarer tout sinistre dans un délai de 5 jours ouvrés à compter
-        de la date à laquelle il en a eu connaissance (2 jours ouvrés en cas de vol).
-        La déclaration peut être effectuée via l'espace client Hestia ou par courrier
-        recommandé.
-    </p>
-</div>
-
-<div class="article">
-    <h4>Article 6 - Résiliation</h4>
-    <p>
-        Le contrat peut être résilié à tout moment après la première année d'assurance,
-        avec un préavis d'un mois, conformément à la loi Hamon. La résiliation prend
-        effet un mois après réception de la demande.
-    </p>
-</div>
-
-<!-- Signatures -->
+<!-- ===== SIGNATURES ===== -->
 <div class="signature-grid">
     <div class="signature-box">
         <h4>L'Assuré</h4>
         <p style="margin: 0; font-size: 10pt;">
-            Fait à ______________, le {{ policy.effective_date|date:"d/m/Y" }}
+            Fait à ______________, le {{ quotation.effective_date|date:"d/m/Y" }}
         </p>
         <p style="margin: 10px 0 0 0; font-size: 9pt; color: #6c6b70;">
             Signature précédée de la mention "Lu et approuvé"
@@ -296,7 +562,7 @@
     </div>
 </div>
 
-<!-- Footer -->
+<!-- ===== Footer ===== -->
 <div class="footer">
     <p style="margin: 0 0 5px 0; font-size: 9pt;">
         Document généré le {{ "now"|date:"d/m/Y à H:i" }} • Police {{ policy.policy_number }}

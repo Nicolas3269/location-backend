@@ -665,36 +665,57 @@ def get_policy_by_number(request: Request, policy_number: str) -> Response:
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def get_cgv_document(request: Request) -> HttpResponse:
+@permission_classes([AllowAny])
+def get_cgv_document(request: Request) -> Response:
     """
-    Télécharge les Conditions Générales de Vente (CGV) en PDF.
+    Retourne l'URL des Conditions Générales de Vente (CGV) stockées sur S3/R2.
+
+    Les CGV sont des documents publics accessibles sans authentification.
+    Le PDF est généré une seule fois puis stocké sur S3.
 
     Query params (optionnel):
         product: Type de produit (MRH, PNO, GLI, défaut: MRH)
+        force: Si "true", force la régénération du PDF même s'il existe
 
     Returns:
-        PDF des CGV
+        {"url": "https://..."}
     """
+    from django.core.files.base import ContentFile
+    from django.core.files.storage import default_storage
+
     product = request.query_params.get("product", "MRH").upper()
+    force_regenerate = request.query_params.get("force", "").lower() == "true"
 
     if product not in ["MRH", "PNO", "GLI"]:
         product = "MRH"
 
-    try:
-        documents_service = InsuranceDocumentService()
-        pdf_bytes = documents_service.generate_conditions_generales(product=product)
+    # Chemin fixe sur S3 pour les CGV
+    s3_path = f"assurances/cgv/cgv_{product.lower()}.pdf"
 
-        response = HttpResponse(pdf_bytes, content_type="application/pdf")
-        filename = f"CGV_Assurance_{product}_Hestia.pdf"
-        response["Content-Disposition"] = f'inline; filename="{filename}"'
-        return response
+    try:
+        # Régénérer si force=true ou si le fichier n'existe pas
+        if force_regenerate or not default_storage.exists(s3_path):
+            # Supprimer l'ancien fichier si force
+            if force_regenerate and default_storage.exists(s3_path):
+                default_storage.delete(s3_path)
+                logger.info(f"🗑️ Deleted old CGV {product} from {s3_path}")
+
+            # Générer et uploader
+            logger.info(f"Generating and uploading CGV for {product}...")
+            documents_service = InsuranceDocumentService()
+            pdf_bytes = documents_service.generate_conditions_generales(product=product)
+            default_storage.save(s3_path, ContentFile(pdf_bytes))
+            logger.info(f"✅ CGV {product} uploaded to {s3_path}")
+
+        # Retourner l'URL publique
+        url = default_storage.url(s3_path)
+        return Response({"url": url})
 
     except Exception as e:
-        logger.exception(f"Error generating CGV PDF: {e}")
-        return HttpResponse(
-            "Erreur lors de la génération du document",
-            status=500,
+        logger.exception(f"Error getting CGV PDF: {e}")
+        return Response(
+            {"error": "Erreur lors de la récupération du document"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 

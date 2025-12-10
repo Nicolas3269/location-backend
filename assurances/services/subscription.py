@@ -96,7 +96,8 @@ class InsuranceSubscriptionService:
         """
         Active une police après confirmation du paiement.
 
-        - Génère les documents (AVANT d'activer - pour rollback si échec)
+        - Vérifie et lock pour éviter double activation
+        - Génère les documents
         - Met à jour le statut
         - Attache l'attestation aux documents locataire
         - Envoie les emails
@@ -104,35 +105,52 @@ class InsuranceSubscriptionService:
         Args:
             policy: Police à activer
         """
+        from django.db import transaction
+        from assurances.models import InsurancePolicy
 
-        if policy.status != policy.Status.PENDING:
-            logger.warning(f"Policy {policy.policy_number} is not PENDING, skipping")
-            return
+        # Utiliser select_for_update pour éviter les race conditions
+        # (webhook + checkout_status peuvent arriver en même temps)
+        with transaction.atomic():
+            # Re-fetch avec lock pour éviter double activation
+            locked_policy = InsurancePolicy.objects.select_for_update().get(id=policy.id)
 
-        logger.info(
-            f"🚀 Starting activation for {policy.quotation.product} policy {policy.policy_number}"
-        )
+            if locked_policy.status != locked_policy.Status.PENDING:
+                logger.warning(
+                    f"Policy {locked_policy.policy_number} is not PENDING, skipping"
+                )
+                return
 
-        # 1. Générer les documents EN PREMIER (avant de changer le statut)
-        # Si la génération échoue, la police reste PENDING
-        doc_service = InsuranceDocumentService()
-        try:
-            doc_service.generate_all_documents(policy)
-            logger.info(f"✅ Documents generated for policy {policy.policy_number}")
-        except Exception as e:
-            logger.exception(
-                f"❌ Failed to generate documents for policy {policy.policy_number}: {e}"
+            logger.info(
+                f"🚀 Starting activation for {locked_policy.quotation.product} "
+                f"policy {locked_policy.policy_number}"
             )
-            raise  # Ne pas activer la police si les documents ne sont pas générés
 
-        # 2. Maintenant activer la police (documents générés avec succès)
-        policy.status = policy.Status.ACTIVE
-        policy.activated_at = timezone.now()
-        policy.save(update_fields=["status", "activated_at", "updated_at"])
+            # 1. Générer les documents EN PREMIER (avant de changer le statut)
+            doc_service = InsuranceDocumentService()
+            try:
+                doc_service.generate_all_documents(locked_policy)
+                logger.info(
+                    f"✅ Documents generated for policy {locked_policy.policy_number}"
+                )
+            except Exception as e:
+                logger.exception(
+                    f"❌ Failed to generate documents for policy "
+                    f"{locked_policy.policy_number}: {e}"
+                )
+                raise  # Ne pas activer la police si les documents ne sont pas générés
 
-        logger.info(
-            f"✅ Activated {policy.quotation.product} policy {policy.policy_number}"
-        )
+            # 2. Maintenant activer la police (documents générés avec succès)
+            locked_policy.status = locked_policy.Status.ACTIVE
+            locked_policy.activated_at = timezone.now()
+            locked_policy.save(update_fields=["status", "activated_at", "updated_at"])
+
+            logger.info(
+                f"✅ Activated {locked_policy.quotation.product} policy "
+                f"{locked_policy.policy_number}"
+            )
+
+        # Re-fetch policy mise à jour (hors transaction pour libérer le lock)
+        policy.refresh_from_db()
 
         # 3. Attacher l'attestation aux documents du locataire (pour le flow tenant)
         if policy.attestation_document:
@@ -216,18 +234,41 @@ class InsuranceSubscriptionService:
             policy: Police avec documents générés
         """
         subscriber = policy.subscriber
-        location = policy.quotation.location
+        quotation = policy.quotation
+        location = quotation.location
         bien = location.bien if location else None
+        adresse = bien.adresse if bien else None
+        formula = quotation.selected_formula or {}
 
-        # Préparer le contexte pour le template
+        # Construire l'adresse complète
+        adresse_complete = None
+        if adresse:
+            parts = []
+            if adresse.numero:
+                parts.append(adresse.numero)
+            if adresse.voie:
+                parts.append(adresse.voie)
+            line1 = " ".join(parts)
+            if adresse.complement:
+                line1 += f", {adresse.complement}"
+            adresse_complete = f"{line1}<br/>{adresse.code_postal} {adresse.ville}"
+
+        # Formater la date d'effet
+        effective_date_str = ""
+        if quotation.effective_date:
+            effective_date_str = quotation.effective_date.strftime("%d/%m/%Y")
+
+        # Préparer le contexte pour le template (variables plates comme les autres emails)
         context = {
-            "subscriber": subscriber,
-            "policy": policy,
-            "bien": bien,
-            "adresse": bien.adresse if bien else None,
+            "prenom": subscriber.first_name or "Client",
+            "policy_number": policy.policy_number,
+            "effective_date": effective_date_str,
+            "formula_label": formula.get("label", ""),
+            "pricing_monthly": formula.get("pricing_monthly", 0),
+            "deductible": quotation.deductible,
+            "adresse_complete": adresse_complete,
             "frontend_url": settings.FRONTEND_URL,
             "logo_url": "https://hestia.software/icons/logo-hestia-whatsapp.png",
-            "current_year": "2025",
         }
 
         # Rendre le contenu MJML et compiler en HTML
@@ -251,12 +292,20 @@ class InsuranceSubscriptionService:
         )
         email.attach_alternative(html_content, "text/html")
 
-        # Joindre les documents
+        # Joindre les documents (lire le contenu car le storage peut être S3/cloud)
         if policy.attestation_document:
-            email.attach_file(policy.attestation_document.path)
+            email.attach(
+                f"Attestation_{policy.policy_number}.pdf",
+                policy.attestation_document.read(),
+                "application/pdf",
+            )
 
         if policy.cp_document:
-            email.attach_file(policy.cp_document.path)
+            email.attach(
+                f"Conditions_Particulieres_{policy.policy_number}.pdf",
+                policy.cp_document.read(),
+                "application/pdf",
+            )
 
         # Envoyer
         try:

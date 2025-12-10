@@ -46,11 +46,18 @@ class InsuranceDocumentService:
         bien = location.bien if location else None
         subscriber = policy.subscriber
 
+        # Récupérer le locataire souscripteur pour son adresse
+        locataire = None
+        if location:
+            locataire = location.locataires.first()
+
         context = {
             "policy": policy,
+            "quotation": quotation,
             "location": location,
             "bien": bien,
             "subscriber": subscriber,
+            "locataire": locataire,
             "adresse": bien.adresse if bien else None,
             "logo_base64_uri": get_logo_pdf_base64_data_uri(),
         }
@@ -156,10 +163,23 @@ class InsuranceDocumentService:
                 self.deductible = q_data.get("deductible", 170)
                 self.effective_date = q_data.get("effective_date")
 
+        # Créer un objet "quotation-like" pour le template
+        class QuotationPreview:
+            def __init__(self, q_data: dict, f_data: dict):
+                self.effective_date = q_data.get("effective_date")
+                self.deductible = q_data.get("deductible", 170)
+                self._selected_formula = f_data
+
+            @property
+            def selected_formula(self):
+                return self._selected_formula
+
         policy_preview = PolicyPreview(quotation_data, formula_data)
+        quotation_preview = QuotationPreview(quotation_data, formula_data)
 
         context = {
             "policy": policy_preview,
+            "quotation": quotation_preview,
             "location": location,
             "bien": bien,
             "subscriber": subscriber,

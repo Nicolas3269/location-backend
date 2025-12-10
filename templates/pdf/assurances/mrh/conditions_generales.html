@@ -146,7 +146,6 @@
 /* Articles */
 .article {
     margin-bottom: 15px;
-    page-break-inside: avoid;
 }
 
 .article h4 {
@@ -157,17 +156,51 @@
     letter-spacing: 0.5px;
     border-bottom: 2px solid #2680eb;
     padding-bottom: 5px;
+    page-break-after: avoid;
+}
+
+/* Sous-sections X.Y (ex: 1.1, 5.3) */
+.article h5 {
+    font-size: 10pt;
+    page-break-after: avoid;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 14px 0 6px 0;
+}
+
+/* Sous-sous-sections X.Y.Z (ex: 1.7.1, 5.3.1) */
+.article h6 {
+    font-size: 9.5pt;
+    font-weight: 600;
+    font-style: italic;
+    color: #34495e;
+    margin: 12px 0 4px 0;
+    padding-left: 12px;
+    page-break-after: avoid;
 }
 
 .article p, .article ul, .article li {
     font-size: 9pt;
     line-height: 1.5;
     text-align: justify;
+    orphans: 3;
+    widows: 3;
 }
 
 .article ul {
     margin: 8px 0;
-    padding-left: 15px;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.article ul ul {
+    list-style-type: circle;
+    margin-top: 4px;
+    padding-left: 20px;
+}
+
+.article ul ul ul {
+    list-style-type: square;
 }
 
 .article li {
@@ -324,31 +357,61 @@
     </tr>
     <tr>
         <td class="term">Accident</td>
-        <td>Tout événement dommageable, soudain et fortuit, ne provenant pas d'un acte intentionnel de la part de son auteur ou de l'assuré.</td>
+        <td>Tout événement dommageable, soudain et fortuit, ne provenant pas d'un acte intentionnel de la part de son auteur ou de l'assuré. Le caractère soudain est constitué par la survenance de l'événement à l'origine du dommage.</td>
+    </tr>
+    <tr>
+        <td class="term">Assurance pour compte</td>
+        <td>L'assurance pour compte est une assurance souscrite pour le compte d'autrui (article L112-1 du code des assurances) par le bailleur du bien loué ou l'administrateur de biens qui a reçu un mandat de gestion, pour le compte du locataire n'ayant pas souscrit de contrat d'assurance risques locatifs ou n'informant pas le bailleur ou l'administrateur de biens de l'existence d'un contrat d'assurance souscrit, par la communication de son attestation d'assurance. L'assurance pour compte n'est possible pour le présent contrat que pour l'option risques locatifs.</td>
     </tr>
     <tr>
         <td class="term">Assuré</td>
-        <td>Personne physique sur qui repose le risque et contractant du contrat d'assurance.</td>
+        <td>L'assuré est la personne physique sur qui repose le risque et contractant du présent contrat d'assurance (sauf en cas d'assurance pour compte).</td>
+    </tr>
+    <tr>
+        <td class="term">Assureurs</td>
+        <td>
+            <strong>Pour les garanties d'assurance :</strong><br>
+            Mila – Paris & Co, 1 parvis de la Défense, Grande Arche de la Défense - 92800 Puteaux. Immatriculée au RCS de Nanterre sous le numéro 892 000 357.<br><br>
+            <strong>Pour les garanties d'assistance :</strong><br>
+            Inter Partner Assistance SA de droit belge au capital de 130 702 613 €, entreprise d'assurance non-vie agréée par la Banque Nationale de Belgique (0487), immatriculée au Registre des Personnes Morales de Bruxelles sous le numéro 415 591 055, dont le siège social est situé 7, Boulevard du Régent - 1000 Brussels - Belgique, prise au travers de sa succursale française AXA, immatriculée au RCS de Nanterre sous le numéro 316 139 500 et située 8-10 rue Paul Vaillant Couturier 92240 Malakoff, ci-après désignée « AXA ».<br><br>
+            Soumises au contrôle de l'Autorité de Contrôle Prudentiel et de Résolution sise 4 place de Budapest – CS 92459 – 75436 Paris Cedex 09.
+        </td>
     </tr>
     <tr>
         <td class="term">Bâtiment</td>
-        <td>Construction couverte et close.</td>
+        <td>Un bâtiment est une construction couverte et close.</td>
+    </tr>
+    <tr>
+        <td class="term">Bénéficiaire</td>
+        <td>Pour la garantie assistance, toute personne physique occupant le domicile et assuré au titre du présent contrat et subissant un sinistre et qui reçoit les prestations d'assistance prévues au contrat.</td>
+    </tr>
+    <tr>
+        <td class="term">Biens immobiliers</td>
+        <td>Les biens sont immeubles, ou par leur nature, ou par leur destination, ou par l'objet auquel ils s'appliquent (article 517 à 526 du code civil). Un bien immobilier, en comparaison à un bien meuble, est un bien qui ne peut pas être déplacé. Cela peut concerner un terrain nu, un bâtiment ou une partie d'un bâtiment à usage d'habitation, de bureaux, industriel, etc.</td>
     </tr>
     <tr>
         <td class="term">Biens mobiliers</td>
-        <td>Actifs tangibles mobiles : électroménagers, objets de valeur, meubles, œuvres d'art, véhicules, vêtements...</td>
+        <td>Actifs tangibles par nature mobiles : les appareils électroménagers, les objets de valeur, les meubles, les œuvres d'art, les véhicules, les vêtements et objets personnels…</td>
+    </tr>
+    <tr>
+        <td class="term">Box</td>
+        <td>Emplacement de parking fermé et délimité.</td>
+    </tr>
+    <tr>
+        <td class="term">Contrat d'assurance individuel</td>
+        <td>Le contrat individuel ne comprend que deux signataires : l'assuré et l'assureur. Cependant, d'autres personnes peuvent être couvertes (les ayants-droits).</td>
     </tr>
     <tr>
         <td class="term">Cotisation</td>
-        <td>Somme à verser par l'assuré au titre de son contrat (tarif annuel TTC).</td>
+        <td>Somme à verser par l'assuré au titre de son contrat d'assurance. Dans le présent contrat, la cotisation est comprise comme le tarif annuel TTC.</td>
     </tr>
     <tr>
-        <td class="term">Déchéance</td>
+        <td class="term">Déchéance du droit à garantie</td>
         <td>Perte du droit à bénéficier des garanties du contrat.</td>
     </tr>
     <tr>
         <td class="term">Dépendance</td>
-        <td>Cave, parking et garage (surface max 50m²).</td>
+        <td>Cave, parking et garage.</td>
     </tr>
     <tr>
         <td class="term">Dommage corporel</td>
@@ -356,37 +419,86 @@
     </tr>
     <tr>
         <td class="term">Dommage matériel</td>
-        <td>Dommage correspondant à une atteinte à la structure ou à la substance d'une chose.</td>
+        <td>Dommage correspondant à une atteinte à la structure ou à la substance d'une chose. Cette chose peut être un bien ou un animal.</td>
     </tr>
     <tr>
         <td class="term">Dommage immatériel</td>
-        <td>Dommage résultant de la privation de jouissance d'un droit ou de la perte de bénéfice.</td>
+        <td>Dommage résultant de la privation de jouissance d'un droit, de l'interruption d'un service rendu par une personne ou par un bien meuble ou immeuble ou de la perte de bénéfice.</td>
     </tr>
     <tr>
         <td class="term">Embellissement</td>
-        <td>Peintures, vernis, miroirs fixés, revêtements, éléments de cuisine et salle de bains.</td>
+        <td>Les peintures et vernis, miroirs fixés au mur, revêtements de boiserie, faux-plafonds, éléments de cuisine et de salle de bains ainsi que tous revêtements collés de sols, de murs et de plafonds, à l'exclusion des carrelages et parquets.</td>
+    </tr>
+    <tr>
+        <td class="term">Fait générateur</td>
+        <td>Événement ou fait connu de l'assuré, et susceptible de faire naître un préjudice ou de constituer une atteinte à un droit, que l'assuré subit ou cause à un tiers, préalablement ou concomitamment à toute réclamation.</td>
     </tr>
     <tr>
         <td class="term">Franchise</td>
         <td>Part des dommages restant à la charge de l'assuré.</td>
     </tr>
     <tr>
+        <td class="term">Garage</td>
+        <td>Place de stationnement à accès privatif destinée à des véhicules motorisés.</td>
+    </tr>
+    <tr>
+        <td class="term">Gestionnaire du contrat</td>
+        <td>Mila – Services gestion : 150 boulevard Joffre, 17000 La Rochelle. Sauf indication spécifique indiquée dans les conditions particulières.</td>
+    </tr>
+    <tr>
+        <td class="term">Installations et aménagements immobiliers</td>
+        <td>Installations ou aménagements qui ne peuvent pas être détachés sans être détériorés ou sans détériorer la construction.</td>
+    </tr>
+    <tr>
+        <td class="term">Location meublée</td>
+        <td>Logement équipé du mobilier nécessaire à la vie courante. Les conditions de la location sont organisées par la loi : durée et type du bail, délais et conditions de résiliation, liste des meubles.</td>
+    </tr>
+    <tr>
         <td class="term">Objet de valeur</td>
-        <td>Bijoux, montres, pierres précieuses, œuvres d'art, fourrures d'une valeur unitaire > 400€.</td>
+        <td>Les bijoux, les montres, les pierres précieuses, les pierres fines, les perles, les objets en métal précieux massif (or, argent, vermeil et platine), les pendules, les sculptures, les statues, les vases, les tableaux, les photographies d'art, les dessins d'art, les tapisseries, les tapis, les objets en ivoire et en pierres fines, les armes anciennes, les livres rares et les fourrures. Lorsque ces objets ont une valeur unitaire supérieure à 400€. Les collections de toutes natures lorsque leur valeur totale est supérieure à 400€.</td>
+    </tr>
+    <tr>
+        <td class="term">Parking</td>
+        <td>Place de stationnement délimitée par un marquage au sol.</td>
     </tr>
     <tr>
         <td class="term">Pièce</td>
-        <td>Pièce à vivre > 5m² (chambre, salon, bureau). Une pièce > 50m² compte pour deux.</td>
+        <td>Pièce à vivre, notamment chambre, salon, salle à manger, bureau et toute pièce d'une surface supérieure à 5 m² à l'exclusion des pièces d'eau (salle de bain, toilette), pièces de service si elles sont d'une surface inférieure à 5 m² (couloir, buanderie, dressing, cellier), cuisines fermées. Une pièce d'une surface supérieure à 50 m² est comptée pour deux pièces.</td>
+    </tr>
+    <tr>
+        <td class="term">Prime d'assurance</td>
+        <td>La prime d'assurance est le montant payé à l'assureur pour le risque couvert par le contrat d'assurance.</td>
     </tr>
     <tr>
         <td class="term">Sinistre</td>
-        <td>Événement susceptible de mettre en jeu les garanties souscrites.</td>
+        <td>Événement susceptible de mettre en jeu les garanties souscrites du présent contrat.</td>
+    </tr>
+    <tr>
+        <td class="term">Souscripteur</td>
+        <td>Pour l'assurance pour compte uniquement, le souscripteur est le bailleur ou l'administrateur de bien qui possède une carte professionnelle de gestion locative en cours de validité, agissant pour le compte du propriétaire bailleur qui lui a délégué la gestion via un mandat de gestion.</td>
+    </tr>
+    <tr>
+        <td class="term">Tempête</td>
+        <td>Est désignée comme tempête l'action du vent dont l'intensité est supérieure à 100 km/heure (validation par Météo France) ou dont les dommages sont reconnus sur des bâtiments de bonne construction dans un certain rayon (commune/ville de l'assuré et avoisinantes).</td>
     </tr>
     <tr>
         <td class="term">Vétusté</td>
         <td>Dépréciation de la valeur du bien causée par l'usage ou le vieillissement.</td>
     </tr>
+    <tr>
+        <td class="term">Valeur vénale</td>
+        <td>Valeur marchande du bien le jour du sinistre, c'est-à-dire prix pratiqué pour un objet équivalent sur le marché de la revente ou, à défaut, valeur déterminée par expertise.</td>
+    </tr>
+    <tr>
+        <td class="term">Valeur vénale d'un bien immobilier</td>
+        <td>Prix d'achat, au jour du sinistre, d'un bien équivalent sur le marché de l'immobilier de la même commune, hors frais de notaire, d'agence immobilière et taxes d'acquisition et déduction faite de la valeur du terrain nu où est édifié le bien assuré.</td>
+    </tr>
 </table>
+
+<div class="alert-box" style="margin-top: 20px; background-color: #f5f7f9; border-color: #2680eb;">
+    <p style="color: #3e3c41;"><strong>CONDITIONS GÉNÉRALES</strong><br><br>
+    Ce texte fait partie intégrante du contrat d'assurance individuel de dommages multirisque habitation locataire, régi par le code des assurances.</p>
+</div>
 
 <!-- ======================== PARTIE 1 ======================== -->
 <div class="page-break"></div>
@@ -395,58 +507,105 @@
 </div>
 
 <div class="article">
-    <h4>Article 1.1 - Nature du contrat</h4>
+    <h4>1. Nature du contrat</h4>
     <p>
-        Le présent contrat a pour objet d'assurer les locaux loués à usage d'habitation principale,
-        dont l'assuré est le locataire ou co-locataire, ainsi que ses biens, pour les dommages
-        provoqués par les événements listés dans les présentes conditions.
+        Le présent contrat a pour objet d'assurer les locaux loués à usage d'habitation principale, dont l'assuré ou le souscripteur au contrat sont le locataire, ou le co-locataire ou le bailleur ou mandataire de biens mandaté pour le cas de l'assurance prise pour le compte du locataire, ainsi que ses biens, pour les dommages provoqués par les événements listés au paragraphe 4 (partie 1) des conditions générales du présent contrat.
+    </p>
+    <p>
+        L'assurance pour le compte du locataire appelée ci-après « formule risques locatifs » est souscrite par le bailleur ou l'administrateur de biens mandaté par le bailleur conformément à l'article 7 de la loi n°89-462 du 6 juillet 1989 sur les rapports locatifs. Le bailleur ou mandataire de biens est informé de ses obligations en vertu de l'article de loi susmentionné et s'engage à adresser au locataire pour le compte de qui le présent contrat est conclu, dès la souscription, les présentes conditions générales et les conditions particulières y afférentes ainsi que toute la documentation contractuelle.
     </p>
 </div>
 
 <div class="article">
-    <h4>Article 1.2 - Territorialité</h4>
-    <p><strong>Pour les garanties d'assurance :</strong></p>
+    <h4>2. Territorialité</h4>
+    <p><strong>Pour la partie assurance :</strong></p>
+    <p>
+        Le contrat s'exerce en France métropolitaine y compris la Corse.<br>
+        Seuls les évènements se produisant à l'adresse indiquée aux conditions particulières du contrat sont couverts par les garanties : incendie, attentats, dégâts des eaux, gel, événements climatiques, catastrophes naturelles et technologiques, vol, vandalisme, bris de glace, dommage électrique, responsabilité civile relative aux biens assurés.
+    </p>
+    <p>
+        La garantie « Responsabilité civile de simple particulier » s'exerce en France métropolitaine, Corse, DROM et COM, États membres de l'Union Européenne au 1er janvier 2021, Andorre, Liechtenstein, Monaco, Norvège, Royaume Uni, Saint Martin, Suisse et Vatican à l'occasion de voyages ou séjours non professionnels à l'étranger n'excédant pas 3 mois consécutifs.
+    </p>
+    <p><strong>Pour la partie assistance :</strong></p>
+    <p>
+        Les garanties sont accordées en France métropolitaine, hors Corse et Iles non reliées au continent par un pont.
+    </p>
+</div>
+
+<div class="article">
+    <h4>3. Les personnes et les biens assurés</h4>
+
+    <h5>3.1 Les personnes assurées</h5>
+    <p>
+        Pour toutes les garanties souscrites dont la garantie assistance (sauf pour la formule Risques Locatifs), la personne assurée est l'assuré qui a conclu le contrat ainsi que les personnes résidant habituellement au foyer de l'assuré :
+    </p>
     <ul>
-        <li>France métropolitaine (y compris Corse)</li>
-        <li>Événements couverts uniquement à l'adresse indiquée aux conditions particulières</li>
+        <li>Conjoint, partenaire, concubin cohabitant</li>
+        <li>Enfants mineurs résidant habituellement au foyer de l'assuré</li>
+        <li>Ascendants de l'assuré et/ou de son conjoint cohabitant</li>
     </ul>
-    <p><strong>Pour la garantie Responsabilité Civile privée :</strong></p>
+    <p>
+        Pour la garantie « Responsabilité civile de simple particulier », en complément des personnes couvertes pour l'ensemble des garanties souscrites sont assurés :
+    </p>
     <ul>
-        <li>France métropolitaine, Corse, DROM et COM</li>
-        <li>États membres de l'Union Européenne</li>
-        <li>Andorre, Liechtenstein, Monaco, Norvège, Royaume-Uni, Suisse, Vatican</li>
-        <li>Pour voyages/séjours non professionnels ≤ 3 mois consécutifs</li>
+        <li>Les enfants du souscripteur et ceux de son conjoint s'ils poursuivent leurs études et sont fiscalement à charge ou rattachés à son foyer fiscal, au sens du code général des impôts ;</li>
+        <li>Les employés de maison du souscripteur dans l'exercice de leurs fonctions pendant qu'ils sont à son service.</li>
+    </ul>
+
+    <h5>3.2 Les biens assurés</h5>
+
+    <h6>3.2.1 Les bâtiments</h6>
+    <p>
+        Les appartements en copropriété et maisons individuelles à usage d'habitation principale, et leurs dépendances d'une surface maximum de 50 m² (cave, parking et garage) situées au lieu d'assurance, à l'exception de ceux spécifiés au paragraphe 3 (partie 2) dans les conditions générales du présent contrat.
+    </p>
+
+    <h6>3.2.2 Le mobilier</h6>
+    <p>Sont garantis par le présent contrat :</p>
+    <ul>
+        <li>Tout bien mobilier à usage non professionnel appartenant au locataire et non mis à disposition par le propriétaire bailleur, situé dans les locaux assurés destinés exclusivement à l'habitation et dans leurs dépendances attenantes (cave, parking et garage) à l'exception des biens :
+            <ul>
+                <li>spécifiés au paragraphe 4 (partie 2) dans les conditions générales du présent contrat</li>
+                <li>dont la valeur est supérieure au plafond indiqué aux conditions particulières du présent contrat</li>
+            </ul>
+        </li>
+        <li>Les embellissements effectués par le locataire dans son logement (peinture, papiers peints, aménagement de la cuisine ou de la salle d'eau...), revêtements de sol collés, éléments fixés (cuisines et de salle de bains aménagées)</li>
     </ul>
 </div>
 
 <div class="article">
-    <h4>Article 1.3 - Personnes assurées</h4>
-    <p>Sont assurés au titre du contrat :</p>
-    <ul>
-        <li>L'assuré souscripteur du contrat</li>
-        <li>Le conjoint, partenaire PACS ou concubin cohabitant</li>
-        <li>Les enfants mineurs résidant au foyer</li>
-        <li>Les ascendants cohabitant</li>
-    </ul>
-    <p>Pour la garantie RC privée, sont également assurés :</p>
-    <ul>
-        <li>Les enfants poursuivant leurs études et fiscalement à charge</li>
-        <li>Les employés de maison dans l'exercice de leurs fonctions</li>
-    </ul>
-</div>
+    <h4>4. Les garanties</h4>
 
-<div class="article">
-    <h4>Article 1.4 - Biens assurés</h4>
-    <p><strong>Les bâtiments :</strong></p>
+    <h5>4.1 Les garanties de base – formule Essentielle</h5>
     <ul>
-        <li>Appartements en copropriété et maisons individuelles à usage d'habitation principale</li>
-        <li>Dépendances (cave, parking, garage) ≤ 50m² situées au lieu d'assurance</li>
+        <li>Incendie, explosion, implosion, enfumage</li>
+        <li>Attentat et acte de terrorisme</li>
+        <li>Dégât des eaux, gel</li>
+        <li>Évènement climatique</li>
+        <li>Catastrophe naturelle</li>
+        <li>Catastrophe technologique</li>
+        <li>La responsabilité civile</li>
     </ul>
-    <p><strong>Le mobilier :</strong></p>
+
+    <h5>4.2 Les garanties complémentaires – formule Confort</h5>
     <ul>
-        <li>Biens mobiliers à usage non professionnel appartenant au locataire</li>
-        <li>Situés dans les locaux assurés et dépendances attenantes</li>
-        <li>Embellissements effectués par le locataire</li>
+        <li>Vol, tentative de vol avec effraction, vandalisme</li>
+        <li>Bris de glace</li>
+        <li>Dommage électrique</li>
+    </ul>
+
+    <h5>4.3 Les garanties complémentaires – formule Sérénité</h5>
+    <ul>
+        <li>Vol, tentative de vol avec effraction, vandalisme</li>
+        <li>Bris de glace</li>
+        <li>Garanties assistance</li>
+        <li>Dommage électrique</li>
+    </ul>
+
+    <h5>4.4 Les garanties risques locatifs – formule Risques Locatifs</h5>
+    <p>Cette formule ne garantit que les évènements suivants :</p>
+    <ul>
+        <li>Incendie, explosion</li>
+        <li>Dégât des eaux</li>
     </ul>
 </div>
 
@@ -456,214 +615,570 @@
     <h2>Partie 2 - Garanties</h2>
 </div>
 
-<h3>Tableau des garanties par formule</h3>
-
-<table class="guarantee-table">
-    <tr>
-        <th style="width: 50%;">Garanties</th>
-        <th style="width: 25%;">Essentielle</th>
-        <th style="width: 25%;">Sérénité</th>
-    </tr>
-    <tr class="category">
-        <td colspan="3"><strong>Garanties Dommages aux biens</strong></td>
-    </tr>
-    <tr>
-        <td>Incendie, explosion, implosion, enfumage</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Attentat et acte de terrorisme</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Dégât des eaux, gel</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Événement climatique</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Catastrophe naturelle</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Catastrophe technologique</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Vol</td>
-        <td></td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Bris de glace</td>
-        <td></td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Dommage électrique</td>
-        <td></td>
-        <td class="check">✓</td>
-    </tr>
-    <tr class="category">
-        <td colspan="3"><strong>Garantie Assistance</strong></td>
-    </tr>
-    <tr>
-        <td>Serrurerie d'urgence</td>
-        <td></td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Vitrerie d'urgence</td>
-        <td></td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Électricité d'urgence</td>
-        <td></td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Domicile sinistré</td>
-        <td></td>
-        <td class="check">✓</td>
-    </tr>
-    <tr class="category">
-        <td colspan="3"><strong>Garantie Responsabilité Civile</strong></td>
-    </tr>
-    <tr>
-        <td>Responsabilité civile risques locatifs</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-    <tr>
-        <td>Responsabilité civile privée</td>
-        <td class="check">✓</td>
-        <td class="check">✓</td>
-    </tr>
-</table>
-
+<!-- 1. FORMULE ESSENTIELLE -->
 <div class="article">
-    <h4>Article 2.1 - Incendie, explosion, implosion, enfumage</h4>
-    <p>L'assureur garantit les dommages causés aux biens assurés par :</p>
+    <h4>1. Objet des garanties – formule Essentielle</h4>
+
+    <h5>1.1 Incendie, explosion, implosion, enfumage</h5>
+    <p>L'assureur garantit tout dommage causé aux biens assurés par :</p>
     <ul>
-        <li>L'incendie (combustion avec flammes hors foyer normal)</li>
+        <li>L'incendie, c'est-à-dire la combustion avec flammes en dehors d'un foyer normal</li>
         <li>L'explosion, l'implosion</li>
-        <li>L'enfumage (émission soudaine de fumées)</li>
-        <li>Les dommages causés par les secours</li>
-        <li>Le choc d'un véhicule à moteur ou appareil aérien</li>
+        <li>L'enfumage, c'est-à-dire l'émission soudaine de fumées provenant du fonctionnement défectueux d'un appareil, ou de l'incendie d'un appartement ou d'un bâtiment voisin</li>
+        <li>Les dommages matériels causés par les secours et par les mesures de sauvetage selon l'article 122-3 du code des assurances</li>
+        <li>Le choc d'un véhicule à moteur, sous réserve que l'assuré ait déposé plainte si le propriétaire n'est pas identifié</li>
+        <li>Le choc d'un appareil aérien ou spatial ou des objets tombant de ceux-ci</li>
     </ul>
 
     <div class="prevention-box">
-        <h5>Mesures de prévention obligatoires</h5>
+        <h5>Mesure de prévention</h5>
         <ul>
-            <li>Entretien et renouvellement des détecteurs incendie</li>
-            <li>Entretien annuel de la chaudière par professionnel agréé</li>
-            <li>Respect des obligations de ramonage</li>
-            <li>Arrivées de gaz coupées si inoccupation > 8 jours</li>
-            <li>Aucun feu de cheminée sans présence humaine</li>
-            <li>Recharge de batterie lithium uniquement en présence humaine</li>
+            <li>L'assuré doit être en mesure de justifier de l'entretien et le renouvellement des détecteurs incendie et de l'entretien de la chaudière par un professionnel agréé une fois par an</li>
+            <li>L'assuré doit être en mesure de justifier du respect de ses obligations annuelle de ramonage (dispositions applicables définies par le règlement sanitaire départemental de la commune de l'adresse du bien assuré), sauf s'il est indiqué dans le contrat de bail que le ramonage est une charge du bailleur</li>
+            <li>L'assuré doit respecter ses obligations de débroussaillage (articles L131-4, L131-8, L131-12, L131-14 à L131-18, L134-4 à L134-12, L135-2, L162-2, L163-4 à L163-6 du nouveau code forestier) si elles sont indiquées dans le contrat de bail être à la charge de l'assuré</li>
+            <li>En cas d'inoccupation du bien assuré pendant plus de 8 jours, les arrivées de gaz doivent être coupées</li>
+            <li>Aucun feu de cheminée ne peut être fait sans présence humaine, sans accord de la copropriété et/ou du propriétaire le cas échéant (et ne doit pas être interdit par le règlement de copropriété ou le bail)</li>
+            <li>Toute recharge de batterie au lithium doit être fait en présence humaine. Le chargeur de batterie doit être adapté à ce type de recharge et doit être équipé d'un système de protection contre la surcharge et la décharge excessive.</li>
         </ul>
     </div>
 
     <div class="alert-box">
-        <p><strong>Non-respect des mesures de prévention :</strong> franchise de 50% du montant des dommages.</p>
+        <p>En cas de sinistre dont l'origine est causée par le non-respect d'une mesure de prévention, l'assuré conservera à sa charge une franchise de 50% du montant des dommages.</p>
     </div>
 </div>
 
 <div class="article">
-    <h4>Article 2.2 - Dégâts des eaux, gel</h4>
-    <p>L'assureur garantit les dommages causés par :</p>
-    <ul>
-        <li>Fuites, ruptures, débordements de conduites d'eau non enterrées</li>
-        <li>Fuites, ruptures, débordements d'appareils à effet d'eau</li>
-        <li>Gel des installations intérieures</li>
-        <li>Frais de recherche de fuite sur conduites non enterrées</li>
-    </ul>
-
-    <div class="prevention-box">
-        <h5>Mesures de prévention obligatoires</h5>
-        <ul>
-            <li>En cas d'inoccupation > 8 jours : distribution d'eau coupée</li>
-            <li>En période de gel (inoccupation > 3 jours, chauffage arrêté) : eau coupée, conduites vidangées</li>
-        </ul>
-    </div>
-</div>
-
-<div class="article">
-    <h4>Article 2.3 - Vol (Formule Sérénité uniquement)</h4>
-    <p>L'assureur garantit :</p>
-    <ul>
-        <li>Vol par effraction ou escalade</li>
-        <li>Vol avec menaces ou violences</li>
-        <li>Dégradations immobilières consécutives</li>
-    </ul>
-
-    <div class="prevention-box">
-        <h5>Mesures de prévention obligatoires</h5>
-        <ul>
-            <li>Toutes portes d'accès : au moins une serrure ou verrou de sûreté</li>
-            <li>En cas d'absence : fenêtres fermées, portes fermées à clef</li>
-        </ul>
-    </div>
-</div>
-
-<div class="article">
-    <h4>Article 2.4 - Responsabilité civile</h4>
+    <h5>1.2 Attentat et acte de terrorisme</h5>
     <p>
-        La garantie responsabilité civile couvre les dommages causés à des tiers qui engagent
-        la responsabilité de l'assuré en qualité de locataire et dans le cadre de sa vie privée.
+        L'assureur garantit les dommages matériels causés aux biens assurés, y compris les frais de décontamination, et la réparation des dommages immatériels consécutifs à un attentat ou un acte de terrorisme (tel que défini par les articles 421-1 et 421-2 du code civil) dans les limites de franchise et de plafond fixées le cas échéant aux conditions particulières du contrat au titre de la garantie incendie (article L126-2 du code des assurances).
     </p>
-    <p><strong>RC relative au bien assuré :</strong></p>
+    <p>
+        Lorsqu'il est nécessaire de décontaminer un bien immobilier, l'indemnisation des dommages, y compris les frais de décontamination, ne peut excéder la valeur vénale de l'immeuble ou le montant des capitaux assurés (article L126-2 du code des assurances).
+    </p>
+</div>
+
+<div class="article">
+    <h5>1.3 Dégâts des eaux, gel</h5>
+    <p>L'assureur garantit les dommages matériels aux biens assurés à l'intérieur des pièces d'habitation ou des bâtiments clos et couverts qui leur sont contigus causés par :</p>
     <ul>
-        <li>Dommages causés au propriétaire</li>
-        <li>Recours des voisins et des tiers</li>
+        <li>Des fuites, ruptures ou débordements des conduites d'eau non enterrées (adduction, distribution ou évacuation des eaux)</li>
+        <li>Des fuites, ruptures ou débordements d'appareils à effet d'eau (baignoire, lave-linge, lave-vaisselle, cumulus) et de chauffage</li>
+        <li>Le gel si des installations intérieurs (canalisations, appareils de chauffage) sont affectées.</li>
     </ul>
-    <p><strong>RC privée :</strong></p>
+    <p>Sont également garantis tous les événements entraînant des dommages d'eau si la responsabilité en incombe à un tiers identifié contre lequel l'assureur a un droit à recours.</p>
+    <p>L'assureur garantit les frais de recherche de fuite sur conduites non enterrées à l'origine du dégât d'eau.</p>
+
+    <div class="prevention-box">
+        <h5>Mesure de prévention</h5>
+        <ul>
+            <li>En cas d'inoccupation de l'habitation assurée pendant plus de 8 jours consécutifs, la distribution d'eau doit être coupée.</li>
+            <li>En période de gel, si l'habitation est inoccupée pendant plus de trois jours et le chauffage est arrêté :
+                <ul>
+                    <li>La distribution d'eau doit être coupée</li>
+                    <li>Les conduites, réservoirs et appareils à effet d'eau (tels que machines à laver le linge ou la vaisselle) ainsi que les installations de chauffage central non pourvues d'antigel en quantité suffisante doivent être vidangées.</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <div class="alert-box">
+        <p>En cas de non-respect de ces mesures de prévention, une franchise égale à 50 % du montant des dommages indemnisés sera appliquée.</p>
+    </div>
+</div>
+
+<div class="article">
+    <h5>1.4 Évènement climatique</h5>
+    <p>L'assureur garantit les dommages matériels causés aux biens assurés par les événements climatiques que sont les grandes intempéries exceptionnelles mais dont le niveau de violence ne justifie pas l'état de catastrophes naturelles :</p>
     <ul>
-        <li>Dommages causés par l'assuré et les personnes assurées</li>
-        <li>Dommages causés par les animaux de compagnie</li>
-        <li>Dommages causés lors d'activités de loisirs</li>
+        <li>Les tempêtes, ouragans et cyclones (action du vent, voiture renversée, choc d'un corps projeté par le vent) à condition que le vent ait soufflé à une vitesse supérieure à 100 km/h</li>
+        <li>Les chutes de grêle et gel</li>
+        <li>Les dommages causés par le poids de la neige</li>
+        <li>Les dommages causés par l'eau, qui résultent de l'un des événements climatiques énoncés ci-dessus, à condition que ces dommages se soient réalisés dans les 48 heures suivant l'événement.</li>
     </ul>
 </div>
 
-<!-- EXCLUSIONS -->
-<div class="page-break"></div>
-<h3>Exclusions</h3>
-
-<div class="exclusion-box">
-    <h4>Exclusions communes à toutes les garanties</h4>
-    <ul>
-        <li>Dommages intentionnels par l'assuré ou avec sa complicité</li>
-        <li>Guerre, révolution, émeutes, mutinerie</li>
-        <li>Tremblements de terre, éruptions volcaniques (sauf catastrophe naturelle)</li>
-        <li>Effets de l'amiante, du plomb</li>
-        <li>Véhicules terrestres à moteur soumis à obligation d'assurance</li>
-        <li>Confiscation, nationalisation par autorité publique</li>
-        <li>Combustibles nucléaires, produits radioactifs</li>
-        <li>Virus informatiques, piratage</li>
-        <li>Défaut de réparation ou d'entretien incombant à l'assuré</li>
-        <li>Biens mobiliers à usage professionnel</li>
-    </ul>
+<div class="article">
+    <h5>1.5 Catastrophe naturelle</h5>
+    <p>
+        Sont considérés comme les effets des catastrophes naturelles, les dommages matériels directs non assurables ayant eu pour cause déterminante l'intensité anormale d'un agent naturel, lorsque les mesures habituelles à prendre pour prévenir ces dommages n'ont pu empêcher leur survenance ou n'ont pu être prises.
+    </p>
+    <p>
+        Un arrêté interministériel paru au Journal Officiel constate l'état de catastrophe naturelle pour l'aléa concerné dans la zone où se trouvent les biens assurés par le présent contrat.
+    </p>
 </div>
 
-<div class="exclusion-box">
-    <h4>Exclusions propres aux bâtiments</h4>
+<div class="article">
+    <h5>1.6 Catastrophe technologique</h5>
+    <p>
+        La garantie est mise en jeu après publication au Journal Officiel d'un arrêté interministériel constatant l'état de catastrophe technologique. Elle garantit des dommages causés par un accident tel que défini à l'article L. 128-1 du code des assurances et couvre, dans les conditions prévues par l'article L. 128-2 du code des assurances, la réparation intégrale des dommages aux biens immobiliers et mobiliers assurés dans la limite des montants spécifiés aux conditions particulières du présent contrat.
+    </p>
+
+    <h5>1.7 Responsabilité civile</h5>
+    <p>
+        La garantie responsabilité civile garantit l'indemnisation des dommages causés à des tiers et qui engagent la responsabilité de l'assuré (et des personnes figurant au contrat) en qualité de locataire de l'habitation faisant l'objet du présent contrat et dans le cadre de sa vie privée.
+    </p>
+
+    <h6>1.7.1 Étendue de la garantie dans le temps</h6>
+    <p>
+        La garantie déclenchée par le fait dommageable couvre l'assuré contre les conséquences pécuniaires des sinistres, dès lors que le fait dommageable survient entre la prise d'effet initiale de la garantie et sa date de résiliation ou d'expiration, quelle que soit la date des autres éléments constitutifs du sinistre.
+    </p>
+
+    <p><u>Responsabilité civile relative au bien assuré</u></p>
+    <p>Sont couvertes les conséquences pécuniaires de la responsabilité civile que le locataire peut encourir en raison des dommages matériels et immatériels consécutifs causés en tant qu'occupant de toute ou partie d'un bâtiment :</p>
     <ul>
-        <li>Locaux occupés sans droit ni titre ou squattés</li>
-        <li>Locaux en sous-location</li>
-        <li>Piscines, spas, jacuzzi et équipements</li>
-        <li>Bâtiments vétustes, en démolition ou construction</li>
-        <li>Bâtiments déclarés insalubres ou indécents</li>
-        <li>Locaux à usage de stockage</li>
+        <li><strong>Au propriétaire :</strong> Sont couverts les loyers dont il est privé et la perte d'usage des bâtiments qu'il occupe, les dommages matériels subis par les autres locataires qu'il est tenu d'indemniser</li>
+        <li><strong>Aux voisins et aux tiers (recours des voisins et des tiers) :</strong> Sont couverts les dommages résultant d'un incendie, d'une explosion ou d'un dégât des eaux ayant pris naissance dans les bâtiments d'habitation loués situés à l'adresse indiquée sur le bulletin d'adhésion.</li>
     </ul>
+    <p>Cette garantie s'applique également :</p>
+    <ul>
+        <li>En cas de location ou d'occupation de locaux de façon temporaire par l'assuré : pour une durée de moins de 3 mois lors d'un séjour ou d'un voyage non professionnel.</li>
+        <li>Aux locaux loués et prévus à cet effet, dont l'assuré n'est pas propriétaire et dans lesquels il organise une réception gratuite dans le cadre d'une fête d'ordre privée en accord avec le propriétaire, réunissant deux cents personnes maximum et dont la durée n'excède pas 72 heures. Cette garantie jouera en cas d'absence ou d'insuffisance de garantie souscrite par ailleurs.</li>
+    </ul>
+
+    <p><u>Responsabilité civile privée</u></p>
+    <p>
+        Cette garantie couvre les conséquences pécuniaires de la responsabilité civile incombant à l'assuré lorsqu'il agit en qualité de simple particulier, dans le cadre de sa vie privée, y compris lors de la pratique de sports ou de loisirs à titre amateur, en raison des dommages corporels, matériels et immatériels consécutifs causés à un tiers.
+    </p>
+    <p>Ces dommages peuvent avoir été causés par :</p>
+    <ul>
+        <li>Lui-même et les personnes assurées par le présent contrat</li>
+        <li>Les biens mobiliers dont il a la propriété, l'usage ou la garde</li>
+        <li>Les animaux de compagnie dont il est propriétaire ou gardien, vivants dans les locaux d'habitation loués, hors animaux dangereux comme les chiens relevant des catégories 1 et 2 au sens de la loi relative aux animaux dangereux (article 211-12 du code rural)</li>
+        <li>Les biens immobiliers, embellissements et aménagements immobiliers lui appartenant, situés à l'adresse du risque mentionnée sur le bulletin d'adhésion</li>
+        <li>Les garages, box et caves situés à l'adresse du risque assuré</li>
+        <li>Les vélos, les trottinettes (hors nouveaux véhicules électriques individuels) dont il a la propriété, l'usage ou la garde et utilisés dans le respect de la règlementation en vigueur</li>
+        <li>Les jouets à moteur (autos, motos, quads) utilisés par ses enfants de moins de 14 ans et dont la vitesse maximale annoncée par le constructeur n'excède pas 10 km/h, utilisés dans la limite de la propriété assurée</li>
+        <li>Les tondeuses autoportées et les motoculteurs d'une puissance inférieure à 12 CV DIN et utilisés dans la limite de la propriété assurée</li>
+        <li>Les fauteuils roulants y compris les fauteuils électriques dont l'assuré a la propriété ou l'usage</li>
+        <li>Les aéromodèles de loisirs y compris les drones de loisirs dont l'assuré à la propriété ou l'usage, utilisés dans le respect de la réglementation en vigueur et en dehors de toute compétition</li>
+        <li>L'assuré lors d'activités scolaires et extrascolaires</li>
+        <li>La pratique occasionnelle de l'activité de baby-sitting par un assuré du contrat</li>
+        <li>Les personnes employées par l'assuré à son domicile, dans l'exercice de leurs fonctions, à condition qu'elles soient employées dans le respect du droit du travail en vigueur</li>
+        <li>Les personnes assurant la garde bénévole des enfants ou des animaux domestiques de l'assuré, si leur responsabilité est recherchée du fait de cette garde. Le baby-sitting (rémunéré ou non) est assimilé à une garde bénévole.</li>
+    </ul>
+
+    <h6>1.7.2 Défense</h6>
+    <p>
+        Dans la limite du périmètre de la garantie responsabilité civile spécifiée dans le paragraphe ci-dessus, l'assureur intervient en défense uniquement lorsque la responsabilité civile de l'assuré est mise en cause et qu'elle est garantie au titre de ce contrat.
+    </p>
+    <p>
+        Dans cette hypothèse, l'assureur s'engage à ses frais à exercer toutes interventions amiables ou judiciaires en vue de défendre l'assuré dans la limite du plafond spécifié dans les conditions particulières du contrat.
+    </p>
+    <p>En cas d'action en responsabilité dirigée contre l'assuré ou une personne assurée :</p>
+    <ul>
+        <li>Devant les juridictions civiles, commerciales et administratives, l'assureur seul à la direction de la procédure et la faculté d'exercer les voies de recours dans la limite de la garantie du contrat. Toutefois, lorsque cette dernière est dépassée, l'assuré a la faculté de s'associer à l'action de l'assureur</li>
+        <li>Devant les juridictions pénales en cas de constitution de partie civile uniquement. La direction du procès incombe à l'assureur.</li>
+    </ul>
+    <p>
+        L'assureur prend en charge les frais de procédure, et les dommages et intérêts auxquels l'assuré pourrait être condamné au titre de sa responsabilité civile. Toutefois, lorsque le montant des dommages et intérêts est supérieur au plafond spécifié dans les conditions particulières du contrat, le solde reste à la charge de l'assuré.
+    </p>
+    <p>Aucune reconnaissance de responsabilité ou transaction ne doit être acceptée sans l'accord de l'assureur.</p>
+
+    <h6>1.7.3 Recours</h6>
+    <p>
+        Dans la limite du périmètre de la garantie responsabilité civile spécifiée dans le paragraphe ci-dessus, l'assureur s'engage à exercer tout recours amiable ou judiciaire contre un tiers afin d'obtenir la réparation financière, dans la limite du plafond spécifié aux conditions particulières du présent contrat.
+    </p>
+    <p>
+        L'assureur ne peut exercer un recours qu'à la condition que le tiers responsable soit une personne identifiée et qui n'est pas définie comme une personne assurée.
+    </p>
+</div>
+
+<!-- 2. FORMULE SÉRÉNITÉ -->
+<div class="article">
+    <h4>2. Objet des garanties – formule Sérénité</h4>
+    <p>La formule est composée des garanties de la formule Essentielle et des garanties ci-après.</p>
+
+    <p><strong>1. Vol</strong></p>
+    <p>L'assureur garantit pour les biens assurés les :</p>
+    <ul>
+        <li>Vols commis :
+            <ul>
+                <li>Par effraction ou escalade de l'habitation renfermant les biens assurés,</li>
+                <li>Avec menaces ou violences sur la personne.</li>
+            </ul>
+        </li>
+        <li>Dégradations immobilières consécutives à un vol ou à une tentative de vol, y compris celles subies par les installations d'alarme lorsqu'elles surviennent dans l'une des circonstances prévues au contrat, à l'exception des bris de vitre.</li>
+    </ul>
+    <p>
+        La garantie vol est accordée sous réserve de l'application des mesures de prévention et de sécurité suivantes. A l'exception des portes fenêtres s'ouvrant uniquement de l'intérieur, toutes les portes d'accès de l'habitation et des dépendances doivent comporter au moins une serrure ou un verrou de sûreté ou pouvoir être fermées par tous moyens automatisés (commande à distance, digicode, badge). En cas de vol commis en l'absence de l'assuré, les fenêtres doivent être fermées, les portes doivent l'être à clef.
+    </p>
+    <div class="alert-box">
+        <p>En cas de non-respect de ces mesures de prévention, une franchise égale à 50 % du montant des dommages indemnisés sera appliquée.</p>
+    </div>
+
+    <p><strong>2. Bris de glace</strong></p>
+    <p>
+        L'assureur garantit le bris accidentel des vitres et des miroirs qui font partie intégrante des biens assurés y compris les marbres, les velux, lucarnes, fenêtres de toit, et les séparations des balcons, fenêtres, vitres, vasistas, baies vitrées, lucarnes, vitrines.
+    </p>
+
+    <p><strong>3. Dommage électrique</strong></p>
+    <p>
+        L'assureur garantit les dommages causés aux appareils ménagers électriques ou électroniques branchés sur le secteur du bien assuré et qui ont pour origine un changement soudain de tension électrique du réseau du bien assuré (sous-tension, surtension, court circuit ou encore foudre).
+    </p>
+    <p>
+        Les biens assurés sont les appareils électroménagers de la maison (four, four à micro ondes, lave linge, lave vaisselle, cafetière, bouilloire…) et les appareils hi-fi et high-tech (téléviseur, ordinateur, tablette, console de jeux, amplificateur…).
+    </p>
+</div>
+
+<!-- 4. EXCLUSIONS -->
+<div class="article">
+    <h4>4. Exclusions</h4>
+
+    <div class="exclusion-box">
+        <h4>1. Exclusions propres aux bâtiments</h4>
+        <ul>
+            <li>Locaux occupés sans droit ni titre ou squattés</li>
+            <li>Locaux situés dans un immeuble de grande hauteur</li>
+            <li>Les locaux faisant l'objet d'une mise en sous-location par l'assuré</li>
+            <li>Parties communes d'une copropriété</li>
+            <li>Piscines et abris de piscine, spas, jacuzzi, hammam, sauna et leurs équipements</li>
+            <li>Bâtiments classés ou inscrits aux monuments historiques, châteaux</li>
+            <li>Bâtiments/locaux vétustes ou délabrés</li>
+            <li>Bâtiments/locaux en cours de démolition ou de construction ou de rénovation</li>
+            <li>Bâtiments/locaux déclarés insalubres ou en état de péril selon le Code de la Construction et de l'Habitation</li>
+            <li>Bâtiments/locaux ne présentant pas les normes d'habitabilité fixées par la législation en vigueur, et notamment par l'article 1719 du Code civil, et par la loi du 6 juillet 1989 complétée et modifiée</li>
+            <li>Bâtiments/locaux faisant l'objet d'une saisie, embargo, confiscation, capture, destruction, mise sous scellée prononcée par l'autorité judiciaire, ordonnés par tout gouvernement ou autorité publique</li>
+            <li>Bâtiments/locaux déclarés indécents et/ou impropres à l'habitation par une décision de justice ou procès-verbal de conciliation ou reconnu indécent par le propriétaire mais également les logements dont l'indécence a été constatée par l'agence régionale de la santé ou les services d'hygiène de la mairie</li>
+            <li>Bâtiments/locaux non conformes aux règles administratives en vigueur au moment de la construction</li>
+            <li>Bâtiments/locaux construits sur des terrains classés inconstructibles par un plan de prévention des risques naturels (PPRN) prévisibles prévu par la loi du 2 février 1995</li>
+            <li>Bâtiments/locaux situés sur des terrains couverts par un plan de prévention des risques d'inondation (PPRI), si les travaux de mise en conformité édictés par ce plan n'ont pas été réalisés par l'assuré dans les 5 ans de sa mise en application ou dans le délai prescrit par le préfet en cas d'urgence</li>
+            <li>Bâtiments/locaux situés sur un site utilisé ou ayant été utilisé pour la production d'énergie nucléaire ou la production, l'utilisation ou le stockage de matières nucléaires</li>
+            <li>Bâtiments non entièrement clos ou couverts</li>
+            <li>Les remorques, les résidences mobiles de loisirs (mobile-homes), les habitations légères de loisirs (bungalows, chalets sans fondations ancrées dans le sol, roulottes, caravanes ou tiny-houses), maison en toit de chaume</li>
+            <li>Les clôtures extérieures grillagées, palissades, panneaux et claustras</li>
+            <li>Locaux à usage de stockage (dont le stockage de batterie au lithium ou tout autre appareil, véhicule ou objet ayant une batterie au lithium)</li>
+        </ul>
+    </div>
+
+    <div class="exclusion-box">
+        <h4>2. Exclusions propres au matériel et mobilier</h4>
+        <ul>
+            <li>Matériel, marchandises, mobilier, animaux ou récoltes se trouvant en plein air, arbres et plantations</li>
+            <li>Les espèces, les billets de banque, titres et valeurs quelle qu'en soit la nature, pierreries non montées ainsi que les lingots de métaux précieux, les pièces de monnaie en or et en argent</li>
+            <li>Les objets à l'extérieur des biens immobiliers assurés</li>
+            <li>Dommages subis par les véhicules à moteur (contenu compris) soumis à obligation d'assurance</li>
+            <li>Les biens mobiliers utilisés pour l'exercice d'une profession</li>
+            <li>Les biens mobiliers confiés à des professionnels</li>
+        </ul>
+    </div>
+
+    <div class="exclusion-box">
+        <h4>3. Exclusions à toutes les garanties</h4>
+        <ul>
+            <li>Le bien n'a pas subi ou il n'a pas été déclaré plus de deux sinistres au cours des 24 derniers mois et aucun sinistre catastrophe naturelle et responsabilité civile durant cette même période, pour des locataires qui occupent le bien assuré depuis plus de deux ans</li>
+            <li>Le risque assuré n'est pas résilié par un précédent assureur</li>
+            <li>Les dommages causés, provoqués ou aggravés :
+                <ul>
+                    <li>Intentionnellement par l'assuré ou avec sa complicité</li>
+                    <li>Par la guerre étrangère déclarée ou non, la guerre civile, ou opération assimilée à des faits de guerre, révolution, émeutes, mouvements populaires, mutinerie militaire</li>
+                    <li>Par les tremblements de terre, les raz de marée, les éruptions volcaniques, les glissements de terrain, les coulées de boue, les chutes de pierre ou autres cataclysmes, sauf dans le cadre de l'indemnisation des catastrophes naturelles (loi N°82-600 du 13 juillet 1982)</li>
+                    <li>Par les effets directs ou indirects de l'amiante, du plomb</li>
+                    <li>Par les véhicules terrestres à moteur et leur remorque, les caravanes et les résidences mobiles dont l'assuré ou le locataire a propriété, l'usage ou la garde</li>
+                    <li>Par la confiscation, nationalisation, perquisition, interpellation, réquisition, destruction ou détérioration de biens effectuées ou ordonnées par un gouvernement ou par une autorité publique ou locale</li>
+                    <li>Par les parasites des matériaux de construction (dont les insectes xylophages et champignons lignivores)</li>
+                    <li>Par les surtensions électriques sauf pour l'application de la garantie dommage électrique</li>
+                    <li>Par tout combustible nucléaire, produit ou déchet radioactif ou par toute source de rayonnement ionisant, à l'exception de ceux résultant d'un acte de terrorisme ou d'un attentat et pris en charge au titre de la garantie attentat ou acte de terrorisme</li>
+                    <li>Par des virus informatiques ou par le piratage informatique</li>
+                    <li>Avant la prise d'effet de la garantie ou postérieurement à la résiliation du contrat</li>
+                    <li>De faits ou événements dont l'assuré et/ou le souscripteur avait connaissance lors de la souscription de la garantie dont ils relèvent</li>
+                    <li>Par le franchissement du mur du son par un engin volant</li>
+                    <li>Aux données informatiques</li>
+                </ul>
+            </li>
+            <li>Les dommages et responsabilités résultant de travaux relevant de la législation sur le travail clandestin (loi du 11 juillet 1972) effectués par l'assuré ou pour son compte</li>
+            <li>Les dommages de pollution ne résultant pas d'un accident</li>
+            <li>Les dommages relevant de la législation sur la construction ou la rénovation des bâtiments</li>
+            <li>Les dommages et responsabilités consécutifs à un crime, un délit ou une infraction commise volontairement par l'assuré</li>
+            <li>Les frais d'expert de l'assuré</li>
+            <li>Tout dommage causé par une remontée de nappe phréatique</li>
+            <li>Tout dommage causé à l'assuré par monoxyde carbone</li>
+            <li>Les dommages dûs à un défaut de réparation ou d'entretien caractérisé qui incombe à l'assuré</li>
+        </ul>
+    </div>
+
+    <div class="exclusion-box">
+        <h4>4. Exclusions propres à la garantie incendie</h4>
+        <ul>
+            <li>Les dommages résultant de brûlures et de la seule action de la chaleur sans qu'il y ait eu incendie, comme des brûlures de cigarettes, de fers à repasser ou des dégâts provoqués par les éclairages halogènes ou appareils de chauffage</li>
+            <li>Les dommages subis par les appareils ou équipements consommant, transformant ou fournissant de l'énergie lorsqu'ils proviennent d'un vice propre, d'une usure ou d'un défaut de fabrication</li>
+            <li>Les dommages causés aux fusibles, aux résistances chauffantes, aux câbles chauffants encastrés, aux lampes de toute nature et aux tubes électroniques</li>
+            <li>La chute directe de la foudre sur les bâtiments y compris les dommages d'appareils électriques situés à l'intérieur des locaux (sauf souscription de l'option sérénité incluant la garantie dommage électrique)</li>
+            <li>Les dommages causés par des incendies directement occasionnés par les éruptions de volcan, les tremblements de terre et autres cataclysmes (article 122-6 du code des assurances)</li>
+        </ul>
+    </div>
+
+    <div class="exclusion-box">
+        <h4>5. Exclusions propres à la garantie attentats et actes de terrorisme</h4>
+        <ul>
+            <li>Les frais de décontamination des déblais et leur confinement ne sont pas garantis (article L126-2 code des assurances)</li>
+            <li>Les actes dans lesquels l'assuré a personnellement pris part</li>
+        </ul>
+    </div>
+
+    <div class="exclusion-box">
+        <h4>6. Exclusions propres à la garantie dégâts des eaux</h4>
+        <ul>
+            <li>Les frais de réparation ou remplacement des appareils et des biens à l'origine du sinistre</li>
+            <li>Les frais de remise en état des toitures, verrières, loggias, terrasses, velux, balcons, ouvertures</li>
+            <li>Les dommages dus à l'humidité ou à la condensation à la porosité lorsqu'ils ne sont pas la conséquence directe d'un événement garanti</li>
+            <li>Les dommages causés par les eaux de ruissellement au sol, les refoulements d'égouts, les inondations, débordements de cours et d'étendues d'eau, ceux-ci étant prévus au titre de la garantie catastrophe naturelle</li>
+            <li>Les dommages dus à des fuites ou ruptures de conduites enterrées (celles dont l'accès nécessite des travaux de terrassement et de fouille)</li>
+            <li>Les débordements ou renversements de récipients, tels les aquariums par exemple</li>
+            <li>Les dommages résultant d'un processus de dégradation ayant débuté avant la date de prise d'effet du contrat</li>
+            <li>Les dommages causés par une substance autre que l'eau (du fioul par exemple)</li>
+            <li>Le coût de la mise en conformité des réseaux d'alimentation et d'évacuation de toutes eaux, y compris les dégâts associés</li>
+            <li>Les frais de dégèlement des conduites et appareils</li>
+            <li>L'engorgement et les débordements des gouttières et chéneaux</li>
+            <li>Les infiltrations d'eau ou de grêle, au travers des toitures, des terrasses, balcons, ciels vitrés, verrières, velux, par les joints d'étanchéité aux pourtours des installations sanitaires et au travers des carrelages, au travers des façades pour les dommages affectant la peinture, les revêtements de sol, le mobilier</li>
+            <li>Le coût de l'eau perdue</li>
+        </ul>
+    </div>
+
+    <div class="exclusion-box">
+        <h4>7. Exclusions propres à la garantie vol</h4>
+        <ul>
+            <li>Les vols, destructions, détériorations, actes de vandalisme dont seraient auteurs ou complices l'assuré et les membres de sa famille visés à l'article 311-12 du Code Pénal, ou négligence manifeste de la part de l'assuré ou d'un autre occupant des locaux</li>
+            <li>Les vols, destructions, détériorations, actes de vandalisme commis par les propriétaires, sous locataires de l'assuré, par leurs employés de maison, ou par des occupants sans droit ni titre</li>
+            <li>Les vols, destructions, détériorations, actes de vandalisme commis sur des objets à l'extérieur des bâtiments assurés, ou dans les locaux à usage commun de plusieurs occupants locataires ou copropriétaires</li>
+            <li>Les graffitis, salissures et inscriptions sur les parties extérieures des bâtiments</li>
+            <li>Le vol des animaux</li>
+            <li>Le vol d'espèces</li>
+            <li>Les clés, serrures et/ou tout autre système d'ouverture et de fermeture des portes des parties collectives d'immeubles</li>
+            <li>Le vol commis à l'aide des clés si elles ont été laissées sur la porte, sous le paillasson, dans la boîte aux lettres ou dans toute autre cachette à l'extérieur de l'habitation</li>
+            <li>Le vol des biens si le logement est inoccupé pendant 60 jours consécutifs</li>
+            <li>Le vol de biens commis en l'absence des occupants si une fenêtre a été laissée ouverte ou une porte n'a pas été fermé à clef</li>
+        </ul>
+    </div>
+
+    <div class="exclusion-box">
+        <h4>8. Exclusions propres à la garantie bris de glace</h4>
+        <ul>
+            <li>Les dommages dus à un défaut de réparation ou d'entretien caractérisé qui incombe à l'assuré</li>
+            <li>Les dommages survenus au cours de tous les travaux (sauf ceux de simple nettoyage) effectués sur les objets assurés, leurs encadrements ou agencements ou au cours de leur pose, dépose, transport ou entrepôt</li>
+            <li>Les dommages occasionnés sur les parois de balcons, vérandas, serres, marquises, capteurs solaires et cabines de douche</li>
+            <li>Les rayures, ébréchures, écaillures et détérioration des argentures et peintures</li>
+            <li>Les bris des glaces portatives, vitraux, lustres et les objets d'ornement en verrerie</li>
+            <li>Les produits verriers faisant partie intégrante des appareils ménagers, électroménagers, audiovisuels et écrans d'ordinateur</li>
+            <li>Les panneaux photovoltaïques (panneaux solaires), aquariums, serres, plaques de cuisson en vitrocéramique</li>
+            <li>Les dommages subis par biens mobiliers consécutifs à un bris de glace garanti</li>
+        </ul>
+    </div>
+
+    <div class="exclusion-box">
+        <h4>9. Exclusions propres à la garantie évènement climatique</h4>
+        <ul>
+            <li>Les dommages relevant des autres garanties</li>
+            <li>Les dommages occasionnés par les eaux de ruissellement, engorgement et refoulement des égouts, en l'absence de prise en charge par la garantie catastrophe naturelle</li>
+            <li>Les dommages occasionnés aux bâtiments et à leur contenu dont la construction ou la couverture n'est pas fixée ou comporte en quelque proportion que ce soit, des plaques de toute nature non posées et non fixées aux constructions selon les règles de l'art</li>
+        </ul>
+    </div>
+
+    <div class="exclusion-box">
+        <h4>10. Exclusions propres à la garantie responsabilité civile</h4>
+        <ul>
+            <li>Les exclusions communes à toutes les garanties et les exclusions spécifiques à chacune des garanties Incendies et Dégâts des eaux</li>
+            <li>Les dommages causés par tout véhicule terrestre à moteur dont les nouveaux véhicules électriques individuels (les trottinettes électriques, hoverboards, gyropodes, monoroues électriques, draisiennes…) soumis à l'obligation d'assurance ou dont la vitesse est supérieure à 25 km/heure dont l'assuré est propriétaire, gardien ou locataire</li>
+            <li>Les dommages causés par tout autre appareil dès lors qu'il est attelé à un véhicule</li>
+            <li>Les fêtes familiales ayant lieu dans un château ou dans un bâtiment classé Monument Historique ou inscrit à l'Inventaire Supplémentaire des Monuments Historiques</li>
+            <li>Les fêtes familiales ayant lieu sur un engin de navigation</li>
+            <li>Les dommages causés lors de la pratique :
+                <ul>
+                    <li>De la chasse, y compris la destruction d'animaux nuisibles lorsqu'elle relève du champ d'application de la responsabilité civile chasse</li>
+                    <li>De la pêche sous-marine de loisir pratiquée conformément aux conditions réglementaires ou non</li>
+                    <li>De toute activité sportive exercée dans des associations, clubs, fédérations qui ont assuré leurs adhérents conformément à l'article L321-1 du code du sport</li>
+                    <li>D'activités ne relevant pas de la vie privée, qu'elles soient exercées ou non à titre temporaire, exercées à titre lucratif ou syndical, liées à une fonction publique ou d'organisation de manifestations ouvertes au public</li>
+                </ul>
+            </li>
+            <li>Les dommages résultant :
+                <ul>
+                    <li>De toute activité professionnelle ou d'un travail clandestin, y compris lorsque ces dommages sont causés par les animaux utilisés à cette fin</li>
+                    <li>D'obligations contractuelles réalisées à titre onéreux (à l'exclusion de baby-sitting)</li>
+                    <li>De l'organisation et de la participation à toutes épreuves, concours, courses et compétitions, ainsi qu'à toutes épreuves préparatoires nécessitant une autorisation préalable ou soumises à une obligation d'assurance</li>
+                    <li>De l'activité en qualité de tuteur ou curateur familial de l'assuré</li>
+                    <li>De la transmission de maladie</li>
+                    <li>De l'utilisation de tout voilier de plus de 6 mètres ou tout bateau à moteur de plus de 6 CV ou tout autre véhicule nautique à moteur tel que jet ski, jet à bras, scooter et moteur des mers</li>
+                    <li>De l'utilisation d'appareils de navigation aérienne et engins aériens</li>
+                </ul>
+            </li>
+            <li>Les dommages causés aux biens confiés, loués ou empruntés par une personne assurée</li>
+            <li>Les dommages causés dans le cadre des stages d'études lorsqu'ils ont pour origine des actes prohibés par la règlementation en vigueur ou exécutés par des personnes non habilitées à les faire</li>
+            <li>L'utilisation par l'enfant mineur assuré, à l'insu de l'assuré, ou à l'insu de la personne qui en a la garde, d'un véhicule terrestre à moteur dont l'assuré et son entourage ne sont ni propriétaire, ni locataire, ni gardien</li>
+            <li>D'un suicide ou d'une tentative de suicide de l'assuré</li>
+        </ul>
+    </div>
+
+    <div class="exclusion-box">
+        <h4>11. Exclusions propres à la garantie dommage électrique</h4>
+        <ul>
+            <li>Les biens âgés de plus de 5 ans</li>
+            <li>Les pannes subies par les appareils dues à leur usure normale, leur mauvais entretien, une utilisation non appropriée ou d'un vice ou défaut de fabrication</li>
+            <li>Les lampes de toute nature</li>
+            <li>Le contenu réfrigéré (contenu des congélateurs et réfrigérateurs)</li>
+            <li>La reconstitution des fichiers informatiques endommagés ou de tout autre média</li>
+            <li>Les dommages au contenu de tous les appareils électroménagers</li>
+            <li>Les dommages causés aux jouets à moteur ainsi qu'au matériel de jardins automoteurs</li>
+            <li>Les installations de piscine et les abris de piscine</li>
+            <li>Les fusibles et résistances</li>
+            <li>Les tubes électroniques</li>
+            <li>Les conséquences de l'absence non accidentelle de fourniture d'électricité au compteur (ex. fait de grève)</li>
+        </ul>
+    </div>
+</div>
+
+<!-- 5. MISE EN ŒUVRE DE LA GARANTIE -->
+<div class="article">
+    <h4>5. Mise en œuvre de la garantie</h4>
+    <p>En cas de survenance d'un sinistre, l'assuré est tenu de prendre immédiatement toutes les mesures nécessaires pour limiter l'importance du sinistre et sauvegarder les biens garantis, par exemple prendre toutes les mesures utiles pour la sécurité et la conservation des objets non volés.</p>
+
+    <h5>5.1 Délai de déclaration du sinistre</h5>
+    <p>Le sinistre doit être déclaré dès que l'assuré et/ou le souscripteur ont connaissance du sinistre et au plus tard :</p>
+    <ul>
+        <li><strong>Pour la garantie vol :</strong> dans les 2 jours ouvrés. L'assuré devra déposer plainte dans les 2 jours de la découverte du vol</li>
+        <li><strong>Pour la garantie catastrophe naturelle ou technologique :</strong> dans les 10 jours ouvrés à partir de la publication de l'arrêté interministériel constatant l'état de catastrophe naturelle ou technologique</li>
+        <li><strong>Pour les autres garanties :</strong> dans les 5 jours ouvrés</li>
+    </ul>
+    <p>En cas de non-respect des délais de déclaration indiqués ci-dessus une déchéance de garantie pourra être prononcée par l'assureur.</p>
+    <p>La déchéance n'est pas opposable si :</p>
+    <ul>
+        <li>Le retard dans la déclaration est dû à un cas de force majeur</li>
+        <li>Le retard dans la déclaration n'a pas causé de préjudice à l'assureur</li>
+    </ul>
+
+    <h5>5.2 Composition du dossier sinistre</h5>
+    <p>Le dossier de déclaration sinistre comprendra les pièces suivantes :</p>
+    <ul>
+        <li>La date, le lieu, la nature et les circonstances du sinistre, ses causes connues ou supposées</li>
+        <li>La nature des dommages</li>
+        <li>Les nom, prénom, adresse et qualité du ou des personnes lésées ou responsables et, si possible, des témoins</li>
+        <li>En cas d'assurances multiples, les noms des sociétés d'assurances concernées, les références de leur contrat ainsi que le montant des sommes qu'ils garantissent</li>
+        <li>En cas de vol ou d'actes de vandalisme, l'original du récépissé du dépôt de plainte</li>
+        <li>Tout document prouvant l'existence, la possession, l'authenticité et la valeur des biens. Seront en particulier pris en compte les factures d'achat, de réparation ou d'entretien, de restauration, au nom de l'assuré, actes et inventaires notariés, les certificats d'authenticité, d'expertise ou estimations établies avant la survenance du sinistre par un professionnel ayant qualité pour les établir, les bons de livraison pour les biens achetés par correspondance, photographies et films vidéos pris de préférence dans le cadre habituel, descriptions précises des bijoux établies par un bijoutier</li>
+    </ul>
+
+    <p>Après la déclaration du sinistre, l'assuré doit communiquer :</p>
+    <ul>
+        <li>Un état estimatif des pertes certifié sincère par l'assuré (état estimatif des biens détruits, disparus ou endommagés) :
+            <ul>
+                <li>Dans les 2 jours en cas de sinistre vol ou acte de vandalisme</li>
+                <li>Dans les 30 jours pour les garanties catastrophe naturelle et catastrophe technologique</li>
+                <li>Dans les 5 jours pour les autres garanties</li>
+            </ul>
+        </li>
+        <li>Dès leur réception, tous avis, lettres, convocations, assignations ou autres documents concernant le sinistre</li>
+    </ul>
+
+    <p>L'assuré doit s'abstenir de procéder à toute réparation sans l'accord écrit de l'assureur. Toutefois, en cas d'urgence, l'assuré peut demander à l'assureur l'autorisation de réparer immédiatement les biens endommagés, à condition que ces réparations n'augmentent pas le coût des dommages. Le silence de l'assureur, plus de 10 jours après la réception de la demande vaut acceptation.</p>
+
+    <p>L'assureur se réserve le droit de demander tous documents ou informations nécessaires ou utiles à l'instruction du dossier.</p>
+    <p>Si le non-respect des délais de complétude du dossier indiqués ci-dessus cause un préjudice à l'assureur, celui-ci opposera une déchéance de garantie.</p>
+    <p>La déchéance n'est pas opposable si le retard dans la déclaration est dû à un cas de force majeure.</p>
+
+    <h5>5.3 Détermination de l'indemnité</h5>
+
+    <h6>5.3.1 Estimations des biens assurés</h6>
+    <p>L'assurance ne peut être une cause de bénéfice pour l'assuré (article L.121-1 du Code). Elle ne lui garantit que la réparation de ses pertes réelles ou de celles dont il est responsable.</p>
+    <p>La somme assurée ne peut être considérée comme une preuve de l'existence et de la valeur, au jour du sinistre des biens endommagés. L'assuré est donc tenu de justifier par tous moyens et documents en son pouvoir, de la réalité et de l'importance du dommage.</p>
+    <p>En fonction de la nature et de l'importance du sinistre, l'assureur propose à l'assuré un ou plusieurs modes d'indemnisation des biens mobiliers sinistrés :</p>
+    <ul>
+        <li>Une indemnisation financière de gré à gré</li>
+        <li>Une réparation en nature : l'assureur met l'assuré en relation avec des professionnels du bâtiment et organise leur intervention</li>
+        <li>Le règlement sur expertise</li>
+        <li>Une réparation ou à un remplacement à l'identique des appareils électriques</li>
+    </ul>
+
+    <p><strong>Les biens immobiliers</strong></p>
+    <p>Le bien assuré est estimé sur la base de sa valeur d'usage, à savoir sur la valeur de reconstruction, déduction faite de la vétusté.</p>
+    <p>L'assureur pourra prendre en charge la vétusté du bien (il ne sera tenu compte d'aucune valeur historique ou artistique).</p>
+    <p>Cependant la prise en charge de cette vétusté ne pourra être supérieure à 25% du prix de la reconstruction du bien.</p>
+    <p>L'assureur procèdera à l'indemnisation si :</p>
+    <ul>
+        <li>La reconstruction s'effectue dans un délai de 2 ans à compter de la date du sinistre, ce délai pouvant toutefois être prorogé avec l'accord de l'assureur en cas d'impossibilité absolue de le respecter</li>
+        <li>La reconstruction s'effectue sur l'emplacement du bâtiment sinistré sans qu'il soit apporté de modification importante à sa destination initiale. La reconstruction pourra néanmoins s'effectuer avec l'accord de l'assureur dans un endroit différent, lorsque l'impossibilité de reconstruire sur le même emplacement résulte de dispositions légales et réglementaires</li>
+        <li>La reconstruction, en ce qui concerne les bâtiments construits sur terrains d'autrui, s'effectue dans le délai d'un an à compter de la date de la clôture de l'expertise</li>
+    </ul>
+
+    <p><strong>Biens frappés d'expropriation ou destinés à la démolition</strong></p>
+    <p>En cas d'expropriation des biens assurés et de transfert de contrat à l'autorité expropriante, l'indemnité sera limitée à la valeur des matériaux évalués comme matériaux de démolition. La même limitation est applicable aux bâtiments destinés à la démolition.</p>
+
+    <p><strong>Embellissements</strong></p>
+    <p>L'indemnité est égale au coût de réparation dans la limite du remplacement à neuf, déduction faite de la vétusté.</p>
+
+    <p><strong>Récupération des objets volés ou perdus</strong></p>
+    <p>Dans le cadre de la garantie vol et tentative de vol avec effraction, vandalisme, l'assuré ou le souscripteur doit aviser l'assureur de la récupération des objets volés en tout ou partie, à tout moment (avant ou après indemnisation).</p>
+    <p>En cas de récupération :</p>
+    <ul>
+        <li><strong>Avant le paiement de l'indemnisation :</strong> l'assuré doit reprendre possession des objets récupérés et l'assureur n'est tenu qu'au paiement des pertes définitives et éventuellement des détériorations.</li>
+        <li><strong>Après le paiement de l'indemnisation :</strong> l'assuré peut en reprendre possession moyennant remboursement de l'indemnité après déduction des détériorations éventuellement subies à condition de faire connaître sa décision dans le délai de 1 mois. Passé ce délai, l'assureur devient de plein droit, propriétaire des objets récupérés.</li>
+    </ul>
+    <p>Dans ces deux cas, l'assuré sera indemnisé par l'assureur des frais raisonnables qu'il aura engagés en vue de la récupération.</p>
+
+    <p><strong>Garantie bris de glace</strong></p>
+    <p>Le règlement intervient sur présentation de la facture acquittée, de réparation ou de remplacement à l'identique, suite à validation par l'assureur d'un devis préalable détaillé.</p>
+
+    <p><strong>Garantie dommage électrique</strong></p>
+    <p>Le règlement intervient exclusivement sur présentation de la facture d'achat du bien sinistré.</p>
+    <p>La franchise indiquée aux conditions particulières sera appliquée.</p>
+
+    <p><strong>Biens mobiliers</strong></p>
+    <p>Le montant de l'indemnisation versée pour les biens mobiliers ne peut pas dépasser le plafond de la tranche mobilière choisie par l'assuré et spécifiée sur le bulletin d'adhésion au présent contrat. Ce montant sert de base au calcul de la cotisation annuelle.</p>
+    <p>Une franchise, dont le montant est rappelé sur le bulletin d'adhésion et dans les conditions particulières, vient en déduction de l'indemnité versée.</p>
+    <p>Les prestations qui répareraient les mêmes préjudices ne sont pas cumulables.</p>
+
+    <p>Le calcul de l'indemnisation est effectué en fonction de la typologie de biens mobiliers suivante :</p>
+    <ul>
+        <li><strong>Les meubles et objets de valeur :</strong> Lorsqu'ils sont garantis, ils sont indemnisés en valeur vénale au jour du sinistre après déduction de la franchise contractuelle.</li>
+        <li><strong>Les appareils électriques et informatiques :</strong> L'indemnisation est calculée avec une vétusté de 30% par an, à partir de la 1ère année, plafonnée à 80% maximum, dans la limite du plafond spécifié au bulletin d'adhésion et après déduction de la franchise contractuelle.</li>
+        <li><strong>Les autres biens :</strong> L'indemnisation est calculée avec une vétusté de 20% par an, à partir de la 1ère année, plafonnée à 80% maximum, dans la limite du plafond spécifié au bulletin d'adhésion et après déduction de la franchise contractuelle.</li>
+    </ul>
+
+    <h6>5.3.2 Expertise</h6>
+    <p>Les dommages matériels sont fixés de gré à gré sous réserve des droits respectifs des parties.</p>
+    <p>L'assureur peut désigner un expert pour procéder à l'évaluation. L'assuré a la possibilité de se faire assister par un autre expert. Si les experts ainsi désignés ne sont pas d'accord, ils s'adjoindront un troisième expert. Les trois experts opèrent en commun et à la majorité des voix.</p>
+    <p>Faute par l'une des parties de nommer un expert ou par les deux experts de s'entendre sur le choix du troisième, la désignation est effectuée par le Président du Tribunal Judiciaire dans le ressort duquel le sinistre s'est produit. Cette nomination est faite sur simple requête signée par les parties, ou par seulement l'une d'elles, l'autre ayant été convoquée par lettre recommandée.</p>
+    <p>Chacune supporte les frais et honoraires de son expert, ainsi que la moitié de ceux du troisième expert et les frais de sa nomination.</p>
+
+    <h6>5.3.3 Versement de l'indemnité</h6>
+    <p>L'indemnité est égale au montant des dommages estimés sur les bases indiquées pour chaque garantie, déduction faite des franchises prévues au contrat.</p>
+    <p>La notification par l'assureur de l'octroi de la garantie peut dépendre des délais de conclusions du rapport d'expertise.</p>
+    <p>L'indemnisation de l'assuré commencera dans les 3 jours ouvrés qui suivent la date de l'octroi de la garantie.</p>
+
+    <p><strong>Garantie Catastrophe technologique</strong></p>
+    <p>L'assureur s'engage à indemniser l'assuré du montant dû au titre de la garantie légale dans un délai de trois mois à compter de la date de remise de l'état estimatif des biens endommagés.</p>
+    <p>En tout état de cause, si la date de la publication de l'état de catastrophe technologique est postérieure à la date de remise de l'état estimatif, le délai d'indemnisation ne pourra excéder trois mois à compter de cette date de publication.</p>
+
+    <h5>5.4 Responsabilité civile – Recours</h5>
+    <p>Lorsqu'il est fait appel à un avocat pour résoudre amiablement le litige, assister l'assuré ou le représenter en justice, l'assuré dispose du choix de l'avocat.</p>
+    <p>Lorsque l'assistance d'un avocat est nécessaire pour résoudre amiablement le litige, assister l'assuré ou le représenter en justice, l'assuré a la liberté de le choisir. Dans ce cas, l'assuré doit en informer l'assureur et lui communiquer ses coordonnées. L'assureur peut proposer un avocat à l'assuré sur demande écrite de sa part.</p>
+    <p>Dans tous les cas, l'assuré négocie avec l'avocat le montant de ses frais et honoraires dans le cadre d'une convention d'honoraires et doit en tenir informé l'assureur du suivi.</p>
+    <p>Après analyse des informations transmises, l'assureur envisage les suites à donner au litige de l'assuré. Si sa demande est fondée, l'assureur privilégie les démarches amiables. Si celles-ci n'aboutissent pas, l'assureur étudie l'opportunité de poursuites judiciaires.</p>
+    <p>En cas de désaccord entre l'assuré et l'assureur sur le fondement de son litige ou sur les mesures à prendre pour régler le litige, l'assuré peut :</p>
+    <ul>
+        <li>soit soumettre, à ses frais, cette difficulté à l'appréciation d'un conciliateur. Cette tierce personne est désignée d'un commun accord ou désignée à défaut, par le président du Tribunal Judiciaire</li>
+        <li>soit exercer à ses frais l'action, objet du désaccord. Dans ce cas, si l'assuré obtient une solution définitive plus favorable que celle que proposée par l'assureur ou que celle que lui propose la tierce personne citée ci-dessus, l'assureur rembourse les frais et honoraires que l'assuré a engagés pour cette action. Cette prise en charge s'effectue à concurrence des montants maximaux indiqués dans les conditions particulières du présent contrat.</li>
+    </ul>
+
+    <h5>5.5 Plafond et franchise des garanties</h5>
+
+    <h6>5.5.1 Plafond</h6>
+    <p>Le montant des plafonds de chaque garantie est spécifié aux conditions particulières du présent contrat.</p>
+
+    <h6>5.5.2 Franchise</h6>
+    <p>Le montant des franchises de chaque garantie du contrat est spécifié aux conditions particulières du présent contrat.</p>
+
+    <p><strong>Garantie Catastrophe naturelle</strong></p>
+    <p>L'assuré conserve à sa charge une franchise légale dont le montant est fixé par arrêté.</p>
+    <p>Cependant, une franchise contractuelle supérieure à la franchise légale peut être mentionnée aux conditions particulières du présent contrat. Cette franchise sera alors appliquée. La loi interdit à l'assuré de souscrire une assurance pour couvrir la franchise légale.</p>
+
+    <h5>5.6 Pénalités</h5>
+
+    <p><strong>Garantie Incendie</strong></p>
+    <p>En cas de non-respect des mesures de prévention et de sécurité spécifiées dans les conditions générales du présent contrat, l'assureur se réserve le droit de prévoir des pénalités de 50% sur le montant de l'indemnité.</p>
+
+    <p><strong>Garantie dégâts des eaux</strong></p>
+    <p>En cas de non-respect des mesures de prévention et de sécurité spécifiées dans les conditions générales du présent contrat, l'assureur se réserve le droit de prévoir des pénalités de 50% sur le montant de l'indemnité.</p>
+
+    <p><strong>Garantie vol</strong></p>
+    <p>En cas de non-respect des mesures de prévention et de sécurité spécifiées dans les conditions générales du présent contrat, l'assureur se réserve le droit de prévoir des pénalités de 50% sur le montant de l'indemnité.</p>
 </div>
 
 <!-- ======================== PARTIE 3 ======================== -->
@@ -672,80 +1187,372 @@
     <h2>Partie 3 - La Vie du Contrat</h2>
 </div>
 
+<!-- 1. PRISE D'EFFET ET DURÉE -->
 <div class="article">
-    <h4>Article 3.1 - Prise d'effet et durée</h4>
-    <p>
-        Le contrat prend effet à la date indiquée aux conditions particulières.
-        Il est conclu pour une durée d'un an et se renouvelle par tacite reconduction.
-    </p>
+    <h4>1. Prise d'effet et durée</h4>
+
+    <h5>1.1 Prise d'effet du contrat</h5>
+    <p>Le contrat prend effet à compter de la date indiquée aux conditions particulières.</p>
+
+    <h5>1.2 Prise d'effet des garanties</h5>
+    <p>Les garanties prennent effet à la date indiquée aux conditions particulières signées. La prise d'effet ne pourra pas être prévue au-delà d'un délai de 120 jours à compter de la signature du devis.</p>
+
+    <h5>1.3 Durée du contrat</h5>
+    <p>Il est conclu pour une durée d'un an renouvelable par tacite reconduction à chaque échéance principale. L'échéance principale du contrat est fixée dans les conditions particulières du contrat.</p>
+    <p>Les garanties sont applicables pendant toute la durée du contrat sauf pendant les périodes de suspension du contrat d'assurance souscrit.</p>
+
+    <h4>2. Conditions de prise en charge des sinistres</h4>
+    <p>La prise en charge d'un sinistre ne pourra pas être accordée si le sinistre ne trouve pas son origine pendant la période de validité du contrat. Tout sinistre dont le fait générateur surviendrait avant la date de prise d'effet du contrat lors d'une période de suspension, comme après la date de résiliation effective dudit contrat, ne sera pas garanti. L'assureur se réserve aussi le droit de ne pas garantir tout sinistre survenu entre la date d'effet et le paiement effectif de la première cotisation.</p>
+
+    <h4>3. Modifications des garanties et informations des assurés</h4>
+
+    <h5>3.1 Modifications des garanties</h5>
+
+    <p>En cas de modification des garanties du contrat d'assurance, l'assureur doit les porter à la connaissance de l'assuré ou du souscripteur par écrit.</p>
+    <p>L'assuré ou le souscripteur dispose d'un délai de 30 jours pour refuser par écrit cette proposition.</p>
+    <p>Les modifications acceptées et signées entrent en application au plus tôt un mois après l'expiration du délai des 30 jours.</p>
+    <p>En cas de refus de l'assuré ou du souscripteur, les anciennes modalités du contrat demeurent mais l'assureur peut résilier le contrat à l'échéance annuelle suivante.</p>
+
+    <h5>3.2 Déclaration du risque et des autres assurances</h5>
+
+    <h6>3.2.1 Déclaration du risque à l'assureur</h6>
+    <p>A la souscription, la déclaration du risque permet d'apprécier le risque et de calculer la cotisation. L'assuré ou le souscripteur doit répondre avec précision aux questions posées. Les déclarations sont retranscrites dans le devis et les conditions particulières.</p>
+
+    <p>En cours de vie du contrat, l'assuré ou le souscripteur doit déclarer à l'assureur par lettre recommandée ou par envoi recommandé électronique, dans un délai de quinze jours à partir du moment où il en a eu connaissance, toutes circonstances nouvelles qui ont pour conséquences d'aggraver ou de modifier le risque et rendent de ce fait caduques et inexactes les réponses faites à l'assureur lors de la conclusion du contrat (article. L113-2-3 du code des assurances).</p>
+
+    <p>En cas d'aggravation du risque en cours de contrat, au sens de l'article L113-4 du code des assurances, l'assureur a la faculté soit de dénoncer le contrat, soit de proposer un nouveau montant de cotisation qui impactera la cotisation.</p>
+    <p>L'assureur dispose alors de 10 jours pour notifier à l'assuré ou au souscripteur la résiliation du contrat.</p>
+    <p>Si l'assuré ou le souscripteur ne donne pas suite à la proposition de l'assureur ou s'il refuse expressément le nouveau montant, dans le délai de 30 jours à compter de la proposition, l'assureur peut résilier le contrat au terme de ce délai, à condition d'avoir informé l'assuré ou le souscripteur de cette faculté, en la faisant figurer en caractères apparents dans la lettre de proposition.</p>
+
+    <h6>3.2.2 Sanctions</h6>
+    <p>Toute réticence ou déclaration intentionnellement fausse dans les déclarations du risque entraîne la nullité du contrat (article L113-8 du code des assurances).</p>
+    <p>Toute omission ou inexactitude non intentionnelle dans les déclarations du risque constatée avant sinistre entraîne soit :</p>
+    <ul>
+        <li>Une résiliation du contrat avec un préavis de dix jours</li>
+        <li>Une proposition d'une nouvelle cotisation. Si elle est refusée par l'assuré ou s'il n'y donne pas suite dans un délai de trente jours à compter de la proposition de l'assureur, celui-ci peut résilier le contrat au terme de ce délai.</li>
+    </ul>
+    <p>Toute omission ou inexactitude non intentionnelle dans les déclarations du risque constatée après sinistre entraîne une réduction des sommes déboursées pour l'indemnisation, en proportion des cotisations payées par rapport à celles qui auraient été dues si le risque avait été exactement déclaré (article L113-9 du code des assurances).</p>
+
+    <h6>3.2.3 Autres assurances</h6>
+    <p>L'assuré ou le souscripteur doit déclarer à l'assureur les contrats souscrits ou qu'il viendrait à souscrire sur tout ou partie des mêmes risques auprès d'autres sociétés d'assurances sous peine des sanctions prévues aux articles L121-3 et L121-4 du code des assurances.</p>
+    <p>L'assuré, en cas de sinistre, pourra alors s'adresser à l'assureur de son choix.</p>
+    <p>Les dispositions du présent article ne peuvent pas avoir pour effet d'accorder à l'assuré des droits plus étendus que ceux que le souscripteur lui-même tient du contrat.</p>
+    <p>La contribution de chacun des assureurs est déterminée en appliquant au montant du dommage (ou de la dette de responsabilité) le rapport existant entre l'indemnité que l'assureur aurait versée s'il avait été seul et le montant cumulé des indemnités qui auraient été à la charge de chaque assureur s'il avait été seul.</p>
+    <p>Si plusieurs assurances couvrant un même risque ont été contractées de manière frauduleuse ou dans l'intention de tromper l'assureur, celui-ci peut invoquer la nullité du contrat et réclamer des dommages et intérêts.</p>
 </div>
 
+<!-- 4. COTISATION ANNUELLE -->
 <div class="article">
-    <h4>Article 3.2 - Déclaration de sinistre</h4>
-    <p>L'assuré doit déclarer tout sinistre dans les délais suivants :</p>
-    <table class="definition-table">
-        <tr>
-            <th>Garantie</th>
-            <th>Délai</th>
-        </tr>
-        <tr>
-            <td>Vol</td>
-            <td>2 jours ouvrés + dépôt de plainte</td>
-        </tr>
-        <tr>
-            <td>Catastrophe naturelle/technologique</td>
-            <td>10 jours ouvrés après publication de l'arrêté</td>
-        </tr>
-        <tr>
-            <td>Autres garanties</td>
-            <td>5 jours ouvrés</td>
-        </tr>
-    </table>
+    <h4>4. Cotisation annuelle</h4>
+
+    <h5>4.1 Montant et modalités de paiement des cotisations</h5>
+    <p>Le montant de la cotisation annuelle et, lorsque la date d'effet ne coïncide pas avec l'échéance, celui de la portion de cotisation sont indiqués aux conditions particulières.</p>
+    <p>La cotisation annuelle et la portion de cotisation comprennent la cotisation dont le montant est fixé, par Mila pour les risques, objet du contrat, et les frais accessoires.</p>
+
+    <p>Toutes les taxes existantes ou pouvant être établies sur les contrats d'assurance sont à la charge du souscripteur.</p>
+    <p>Le montant de la cotisation annuelle est porté à la connaissance du souscripteur au moyen d'un avis d'échéance.</p>
+    <p>La cotisation annuelle est exigible dans sa totalité et payable d'avance à l'échéance.</p>
+
+    <p>Les cotisations d'assurance incluent une taxe fiscale obligatoire. Elles ne sont pas soumises à la TVA.</p>
+    <p>L'assureur collecte pour le compte de l'État : la Taxe sur les Conventions d'Assurance (TCA), dont le taux varie, selon les contrats et les garanties. Le prix de la cotisation d'assurance s'entend nécessairement TCA comprise et constitue un prix ferme et définitif. La TCA ne peut pas faire l'objet d'une correction à l'initiative de l'assureur de manière rétroactive. En cas d'évolution de taxe, celle-ci sera prise en compte uniquement pour l'avenir.</p>
+
+    <h5>4.2 Majoration de la cotisation</h5>
+    <p>L'augmentation de la cotisation peut être :</p>
+    <ul>
+        <li>Imposée par voie législative ou règlementaire. Cette majoration ne peut pas être refusée par l'assuré.</li>
+        <li>Décidée par l'assureur. Si l'assuré ou le souscripteur n'accepte pas la majoration, il peut dans les trente jours où elle a été portée à sa connaissance résilier son contrat.</li>
+    </ul>
+
+    <h5>4.3 Règlement de la cotisation</h5>
+    <p>La cotisation est payable selon les modalités précisées dans les conditions particulières.</p>
+    <p>En cas de prélèvement SEPA, les conditions particulières remises lors de la souscription ou de l'avenant valent pré-notification des prélèvements effectués aux échéances convenues.</p>
+
+    <h5>4.4 Conséquences de non-paiement de la cotisation</h5>
+    <p>A défaut de paiement d'une cotisation, ou d'une fraction de cotisation, dans les dix jours de son échéance, l'assureur peut suspendre la garantie suite à un préavis de 30 jours après la mise en demeure de l'assuré. Il peut 10 jours après résilier le contrat (article L113-3 du code des assurances). La suspension des garanties pour non-paiement de cotisation ne dispense pas l'assuré ou le souscripteur de payer ses cotisations.</p>
+    <p>Le contrat non résilié reprendra effet après suspension des garanties à midi le lendemain du jour du paiement intégral des cotisations et frais de poursuite et de recouvrement, qui comprennent le coût de mise en demeure de payer les cotisations émises par l'assureur (article L113-3 du code des assurances).</p>
+    <p>Le retard de paiement d'une des fractions de la cotisation entraînera de plein droit l'exigibilité immédiate du total des fractions restant dues.</p>
+    <p>Le règlement qui interviendrait après la résiliation du contrat ne le remettra pas en vigueur.</p>
+    <p>Tout sinistre intervenu pendant la période de suspension des garanties ne sera pas pris en charge par l'assureur.</p>
+</div>
+
+<!-- 5. RÉSILIATION DU CONTRAT -->
+<div class="article">
+    <h4>5. Résiliation du contrat</h4>
+
+    <h5>5.1 Résiliation par l'assuré</h5>
+    <p>L'assuré ou le souscripteur peut résilier :</p>
+    <ul>
+        <li>En cas de diminution du risque, si l'assureur ne consent pas à la réduction de la cotisation correspondante (article L113-4 du code des assurances)</li>
+        <li>En cas de majoration du taux de cotisation, à moins que celui-ci ne soit d'origine légale ou engendrée par une évolution des taxes. L'assuré ou le souscripteur aura alors la faculté de résilier le contrat dans les quinze jours suivant la réception du courrier la mentionnant</li>
+        <li>En cas de résiliation par l'assureur d'un autre contrat après sinistre (articles R113-10 et A211-1-2 du code des assurances)</li>
+        <li>En cas de cessation d'activité du souscripteur personne morale</li>
+    </ul>
+
+    <ul>
+        <li>L'assuré dispose d'un droit de renonciation à ce contrat pendant un délai de trente (30) jours calendaires à compter de sa conclusion, sans frais ni pénalité. Toutefois, s'il bénéficie d'une ou plusieurs cotisation d'assurance qui lui sont offertes, de telle sorte qu'il n'a pas à payer de cotisation sur un ou plusieurs mois en début d'exécution de contrat, ce délai ne court qu'à compter du paiement de tout ou partie de la première cotisation. L'exercice du droit de renonciation est subordonné aux quatre conditions suivantes :
+            <ul>
+                <li>Le contrat a été souscrit à des fins non professionnelles</li>
+                <li>Le contrat vient en complément de l'achat d'un bien ou d'un service vendu par un fournisseur</li>
+                <li>Le contrat n'a pas été intégralement exécuté</li>
+                <li>Aucun sinistre garanti par ce contrat n'a été déclaré</li>
+            </ul>
+        </li>
+    </ul>
+
+    <p>Dans cette situation, l'assuré dispose d'un droit à renoncer à ce contrat par lettre ou tout autre support durable adressé à :</p>
+    <p style="text-align: center; margin: 10px 0;"><strong>Mila Service Clients : 150 boulevard Joffre, 17000 La Rochelle</strong></p>
+
+    <p>L'assureur est tenu de rembourser la cotisation payée dans un délai de trente (30) jours à compter de la renonciation.</p>
+    <p>En outre, afin d'éviter un cumul d'assurance, l'assuré est invité à vérifier qu'il n'est pas déjà bénéficiaire d'une garantie couvrant l'un des risques garantis par le contrat souscrit.</p>
+    <ul>
+        <li>Si l'assuré souhaite renoncer au présent contrat mais qu'il ne remplit pas l'ensemble des conditions ci-dessus, il peut bénéficier d'un délai de renonciation de quatorze jours si le contrat a été souscrit à distance ou dans le cadre d'un démarchage à domicile, à sa résidence ou sur son lieu de travail, comme spécifié dans le paragraphe 6 de la vie du contrat (article L.112-2-1, article L.112-2-2, article L.112-9 du code des assurances)</li>
+    </ul>
+
+    <div class="alert-box" style="background-color: #f5f7f9; border-color: #2680eb;">
+        <p style="color: #3e3c41;"><strong>Modèle de lettre de renonciation :</strong><br><br>
+        Messieurs,<br>
+        Je soussigné(e) (nom / prénom du preneur d'assurance) demeurant à (adresse du domicile principal), ai l'honneur de vous informer que je renonce à la souscription du contrat Multirisque Habitation de Mila (numéro de contrat) que j'ai signé le (date).<br>
+        (si des cotisations ont été perçues), je vous prie de bien vouloir procéder au remboursement des cotisations versées, déduction faite de la cotisation imputable au prorata de la période de garantie.<br>
+        Fait à…. / Le ….</p>
+    </div>
+
+    <ul>
+        <li>A tout moment, sans frais ni pénalités à l'expiration d'un délai d'un an à compter de la date de souscription pour les contrats d'assurance couvrant les personnes physiques en dehors de leurs activités professionnelles (article L113-15-2 du code des assurances)</li>
+        <li>En cas de transfert de portefeuille de l'assureur (article L324-1 du code des assurances)</li>
+    </ul>
+    <p>Le souscripteur, uniquement dans le cadre de la garantie risques locatifs, peut résilier à tout moment si le locataire justifie de la souscription d'un contrat d'assurance multirisque habitation. Le souscripteur est redevable des cotisations jusqu'à la résiliation.</p>
+
+    <h5>5.2 Résiliation par l'assuré ou l'assureur</h5>
+    <p>L'assuré, le souscripteur ou l'assureur peut résilier :</p>
+    <ul>
+        <li>En cas de décès de l'assuré ou du souscripteur ou de transfert de propriété du bien (article L121-10 du code des assurances)</li>
+        <li>En cas de changement de situation de l'assuré (articles L113-16 et R113-6 du code des assurances)</li>
+    </ul>
+
+    <h5>5.3 Résiliation par l'assureur</h5>
+    <p>L'assureur peut résilier :</p>
+    <ul>
+        <li>Lors de chaque annuelle, en énonçant sa décision à l'assuré avec un préavis de deux mois (article L113-12 du code des assurances)</li>
+        <li>En cas d'aggravation du risque (article L113-4 du code des assurances)</li>
+        <li>En cas de fausse déclaration intentionnelle, d'omission ou d'inexactitude dans la déclaration des risques à la souscription ou en cours du contrat (articles L113.8, L113.9 du code des assurances)</li>
+        <li>Après sinistre (article R113.10 du code des assurances)</li>
+        <li>En cas de non-paiement de la cotisation (article L113-3 du code des assurances)</li>
+    </ul>
+
+    <h5>5.4 Résiliation par l'administrateur ou le liquidateur judiciaire</h5>
+    <p>En cas d'ouverture d'une procédure de sauvegarde, redressement judiciaire ou liquidation judiciaire (article L622-13 du code de commerce).</p>
+
+    <h5>5.5 Résiliation de plein droit</h5>
+    <ul>
+        <li>En cas de perte totale des biens assurés due à un événement non garanti (article L121-1 du code des assurances)</li>
+        <li>En cas de retrait de l'agrément ou de liquidation judiciaire de l'assureur (articles L326-12 et L113-6 du code des assurances)</li>
+        <li>En cas de réquisition de propriété des biens assurés (articles L160-6 et R160-9 du code des assurances)</li>
+    </ul>
+
+    <h5>5.6 Notification par l'assuré ou par l'assureur</h5>
+    <p><strong>Par l'assuré ou le souscripteur,</strong> par lettre simple, lettre recommandée ou par déclaration faite contre récépissé auprès de MILA, ou tout autre support durable, soit par déclaration faite au siège social ou chez le représentant de l'assureur ; soit par acte extrajudiciaire, soit, si le contrat a été conclu par un mode de communication à distance, par le même mode de communication.</p>
+    <p>L'assuré recevra une confirmation écrite de la réception de la notification.</p>
+
+    <p><strong>Par l'assureur,</strong> par lettre recommandée adressée à l'adresse du dernier Domicile connu de l'assuré ou du souscripteur.</p>
+    <p>Lorsque la résiliation est faite par lettre, le délai de préavis est décompté à partir de la date d'envoi (le cachet de la Poste faisant foi).</p>
+    <ul>
+        <li>Si la résiliation intervient entre deux échéances, la part de cotisation correspondant à la période allant de la résiliation à la prochaine échéance est remboursée sous réserve des conditions ci-dessous du présent article ET sauf en cas de résiliation pour non-paiement de la cotisation (Art. L. 113-3 du Code des assurances) ; dans ce dernier cas, la cotisation annuelle est intégralement due.</li>
+    </ul>
+</div>
+
+<!-- 6. FOURNITURE À DISTANCE -->
+<div class="article">
+    <h4>6. Fourniture à distance d'opérations d'assurance</h4>
+
+    <p>Constitue une fourniture d'opération d'assurance à distance, telle que définie par l'article L112-2-1 du Code des assurances, la fourniture d'opérations d'assurance auprès d'un souscripteur ou de l'assuré, personne physique, qui agit en dehors de toute activité commerciale ou professionnelle, dans le cadre d'un système de vente ou de prestation de services à distance organisé par l'assureur ou le distributeur qui, pour ce contrat, utilise exclusivement des techniques de communication à distance jusqu'à, y compris, la conclusion du contrat.</p>
+
+    <p>Il est précisé que, conformément aux dispositions de l'article L112-2-1 du Code des assurances, les règles concernant la fourniture d'opération d'assurance à distance : ne s'appliquent qu'au premier contrat, pour les contrats à durée déterminée suivis d'autres contrats de même nature, échelonnés dans le temps, sous condition que pas plus d'un an ne se soit écoulé entre deux contrats ; ne s'appliquent qu'en vue et lors de la conclusion du contrat initial, pour les contrats renouvelables par tacite reconduction.</p>
+
+    <p>Si le contrat a été conclu exclusivement à distance, l'assuré ou le souscripteur dispose d'un délai de 14 jours calendaires révolus pour renoncer au contrat et ce, sans avoir à justifier de motif ni à supporter de pénalité.</p>
+    <p>Ce délai commence à courir soit à compter du jour où le contrat à distance est conclu, soit à compter du jour où l'assuré a reçu les présentes conditions générales si cette date est postérieure à celle de conclusion du contrat.</p>
+    <p>Le souscripteur ou l'assuré est informé que le contrat ne peut recevoir commencement d'exécution avant l'arrivée du terme de ce délai sans son accord.</p>
+    <p>En cas de demande express de l'assuré, la souscription peut prendre effet avant l'expiration du délai de renonciation.</p>
+    <p>Le droit de renonciation ne s'applique toutefois pas si le contrat a été exécuté intégralement par les deux parties à la demande expresse de l'assuré avant qu'il n'exerce son droit à renonciation. En cas de renonciation, l'assureur conservera la portion de cotisation perçue afférente à la période couverte.</p>
+    <p>Le contrat sera résilié à la date de la réception de la lettre de l'assuré.</p>
+    <p>L'assuré ou le souscripteur doit notifier sa demande par courrier recommandé ou envoi recommandé électronique avec demande d'avis de réception à MILA Assurance ou à son distributeur. Cette demande intègrera la phrase suivante : « Je soussigné(e) &lt;nom et prénom&gt; exerce mon droit de renonciation prévu par l'article L112-2-1 du code des assurances pour mon contrat numéro (indiquez le numéro inscrit sur les conditions particulières), souscrit le (date de souscription). »</p>
+</div>
+
+<!-- 7. DÉMARCHAGE À DOMICILE -->
+<div class="article">
+    <h4>7. Démarchage à domicile ou sur le lieu de travail</h4>
+
+    <p>Toute personne physique qui fait l'objet d'un démarchage à son domicile, à sa résidence ou sur son lieu de travail, même à sa demande, et qui signe dans ce cadre une proposition d'assurance ou un contrat à des fins qui n'entrent pas dans le cadre de son activité commerciale ou professionnelle, a la faculté d'y renoncer par lettre recommandée ou envoi recommandé électronique avec demande d'avis de réception pendant le délai de 14 jours calendaires révolus à compter du jour de la conclusion du contrat, sans avoir à justifier de motifs ni à supporter de pénalités.</p>
+
+    <p>L'exercice du droit de renonciation dans les délais entraîne la résiliation du contrat à compter de la date de réception de la lettre recommandée ou envoi recommandé électronique.</p>
+    <p>Dès lors qu'il a connaissance d'un sinistre mettant en jeu la garantie du contrat, le souscripteur ne peut plus exercer ce droit de renonciation.</p>
+    <p>Le souscripteur ou l'assuré doit adresser sa demande de renonciation à Mila Assurance ou à son distributeur en assurance.</p>
+    <p>Cette demande intègrera la phrase suivante : « Je soussigné(e) &lt;vos nom et prénom&gt; exerce mon droit de renonciation prévu par l'article L112-2-1 du code des assurances pour mon contrat numéro (le numéro inscrit sur les conditions particulières), souscrit le (date de souscription) ».</p>
+    <p>L'exercice de ce droit de renonciation entraîne la résiliation du contrat à compter de la date de réception de la lettre recommandée.</p>
+    <p>En cas de renonciation, le souscripteur ou l'assuré ne peut être tenu qu'au paiement de la partie de cotisation correspondant à la période pendant laquelle le risque a couru, cette période étant calculée jusqu'à la date de la résiliation.</p>
+    <p>Toutefois, l'intégralité de la cotisation reste due à l'entreprise d'assurance si l'assuré exerce son droit de renonciation alors qu'un sinistre mettant en jeu la garantie du contrat et dont il n'a pas eu connaissance est intervenu pendant le délai de renonciation.</p>
 
     <div class="alert-box">
-        <p><strong>Non-respect des délais :</strong> déchéance de garantie sauf force majeure.</p>
+        <p>Si le souscripteur ne souhaite pas faire l'objet de prospection commerciale par voie téléphonique, il peut s'inscrire gratuitement sur la liste d'opposition au démarchage téléphonique <strong>BLOCTEL</strong>.<br>
+        Pour plus d'informations, il est possible de consulter le site <strong>bloctel.gouv.fr</strong></p>
     </div>
 </div>
 
+<!-- 8. SUBROGATION -->
 <div class="article">
-    <h4>Article 3.3 - Cotisation</h4>
-    <p>
-        La cotisation annuelle est indiquée aux conditions particulières. Elle comprend :
-    </p>
-    <ul>
-        <li>Prime d'assurance TTC</li>
-        <li>Contribution aux catastrophes naturelles</li>
-        <li>Taxes et contributions légales</li>
-    </ul>
-    <p>
-        Le non-paiement de la cotisation entraîne une mise en demeure par lettre recommandée,
-        puis la suspension des garanties (10 jours après mise en demeure),
-        puis la résiliation (30 jours après suspension).
-    </p>
+    <h4>8. Subrogation</h4>
+    <p>L'assureur qui a payé l'indemnité d'assurance est subrogé, jusqu'à concurrence de cette indemnité, dans les droits et actions du souscripteur contre les tiers qui, par leur fait, ont causé le dommage ayant donné lieu à la responsabilité de l'assureur (article L.121-12 du code des assurances).</p>
+    <p>Dans le cas où tout tiers viendrait à verser entre les mains du souscripteur une somme déjà payée par l'assureur dans le cadre de l'indemnité contractuelle, celle-ci serait immédiatement rétrocédée à l'assureur. En cours de procédure, l'assureur serait en droit de demander la restitution des indemnités versées en cas de non-respect des obligations légales ou réglementaires du souscripteur ou de l'assuré portant préjudice à ses intérêts.</p>
+    <p>L'assureur peut être déchargé, en tout ou en partie, de sa responsabilité envers l'assuré, quand la subrogation ne peut plus, par le fait de l'assuré, s'opérer en faveur de l'assureur.</p>
+    <p>Par dérogation aux dispositions précédentes, l'assureur n'a aucun recours contre les enfants, descendants, ascendants, sauf cas de malveillance commise par une de ces personnes.</p>
 </div>
 
+<!-- 9. DÉCHÉANCE -->
 <div class="article">
-    <h4>Article 3.4 - Résiliation</h4>
-    <p><strong>Par l'assuré :</strong></p>
-    <ul>
-        <li>À tout moment après 1 an (loi Hamon), effet 1 mois après notification</li>
-        <li>À chaque échéance annuelle (préavis 2 mois)</li>
-        <li>Après sinistre (dans les 30 jours suivant indemnisation)</li>
-    </ul>
-    <p><strong>Par l'assureur :</strong></p>
-    <ul>
-        <li>Non-paiement des cotisations</li>
-        <li>Aggravation du risque</li>
-        <li>Omission ou inexactitude des déclarations</li>
-    </ul>
+    <h4>9. Déchéance</h4>
+    <p>Si le souscripteur ou l'assuré intentionnellement effectue de fausses déclarations, utilise des documents inexacts comme justificatifs ou use de moyens frauduleux, le souscripteur est déchu de tout droit à indemnité pour le sinistre en cause.</p>
 </div>
 
+<!-- 10. PRESCRIPTION -->
 <div class="article">
-    <h4>Article 3.5 - Prescription</h4>
-    <p>
-        Toute action dérivant du contrat se prescrit par <strong>2 ans</strong> à compter
-        de l'événement qui y donne naissance, conformément à l'article L114-1 du Code des assurances.
+    <h4>10. Prescription</h4>
+    <p>Toute action dérivant du présent contrat d'assurance se prescrit à l'issue d'un délai de deux ans à compter de l'événement qui lui donne naissance, conformément aux dispositions prévues par les articles L.114-1 à L.114-3 du code des assurances.</p>
+    <p>Toutefois, ce délai ne court :</p>
+    <ul>
+        <li>En cas de réticence, omission, déclaration fausse ou inexacte sur le risque couru, que du jour où l'assureur en a eu connaissance</li>
+        <li>En cas de sinistre, que du jour où les intéressés en ont eu connaissance, s'ils prouvent qu'ils l'ont ignoré jusque-là</li>
+    </ul>
+    <p>Quand l'action de l'assuré contre l'assureur a pour cause le recours d'un tiers, le délai de la prescription ne court que du jour où ce tiers a exercé une action en justice contre l'assuré ou a été indemnisé par ce dernier.</p>
+    <p>Conformément à l'article L114-2 du code des assurances, la prescription est interrompue par une des causes ordinaires d'interruption de la prescription et par la désignation d'experts à la suite d'un sinistre. L'interruption de la prescription de l'action peut, en outre, résulter de l'envoi d'une lettre recommandée ou d'un envoi recommandé électronique, avec accusé de réception, adressé par l'assureur à l'assuré en ce qui concerne l'action en paiement de la cotisation et par l'assuré à l'assureur en ce qui concerne le règlement de l'indemnité.</p>
+
+    <p>Les causes ordinaires d'interruption de la prescription sont mentionnées aux articles 2240 et suivants du code civil :</p>
+    <ul>
+        <li><strong>Article 2240 :</strong> La reconnaissance par le débiteur du droit de celui contre lequel il prescrivait interrompt le délai de prescription.</li>
+        <li><strong>Article 2241 :</strong> La demande en justice, même en référé, interrompt le délai de prescription ainsi que le délai de forclusion. Il en est de même lorsqu'elle est portée devant une juridiction incompétente ou lorsque l'acte de saisine de la juridiction est annulé par l'effet d'un vice de procédure.</li>
+        <li><strong>Article 2242 :</strong> L'interruption résultant de la demande en justice produit ses effets jusqu'à l'extinction de l'instance.</li>
+        <li><strong>Article 2243 :</strong> L'interruption est non avenue si le demandeur se désiste de sa demande ou laisse périmer l'instance, ou si sa demande est définitivement rejetée.</li>
+        <li><strong>Article 2244 :</strong> Le délai de prescription ou le délai de forclusion est également interrompu par une mesure conservatoire prise en application du code des procédures civiles d'exécution ou un acte d'exécution forcée.</li>
+        <li><strong>Article 2245 :</strong> L'interpellation faite à l'un des débiteurs solidaires par une demande en justice ou par un acte d'exécution forcée ou la reconnaissance par le débiteur du droit de celui contre lequel il prescrivait interrompt le délai de prescription contre tous les autres, même contre leurs héritiers. En revanche, l'interpellation faite à l'un des héritiers d'un débiteur solidaire ou la reconnaissance de cet héritier n'interrompt pas le délai de prescription à l'égard des autres cohéritiers, même en cas de créance hypothécaire, si l'obligation est divisible. Cette interpellation ou cette reconnaissance n'interrompt le délai de prescription, à l'égard des autres codébiteurs, que pour la part dont cet héritier est tenu. Pour interrompre le délai de prescription pour le tout, à l'égard des autres codébiteurs, il faut l'interpellation faite à tous les héritiers du débiteur décédé ou la reconnaissance de tous ces héritiers.</li>
+        <li><strong>Article 2246 :</strong> L'interpellation faite au débiteur principal ou sa reconnaissance interrompt le délai de prescription contre la caution.</li>
+    </ul>
+    <p>Le régime juridique de la prescription est défini aux articles 2219 et suivants du Code civil.</p>
+</div>
+
+<!-- 11. RÉCLAMATIONS -->
+<div class="article">
+    <h4>11. Réclamations</h4>
+    <p>En cas de réclamation concernant le contrat, l'Assuré peut s'adresser à Mila ou à AXA aux adresses indiquées ci-dessous :</p>
+
+    <p>Afin de faciliter le traitement de la demande, nous l'invitons à privilégier :</p>
+    <p><strong>Pour les demandes en lien avec :</strong></p>
+    <ul>
+        <li><strong>l'assurance, la souscription et la gestion du contrat :</strong><br>
+            Mila – Service qualité<br>
+            150 boulevard Joffre<br>
+            17000 La Rochelle<br>
+            Ou par email à : <strong>service.qualite@mila.fr</strong>
+        </li>
+        <li><strong>la fourniture des prestations d'assistance :</strong><br>
+            AXA Partners - Service Gestion Relation Clientèle<br>
+            8-10 rue Paul Vaillant Couturier - 92240 Malakoff<br>
+            Ou sur le site internet à partir de la rubrique « contact » : <strong>www.axa-assistance.fr/contact</strong>
+        </li>
+    </ul>
+
+    <p>AXA et Mila s'engagent à accuser réception sous dix (10) jours ouvrables, sauf si une réponse est apportée dans ce délai. Une réponse sera adressée dans un délai maximum de deux (2) mois.</p>
+
+    <p>Dès deux (2) mois à compter de la première réclamation écrite, l'Assuré peut faire appel au Médiateur, personnalité indépendante en écrivant à l'adresse suivante :</p>
+    <p style="text-align: center; margin: 15px 0;">
+        <strong>La Médiation de l'Assurance</strong><br>
+        TSA 50110 - 75441 Paris Cedex 09<br>
+        Ou en complétant le formulaire de saisine directement sur le site internet : <strong>www.mediation-assurance.org</strong>
     </p>
+
+    <p>Ce recours est gratuit. L'avis du Médiateur ne s'impose pas et laissera toute liberté à l'Assuré pour saisir éventuellement le Tribunal français compétent. Le Médiateur formulera un avis dans un délai de quatre-vingt-dix (90) jours à compter de la réception du dossier complet.</p>
+</div>
+
+<!-- 12. PROTECTION DES DONNÉES -->
+<div class="article">
+    <h4>12. Protection des données à caractère personnel</h4>
+
+    <h5>12.1 Traitement des données à caractère personnel</h5>
+    <p>Le traitement des données à caractère personnel de l'assuré ou du souscripteur par l'assureur a pour principales finalités la passation, la gestion (y compris commerciale) et l'exécution du contrat d'assurance.</p>
+    <p>Ces données collectées sont également susceptibles, en tout ou partie, d'être utilisées :</p>
+    <ul>
+        <li>Dans le cadre de contentieux</li>
+        <li>Pour la lutte contre le blanchiment et le financement du terrorisme (LCB FT)</li>
+        <li>Pour la lutte contre la fraude à l'assurance</li>
+        <li>Pour le traitement des réclamations clients</li>
+        <li>Pour permettre à l'assureur de se conformer à une réglementation applicable</li>
+        <li>Pour analyser tout ou partie des données collectées, éventuellement croisées avec celles de partenaires choisis afin d'améliorer le(s) produit(s) d'assurance conçus par l'assureur, d'évaluer la situation au regard des besoins d'assurance de l'assuré, d'évaluer la qualité des produits ou services fournis (enquête qualité et de satisfaction)</li>
+    </ul>
+
+    <p>Les données à caractère personnel sont recueillies par l'assureur, directement ou indirectement (réseau de distributeurs en assurance et partenaires).</p>
+
+    <p>Les responsables de traitement sont : l'assureur ou le distributeur pour les activités qui lui sont déléguées dans le cadre de la présentation, proposition, conclusion et souscription au contrat, de la relation avec le souscripteur, de l'exécution du contrat et de la gestion des sinistres.</p>
+
+    <p>Pour les finalités indiquées précédemment, tout ou partie de ces données pourront être utilisées par différents services de l'assureur et pourront le cas échéant être transmises à ses distributeurs en assurance, partenaires, mandataires, réassureurs, organismes professionnels, sous-traitants missionnés ainsi qu'aux organismes d'assurance des personnes impliquées et aux organismes et autorités publics.</p>
+    <p>Ces destinataires peuvent être situés en dehors de l'Union Européenne sur la base d'une décision d'adéquation ou de conditions contractuelles négociées.</p>
+
+    <h5>12.2 Localisation des données à caractère personnel</h5>
+    <p>Les données personnelles collectées par l'assureur sont hébergées dans l'Union Européenne.</p>
+    <p>Toutefois, dans le cadre des traitements réalisés, Mila est susceptible de transférer certaines données hors Union Européenne pour permettre l'action de ses prestataires. Ces transferts potentiels sont encadrés par les clauses types de la Commission Européenne ou règles d'entreprise contraignantes mises en œuvre par les prestataires de Mila.</p>
+
+    <h5>12.3 Durée de conservation des données à caractère personnel</h5>
+    <h6>12.3.1 En l'absence de conclusion de contrat :</h6>
+    <p> Les données seront conservées pendant un délai de 3 ans à compter de leur collecte ou dernier contact émanant du prospect (demande de renseignements ou de documentation, par exemple).</p>
+    <h6>12.3.2 Lors de la conclusion du contrat :</h6>
+    <p> Les données à caractère personnel seront conservées le temps nécessaire aux différentes opérations ou pour la durée spécifiquement prévue par la CNIL (normes pour le secteur de l'assurance) ou la loi (prescriptions légales).</p>
+
+    <h5>12.4 Droits à la protection des données à caractère personnel</h5>
+    <p>L'assuré ou le souscripteur peut demander l'accès, la rectification, l'effacement ou la portabilité de ses données, exercer son droit à la limitation ou à l'opposition du traitement de ses données.</p>
+    <p>L'assuré ou le souscripteur peut à tout moment retirer son consentement au traitement de ses données sous réserve qu'il ne s'agisse pas d'informations qui conditionnent l'application de son contrat, le respect d'une obligation légale ou la constatation, l'exercice ou la défense de droits en justice.</p>
+
+    <p>Pour exercer ces droits ou pour toute question sur le traitement de leurs données à caractère personnel, l'assuré peut adresser sa demande :</p>
+    <p><strong>Pour la partie assurance :</strong></p>
+    <ul>
+        <li>Par email à : <strong>dpo@mila.fr</strong></li>
+        <li>Par courrier à : DPO Mila – Paris&Co – 1 parvis de la Défense. Grande Arche de la Défense – 92800 Puteaux</li>
+    </ul>
+    <p>en précisant les éléments suivants : nom, prénom et email et en joignant une copie recto-verso d'un justificatif d'identité en cours de validité (carte nationale d'identité ou passeport).</p>
+
+    <p><strong>Ou pour la garantie assistance :</strong></p>
+    <p style="margin-left: 20px;">
+        Délégué à la Protection des données<br>
+        AXA<br>
+        6, rue André Gide<br>
+        92320 Châtillon<br>
+        Email : <strong>dpo.axapartnersfrance@axa-assistance.com</strong>
+    </p>
+
+    <p>L'assureur est légalement tenu de vérifier que les données à caractère personnel sont exactes, complètes et, si nécessaire, mises à jour. L'assureur peut ainsi solliciter l'assuré pour vérifier ou mettre à jour les dossiers.</p>
+
+    <p>En cas de réclamation, l'assuré a la possibilité de saisir la CNIL à l'adresse suivante : Commission Nationale Informatique et Libertés, 3 Place de Fontenoy 75007 Paris - www.cnil.fr - Téléphone : 01.53.73.22.22.</p>
+</div>
+
+<!-- 13. LUTTE CONTRE LE BLANCHIMENT -->
+<div class="article">
+    <h4>13. Lutte contre le blanchiment et lutte anti-fraude</h4>
+    <p>Les contrôles que l'assureur est légalement tenu d'effectuer au titre de la lutte contre le blanchiment d'argent et contre le financement du terrorisme, notamment sur les mouvements de capitaux transfrontaliers, peuvent le conduire à tout moment à demander des explications ou des justificatifs, y compris sur l'acquisition des biens assurés ou sur les sommes versées au contrat.</p>
+    <p>De par sa politique de maîtrise des risques, de la lutte contre le blanchiment des capitaux et le financement du terrorisme et de la lutte anti-fraude, l'assureur et ses partenaires, se réservent le droit de procéder à tout contrôle des informations transmises lors de l'exécution et de la gestion des prestations.</p>
+</div>
+
+<!-- 14. SANCTIONS INTERNATIONALES -->
+<div class="article">
+    <h4>14. Sanctions internationales</h4>
+    <p>L'assureur ne sera tenu à aucune garantie, ne fournira aucune prestation et ne sera obligé de payer aucune somme au titre du présent contrat dès lors que la mise en œuvre d'une telle garantie, la fourniture d'une telle prestation ou un tel paiement l'exposerait à une sanction, prohibition ou restriction résultant d'une résolution de l'Organisation des Nations Unies, et/ou aux Sanctions économiques ou commerciales prévues par les lois ou règlements édictés par l'Union Européenne, la France, les États-Unis d'Amérique, la Suisse ou par tout autre droit national applicable prévoyant de telles mesures.</p>
+</div>
+
+<!-- 15. SÉCURITÉ -->
+<div class="article">
+    <h4>15. Sécurité</h4>
+    <p>L'assureur met en place toutes les précautions utiles pour préserver la sécurité et la confidentialité des données personnelles de l'assuré et bénéficiaire et souscripteur.</p>
+</div>
+
+<!-- 16. AUTORITÉ DE CONTRÔLE -->
+<div class="article">
+    <h4>16. L'autorité de contrôle</h4>
+    <p>L'autorité de contrôle des assureurs est l'ACPR (Autorité de Contrôle Prudentiel et de Résolution), 4 place de Budapest - CS 92459 - 75436 PARIS cedex 09.</p>
+    <p>Pour Inter Partner Assistance : La Banque Nationale de Belgique, Boulevard de Berlaimont 14 – 1000 Bruxelles</p>
 </div>
 
 <!-- ======================== PARTIE 4 ======================== -->

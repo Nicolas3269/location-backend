@@ -14,16 +14,59 @@ if TYPE_CHECKING:
     from location.models import Adresse, Bien
 
 
+class AdresseIncompleteError(ValueError):
+    """Exception levée quand une adresse est incomplète pour l'API Mila."""
+
+    def __init__(self, missing_fields: list[str]):
+        self.missing_fields = missing_fields
+        fields_str = ", ".join(missing_fields)
+        super().__init__(
+            f"L'adresse est incomplète pour l'assurance MRH avec Hestia. Champs manquants: {fields_str}."
+        )
+
+
 class AdresseToMilaAdapter:
     """Convertit une Adresse vers le format Mila API."""
 
     @staticmethod
-    def to_mila(adresse: "Adresse") -> dict:
+    def validate_for_mila(adresse: "Adresse") -> None:
+        """
+        Valide qu'une adresse contient tous les champs requis par Mila.
+
+        Raises:
+            AdresseIncompleteError: Si des champs requis sont manquants
+        """
+        missing_fields = []
+
+        # address_line1 = rue = numero + voie (voie est requis)
+        if not adresse.voie:
+            missing_fields.append("voie (nom de rue)")
+
+        # postal_code est requis par Mila
+        if not adresse.code_postal:
+            missing_fields.append("code_postal")
+
+        # city est requis (mais déjà obligatoire dans le modèle)
+        if not adresse.ville:
+            missing_fields.append("ville")
+
+        if missing_fields:
+            raise AdresseIncompleteError(missing_fields)
+
+    @staticmethod
+    def to_mila(adresse: "Adresse", validate: bool = True) -> dict:
         """
         Convertit une Adresse vers le format attendu par l'API Mila.
 
         Note: adresse.rue est une propriété calculée qui combine numero + voie.
         Ex: numero="123", voie="Rue de la Paix" → rue="123 Rue de la Paix"
+
+        Args:
+            adresse: Instance du modèle Adresse
+            validate: Si True (défaut), valide la complétude de l'adresse
+
+        Raises:
+            AdresseIncompleteError: Si validate=True et des champs requis manquent
 
         Returns:
             {
@@ -36,6 +79,9 @@ class AdresseToMilaAdapter:
                 "longitude": 2.3522 | None
             }
         """
+        if validate:
+            AdresseToMilaAdapter.validate_for_mila(adresse)
+
         result = {
             "address_line1": adresse.rue,  # propriété: numero + voie
             "address_line2": adresse.complement or None,

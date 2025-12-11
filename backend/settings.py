@@ -260,11 +260,11 @@ if USE_MAILHOG:
     EMAIL_PORT = int(os.environ.get("EMAIL_PORT", 1025))
     EMAIL_USE_TLS = False
     EMAIL_USE_SSL = False
-    DEFAULT_FROM_EMAIL = "Hestia [Test] <contact@hestia.software>"
+    DEFAULT_FROM_EMAIL = "Hestia - Test <contact@hestia.software>"
 elif DEBUG:
     # Mode développement normal - affiche dans la console
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-    DEFAULT_FROM_EMAIL = "Hestia [Test] <contact@hestia.software>"
+    DEFAULT_FROM_EMAIL = "Hestia - Test <contact@hestia.software>"
 else:
     # En environnement de production, utiliser Mailgun
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

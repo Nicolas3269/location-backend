@@ -843,6 +843,16 @@ def update_bien_fields(bien: Bien, data, serializer_class, location_id=None):
         if new_value is not None:
             # Comparer pour voir si la valeur a changé
             if current_value != new_value:
+                # Cas spécial pour l'adresse FK : sauvegarder l'adresse avant d'assigner
+                # car create_bien_from_form_data(save=False) ne sauvegarde pas l'adresse
+                # Note: pk existe toujours car UUIDs sont générés à l'instanciation
+                # On vérifie _state.adding pour savoir si l'objet est en base
+                if field_name == "adresse" and isinstance(new_value, Adresse):
+                    if new_value._state.adding:
+                        # L'adresse n'est pas encore en base, la sauvegarder d'abord
+                        new_value.save()
+                        logger.debug(f"Adresse sauvegardée avant assignation: {new_value.id}")
+
                 setattr(bien, field_name, new_value)
                 updated = True
                 logger.debug(

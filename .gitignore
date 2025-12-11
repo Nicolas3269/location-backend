@@ -1,4 +1,5 @@
 .env
+.env.staging
 .env.production
 .env.railway
 .env.docker

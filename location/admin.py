@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from .models import (
+    Adresse,
     Bailleur,
     Bien,
     Locataire,
@@ -11,6 +12,43 @@ from .models import (
     RentTerms,
     Societe,
 )
+
+
+@admin.register(Adresse)
+class AdresseAdmin(admin.ModelAdmin):
+    """Interface d'administration pour les adresses"""
+
+    list_display = (
+        "__str__",
+        "ville",
+        "code_postal",
+        "pays",
+        "has_coordinates",
+    )
+    search_fields = ("numero", "voie", "ville", "code_postal")
+    list_filter = ("pays", "ville")
+    ordering = ("-created_at",)
+
+    fieldsets = (
+        (
+            "Adresse",
+            {"fields": ("numero", "voie", "complement", "code_postal", "ville", "pays")},
+        ),
+        (
+            "Coordonnées GPS",
+            {
+                "fields": ("latitude", "longitude"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    def has_coordinates(self, obj):
+        """Indique si l'adresse a des coordonnées GPS"""
+        return obj.latitude is not None and obj.longitude is not None
+
+    has_coordinates.boolean = True
+    has_coordinates.short_description = "GPS"
 
 
 class BailleurBiensInline(admin.TabularInline):

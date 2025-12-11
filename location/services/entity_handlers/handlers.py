@@ -30,6 +30,20 @@ from signature.document_status import DocumentStatus
 logger = logging.getLogger(__name__)
 
 
+def adresses_are_equal(addr1: Optional[Adresse], addr2: Optional[Adresse]) -> bool:
+    """Compare deux adresses par leur contenu, pas par référence."""
+    if addr1 is None or addr2 is None:
+        return addr1 is addr2
+    return (
+        addr1.voie == addr2.voie
+        and addr1.numero == addr2.numero
+        and addr1.complement == addr2.complement
+        and addr1.code_postal == addr2.code_postal
+        and addr1.ville == addr2.ville
+        and addr1.pays == addr2.pays
+    )
+
+
 def _get_or_create_adresse(adresse_data: Dict[str, Any]) -> Optional[Adresse]:
     """
     Récupère ou crée une Adresse depuis un dictionnaire structuré.
@@ -841,18 +855,19 @@ def update_bien_fields(bien: Bien, data, serializer_class, location_id=None):
         # Mettre à jour si on a une nouvelle valeur (permettre l'édition des champs non verrouillés)
         # Important: pour les listes, [] est une valeur valide
         if new_value is not None:
-            # Comparer pour voir si la valeur a changé
-            if current_value != new_value:
-                # Cas spécial pour l'adresse FK : sauvegarder l'adresse avant d'assigner
-                # car create_bien_from_form_data(save=False) ne sauvegarde pas l'adresse
-                # Note: pk existe toujours car UUIDs sont générés à l'instanciation
-                # On vérifie _state.adding pour savoir si l'objet est en base
-                if field_name == "adresse" and isinstance(new_value, Adresse):
+            # Comparaison spéciale pour les adresses (comparer le contenu, pas les références)
+            if field_name == "adresse" and isinstance(new_value, Adresse):
+                if not adresses_are_equal(current_value, new_value):
+                    # Sauvegarder la nouvelle adresse si pas encore en base
                     if new_value._state.adding:
-                        # L'adresse n'est pas encore en base, la sauvegarder d'abord
                         new_value.save()
-                        logger.debug(f"Adresse sauvegardée avant assignation: {new_value.id}")
-
+                        logger.debug(
+                            f"Adresse sauvegardée avant assignation: {new_value.id}"
+                        )
+                    setattr(bien, field_name, new_value)
+                    updated = True
+                    logger.debug("Bien.adresse mis à jour")
+            elif current_value != new_value:
                 setattr(bien, field_name, new_value)
                 updated = True
                 logger.debug(

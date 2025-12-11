@@ -158,6 +158,40 @@ class InsuranceDocumentService:
         html = render_to_string(template, context)
         return HTML(string=html).write_pdf()
 
+    def generate_der(self) -> bytes:
+        """
+        Génère le Document d'Entrée en Relation (DER) en PDF.
+
+        Le DER est un document réglementaire obligatoire pour les courtiers.
+
+        Returns:
+            Contenu PDF en bytes
+        """
+        context = {
+            "logo_base64_uri": get_logo_pdf_base64_data_uri(),
+        }
+
+        html = render_to_string("pdf/assurances/der.html", context)
+        return HTML(string=html).write_pdf()
+
+    def generate_static_document(self, document_type: str) -> bytes:
+        """
+        Génère un document statique selon son type.
+
+        Args:
+            document_type: Type de document (DER, CGV_MRH, CGV_PNO, CGV_GLI)
+
+        Returns:
+            Contenu PDF en bytes
+        """
+        if document_type == "DER":
+            return self.generate_der()
+        elif document_type.startswith("CGV_"):
+            product = document_type.replace("CGV_", "")
+            return self.generate_conditions_generales(product=product)
+        else:
+            raise ValueError(f"Type de document inconnu: {document_type}")
+
     def generate_conditions_particulieres_preview(
         self,
         quotation_data: dict[str, Any],

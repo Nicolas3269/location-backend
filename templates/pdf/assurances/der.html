@@ -1,0 +1,234 @@
+{% extends "base/pdf_base.html" %}
+
+{% block title %}Document d'Entrée en Relation - Hestia{% endblock %}
+
+{% block extra_css %}
+/* ===== Override du footer Hestia ===== */
+@page {
+    @bottom-center {
+        content: none;
+    }
+}
+
+/* ===== Variables de couleurs Hestia ===== */
+:root {
+    --hestia-primary: #2680eb;
+    --hestia-primary-dark: #1c5fb0;
+    --hestia-text: #3e3c41;
+    --hestia-text-light: #6c6b70;
+    --hestia-border: #e3e5e8;
+    --hestia-bg: #fafbfc;
+}
+
+/* ===== En-tête document ===== */
+.document-header {
+    background: linear-gradient(135deg, #2680eb 0%, #1c5fb0 100%);
+    color: white;
+    padding: 30px;
+    margin: -1.5cm -1.5cm 25px -1.5cm;
+    text-align: center;
+}
+
+.document-header h1 {
+    color: white;
+    font-size: 16pt;
+    margin: 0 0 5px 0;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.document-header .subtitle {
+    font-size: 12pt;
+    font-weight: 400;
+    opacity: 0.95;
+}
+
+/* ===== Sections ===== */
+.section {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    color: var(--hestia-primary);
+    font-size: 11pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid var(--hestia-primary);
+}
+
+.section p {
+    font-size: 9.5pt;
+    line-height: 1.6;
+    color: var(--hestia-text);
+    margin: 0 0 8px 0;
+    text-align: justify;
+}
+
+.section ul {
+    margin: 10px 0;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.section li {
+    font-size: 9.5pt;
+    line-height: 1.5;
+    color: var(--hestia-text);
+    margin-bottom: 5px;
+}
+
+/* ===== Info box ===== */
+.info-box {
+    background-color: #f5f7f9;
+    border: 1px solid var(--hestia-border);
+    border-left: 3px solid var(--hestia-primary);
+    border-radius: 4px;
+    padding: 12px 15px;
+    margin: 10px 0;
+    font-size: 9pt;
+}
+
+.info-box p {
+    margin: 0 0 5px 0;
+    font-size: 9pt;
+}
+
+.info-box p:last-child {
+    margin-bottom: 0;
+}
+
+/* ===== Attestation box ===== */
+.attestation-box {
+    background-color: #fff8e6;
+    border: 1px solid #f2c94c;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+.attestation-box p {
+    margin: 0;
+    font-size: 10pt;
+    color: #8b7000;
+    font-style: italic;
+}
+
+/* ===== Footer ===== */
+.document-footer {
+    margin-top: 30px;
+    font-size: 8pt;
+    text-align: center;
+    color: var(--hestia-text-light);
+    border-top: 1px solid var(--hestia-border);
+    padding-top: 15px;
+}
+
+.document-footer p {
+    margin: 0 0 3px 0;
+    text-align: center;
+}
+{% endblock %}
+
+{% block content %}
+<!-- ===== EN-TÊTE ===== -->
+<div class="document-header">
+    <h1>Document d'Entrée en Relation</h1>
+    <div class="subtitle">Hestia (HB Consulting)</div>
+</div>
+
+<!-- ===== INFORMATIONS SUR L'INTERMÉDIAIRE ===== -->
+<div class="section">
+    <h3 class="section-title">Informations sur l'intermédiaire</h3>
+
+    <p>
+        La société <strong>HB CONSULTING</strong>, SAS au capital de 5 000 €, immatriculée au RCS d'Arras sous le numéro 900 207 218,
+        dont le siège social est situé au 25 rue Saint-Michel, 62000 Arras, propriétaire de la marque <strong>Hestia</strong>.
+    </p>
+
+    <div class="info-box">
+        <p><strong>Courriel :</strong> contact@hestia.software</p>
+        <p><strong>Site :</strong> https://hestia.software</p>
+        <p><strong>ORIAS :</strong> n° 25009004 (consultable sur www.orias.fr) en qualité de courtier en assurance</p>
+        <p><strong>RC Pro :</strong> Assureur Everest - Klarity RC Pro, n° CCOUK000849</p>
+        <p><strong>Autorité de tutelle :</strong> ACPR – 4 Place de Budapest, CS 92459, 75436 Paris Cedex 09</p>
+        <p><strong>Association professionnelle :</strong> CNCEF Assurance</p>
+    </div>
+</div>
+
+<!-- ===== LIENS FINANCIERS ===== -->
+<div class="section">
+    <h3 class="section-title">Liens financiers ou capitalistiques</h3>
+    <p>
+        HB Consulting n'entretient aucune participation supérieure à 10 % dans une entreprise d'assurance,
+        et réciproquement aucune entreprise d'assurance ne détient une telle participation dans HB Consulting.
+    </p>
+</div>
+
+<!-- ===== POLITIQUE DE DISTRIBUTION ===== -->
+<div class="section">
+    <h3 class="section-title">Politique de distribution</h3>
+    <p>Hestia n'est liée par aucune exclusivité avec une entreprise d'assurance.</p>
+    <p>Les contrats distribués concernent principalement :</p>
+    <ul>
+        <li>Assurance Propriétaire Non-Occupant (PNO)</li>
+        <li>Garantie Loyers Impayés (GLI)</li>
+        <li>Assurance Multirisque Habitation (MRH)</li>
+        <li>Protection juridique</li>
+    </ul>
+    <p>
+        Ces contrats sont proposés en partenariat avec des assureurs agréés sélectionnés selon des critères
+        de qualité, conformité et adéquation avec les besoins des clients.
+    </p>
+</div>
+
+<!-- ===== NATURE DU CONSEIL ===== -->
+<div class="section">
+    <h3 class="section-title">Nature du conseil</h3>
+    <p>
+        <strong>Niveau 1 (obligatoire) :</strong> fourniture d'une information claire sur les contrats proposés.
+    </p>
+</div>
+
+<!-- ===== RÉMUNÉRATION ===== -->
+<div class="section">
+    <h3 class="section-title">Rémunération</h3>
+    <p>Hestia est rémunérée exclusivement par les commissions versées par les compagnies d'assurance partenaires.</p>
+    <p><strong>Aucun frais ni obligation d'achat n'est imposé à l'utilisateur du logiciel gratuit Hestia.</strong></p>
+</div>
+
+<!-- ===== RÉCLAMATIONS ET MÉDIATION ===== -->
+<div class="section">
+    <h3 class="section-title">Réclamations et médiation</h3>
+    <p>En cas de réclamation, vous pouvez contacter :</p>
+    <ul>
+        <li><strong>Par courrier :</strong> Hestia – HB Consulting, 25 rue Saint-Michel, 62000 Arras</li>
+        <li><strong>Par mail :</strong> contact@hestia.software</li>
+    </ul>
+    <p>
+        Si la réponse ne vous satisfait pas ou en l'absence de réponse dans un délai de deux mois,
+        vous pouvez saisir gratuitement le Médiateur de l'Assurance :
+    </p>
+    <div class="info-box">
+        <p><strong>La Médiation de l'Assurance</strong></p>
+        <p>TSA 50110, 75441 Paris Cedex 09</p>
+        <p>Site : www.mediation-assurance.org</p>
+    </div>
+</div>
+
+<!-- ===== ATTESTATION CLIENT ===== -->
+<div class="attestation-box">
+    <p>
+        <strong>Attestation client :</strong> J'atteste avoir reçu et compris les informations contenues dans le présent document.
+    </p>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<div class="document-footer">
+    <p>Document d'Entrée en Relation - Hestia (HB Consulting)</p>
+    <p>ORIAS 25009004 • RCS Arras 900 207 218</p>
+</div>
+{% endblock %}

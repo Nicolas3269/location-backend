@@ -51,8 +51,11 @@
           <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f5f7f9; border-radius: 8px" class="box-info">
             <tr>
               <td style="padding: 20px; font-size: 16px" class="box-info">
-                📄 <strong>Attestation d'assurance</strong> — À conserve, nous l'avons déjà transmise a votre bailleur<br /><br />
-                📄 <strong>Conditions Particulières</strong> — Votre contrat signé
+                📄 <strong>Attestation d'assurance</strong> — À conserver, nous l'avons déjà transmise à votre bailleur<br /><br />
+                📄 <strong>Conditions Particulières</strong> — Votre contrat personnalisé signé<br /><br />
+                📄 <strong>Conditions Générales</strong> — Les conditions générales de votre assurance<br /><br />
+                📄 <strong>DIPA</strong> — Document d'Information sur le Produit d'Assurance<br /><br />
+                📄 <strong>DER</strong> — Document d'Entrée en Relation
               </td>
             </tr>
           </table>

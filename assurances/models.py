@@ -331,3 +331,82 @@ class InsuranceQuotationSignatureRequest(AbstractSignatureRequest):
     def get_document_type(self) -> str:
         """Retourne le type de document pour le système de signature."""
         return "assurance"
+
+
+class StaticDocument(BaseModel):
+    """
+    Documents statiques générés une seule fois et stockés en media storage.
+
+    Utilisé pour les documents réglementaires qui ne changent pas par utilisateur :
+    - DER (Document d'Entrée en Relation)
+    - CGV (Conditions Générales de Vente) par produit
+    """
+
+    class DocumentType(models.TextChoices):
+        DER = "DER", "Document d'Entrée en Relation"
+        CGV_MRH = "CGV_MRH", "Conditions Générales MRH"
+        CGV_PNO = "CGV_PNO", "Conditions Générales PNO"
+        CGV_GLI = "CGV_GLI", "Conditions Générales GLI"
+
+    document_type = models.CharField(
+        max_length=20,
+        choices=DocumentType.choices,
+        unique=True,
+        help_text="Type de document statique",
+    )
+
+    file = models.FileField(
+        upload_to="assurances/static_documents/",
+        help_text="Fichier PDF généré",
+    )
+
+    version = models.CharField(
+        max_length=20,
+        default="1.0",
+        help_text="Version du document (ex: 2024.1)",
+    )
+
+    class Meta:
+        verbose_name = "Document statique"
+        verbose_name_plural = "Documents statiques"
+
+    def __str__(self):
+        return f"{self.get_document_type_display()} v{self.version}"
+
+    @property
+    def url(self) -> str | None:
+        """Retourne l'URL publique du fichier."""
+        if self.file:
+            return self.file.url
+        return None
+
+    @classmethod
+    def get_or_generate(cls, document_type: str, force_regenerate: bool = False):
+        """
+        Récupère le document existant ou le génère s'il n'existe pas.
+
+        Args:
+            document_type: Type de document (DER, CGV_MRH, etc.)
+            force_regenerate: Force la régénération même si le document existe
+
+        Returns:
+            Instance de StaticDocument avec le fichier généré
+        """
+        from django.core.files.base import ContentFile
+
+        from .services.documents import InsuranceDocumentService
+
+        doc, created = cls.objects.get_or_create(
+            document_type=document_type,
+            defaults={"version": "2024.1"},
+        )
+
+        # Générer si nouveau ou forcé ou pas de fichier
+        if created or force_regenerate or not doc.file:
+            service = InsuranceDocumentService()
+            pdf_bytes = service.generate_static_document(document_type)
+
+            filename = f"{document_type.lower()}.pdf"
+            doc.file.save(filename, ContentFile(pdf_bytes), save=True)
+
+        return doc

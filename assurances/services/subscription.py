@@ -9,6 +9,7 @@ Gère le processus complet de souscription:
 """
 
 import logging
+import os
 import re
 from typing import TYPE_CHECKING
 
@@ -230,9 +231,18 @@ class InsuranceSubscriptionService:
         """
         Envoie les documents de police par email au souscripteur.
 
+        Inclut tous les documents contractuels :
+        - Attestation d'assurance
+        - Conditions Particulières (CP)
+        - Conditions Générales de Vente (CGV)
+        - Document d'Information sur le Produit d'Assurance (DIPA)
+        - Document d'Entrée en Relation (DER)
+
         Args:
             policy: Police avec documents générés
         """
+        from assurances.models import StaticDocument
+
         subscriber = policy.subscriber
         quotation = policy.quotation
         location = quotation.location
@@ -292,7 +302,9 @@ class InsuranceSubscriptionService:
         )
         email.attach_alternative(html_content, "text/html")
 
-        # Joindre les documents (lire le contenu car le storage peut être S3/cloud)
+        # Joindre les documents contractuels (lire le contenu car le storage peut être S3/cloud)
+
+        # 1. Attestation
         if policy.attestation_document:
             email.attach(
                 f"Attestation_{policy.policy_number}.pdf",
@@ -300,12 +312,55 @@ class InsuranceSubscriptionService:
                 "application/pdf",
             )
 
+        # 2. Conditions Particulières (CP)
         if policy.cp_document:
             email.attach(
                 f"Conditions_Particulieres_{policy.policy_number}.pdf",
                 policy.cp_document.read(),
                 "application/pdf",
             )
+
+        # 3. Conditions Générales de Vente (CGV)
+        try:
+            cgv_type = f"CGV_{product}"
+            cgv_doc = StaticDocument.get_or_generate(cgv_type)
+            if cgv_doc and cgv_doc.file:
+                email.attach(
+                    f"Conditions_Generales_{product}.pdf",
+                    cgv_doc.file.read(),
+                    "application/pdf",
+                )
+        except Exception as e:
+            logger.warning(f"Could not attach CGV document: {e}")
+
+        # 4. DIPA (Document d'Information sur le Produit d'Assurance)
+        # Fichier statique dans static/pdfs/assurances/
+        try:
+            dipa_filename = f"dipa_{product.lower()}.pdf"
+            dipa_path = os.path.join(
+                settings.BASE_DIR, "static", "pdfs", "assurances", dipa_filename
+            )
+            if os.path.exists(dipa_path):
+                with open(dipa_path, "rb") as f:
+                    email.attach(
+                        f"DIPA_{product}.pdf",
+                        f.read(),
+                        "application/pdf",
+                    )
+        except Exception as e:
+            logger.warning(f"Could not attach DIPA document: {e}")
+
+        # 5. DER (Document d'Entrée en Relation)
+        try:
+            der_doc = StaticDocument.get_or_generate("DER")
+            if der_doc and der_doc.file:
+                email.attach(
+                    "Document_Entree_Relation.pdf",
+                    der_doc.file.read(),
+                    "application/pdf",
+                )
+        except Exception as e:
+            logger.warning(f"Could not attach DER document: {e}")
 
         # Envoyer
         try:

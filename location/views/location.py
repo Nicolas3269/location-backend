@@ -6,6 +6,8 @@ from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
+from assurances.models import InsurancePolicy, StaticDocument
+from backend.pdf_utils import get_static_pdf_iframe_url
 from bail.models import Bail, Document, DocumentType
 from etat_lieux.models import EtatLieux
 from location.models import (
@@ -144,9 +146,10 @@ def get_location_detail(request, location_id):
             .order_by("-created_at")
             .first()
         )
-        bail_actif = bail_signe or Bail.objects.filter(
-            location=location
-        ).order_by("-created_at").first()
+        bail_actif = (
+            bail_signe
+            or Bail.objects.filter(location=location).order_by("-created_at").first()
+        )
 
         location_data["status"] = (
             bail_actif.get_status_display()
@@ -720,6 +723,101 @@ def get_location_documents(request, location_id):
                         "status": f"Annexe - EDL {edl_type_status}",
                     }
                 )
+
+        # 4. Documents d'assurance pour le locataire souscripteur
+        # Seul le locataire qui a souscrit voit ses documents contractuels
+        if is_locataire:
+            try:
+                # Trouver les polices actives pour cette location
+                # où l'utilisateur est souscripteur
+                policies = InsurancePolicy.objects.filter(
+                    quotation__location=location,
+                    subscriber=request.user,
+                    status=InsurancePolicy.Status.ACTIVE,
+                ).select_related("quotation")
+
+                for policy in policies:
+                    product = policy.quotation.product
+                    policy_date = (
+                        policy.activated_at.isoformat()
+                        if policy.activated_at
+                        else policy.created_at.isoformat()
+                    )
+
+                    # Conditions Particulières (CP) signées
+                    if policy.cp_document:
+                        documents.append(
+                            {
+                                "id": f"insurance-cp-{policy.id}",
+                                "type": "assurance_bail",
+                                "nom": f"Conditions Particulières {product}",
+                                "date": policy_date,
+                                "url": policy.cp_document.url,
+                                "status": "Assurance",
+                            }
+                        )
+
+                    # Conditions Générales (CGV)
+                    try:
+                        cgv_type = f"CGV_{product}"
+                        cgv_doc = StaticDocument.objects.filter(
+                            document_type=cgv_type
+                        ).first()
+                        if cgv_doc and cgv_doc.file:
+                            documents.append(
+                                {
+                                    "id": f"insurance-cgv-{policy.id}",
+                                    "type": "assurance_bail",
+                                    "nom": f"Conditions Générales {product}",
+                                    "date": policy_date,
+                                    "url": cgv_doc.file.url,
+                                    "status": "Assurance",
+                                }
+                            )
+                    except Exception:
+                        pass
+
+                    # DIPA (fichier statique)
+                    try:
+                        dipa_url = get_static_pdf_iframe_url(
+                            request, f"assurances/dipa_{product.lower()}.pdf"
+                        )
+                        if dipa_url:
+                            documents.append(
+                                {
+                                    "id": f"insurance-dipa-{policy.id}",
+                                    "type": "assurance_bail",
+                                    "nom": f"DIPA {product}",
+                                    "date": policy_date,
+                                    "url": dipa_url,
+                                    "status": "Assurance",
+                                }
+                            )
+                    except Exception:
+                        pass
+
+                    # DER (Document d'Entrée en Relation)
+                    try:
+                        der_doc = StaticDocument.objects.filter(
+                            document_type="DER"
+                        ).first()
+                        if der_doc and der_doc.file:
+                            documents.append(
+                                {
+                                    "id": f"insurance-der-{policy.id}",
+                                    "type": "assurance_bail",
+                                    "nom": "Document d'Entrée en Relation",
+                                    "date": policy_date,
+                                    "url": der_doc.file.url,
+                                    "status": "Assurance",
+                                }
+                            )
+                    except Exception:
+                        pass
+
+            except ImportError:
+                # Module assurances non disponible
+                pass
 
         serializer = LocationReadSerializer(location, context={"user": request.user})
         location_info = serializer.data

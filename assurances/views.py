@@ -680,8 +680,7 @@ def get_cgv_document(request: Request) -> Response:
     Returns:
         {"url": "https://..."}
     """
-    from django.core.files.base import ContentFile
-    from django.core.files.storage import default_storage
+    from .models import StaticDocument
 
     product = request.query_params.get("product", "MRH").upper()
     force_regenerate = request.query_params.get("force", "").lower() == "true"
@@ -689,28 +688,11 @@ def get_cgv_document(request: Request) -> Response:
     if product not in ["MRH", "PNO", "GLI"]:
         product = "MRH"
 
-    # Chemin fixe sur S3 pour les CGV
-    s3_path = f"assurances/cgv/cgv_{product.lower()}.pdf"
+    document_type = f"CGV_{product}"
 
     try:
-        # Régénérer si force=true ou si le fichier n'existe pas
-        if force_regenerate or not default_storage.exists(s3_path):
-            # Supprimer l'ancien fichier si force
-            if force_regenerate and default_storage.exists(s3_path):
-                default_storage.delete(s3_path)
-                logger.info(f"🗑️ Deleted old CGV {product} from {s3_path}")
-
-            # Générer et uploader
-            logger.info(f"Generating and uploading CGV for {product}...")
-            documents_service = InsuranceDocumentService()
-            pdf_bytes = documents_service.generate_conditions_generales(product=product)
-            default_storage.save(s3_path, ContentFile(pdf_bytes))
-            logger.info(f"✅ CGV {product} uploaded to {s3_path}")
-
-        # Retourner l'URL publique
-        url = default_storage.url(s3_path)
-        return Response({"url": url})
-
+        doc = StaticDocument.get_or_generate(document_type, force_regenerate=force_regenerate)
+        return Response({"url": doc.url})
     except Exception as e:
         logger.exception(f"Error getting CGV PDF: {e}")
         return Response(
@@ -755,6 +737,36 @@ def get_dipa_document(request: Request) -> Response:
     full_url = get_static_pdf_iframe_url(request, pdf_path)
 
     return Response({"url": full_url})
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_der_document(request: Request) -> Response:
+    """
+    Retourne l'URL du DER (Document d'Entrée en Relation).
+
+    Le DER est un document réglementaire obligatoire pour les courtiers en assurance.
+    Il est stocké en media storage et retourné via URL.
+
+    Query params (optionnel):
+        force: "true" pour forcer la régénération
+
+    Returns:
+        {"url": "https://..."}
+    """
+    from .models import StaticDocument
+
+    force_regenerate = request.query_params.get("force", "").lower() == "true"
+
+    try:
+        doc = StaticDocument.get_or_generate("DER", force_regenerate=force_regenerate)
+        return Response({"url": doc.url})
+    except Exception as e:
+        logger.exception(f"Error getting DER PDF: {e}")
+        return Response(
+            {"error": "Erreur lors de la récupération du document"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 @api_view(["GET"])

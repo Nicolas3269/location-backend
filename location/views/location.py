@@ -22,10 +22,10 @@ from location.serializers.france import (
     FranceEtatLieuxSerializer as CreateEtatLieuxSerializer,
 )
 from location.serializers.france import (
-    FranceQuittanceSerializer as CreateQuittanceSerializer,
+    FranceMRHSerializer as CreateMRHSerializer,
 )
 from location.serializers.france import (
-    FranceMRHSerializer as CreateMRHSerializer,
+    FranceQuittanceSerializer as CreateQuittanceSerializer,
 )
 
 # Sérialiser le bien avec BienReadSerializer + structure nested

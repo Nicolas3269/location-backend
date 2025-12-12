@@ -411,6 +411,12 @@ PERSON_MRH_STEPS = [
 # --- STEPS MRH SOUSCRIPTION ---
 MRH_SUBSCRIPTION_STEPS = [
     {
+        "id": "mrh.der",
+        "required_fields": [],  # Validation via business rule
+        "fields": {},
+        "business_rules": ["derAccepted"],  # Vérifie que la checkbox est cochée
+    },
+    {
         "id": "mrh.prix",
         "required_fields": [],  # Pas de champs requis, step d'affichage
         "fields": {},

@@ -156,6 +156,7 @@ class InsurancePolicy(BaseModel):
     class Status(models.TextChoices):
         PENDING = "PENDING", "En attente de paiement"
         ACTIVE = "ACTIVE", "Active"
+        SUSPENDED = "SUSPENDED", "Suspendue (impayé)"
         CANCELLED = "CANCELLED", "Résiliée"
         EXPIRED = "EXPIRED", "Expirée"
 

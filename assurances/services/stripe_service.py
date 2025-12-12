@@ -6,13 +6,21 @@ Utilise Stripe Checkout (redirect) pour:
 - Support Apple Pay / Google Pay natif
 - Gestion SEPA automatique
 - PCI compliance simplifiée
+
+Gestion de la taxe attentat:
+- Ajoutée au premier prélèvement via invoice_item
+- Renouvelée chaque année via webhook invoice.upcoming
 """
 
 import logging
+from datetime import datetime
+from datetime import timezone as dt_timezone
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 import stripe
 from django.conf import settings
+from django.utils import timezone
 
 from assurances.models import InsuranceProduct
 from location.models import Bien
@@ -33,6 +41,9 @@ PRODUCT_LABELS = {
     InsuranceProduct.GLI: "Garantie Loyers Impayés",
 }
 
+# Taxe attentat annuelle en centimes
+TAXE_ATTENTAT_CENTS = 650  # 6.50€
+
 
 class InsuranceStripeService:
     """
@@ -44,6 +55,10 @@ class InsuranceStripeService:
     3. User paie sur Stripe
     4. Stripe redirige vers success_url
     5. Webhook checkout.session.completed → active la police
+
+    Gestion taxe attentat:
+    - Premier prélèvement: cotisation + taxe attentat (via add_invoice_items)
+    - Renouvellement annuel: taxe ajoutée via webhook invoice.upcoming
     """
 
     def create_checkout_session(
@@ -55,6 +70,8 @@ class InsuranceStripeService:
     ) -> dict:
         """
         Crée une Checkout Session Stripe pour le paiement assurance.
+
+        La taxe attentat (6.50€) est automatiquement ajoutée au premier prélèvement.
 
         Args:
             policy: Police à payer
@@ -124,14 +141,16 @@ class InsuranceStripeService:
         product_label = PRODUCT_LABELS.get(product, "Assurance")
 
         # Montant mensuel en centimes
-        amount_monthly = int(pricing_monthly * 100)
+        amount_monthly = int(Decimal(str(pricing_monthly)) * 100)
 
         # Créer la session Checkout en mode subscription (paiement mensuel)
+        # La taxe attentat est ajoutée comme line_item one-time (sans recurring)
         session = stripe.checkout.Session.create(
             customer=customer.id,
             mode="subscription",
             payment_method_types=["sepa_debit"],
             line_items=[
+                # Cotisation mensuelle récurrente
                 {
                     "price_data": {
                         "currency": "eur",
@@ -139,12 +158,35 @@ class InsuranceStripeService:
                         "recurring": {"interval": "month"},
                         "product_data": {
                             "name": f"{product_label} - {formula_label}",
-                            "description": f"Police {policy.policy_number}",
+                            "description": "Cotisation mensuelle prélevée chaque mois",
                         },
                     },
                     "quantity": 1,
-                }
+                },
+                # Taxe attentat - one-time (renouvelée via webhook invoice.upcoming)
+                {
+                    "price_data": {
+                        "currency": "eur",
+                        "unit_amount": TAXE_ATTENTAT_CENTS,
+                        "product_data": {
+                            "name": "Taxe attentat (annuelle)",
+                            "description": "Renouvelée à chaque date anniversaire",
+                        },
+                    },
+                    "quantity": 1,
+                },
             ],
+            subscription_data={
+                "description": (
+                    f"{product_label} - {formula_label} - {policy.policy_number}"
+                ),
+                "metadata": {
+                    "policy_id": str(policy.id),
+                    "policy_number": policy.policy_number,
+                    "product": product,
+                    "subscription_start_date": quotation.effective_date.isoformat(),
+                },
+            },
             metadata={
                 "policy_id": str(policy.id),
                 "policy_number": policy.policy_number,
@@ -156,14 +198,8 @@ class InsuranceStripeService:
             cancel_url=cancel_url,
             locale="fr",
             customer_email=policy.subscriber.email if not customer else None,
-            subscription_data={
-                "description": f"{product_label} - {formula_label} - {policy.policy_number}",
-                "metadata": {
-                    "policy_id": str(policy.id),
-                    "policy_number": policy.policy_number,
-                    "product": product,
-                },
-            },
+            # Note: custom_text non supporté pour subscription + SEPA
+            # L'info sur la taxe attentat est affichée côté frontend
         )
 
         # Sauvegarder l'ID de session
@@ -172,7 +208,8 @@ class InsuranceStripeService:
         policy.save(update_fields=["stripe_checkout_session_id", "stripe_customer_id"])
 
         logger.info(
-            f"Created Checkout Session {session.id} for {product} policy {policy.policy_number}"
+            f"Created Checkout Session {session.id} for {product} policy {policy.policy_number} "
+            f"(monthly: {pricing_monthly}€ + taxe attentat: 6.50€ on first invoice)"
         )
 
         return {
@@ -200,7 +237,7 @@ class InsuranceStripeService:
         if stripe_customer_id:
             try:
                 customer = stripe.Customer.retrieve(stripe_customer_id)
-                # Mettre à jour l'adresse et le nom si fournis et non définis
+                # Mettre à jour l'adresse, le nom et la locale si nécessaire
                 updates = {}
                 if address and not customer.address:
                     updates["address"] = {
@@ -212,6 +249,10 @@ class InsuranceStripeService:
                     }
                 if name and (not customer.name or customer.name == user.email):
                     updates["name"] = name
+                # Toujours s'assurer que la locale est en français
+                locales = customer.preferred_locales or []
+                if "fr" not in locales:
+                    updates["preferred_locales"] = ["fr"]
                 if updates:
                     stripe.Customer.modify(stripe_customer_id, **updates)
                 return customer
@@ -230,6 +271,7 @@ class InsuranceStripeService:
             "email": user.email,
             "name": customer_name,
             "metadata": {"user_id": str(user.id)},
+            "preferred_locales": ["fr"],  # Factures en français
         }
 
         # Ajouter l'adresse de facturation si disponible (pré-remplissage SEPA)
@@ -298,7 +340,7 @@ class InsuranceStripeService:
             logger.error(f"Policy {policy_id} not found for session {session['id']}")
             return
 
-        # Sauvegarder le subscription_id (mode subscription) ou payment_intent_id (mode payment)
+        # Sauvegarder le subscription_id
         subscription_id = session.get("subscription")
         if subscription_id:
             policy.stripe_subscription_id = subscription_id
@@ -317,6 +359,81 @@ class InsuranceStripeService:
         # Activer la police
         subscription_service = InsuranceSubscriptionService()
         subscription_service.activate_policy(policy)
+
+    def handle_invoice_upcoming(self, event: dict) -> None:
+        """
+        Traite l'événement invoice.upcoming.
+
+        Ajoute la taxe attentat si c'est un anniversaire de contrat.
+        Cet événement est déclenché ~3 jours avant la création de la facture.
+
+        Args:
+            event: Événement Stripe
+        """
+        invoice = event["data"]["object"]
+        subscription_id = invoice.get("subscription")
+
+        if not subscription_id:
+            return
+
+        # Récupérer la subscription pour vérifier si c'est une assurance
+        try:
+            subscription = stripe.Subscription.retrieve(subscription_id)
+        except stripe.error.InvalidRequestError:
+            logger.warning(f"Subscription {subscription_id} not found")
+            return
+
+        # Vérifier que c'est une assurance
+        product = subscription.metadata.get("product")
+        if product not in ["MRH", "PNO", "GLI"]:
+            return
+
+        policy_number = subscription.metadata.get("policy_number")
+        subscription_start = subscription.metadata.get("subscription_start_date")
+
+        if not subscription_start:
+            logger.warning(
+                f"No subscription_start_date in metadata for {policy_number}"
+            )
+            return
+
+        # Parser la date de début
+        try:
+            start_date = datetime.fromisoformat(subscription_start).date()
+        except ValueError:
+            logger.error(f"Invalid subscription_start_date: {subscription_start}")
+            return
+
+        # Calculer si on est à un anniversaire (12 mois, 24 mois, etc.)
+        invoice_date = datetime.fromtimestamp(
+            invoice.get("period_end", 0), tz=dt_timezone.utc
+        ).date()
+        months_since_start = (
+            (invoice_date.year - start_date.year) * 12
+            + invoice_date.month
+            - start_date.month
+        )
+
+        # La taxe attentat est due chaque année (mois 12, 24, 36, etc.)
+        # Note: le premier prélèvement (mois 0) a déjà la taxe via add_invoice_items
+        if months_since_start > 0 and months_since_start % 12 == 0:
+            logger.info(
+                f"🎂 Anniversary #{months_since_start // 12} for policy {policy_number} - "
+                f"Adding taxe attentat"
+            )
+
+            # Ajouter la taxe attentat à la prochaine facture
+            stripe.InvoiceItem.create(
+                customer=invoice.get("customer"),
+                subscription=subscription_id,
+                amount=TAXE_ATTENTAT_CENTS,
+                currency="eur",
+                description=f"Taxe attentat - Année {months_since_start // 12 + 1}",
+            )
+
+            logger.info(
+                f"✅ Added taxe attentat (6.50€) to upcoming invoice for {policy_number}"
+            )
 
     def handle_checkout_expired(self, event: dict) -> None:
         """
@@ -411,6 +528,38 @@ class InsuranceStripeService:
         # TODO: Envoyer email de notification au client
         # TODO: Supprimer l'attestation du dossier locataire
 
+    def handle_subscription_deleted(self, event: dict) -> None:
+        """
+        Traite l'événement customer.subscription.deleted.
+
+        La subscription a été annulée/résiliée.
+
+        Args:
+            event: Événement Stripe
+        """
+        from assurances.models import InsurancePolicy
+
+        subscription = event["data"]["object"]
+        policy_number = subscription.get("metadata", {}).get("policy_number")
+
+        if not policy_number:
+            return
+
+        try:
+            policy = InsurancePolicy.objects.get(policy_number=policy_number)
+        except InsurancePolicy.DoesNotExist:
+            logger.warning(
+                f"Policy {policy_number} not found for subscription deletion"
+            )
+            return
+
+        logger.info(f"Subscription deleted for policy {policy_number}")
+
+        # Résilier la police
+        policy.status = InsurancePolicy.Status.CANCELLED
+        policy.end_date = timezone.now().date()
+        policy.save(update_fields=["status", "end_date", "updated_at"])
+
     def refund_payment(
         self, policy: "InsurancePolicy", reason: str = ""
     ) -> stripe.Refund:
@@ -443,6 +592,27 @@ class InsuranceStripeService:
 
         logger.info(f"Created refund {refund.id} for policy {policy.policy_number}")
         return refund
+
+    def cancel_subscription(self, policy: "InsurancePolicy") -> None:
+        """
+        Résilie la subscription Stripe d'une police.
+
+        Args:
+            policy: Police à résilier
+        """
+        if not policy.stripe_subscription_id:
+            logger.warning(f"No subscription ID for policy {policy.policy_number}")
+            return
+
+        try:
+            stripe.Subscription.cancel(policy.stripe_subscription_id)
+            logger.info(
+                f"Cancelled Stripe subscription {policy.stripe_subscription_id} "
+                f"for policy {policy.policy_number}"
+            )
+        except stripe.error.InvalidRequestError as e:
+            logger.error(f"Failed to cancel subscription: {e}")
+            raise
 
     def get_session_status(self, session_id: str) -> dict:
         """

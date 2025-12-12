@@ -249,6 +249,61 @@
     color: var(--hestia-text-light);
 }
 
+/* ===== Tableau échéancier ===== */
+.table-echeancier {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 9pt;
+}
+
+.table-echeancier th {
+    background-color: var(--hestia-primary);
+    color: white;
+    font-weight: 600;
+    padding: 10px;
+    text-align: left;
+    border: 1px solid var(--hestia-primary);
+}
+
+.table-echeancier td {
+    padding: 8px 10px;
+    border: 1px solid var(--hestia-border);
+    color: var(--hestia-text);
+}
+
+.table-echeancier tr:nth-child(even) {
+    background-color: var(--hestia-bg);
+}
+
+.table-echeancier .highlight-row {
+    background-color: #fff8e6 !important;
+    border-left: 3px solid #f2c94c;
+}
+
+.table-echeancier .total-row {
+    background-color: #f0f9f4 !important;
+    border-top: 2px solid var(--hestia-primary);
+}
+
+.echeancier-notes {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f5f7f9;
+    border-radius: 6px;
+    font-size: 8.5pt;
+    color: var(--hestia-text);
+    line-height: 1.6;
+}
+
+.echeancier-notes p {
+    margin: 0 0 8px 0;
+}
+
+.echeancier-notes p:last-child {
+    margin-bottom: 0;
+}
+
 /* ===== Tableau garanties (spécifique CP/Devis) ===== */
 .table-garanties {
     width: 100%;

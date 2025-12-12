@@ -225,7 +225,8 @@
                 <p>Le tarif annuel TTC hors taxe attentat inclut :</p>
                 <p>• 85 % de cotisations d'assurance TTC,</p>
                 <p>• 15 % de frais de services de Mila Services.</p>
-                <p style="margin-top: 12px;">La taxe attentat de 6,50 € est payable annuellement.</p>
+                <p style="margin-top: 12px;"><strong>Total année 1 :</strong> {{ echeancier.total_annuel|floatformat:2 }} € TTC</p>
+                <p style="font-size: 8.5pt; color: var(--hestia-text-light);">(cotisation {{ echeancier.pricing_annual|floatformat:2 }} € + taxe attentat {{ echeancier.taxe_attentat|floatformat:2 }} €)</p>
             </div>
         </div>
     </div>
@@ -235,9 +236,13 @@
 <div class="text-section">
     <h3>Paiement des Cotisations</h3>
     <p>
-        Le paiement des cotisations s'effectuera par prélèvement automatique. Vous trouverez en annexe
-        votre échéancier comprenant les dates et les montants prélevés pour la première année.
-        Le paiement des cotisations s'effectuera par virement.
+        Le paiement des cotisations s'effectue par prélèvement automatique SEPA mensuel.
+        Vous trouverez en annexe votre échéancier détaillé comprenant les dates et les montants
+        prélevés pour la première année.
+    </p>
+    <p style="margin-top: 10px; color: #d96c63; font-weight: 500;">
+        <strong>Important :</strong> La taxe attentat ({{ echeancier.taxe_attentat|floatformat:2 }} €) est prélevée
+        intégralement lors du premier prélèvement, puis renouvelée chaque année à la date anniversaire du contrat.
     </p>
 </div>
 
@@ -360,4 +365,7 @@
         </div>
     </div>
 </div>
+
+<!-- ===== ANNEXE : ÉCHÉANCIER ===== -->
+{% include "pdf/assurances/mrh/components/_echeancier.html" %}
 {% endblock %}

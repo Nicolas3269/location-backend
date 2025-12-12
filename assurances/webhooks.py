@@ -33,6 +33,8 @@ def stripe_webhook(request: HttpRequest) -> HttpResponse:
     - checkout.session.async_payment_failed: Paiement SEPA échoué → suspend police
     - checkout.session.expired: Session expirée sans paiement
     - payment_intent.payment_failed: Échec de paiement CB
+    - invoice.upcoming: Facture à venir → ajoute taxe attentat si anniversaire
+    - customer.subscription.deleted: Subscription résiliée → annule la police
     - charge.refunded: Remboursement effectué
     """
     payload = request.body
@@ -95,6 +97,14 @@ def stripe_webhook(request: HttpRequest) -> HttpResponse:
         elif event_type == "payment_intent.payment_failed":
             # Échec de paiement
             stripe_service.handle_payment_failed(event)
+
+        elif event_type == "invoice.upcoming":
+            # Facture à venir - ajouter taxe attentat si anniversaire
+            stripe_service.handle_invoice_upcoming(event)
+
+        elif event_type == "customer.subscription.deleted":
+            # Subscription résiliée
+            stripe_service.handle_subscription_deleted(event)
 
         elif event_type == "charge.refunded":
             # Remboursement

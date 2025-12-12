@@ -1,0 +1,65 @@
+{# Composant : Échéancier des prélèvements MRH #}
+{# Variables attendues : echeancier (dict avec taxe_attentat, prelevements, total_annuel, pricing_annual) #}
+
+{% if echeancier and echeancier.prelevements %}
+<div class="echeancier-section" style="page-break-before: always;">
+    <h2 style="color: var(--hestia-primary); font-size: 14pt; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 2px solid var(--hestia-primary);">
+        Annexe : Échéancier de Prélèvement
+    </h2>
+
+    <p style="font-size: 9pt; color: var(--hestia-text); margin-bottom: 20px;">
+        Le tableau ci-dessous présente l'échéancier des prélèvements pour la première année de votre contrat.
+        Les prélèvements s'effectuent par prélèvement automatique SEPA.
+    </p>
+
+    <table class="table-echeancier">
+        <thead>
+            <tr>
+                <th style="width: 8%;">N°</th>
+                <th style="width: 25%;">Date de prélèvement</th>
+                <th style="width: 25%;">Montant (Cotisation TTC + Frais)</th>
+                <th style="width: 42%;">Détail</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in echeancier.prelevements %}
+            <tr{% if p.is_first %} class="highlight-row"{% endif %}>
+                <td style="text-align: center;{% if p.is_first %} font-weight: 600;{% endif %}">{{ p.numero }}</td>
+                <td>{{ p.date|date:"d/m/Y" }}</td>
+                <td style="{% if p.is_first %}font-weight: 600; color: var(--hestia-primary);{% endif %}">{{ p.montant|floatformat:2 }} €</td>
+                <td style="font-size: 8.5pt;">
+                    {% if p.is_first %}
+                    <span style="color: #d96c63;">{{ p.detail }}</span>
+                    {% else %}
+                    {{ p.detail }}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+
+            {# Ligne total année 1 #}
+            <tr class="total-row">
+                <td colspan="2" style="text-align: right; font-weight: 600;">Total année 1 :</td>
+                <td style="font-weight: 700; color: var(--hestia-primary);">{{ echeancier.total_annuel|floatformat:2 }} € TTC</td>
+                <td style="font-size: 8.5pt;">
+                    {{ echeancier.pricing_annual|floatformat:2 }} € + {{ echeancier.taxe_attentat|floatformat:2 }} € taxe attentat
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="echeancier-notes">
+        <p style="color: #d96c63; font-weight: 600; margin-bottom: 8px;">
+            * La taxe attentat de {{ echeancier.taxe_attentat|floatformat:2 }} € est entièrement incluse dans le premier prélèvement.
+        </p>
+        <p>
+            <strong>Reconduction tacite :</strong> En cas de renouvellement du contrat, la taxe attentat sera à nouveau
+            prélevée lors du premier prélèvement de chaque nouvelle année contractuelle.
+        </p>
+        <p>
+            <strong>Note :</strong> Les dates de prélèvement sont indicatives. Le prélèvement effectif intervient
+            dans les jours suivant la date indiquée, selon les délais bancaires SEPA.
+        </p>
+    </div>
+</div>
+{% endif %}

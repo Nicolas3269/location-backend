@@ -9,8 +9,11 @@ Génère les PDFs pour:
 """
 
 import logging
+from datetime import date
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
+from dateutil.relativedelta import relativedelta
 from django.core.files.base import ContentFile
 from django.template.loader import render_to_string
 from weasyprint import HTML
@@ -26,6 +29,9 @@ if TYPE_CHECKING:
     from assurances.models import InsurancePolicy
 
 logger = logging.getLogger(__name__)
+
+# Constante taxe attentat - annuelle
+TAXE_ATTENTAT = Decimal("6.50")
 
 
 def _calculate_garantie_limits(bien: Bien) -> dict[str, int]:
@@ -48,6 +54,67 @@ def _calculate_garantie_limits(bien: Bien) -> dict[str, int]:
         "nb_pieces": nb_pieces,
         "limite_mobilier": 8000 + (nb_pieces - 1) * 3000,
         "limite_objets_valeur": 2500 + (nb_pieces - 1) * 1000,
+    }
+
+
+def _calculate_echeancier(
+    effective_date: date,
+    pricing_monthly: Decimal | float,
+    pricing_annual: Decimal | float,
+) -> dict[str, Any]:
+    """
+    Calcule l'échéancier des prélèvements pour la première année.
+
+    La taxe attentat (6,50€) est incluse dans le premier prélèvement.
+
+    Args:
+        effective_date: Date d'effet du contrat
+        pricing_monthly: Cotisation mensuelle TTC
+        pricing_annual: Cotisation annuelle TTC
+
+    Returns:
+        Dict avec:
+        - taxe_attentat: Montant de la taxe (6.50€)
+        - prelevements: Liste de 12 dicts {numero, date, montant, detail}
+        - total_annuel: Total de l'année (annuel + taxe)
+    """
+    pricing_monthly = Decimal(str(pricing_monthly))
+    pricing_annual = Decimal(str(pricing_annual))
+
+    prelevements = []
+
+    for i in range(12):
+        prelevement_date = effective_date + relativedelta(months=i)
+        numero = i + 1
+
+        if i == 0:
+            # Premier prélèvement : cotisation + taxe attentat
+            montant = pricing_monthly + TAXE_ATTENTAT
+            detail = f"Cotisation {pricing_monthly:.2f} € + Taxe attentat {TAXE_ATTENTAT:.2f} €"
+            is_first = True
+        else:
+            # Prélèvements suivants : cotisation seule
+            montant = pricing_monthly
+            detail = "Cotisation mensuelle"
+            is_first = False
+
+        prelevements.append(
+            {
+                "numero": numero,
+                "date": prelevement_date,
+                "montant": float(montant),
+                "detail": detail,
+                "is_first": is_first,
+            }
+        )
+
+    total_annuel = pricing_annual + TAXE_ATTENTAT
+
+    return {
+        "taxe_attentat": float(TAXE_ATTENTAT),
+        "prelevements": prelevements,
+        "total_annuel": float(total_annuel),
+        "pricing_annual": float(pricing_annual),
     }
 
 
@@ -82,6 +149,14 @@ class InsuranceDocumentService:
         # Calculer les limites de garantie
         limites = _calculate_garantie_limits(bien)
 
+        # Calculer l'échéancier des prélèvements
+        formula = quotation.selected_formula or {}
+        echeancier = _calculate_echeancier(
+            effective_date=quotation.effective_date,
+            pricing_monthly=formula.get("pricing_monthly", 0),
+            pricing_annual=formula.get("pricing_annual", 0),
+        )
+
         context = {
             "policy": policy,
             "quotation": quotation,
@@ -93,6 +168,7 @@ class InsuranceDocumentService:
             "logo_base64_uri": get_logo_pdf_base64_data_uri(),
             "mila_signature_base64_uri": get_mila_signature_base64_data_uri(),
             "hestia_signature_base64_uri": get_hestia_signature_base64_data_uri(),
+            "echeancier": echeancier,
             **limites,
         }
 
@@ -221,6 +297,7 @@ class InsuranceDocumentService:
 
         # Générer un numéro de police prévisualisation
         from .policy_number import generate_policy_number
+
         product = quotation_data.get("product", "MRH")
         preview_policy_number = generate_policy_number(product)
 
@@ -255,6 +332,13 @@ class InsuranceDocumentService:
         # Calculer les limites de garantie
         limites = _calculate_garantie_limits(bien)
 
+        # Calculer l'échéancier des prélèvements
+        echeancier = _calculate_echeancier(
+            effective_date=quotation_data.get("effective_date"),
+            pricing_monthly=formula_data.get("pricing_monthly", 0),
+            pricing_annual=formula_data.get("pricing_annual", 0),
+        )
+
         context = {
             "policy": policy_preview,
             "quotation": quotation_preview,
@@ -267,6 +351,7 @@ class InsuranceDocumentService:
             "mila_signature_base64_uri": get_mila_signature_base64_data_uri(),
             "hestia_signature_base64_uri": get_hestia_signature_base64_data_uri(),
             "is_preview": True,  # Flag pour afficher "PROJET" dans le template
+            "echeancier": echeancier,
             **limites,
         }
 

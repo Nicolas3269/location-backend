@@ -2,7 +2,7 @@
 Client API Mila pour MRH Locataire.
 
 Usage:
-    from partenaires.services.mila import MilaMRHClient
+    from partenaires.services.mila.client import MilaMRHClient
 
     client = MilaMRHClient()
     result = client.get_quotation(bien)
@@ -18,7 +18,7 @@ import requests
 from django.conf import settings
 
 from .adapters import AdresseToMilaAdapter, BienToMilaAdapter
-from .auth import MilaAuthClient, MilaAuthError
+from .auth import MilaAuthClient
 from .types import (
     Deductible,
     MilaAddress,
@@ -153,6 +153,7 @@ class MilaMRHClient:
         bien: "Bien",
         deductible: int = Deductible.STANDARD,
         effective_date: date | None = None,
+        validate: bool = True,
     ) -> MRHQuotationResult:
         """
         Obtient un devis MRH depuis un objet Bien.
@@ -161,16 +162,19 @@ class MilaMRHClient:
             bien: Instance du modèle Bien
             deductible: Franchise (170€ ou 290€)
             effective_date: Date d'effet (défaut: aujourd'hui)
+            validate: Si True (défaut), valide les contraintes Mila
 
         Returns:
             MRHQuotationResult avec les formules disponibles
 
         Raises:
-            ValueError: Si le bien n'a pas d'adresse
+            BienValidationError: Si validate=True et contraintes non respectées
+            AdresseIncompleteError: Si l'adresse est incomplète
             MilaAPIError: Si l'API retourne une erreur
         """
-        if not bien.adresse:
-            raise ValueError("Le bien doit avoir une adresse structurée")
+        # Valider le bien selon les contraintes Mila
+        if validate:
+            BienToMilaAdapter.validate_for_mila(bien, deductible)
 
         # Utiliser les adapters existants
         mila_address = AdresseToMilaAdapter.to_mila(bien.adresse)
@@ -215,7 +219,9 @@ class MilaMRHClient:
             )
             response.raise_for_status()
         except requests.HTTPError as e:
-            logger.error(f"Mila API error: {e.response.status_code} - {e.response.text}")
+            logger.error(
+                f"Mila API error: {e.response.status_code} - {e.response.text}"
+            )
             raise MilaAPIError(
                 f"Erreur API Mila: {e.response.status_code}",
                 status_code=e.response.status_code,

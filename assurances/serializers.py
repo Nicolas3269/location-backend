@@ -92,6 +92,7 @@ class InsuranceQuotationRequestSerializer(serializers.Serializer):
     )
     deductible = serializers.IntegerField(default=170)
     effective_date = serializers.DateField(required=False, allow_null=True)
+    force_refresh = serializers.BooleanField(default=False)
 
     def validate_deductible(self, value: int) -> int:
         """Valide que la franchise est 170 ou 290."""

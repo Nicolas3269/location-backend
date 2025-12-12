@@ -414,7 +414,7 @@ MRH_SUBSCRIPTION_STEPS = [
         "id": "mrh.prix",
         "required_fields": [],  # Pas de champs requis, step d'affichage
         "fields": {},
-        "business_rules": [],
+        "business_rules": ["pricingSuccessful"],
     },
     {
         "id": "mrh.souscription",

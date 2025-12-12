@@ -157,9 +157,21 @@ class InsuranceQuotationService:
         # Obtenir un nouveau devis depuis Mila
         logger.info(f"Requesting new {product} quotation for location {location.id}")
 
+        # Forcer le refresh du bien depuis la base (évite cache ORM)
+        location.refresh_from_db()
         bien = location.bien
         if not bien:
             raise ValueError("La location doit avoir un bien associé")
+
+        # Forcer aussi le refresh du bien
+        bien.refresh_from_db()
+
+        # Log des données envoyées à Mila pour debug
+        logger.info(
+            f"📊 Mila params: superficie={bien.superficie}, "
+            f"pieces_info={bien.pieces_info}, etage={bien.etage}, "
+            f"type={bien.type_bien}"
+        )
 
         # TODO: Utiliser différents endpoints Mila selon le produit
         result = self.client.get_quotation_from_bien(

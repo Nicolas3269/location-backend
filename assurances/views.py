@@ -88,6 +88,7 @@ def get_quotation(request: Request) -> Response:
     product = serializer.validated_data.get("product", InsuranceProduct.MRH)
     deductible = serializer.validated_data.get("deductible", 170)
     effective_date = serializer.validated_data.get("effective_date")
+    force_refresh = serializer.validated_data.get("force_refresh", False)
 
     # Récupérer la location
     location = get_object_or_404(Location, id=location_id)
@@ -108,6 +109,7 @@ def get_quotation(request: Request) -> Response:
         )
 
     # Obtenir le devis
+    logger.info(f"🔍 get_quotation: location={location_id}, refresh={force_refresh}")
     try:
         quotation_service = InsuranceQuotationService()
         quotation = quotation_service.get_quotation(
@@ -116,6 +118,7 @@ def get_quotation(request: Request) -> Response:
             product=product,
             deductible=deductible,
             effective_date=effective_date or date.today(),
+            force_refresh=force_refresh,
         )
     except ValueError as e:
         return Response(

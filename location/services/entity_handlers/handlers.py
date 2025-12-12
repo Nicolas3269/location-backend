@@ -762,7 +762,8 @@ def _extract_rent_terms_data(data, location: Location, serializer_class):
 
 def create_rent_terms(location: Location, data, serializer_class):
     """
-    Crée les conditions financières pour une nouvelle location.
+    Crée ou met à jour les conditions financières pour une location.
+    Utilise update_or_create pour éviter les erreurs de contrainte unique.
     """
     fields_data = _extract_rent_terms_data(data, location, serializer_class)
 
@@ -772,8 +773,12 @@ def create_rent_terms(location: Location, data, serializer_class):
     if not fields_to_create:
         return None
 
-    rent_terms = RentTerms.objects.create(location=location, **fields_to_create)
-    logger.info(f"RentTerms créé pour la location {location.id}")
+    rent_terms, created = RentTerms.objects.update_or_create(
+        location=location,
+        defaults=fields_to_create,
+    )
+    action = "créé" if created else "mis à jour"
+    logger.info(f"RentTerms {action} pour la location {location.id}")
     return rent_terms
 
 
@@ -1081,10 +1086,24 @@ def create_new_location(data, serializer_class, location_id, document_type):
     # 3. Créer la Location (entité pivot) avec l'ID fourni si disponible
     location_fields = get_location_fields_from_data(data)
     if location_id:
-        # Utiliser l'UUID fourni par le frontend (via form-requirements)
-        location = Location.objects.create(
-            id=location_id, bien=bien, mandataire=mandataire_obj, **location_fields
+        # Utiliser get_or_create pour éviter les race conditions
+        # (ex: React StrictMode double render, retry après erreur réseau)
+        location, created = Location.objects.get_or_create(
+            id=location_id,
+            defaults={
+                "bien": bien,
+                "mandataire": mandataire_obj,
+                **location_fields,
+            },
         )
+        if not created:
+            # Location existait déjà - mettre à jour les champs
+            location.bien = bien
+            location.mandataire = mandataire_obj
+            for key, value in location_fields.items():
+                setattr(location, key, value)
+            location.save()
+            logger.info(f"Location existante réutilisée: {location_id}")
     else:
         # Laisser Django générer un UUID
         location = Location.objects.create(
@@ -1101,8 +1120,9 @@ def create_new_location(data, serializer_class, location_id, document_type):
             f"{len(locataires)} locataire(s) associé(s) à la location {location.id}"
         )
 
-    # 6. Créer les conditions financières si fournies
-    create_rent_terms(location, data, serializer_class=serializer_class)
+    # 6. Créer les conditions financières si fournies (pas pour MRH)
+    if document_type != "mrh":
+        create_rent_terms(location, data, serializer_class=serializer_class)
 
     # 7. Créer les honoraires mandataire si user_role == MANDATAIRE
     if user_role == UserRole.MANDATAIRE:
@@ -1175,7 +1195,8 @@ def update_existing_location(location: Location, data, serializer_class, documen
                 location, data, document_type=document_type
             )
 
-    # 5. Mettre à jour ou créer les conditions financières (incluant dépôt de garantie)
-    update_rent_terms(location, data, serializer_class=serializer_class)
+    # 5. Mettre à jour ou créer les conditions financières (pas pour MRH)
+    if document_type != "mrh":
+        update_rent_terms(location, data, serializer_class=serializer_class)
 
     return location, location.bien, bailleur_principal

@@ -12,6 +12,7 @@ from django.db import models
 from django.utils import timezone
 
 from location.models import BaseModel, Locataire
+from signature.document_types import SignableDocumentType
 from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
 
@@ -331,7 +332,7 @@ class InsuranceQuotationSignatureRequest(AbstractSignatureRequest):
 
     def get_document_type(self) -> str:
         """Retourne le type de document pour le système de signature."""
-        return "assurance"
+        return SignableDocumentType.ASSURANCE.value
 
 
 class StaticDocument(BaseModel):

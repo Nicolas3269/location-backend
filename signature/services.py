@@ -55,12 +55,10 @@ def _get_document_config(document_type: str) -> dict:
             "url_path": "avenant",
             "signed_template": "signe",
         },
-        "assurance": {
-            "display": "assurance",
-            "folder": "assurance",
-            "url_path": "assurance",
-            "signed_template": "signe",
-        },
+        # Note: "assurance" n'a pas de config car :
+        # - L'email OTP utilise le template commun (common/otp_signature)
+        # - L'email "document signé" n'est pas envoyé (envoyé après paiement Stripe)
+        # - Le fallback (display=document_type) suffit pour le sujet OTP
     }
     return configs.get(
         document_type,

@@ -15,6 +15,7 @@ from algo.signature.main import (
 )
 from backend.storage_utils import get_local_file_path, save_file_to_storage
 from signature.document_status import DocumentStatus
+from signature.document_types import SignableDocumentType
 from signature.services import send_document_signed_emails, send_signature_confirmation_email
 
 logger = logging.getLogger(__name__)
@@ -248,16 +249,23 @@ def process_signature_generic(signature_request, signature_data_url, request=Non
                     logger.info("✅ Status mis à jour : SIGNED")
 
                     # Envoyer les emails de notification à toutes les parties
+                    # SAUF pour les assurances (l'email est envoyé après paiement Stripe)
                     first_sig = sig_requests.first()
                     document_type = first_sig.get_document_type()
-                    try:
-                        send_document_signed_emails(document, document_type)
+                    if document_type != SignableDocumentType.ASSURANCE.value:
+                        try:
+                            send_document_signed_emails(document, document_type)
+                            logger.info(
+                                f"📧 Emails 'document signé' envoyés pour {document_type}"
+                            )
+                        except Exception as email_error:
+                            logger.warning(
+                                f"⚠️ Erreur envoi emails de finalisation: {email_error}"
+                            )
+                    else:
                         logger.info(
-                            f"📧 Emails 'document signé' envoyés pour {document_type}"
-                        )
-                    except Exception as email_error:
-                        logger.warning(
-                            f"⚠️ Erreur envoi emails de finalisation: {email_error}"
+                            "📧 Pas d'email 'document signé' pour assurance "
+                            "(envoyé après paiement)"
                         )
 
                 logger.info(

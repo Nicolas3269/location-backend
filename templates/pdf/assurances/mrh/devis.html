@@ -57,7 +57,7 @@
         <h3>Souscripteur</h3>
         <div class="partie-row">
             <span class="partie-label">Nom :</span>
-            <span class="partie-value">{{ subscriber.first_name }} {{ subscriber.last_name }}</span>
+            <span class="partie-value">{% if locataire %}{{ locataire.firstName }} {{ locataire.lastName }}{% else %}-{% endif %}</span>
         </div>
         <div class="partie-row">
             <span class="partie-label">Adresse :</span>

@@ -422,9 +422,19 @@ MRH_SUBSCRIPTION_STEPS = [
         "fields": {},
         "business_rules": ["pricingSuccessful"],
     },
+    # Step documents pour signature (visible si quotation non signée)
     {
-        "id": "mrh.souscription",
-        "required_fields": [],  # Géré par le composant frontend
+        "id": "mrh.documents",
+        "condition": "quote_not_signed",
+        "required_fields": [],
+        "fields": {},
+        "business_rules": [],
+    },
+    # Step paiement (visible uniquement si quotation signée)
+    {
+        "id": "mrh.payment",
+        "condition": "quote_signed",
+        "required_fields": [],
         "fields": {},
         "business_rules": [],
     },

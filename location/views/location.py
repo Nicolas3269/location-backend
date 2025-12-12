@@ -306,6 +306,14 @@ def create_or_update_location(request):
         if quittance_id:
             response_data["quittance_id"] = quittance_id
 
+        # Retourner les IDs des locataires pour permettre les mises à jour ultérieures
+        locataire_ids = [str(loc.id) for loc in location.locataires.all()]
+        if locataire_ids:
+            response_data["locataire_ids"] = locataire_ids
+            # Pour MRH (un seul locataire), retourner aussi en singulier
+            if source == "mrh" and len(locataire_ids) == 1:
+                response_data["locataire_id"] = locataire_ids[0]
+
         return JsonResponse(response_data)
 
     except Exception as e:

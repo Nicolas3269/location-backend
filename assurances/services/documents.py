@@ -24,6 +24,7 @@ from backend.pdf_utils import (
     get_mila_signature_base64_data_uri,
 )
 from location.models import Bien, Location
+from location.services.access_utils import get_user_info_for_location
 
 if TYPE_CHECKING:
     from assurances.models import InsurancePolicy
@@ -141,10 +142,11 @@ class InsuranceDocumentService:
         bien = location.bien if location else None
         subscriber = policy.subscriber
 
-        # Récupérer le locataire souscripteur pour son adresse
+        # Récupérer le locataire souscripteur via user_info (source de vérité)
         locataire = None
-        if location:
-            locataire = location.locataires.first()
+        if location and subscriber:
+            user_info = get_user_info_for_location(location, subscriber.email)
+            locataire = user_info.locataire
 
         # Calculer les limites de garantie
         limites = _calculate_garantie_limits(bien)
@@ -162,7 +164,6 @@ class InsuranceDocumentService:
             "quotation": quotation,
             "location": location,
             "bien": bien,
-            "subscriber": subscriber,
             "locataire": locataire,
             "adresse": bien.adresse if bien else None,
             "logo_base64_uri": get_logo_pdf_base64_data_uri(),
@@ -192,11 +193,18 @@ class InsuranceDocumentService:
         quotation = policy.quotation
         location = quotation.location
         bien = location.bien if location else None
+        subscriber = policy.subscriber
+
+        # Récupérer le locataire souscripteur via user_info (source de vérité)
+        locataire = None
+        if location and subscriber:
+            user_info = get_user_info_for_location(location, subscriber.email)
+            locataire = user_info.locataire
 
         context = {
             "policy": policy,
             "bien": bien,
-            "subscriber": policy.subscriber,
+            "locataire": locataire,
             "adresse": bien.adresse if bien else None,
             "logo_base64_uri": get_logo_pdf_base64_data_uri(),
         }
@@ -272,7 +280,6 @@ class InsuranceDocumentService:
         self,
         quotation_data: dict[str, Any],
         formula_data: dict[str, Any],
-        subscriber: Any | None = None,
         bien: Any | None = None,
         location: Any | None = None,
         locataire: Any | None = None,
@@ -286,10 +293,9 @@ class InsuranceDocumentService:
         Args:
             quotation_data: Données du devis
             formula_data: Données de la formule sélectionnée
-            subscriber: Informations du souscripteur
             bien: Informations du bien
             location: Location associée
-            locataire: Locataire souscripteur (pour marqueur de signature)
+            locataire: Locataire souscripteur (source de vérité pour nom/prénom)
 
         Returns:
             Contenu PDF en bytes
@@ -344,8 +350,7 @@ class InsuranceDocumentService:
             "quotation": quotation_preview,
             "location": location,
             "bien": bien,
-            "subscriber": subscriber,
-            "locataire": locataire,  # Pour le marqueur de signature
+            "locataire": locataire,
             "adresse": bien.adresse if bien else None,
             "logo_base64_uri": get_logo_pdf_base64_data_uri(),
             "mila_signature_base64_uri": get_mila_signature_base64_data_uri(),
@@ -363,16 +368,16 @@ class InsuranceDocumentService:
     def generate_devis(
         self,
         quotation_data: dict[str, Any],
-        subscriber: Any | None = None,
         bien: Any | None = None,
+        locataire: Any | None = None,
     ) -> bytes:
         """
         Génère un devis d'assurance en PDF.
 
         Args:
             quotation_data: Données du devis (id, formulas, created_at, expires_at, etc.)
-            subscriber: Informations du souscripteur (optionnel)
             bien: Informations du bien (optionnel)
+            locataire: Locataire souscripteur (source de vérité pour nom/prénom)
 
         Returns:
             Contenu PDF en bytes
@@ -394,7 +399,7 @@ class InsuranceDocumentService:
         context = {
             "quotation": quotation,
             "formulas": quotation_data.get("formulas", []),
-            "subscriber": subscriber,
+            "locataire": locataire,
             "bien": bien,
             "adresse": bien.adresse if bien else None,
             "deductible": quotation_data.get("deductible", 170),

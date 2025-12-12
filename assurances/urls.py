@@ -11,6 +11,8 @@ app_name = "assurances"
 urlpatterns = [
     # === Devis ===
     path("quotation/", views.get_quotation, name="quotation"),
+    path("quotation/<uuid:quotation_id>/", views.get_quotation_by_id, name="quotation-detail"),
+    path("quotation/<uuid:quotation_id>/cancel-signature/", views.cancel_quotation_signature, name="cancel-signature"),
     path("select-formula/", views.select_formula, name="select-formula"),
     # === Signature (génériques) ===
     path(

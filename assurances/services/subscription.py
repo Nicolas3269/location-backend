@@ -13,12 +13,13 @@ import os
 import re
 from typing import TYPE_CHECKING
 
+import mrml
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 from django.utils import timezone
 
-import mrml
-from django.template.loader import render_to_string
+from location.services.access_utils import get_user_info_for_location
 
 from .documents import InsuranceDocumentService
 
@@ -107,13 +108,16 @@ class InsuranceSubscriptionService:
             policy: Police à activer
         """
         from django.db import transaction
+
         from assurances.models import InsurancePolicy
 
         # Utiliser select_for_update pour éviter les race conditions
         # (webhook + checkout_status peuvent arriver en même temps)
         with transaction.atomic():
             # Re-fetch avec lock pour éviter double activation
-            locked_policy = InsurancePolicy.objects.select_for_update().get(id=policy.id)
+            locked_policy = InsurancePolicy.objects.select_for_update().get(
+                id=policy.id
+            )
 
             if locked_policy.status != locked_policy.Status.PENDING:
                 logger.warning(
@@ -250,6 +254,10 @@ class InsuranceSubscriptionService:
         adresse = bien.adresse if bien else None
         formula = quotation.selected_formula or {}
 
+        # Récupérer le locataire via user_info (source de vérité pour le prénom)
+        user_info = get_user_info_for_location(location, subscriber.email)
+        locataire = user_info.locataire
+
         # Construire l'adresse complète
         adresse_complete = None
         if adresse:
@@ -269,8 +277,10 @@ class InsuranceSubscriptionService:
             effective_date_str = quotation.effective_date.strftime("%d/%m/%Y")
 
         # Préparer le contexte pour le template (variables plates comme les autres emails)
+        prenom = locataire.firstName or ""
+
         context = {
-            "prenom": subscriber.first_name or "Client",
+            "prenom": prenom,
             "policy_number": policy.policy_number,
             "effective_date": effective_date_str,
             "formula_label": formula.get("label", ""),

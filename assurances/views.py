@@ -135,6 +135,97 @@ def get_quotation(request: Request) -> Response:
     return Response(InsuranceQuotationSerializer(quotation).data)
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_quotation_by_id(request: Request, quotation_id: str) -> Response:
+    """
+    Récupère un devis par son ID.
+
+    Args:
+        quotation_id: UUID du devis
+
+    Returns:
+        InsuranceQuotation avec les formules disponibles
+    """
+    quotation = get_object_or_404(
+        InsuranceQuotation.objects.select_related(
+            "location",
+            "location__bien",
+            "location__bien__adresse",
+        ).prefetch_related("location__locataires"),
+        id=quotation_id,
+    )
+
+    # Vérifier que l'utilisateur est propriétaire du devis
+    if quotation.user != request.user:
+        return Response(
+            {"error": "Vous n'êtes pas autorisé à accéder à ce devis"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    return Response(InsuranceQuotationSerializer(quotation).data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def cancel_quotation_signature(request: Request, quotation_id: str) -> Response:
+    """
+    Annule la signature d'un devis d'assurance.
+
+    Remet le statut à DRAFT pour permettre une nouvelle signature.
+
+    Args:
+        quotation_id: UUID du devis
+
+    Returns:
+        {"success": true, "status": "draft"}
+    """
+    from signature.document_status import DocumentStatus
+
+    quotation = get_object_or_404(
+        InsuranceQuotation.objects.select_related("location"),
+        id=quotation_id,
+    )
+
+    # Vérifier que l'utilisateur est propriétaire du devis
+    if quotation.user != request.user:
+        return Response(
+            {"error": "Vous n'êtes pas autorisé à modifier ce devis"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    # Vérifier que le devis est en statut SIGNED (pas encore payé)
+    if quotation.status != DocumentStatus.SIGNED:
+        return Response(
+            {"error": "Ce devis n'est pas en attente de paiement"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Vérifier qu'il n'y a pas déjà une police associée
+    if hasattr(quotation, "policy") and quotation.policy:
+        return Response(
+            {"error": "Une police a déjà été créée pour ce devis"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Remettre le statut à DRAFT
+    quotation.status = DocumentStatus.DRAFT
+    quotation.save(update_fields=["status"])
+
+    # Invalider les signature requests existantes
+    InsuranceQuotationSignatureRequest.objects.filter(
+        quotation=quotation,
+        signed=True,
+    ).update(signed=False)
+
+    logger.info(f"✅ Signature annulée pour devis {quotation_id}")
+
+    return Response({
+        "success": True,
+        "status": "draft",
+    })
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def select_formula(request: Request) -> Response:
@@ -218,8 +309,8 @@ def select_formula(request: Request) -> Response:
         # 1. Générer le devis PDF
         devis_pdf_bytes = documents_service.generate_devis(
             quotation_data=quotation_data,
-            subscriber=request.user,
             bien=quotation.location.bien if quotation.location else None,
+            locataire=user_info.locataire,
         )
 
         # Stocker le devis PDF
@@ -233,7 +324,6 @@ def select_formula(request: Request) -> Response:
         cp_pdf_bytes = documents_service.generate_conditions_particulieres_preview(
             quotation_data=quotation_data,
             formula_data=formula_data,
-            subscriber=request.user,
             bien=quotation.location.bien if quotation.location else None,
             location=quotation.location,
             locataire=user_info.locataire,
@@ -824,12 +914,15 @@ def get_devis_document(request: Request) -> HttpResponse:
             f for f in quotation.formulas_data if f.get("code") == formula_code
         ]
 
+    # Récupérer le locataire pour le PDF
+    locataire = user_info.locataire if quotation.location else None
+
     try:
         documents_service = InsuranceDocumentService()
         pdf_bytes = documents_service.generate_devis(
             quotation_data=quotation_data,
-            subscriber=request.user,
             bien=quotation.location.bien if quotation.location else None,
+            locataire=locataire,
         )
 
         response = HttpResponse(pdf_bytes, content_type="application/pdf")

@@ -152,7 +152,7 @@
         </div>
         <div class="info-row">
             <span class="info-label">Assuré :</span>
-            <span class="info-value">{{ subscriber.first_name }} {{ subscriber.last_name }}</span>
+            <span class="info-value">{% if locataire %}{{ locataire.firstName }} {{ locataire.lastName }}{% else %}-{% endif %}</span>
         </div>
         <div class="info-row">
             <span class="info-label">Adresse du bien assuré :</span>

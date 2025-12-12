@@ -47,7 +47,7 @@ def get_form_requirements(request, form_type):
     """
 
     # Valider le type de formulaire
-    valid_form_types = ["bail", "quittance", "etat_lieux"]
+    valid_form_types = ["bail", "quittance", "etat_lieux", "mrh"]
     if form_type not in valid_form_types:
         return Response(
             {
@@ -141,6 +141,7 @@ def get_form_requirements_authenticated(request, form_type):
         "etat_lieux",
         "tenant_documents",
         "avenant",
+        "mrh",
     ]
     if form_type not in valid_form_types:
         return Response(

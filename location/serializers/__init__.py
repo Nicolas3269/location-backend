@@ -6,6 +6,7 @@ from .france import (
     FranceAvenantSerializer,
     FranceBailSerializer,
     FranceEtatLieuxSerializer,
+    FranceMRHSerializer,
     FranceQuittanceSerializer,
 )
 
@@ -19,6 +20,7 @@ __all__ = [
     "FranceAvenantSerializer",
     "FranceBailSerializer",
     "FranceEtatLieuxSerializer",
+    "FranceMRHSerializer",
     "FranceQuittanceSerializer",
     "BelgiumBailSerializer",
     "BelgiumEtatLieuxSerializer",

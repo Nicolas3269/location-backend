@@ -24,6 +24,9 @@ from location.serializers.france import (
 from location.serializers.france import (
     FranceQuittanceSerializer as CreateQuittanceSerializer,
 )
+from location.serializers.france import (
+    FranceMRHSerializer as CreateMRHSerializer,
+)
 
 # Sérialiser le bien avec BienReadSerializer + structure nested
 from location.serializers.helpers import restructure_bien_to_nested_format
@@ -201,6 +204,7 @@ def create_or_update_location(request):
             "bail": CreateBailSerializer,
             "quittance": CreateQuittanceSerializer,
             "etat_lieux": CreateEtatLieuxSerializer,
+            "mrh": CreateMRHSerializer,
         }
 
         if source not in serializer_map:

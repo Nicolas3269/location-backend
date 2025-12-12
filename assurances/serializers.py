@@ -141,6 +141,7 @@ class InsurancePolicySerializer(serializers.ModelSerializer):
     pricing_annual = serializers.SerializerMethodField()
     pricing_monthly = serializers.SerializerMethodField()
     location_address = serializers.SerializerMethodField()
+    attestation_url = serializers.SerializerMethodField()
 
     class Meta:
         model = InsurancePolicy
@@ -160,6 +161,7 @@ class InsurancePolicySerializer(serializers.ModelSerializer):
             "subscriber_email",
             "subscriber_name",
             "location_address",
+            "attestation_url",
             "created_at",
             "activated_at",
         ]
@@ -195,6 +197,12 @@ class InsurancePolicySerializer(serializers.ModelSerializer):
         location: Location = obj.quotation.location
         if location and location.bien and location.bien.adresse:
             return str(location.bien.adresse)
+        return None
+
+    def get_attestation_url(self, obj: InsurancePolicy) -> str | None:
+        """Retourne l'URL de l'attestation PDF."""
+        if obj.attestation_document:
+            return obj.attestation_document.url
         return None
 
 

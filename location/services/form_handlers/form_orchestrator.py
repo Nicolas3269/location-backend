@@ -67,7 +67,14 @@ class FormOrchestrator:
             - prefill_data: Données existantes pour pré-remplissage
         """
         # Validation du type de formulaire
-        valid_types = ["bail", "quittance", "etat_lieux", "tenant_documents", "avenant"]
+        valid_types = [
+            "bail",
+            "quittance",
+            "etat_lieux",
+            "tenant_documents",
+            "avenant",
+            "mrh",
+        ]
         if form_type not in valid_types:
             return {
                 "error": f"Invalid form type. Must be one of: {', '.join(valid_types)}"
@@ -322,6 +329,7 @@ class FormOrchestrator:
             FranceAvenantSerializer,
             FranceBailSerializer,
             FranceEtatLieuxSerializer,
+            FranceMRHSerializer,
             FranceQuittanceSerializer,
         )
 
@@ -331,6 +339,7 @@ class FormOrchestrator:
                 "quittance": FranceQuittanceSerializer,
                 "etat_lieux": FranceEtatLieuxSerializer,
                 "avenant": FranceAvenantSerializer,
+                "mrh": FranceMRHSerializer,
             },
             "BE": {
                 "bail": BelgiumBailSerializer,

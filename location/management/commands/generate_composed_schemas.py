@@ -22,6 +22,7 @@ class Command(BaseCommand):
             FranceAvenantSerializer,
             FranceBailSerializer,
             FranceEtatLieuxSerializer,
+            FranceMRHSerializer,
             FranceQuittanceSerializer,
         )
         from location.serializers.composed import (
@@ -94,6 +95,7 @@ class Command(BaseCommand):
             FranceQuittanceSerializer,
             FranceEtatLieuxSerializer,
             FranceAvenantSerializer,
+            FranceMRHSerializer,
             BelgiumBailSerializer,
             BelgiumQuittanceSerializer,
             BelgiumEtatLieuxSerializer,

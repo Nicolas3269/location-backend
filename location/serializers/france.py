@@ -82,6 +82,21 @@ PIECES_INFO_STEPS = [
         "always_unlocked": True,
     },
 ]
+
+PIECES_INFO_MRH_STEPS = [
+    {
+        "id": "bien.caracteristiques.pieces_info",
+        "required_fields": [],  # Validation par business rule uniquement
+        "fields": {
+            "bien.caracteristiques.pieces_info": Bien.pieces_info,
+        },
+        "business_rules": [
+            "atLeastOneRoom",
+            "maxRooms7",
+        ],  # Au moins 1 chambre ou séjour
+        "always_unlocked": True,
+    },
+]
 MEUBLE_STEPS = [
     {
         "id": "bien.caracteristiques.meuble",
@@ -379,6 +394,33 @@ PERSON_STEPS = [
         "required_fields": [],  # Validation par business rule
         "fields": {},  # Relation many-to-many
         "business_rules": ["locatairesRequired"],
+    },
+]
+PERSON_MRH_STEPS = [
+    {
+        "id": "locataire.personne",
+        "required_fields": [],  # Validation par business rule
+        "fields": {},  # Géré par le serializer LocatairePersonneSerializer
+        "business_rules": [
+            "isAuthenticated",  # L'utilisateur doit être authentifié
+            "locatairePersonneValidation",
+        ],  # Validation personne physique
+    },
+]
+
+# --- STEPS MRH SOUSCRIPTION ---
+MRH_SUBSCRIPTION_STEPS = [
+    {
+        "id": "mrh.prix",
+        "required_fields": [],  # Pas de champs requis, step d'affichage
+        "fields": {},
+        "business_rules": [],
+    },
+    {
+        "id": "mrh.souscription",
+        "required_fields": [],  # Géré par le composant frontend
+        "fields": {},
+        "business_rules": [],
     },
 ]
 
@@ -1196,6 +1238,41 @@ class FranceAvenantSerializer(BaseLocationSerializer):
         AVENANT_STEPS.extend(AVENANT_PERMIS_DE_LOUER_STEPS)
         # Note: avenant.validation est ajouté côté frontend (step final)
         return AVENANT_STEPS
+
+
+class FranceMRHSerializer(BaseLocationSerializer):
+    """
+    Serializer pour une souscription d'assurance MRH en France.
+
+    MRH = Multi-Risques Habitation.
+    Formulaire simplifié pour les locataires souhaitant souscrire
+    une assurance habitation.
+    """
+
+    # Override source avec valeur par défaut
+    source = serializers.CharField(default="mrh")
+
+    # Bien (adresse, type, superficie, pièces)
+    bien = BienQuittanceSerializer(required=True)
+
+    # Informations du locataire (utilisateur connecté)
+    locataire = PersonneSerializer(required=True)
+
+    @classmethod
+    def get_step_config(cls):
+        """
+        Configuration des steps du formulaire MRH France.
+        Formulaire simplifié: adresse, type de bien, superficie, pièces, locataire,
+        puis affichage des prix et souscription.
+        """
+        MRH_STEPS = []
+        MRH_STEPS.extend(ADRESSE_STEPS)
+        MRH_STEPS.extend(TYPE_BIEN_STEPS)
+        MRH_STEPS.extend(SUPERFICIE_STEPS)
+        MRH_STEPS.extend(PIECES_INFO_MRH_STEPS)
+        MRH_STEPS.extend(PERSON_MRH_STEPS)
+        MRH_STEPS.extend(MRH_SUBSCRIPTION_STEPS)
+        return MRH_STEPS
 
 
 # Les helper functions sont maintenant des méthodes de BaseLocationSerializer

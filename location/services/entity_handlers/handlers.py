@@ -582,13 +582,23 @@ def create_locataires(data):
     """
     Crée les locataires depuis les données du formulaire en utilisant les serializers.
     Retourne la liste des locataires créés.
-    Les données sont déjà validées par FranceBailSerializer/FranceQuittanceSerializer/FranceEtatLieuxSerializer.
+    Les données sont déjà validées par FranceBailSerializer/FranceQuittanceSerializer/FranceEtatLieuxSerializer/FranceMRHSerializer.
 
     Si un UUID frontend est fourni (data.locataires[].id), il est utilisé comme PK.
     Sinon Django génère un UUID automatiquement.
+
+    Supporte deux formats:
+    - locataires: liste de locataires (bail, quittance, EDL)
+    - locataire: un seul locataire (MRH)
     """
     # Les données sont déjà validées, on les utilise directement
     locataires_data = data.get("locataires") or []
+
+    # Support pour le format singulier (MRH)
+    locataire_singulier = data.get("locataire")
+    if locataire_singulier and not locataires_data:
+        locataires_data = [locataire_singulier]
+
     locataires = []
 
     for validated in locataires_data:
@@ -1047,16 +1057,26 @@ def create_new_location(data, serializer_class, location_id, document_type):
     if user_role == UserRole.MANDATAIRE:
         mandataire_obj = create_mandataire(data)
 
-    # Créer les bailleurs (commun aux deux parcours)
-    bailleur_principal, autres_bailleurs = create_or_get_bailleur(data)
+    # Créer les bailleurs (requis sauf pour MRH)
+    bailleur_principal = None
+    autres_bailleurs = []
+    if "bailleur" in data:
+        bailleur_principal, autres_bailleurs = create_or_get_bailleur(data)
 
-    # Associer les bailleurs au bien (utiliser set() pour éviter les doublons)
-    bailleurs_list = [bailleur_principal] + autres_bailleurs
-    bien.bailleurs.set(bailleurs_list)
+        # Associer les bailleurs au bien (utiliser set() pour éviter les doublons)
+        bailleurs_list = [bailleur_principal] + autres_bailleurs
+        bien.bailleurs.set(bailleurs_list)
 
-    logger.info(
-        f"Bailleur principal et {len(autres_bailleurs)} co-bailleur(s) associés"
-    )
+        logger.info(
+            f"Bailleur principal et {len(autres_bailleurs)} co-bailleur(s) associés"
+        )
+    elif document_type == "mrh":
+        # MRH n'a pas de bailleur (souscription locataire uniquement)
+        logger.info("Pas de bailleur pour MRH (souscription locataire)")
+    else:
+        raise ValueError(
+            f"Données du bailleur requises pour le document type '{document_type}'"
+        )
 
     # 3. Créer la Location (entité pivot) avec l'ID fourni si disponible
     location_fields = get_location_fields_from_data(data)
@@ -1117,7 +1137,8 @@ def update_existing_location(location: Location, data, serializer_class, documen
     update_location_fields(location, data, location_id=str(location.id))
 
     # 3. Créer et associer les locataires si fournis
-    locataires_data = data.get("locataires")
+    # Supporte locataires (liste) ou locataire (singulier pour MRH)
+    locataires_data = data.get("locataires") or data.get("locataire")
     if locataires_data:
         locataires = create_locataires(data)
         # Utiliser set() pour remplacer complètement les locataires (évite les doublons)
@@ -1136,8 +1157,9 @@ def update_existing_location(location: Location, data, serializer_class, documen
         location.bien.bailleurs.set(bailleurs_list)
 
     # 4. Gérer le mandataire si user_role == MANDATAIRE
+    # Note: user_role est optionnel pour MRH (pas de bailleur/mandataire)
     user_role = data.get("user_role")
-    if user_role not in [UserRole.BAILLEUR, UserRole.MANDATAIRE]:
+    if user_role and user_role not in [UserRole.BAILLEUR, UserRole.MANDATAIRE]:
         raise ValueError(f"Rôle utilisateur inconnu: {user_role}")
     if user_role == UserRole.MANDATAIRE:
         # Seulement créer un mandataire si la location n'en a pas déjà un

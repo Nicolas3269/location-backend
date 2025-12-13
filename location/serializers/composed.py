@@ -5,6 +5,7 @@ Chaque serializer représente un domaine métier atomique.
 
 from rest_framework import serializers
 
+from location.constants import DPE_CHOICES, DPE_DEFAULT
 from location.models import BailleurType
 
 # ============================================
@@ -84,18 +85,30 @@ class CaracteristiquesBienSerializer(serializers.Serializer):
 
 
 class PerformanceEnergetiqueSerializer(serializers.Serializer):
-    """Performance énergétique du bien"""
+    """Performance énergétique du bien (requis pour bail)"""
 
-    classe_dpe = serializers.ChoiceField(
-        choices=["A", "B", "C", "D", "E", "F", "G", "NA"], default="NA"
-    )
+    classe_dpe = serializers.ChoiceField(choices=DPE_CHOICES, default=DPE_DEFAULT)
     depenses_energetiques = serializers.CharField(
         required=False, allow_blank=True, default=""
     )
 
 
+class PerformanceEnergetiqueEDLSerializer(serializers.Serializer):
+    """Performance énergétique du bien (optionnel pour EDL)"""
+
+    classe_dpe = serializers.ChoiceField(
+        choices=DPE_CHOICES,
+        default=DPE_DEFAULT,
+        allow_null=True,
+        required=False,
+    )
+    depenses_energetiques = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, default=""
+    )
+
+
 class EquipementsSerializer(serializers.Serializer):
-    """Équipements et annexes du bien"""
+    """Équipements et annexes du bien (requis pour bail)"""
 
     annexes_privatives = serializers.ListField(
         child=serializers.CharField(), required=False
@@ -104,6 +117,20 @@ class EquipementsSerializer(serializers.Serializer):
         child=serializers.CharField(), required=False
     )
     information = serializers.ListField(child=serializers.CharField(), required=False)
+
+
+class EquipementsEDLSerializer(serializers.Serializer):
+    """Équipements et annexes du bien (optionnel pour EDL)"""
+
+    annexes_privatives = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, default=list
+    )
+    annexes_collectives = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, default=list
+    )
+    information = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, default=list
+    )
 
 
 class SystemeEnergieSerializer(serializers.Serializer):
@@ -450,16 +477,15 @@ class BienQuittanceSerializer(serializers.Serializer):
 
 
 class BienEtatLieuxSerializer(serializers.Serializer):
-    """Serializer pour un bien dans un état des lieux"""
+    """Serializer pour un bien dans un état des lieux (champs optionnels)"""
 
     localisation = AdresseSerializer()
     caracteristiques = CaracteristiquesBienSerializer()
-    performance_energetique = PerformanceEnergetiqueSerializer(required=False)
-    equipements = EquipementsSerializer()  # Décommenté pour accepter les équipements
-    energie = EnergieSerializer()
-    regime = RegimeJuridiqueSerializer(
-        required=False
-    )  # Ajouté pour sauvegarder regime_juridique et periode_construction
+    # Utiliser les serializers EDL (optionnels, acceptent null)
+    performance_energetique = PerformanceEnergetiqueEDLSerializer(required=False)
+    equipements = EquipementsEDLSerializer(required=False)
+    energie = EnergieSerializer(required=False)
+    regime = RegimeJuridiqueSerializer(required=False)
     zone_reglementaire = ZoneReglementaireSerializer(required=False)
 
 

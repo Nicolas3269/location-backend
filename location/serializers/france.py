@@ -1000,9 +1000,8 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
         child=PersonneSerializer(), min_length=1, required=True
     )
 
-    # Dates et modalités optionnelles pour état des lieux
+    # Dates optionnelles pour état des lieux (pas de modalites_financieres pour EDL)
     dates = DatesLocationSerializer(required=False)
-    modalites_financieres = ModalitesFinancieresSerializer(required=False)
 
     # Options de location
     solidaires = serializers.BooleanField(
@@ -1092,7 +1091,8 @@ class FranceEtatLieuxSerializer(BaseLocationSerializer):
 
     def to_internal_value(self, data):
         """
-        Convertir les objets vides en None pour les compteurs
+        Pré-traitement des données avant validation.
+        - Convertit les objets vides en None pour les compteurs
         """
         validated_data = super().to_internal_value(data)
 

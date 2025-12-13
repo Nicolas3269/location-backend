@@ -1,6 +1,7 @@
 import json
 import logging
 
+import sentry_sdk
 from django.http import JsonResponse
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
@@ -223,6 +224,16 @@ def create_or_update_location(request):
 
         if not serializer.is_valid():
             logger.warning(f"Erreurs de validation: {serializer.errors}")
+            # Envoyer à Sentry pour tracking des erreurs de validation
+            sentry_sdk.capture_message(
+                f"Validation échouée pour {source}",
+                level="warning",
+                extras={
+                    "source": source,
+                    "errors": serializer.errors,
+                    "user_id": request.user.id if request.user else None,
+                },
+            )
             return JsonResponse(
                 {
                     "success": False,

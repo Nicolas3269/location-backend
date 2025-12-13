@@ -4,6 +4,13 @@ Constantes pour le module location
 
 from enum import StrEnum
 
+# ============================================
+# DPE (Diagnostic de Performance Énergétique)
+# ============================================
+
+DPE_CHOICES = ["A", "B", "C", "D", "E", "F", "G", "NA"]
+DPE_DEFAULT = "NA"
+
 
 class UserRole(StrEnum):
     """

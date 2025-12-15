@@ -208,7 +208,7 @@ class MilaMRHClient:
         payload = request.to_dict()
         url = f"{self.base_url}{self.QUOTATION_ENDPOINT}"
 
-        logger.info(f"Mila MRH quotation request: {payload}")
+        logger.debug(f"Mila MRH quotation request: {payload}")
 
         try:
             response = self.session.post(
@@ -231,12 +231,12 @@ class MilaMRHClient:
             raise MilaAPIError(f"Erreur de connexion à Mila: {e}") from e
 
         data = response.json()
-        logger.info(f"Mila MRH response: {data}")
+        logger.debug(f"Mila MRH response: {data}")
 
         # L'API retourne une liste de formules
         formulas = [MRHQuotationResponse.from_dict(item) for item in data]
 
-        logger.info(f"Mila MRH quotation: {len(formulas)} formulas received")
+        logger.debug(f"Mila MRH quotation: {len(formulas)} formulas received")
 
         return MRHQuotationResult(formulas=formulas, request=request)
 

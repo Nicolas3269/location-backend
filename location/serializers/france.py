@@ -780,6 +780,34 @@ class BaseLocationSerializer(serializers.Serializer):
 
         return None
 
+    @classmethod
+    def get_ready_check_fields(cls):
+        """
+        Retourne les champs top-level requis pour considérer le formulaire comme "prêt".
+
+        Ces champs sont utilisés côté frontend pour s'assurer que le formulaire
+        est bien initialisé avant de déclencher des actions (ex: génération de documents).
+
+        Résout la race condition où les composants tentaient de soumettre
+        avant que React Hook Form soit initialisé avec les données.
+
+        Returns: List[str] - Liste des noms de champs top-level requis
+        """
+        # Instancier le serializer pour accéder aux champs déclarés
+        instance = cls()
+        ready_fields = []
+
+        for field_name, field in instance.fields.items():
+            # Ignorer les champs techniques/métadata
+            if field_name in ("location_id", "bien_id", "bailleur_id", "source", "country"):
+                continue
+
+            # Inclure les champs required=True au niveau top-level
+            if getattr(field, "required", False):
+                ready_fields.append(field_name)
+
+        return ready_fields
+
 
 class FranceBailSerializer(BaseLocationSerializer):
     """

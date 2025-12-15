@@ -267,6 +267,11 @@ class FormOrchestrator:
             except Location.DoesNotExist:
                 pass
 
+        # Obtenir les champs requis pour le "ready check" côté frontend
+        ready_check_fields = []
+        if hasattr(serializer_class, "get_ready_check_fields"):
+            ready_check_fields = serializer_class.get_ready_check_fields()
+
         result = {
             "formData": form_data,
             "is_new": is_new,
@@ -277,6 +282,9 @@ class FormOrchestrator:
             "prefill_data": existing_data,
             "locked_steps": list(locked_steps),  # Liste des step_ids lockés
             "locked_steps_count": len(locked_steps),
+            # Champs top-level requis pour considérer le form comme "prêt"
+            # Utilisé côté frontend pour éviter les race conditions
+            "ready_check_fields": ready_check_fields,
         }
 
         # Pour PrefillFormState ET ExtendFormState, ajouter bien_id/bailleur_id au niveau racine

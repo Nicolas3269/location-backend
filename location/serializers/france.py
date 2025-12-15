@@ -97,6 +97,19 @@ PIECES_INFO_MRH_STEPS = [
         "always_unlocked": True,
     },
 ]
+
+# --- BIEN - Pièce de plus de 50m² (MRH only) ---
+PIECE_OVER_50M2_STEPS = [
+    {
+        "id": "bien.caracteristiques.has_piece_over_50m2",
+        "required_fields": ["bien.caracteristiques.has_piece_over_50m2"],
+        "fields": {
+            "bien.caracteristiques.has_piece_over_50m2": Bien.has_piece_over_50m2,
+        },
+        "business_rules": ["noPieceOver50m2"],  # Bloque si une pièce fait + de 50m²
+    },
+]
+
 MEUBLE_STEPS = [
     {
         "id": "bien.caracteristiques.meuble",
@@ -1314,6 +1327,7 @@ class FranceMRHSerializer(BaseLocationSerializer):
         MRH_STEPS.extend(TYPE_BIEN_STEPS)
         MRH_STEPS.extend(SUPERFICIE_STEPS)
         MRH_STEPS.extend(PIECES_INFO_MRH_STEPS)
+        MRH_STEPS.extend(PIECE_OVER_50M2_STEPS)
         MRH_STEPS.extend(PERSON_MRH_STEPS)
         MRH_STEPS.extend(MRH_SUBSCRIPTION_STEPS)
         return MRH_STEPS

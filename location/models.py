@@ -805,6 +805,14 @@ class Bien(BaseModel):
         null=True, blank=True, default=None, verbose_name="Meublé"
     )
 
+    has_piece_over_50m2 = models.BooleanField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name="A une pièce de plus de 50m²",
+        help_text="Indique si le logement possède une pièce de plus de 50m² (exclusion MRH)",
+    )
+
     # Informations DPE (Diagnostic de Performance Énergétique)
     classe_dpe = models.CharField(
         max_length=2,

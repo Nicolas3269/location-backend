@@ -125,6 +125,7 @@ class DocumentType(models.TextChoices):
     PERMIS_DE_LOUER = "permis_de_louer", "Permis de louer"
     ATTESTATION_MRH = "attestation_mrh", "Attestation MRH"
     CAUTION_SOLIDAIRE = "caution_solidaire", "Caution solidaire"
+    CARTE_IDENTITE = "carte_identite", "Carte d'identité"
     AUTRE = "autre", "Autre document"
 
 

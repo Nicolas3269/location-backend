@@ -443,6 +443,14 @@ MRH_SUBSCRIPTION_STEPS = [
         "fields": {},
         "business_rules": [],
     },
+    # Step carte d'identité (visible si quotation signée, avant paiement)
+    {
+        "id": "mrh.carte_id",
+        "condition": "quote_signed",
+        "required_fields": [],
+        "fields": {},
+        "business_rules": ["carteIdUploaded"],  # Carte d'identité obligatoire
+    },
     # Step paiement (visible uniquement si quotation signée)
     {
         "id": "mrh.payment",

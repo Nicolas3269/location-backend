@@ -5,7 +5,6 @@ Vues génériques pour la signature de documents
 import logging
 
 from django.contrib.auth import get_user_model
-from django.contrib.contenttypes.models import ContentType
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 
@@ -15,7 +14,7 @@ from location.models import Location
 from location.services.access_utils import get_user_role_for_location
 from location.services.bailleur_utils import get_primary_bailleur_for_user
 from signature.document_status import DocumentStatus
-from signature.models import AbstractSignatureRequest, SignatureMetadata
+from signature.models import AbstractSignatureRequest
 from signature.models_base import SignableDocumentMixin
 
 from .document_list_service import get_etat_lieux_documents_list
@@ -23,6 +22,7 @@ from .pdf_processing import process_signature_generic
 
 # Envoyer l'OTP par email
 from .services import (
+    cancel_document_signature,
     get_next_signer,
     send_otp_email,
     send_signature_cancelled_emails,
@@ -489,13 +489,12 @@ def cancel_signature_generic(request, document_id, document_model):
                 status=403,
             )
 
-        # Récupérer toutes les signature requests liées au document
-        # Via la relation inverse (related_name="signature_requests")
+        # Récupérer les signature requests pour envoyer les emails AVANT cancel
         signature_requests = document.signature_requests.all()
-        cancelled_count = signature_requests.count()
+        sig_count = signature_requests.count()
 
         # Envoyer les emails d'annulation AVANT le soft delete
-        if cancelled_count > 0:
+        if sig_count > 0:
             first_sig = signature_requests.first()
             document_type = first_sig.get_document_type()
             try:
@@ -506,36 +505,10 @@ def cancel_signature_generic(request, document_id, document_model):
             except Exception as email_error:
                 logger.warning(f"⚠️ Erreur envoi emails d'annulation: {email_error}")
 
-        # Soft delete des signature requests (au lieu de hard delete)
-        # Cela permet de garder l'historique et d'afficher un message approprié
-        # si un utilisateur accède à un ancien lien de signature
-        for sig_req in signature_requests:
-            sig_req.cancel(user=user)
+        # Utiliser le helper commun pour le reste
+        cancelled_count = cancel_document_signature(document, user=user)
 
-        # Supprimer les SignatureMetadata associées (preuves forensiques)
-        # Important: évite les orphelins qui faussent le count de est_signe
-        content_type = ContentType.objects.get_for_model(document)
-        SignatureMetadata.objects.filter(
-            document_content_type=content_type, document_object_id=document.id
-        ).delete()
-
-        # Supprimer le latest_pdf si existant
-        if document.latest_pdf:
-            try:
-                # Supprimer le fichier physique
-                document.latest_pdf.delete(save=False)
-            except Exception as e:
-                logger.warning(f"Erreur lors de la suppression du PDF: {e}")
-
-        # Passer le statut à DRAFT
-        document.status = DocumentStatus.DRAFT
-        document.latest_pdf = None
-        document.save()
-
-        logger.info(
-            f"Signature annulée pour {document_model.__name__} {document_id} "
-            f"par {user.email}. {cancelled_count} signature request(s) annulée(s)."
-        )
+        logger.info(f"Signature annulée par {user.email}")
 
         return JsonResponse(
             {

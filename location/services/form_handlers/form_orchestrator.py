@@ -151,6 +151,13 @@ class FormOrchestrator:
                     return {"error": "Avenant not found"}
                 source_data, final_location_id = result
                 source_location_id = final_location_id
+            elif form_state.source_type == "location" and form_type == "mrh":
+                # MRH depuis location : inclut les docs du locataire (carte ID)
+                source_data = (
+                    self.data_fetcher.fetch_mrh_location_data(source_id, user) or {}
+                )
+                source_location_id = source_id
+                final_location_id = source_id
             else:
                 # source_type = "location" (cas normal)
                 source_data = (
@@ -168,7 +175,12 @@ class FormOrchestrator:
             # Mode Prefill: Nouvelle Location avec suggestions (JAMAIS de lock)
             source_id = str(form_state.source_id)
 
-            if form_state.source_type == "location":
+            if form_state.source_type == "location" and form_type == "mrh":
+                # MRH depuis location : inclut les docs du locataire (carte ID)
+                source_data = (
+                    self.data_fetcher.fetch_mrh_location_data(source_id, user) or {}
+                )
+            elif form_state.source_type == "location":
                 source_data = (
                     self.data_fetcher.fetch_location_data(source_id, user) or {}
                 )

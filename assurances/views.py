@@ -172,58 +172,65 @@ def cancel_quotation_signature(request: Request, quotation_id: str) -> Response:
     """
     Annule la signature d'un devis d'assurance.
 
-    Remet le statut à DRAFT pour permettre une nouvelle signature.
+    Utilise le helper commun cancel_document_signature avec delete_pdf=True
+    car le champ de signature est dans le pdf original (pas seulement latest_pdf).
 
-    Args:
-        quotation_id: UUID du devis
-
-    Returns:
-        {"success": true, "status": "draft"}
+    L'utilisateur devra passer par select_formula à nouveau pour régénérer un PDF.
     """
     from signature.document_status import DocumentStatus
+    from signature.services import cancel_document_signature
 
-    quotation = get_object_or_404(
-        InsuranceQuotation.objects.select_related("location"),
-        id=quotation_id,
-    )
-
-    # Vérifier que l'utilisateur est propriétaire du devis
-    if quotation.user != request.user:
-        return Response(
-            {"error": "Vous n'êtes pas autorisé à modifier ce devis"},
-            status=status.HTTP_403_FORBIDDEN,
+    try:
+        quotation = get_object_or_404(
+            InsuranceQuotation.objects.select_related("location"),
+            id=quotation_id,
         )
 
-    # Vérifier que le devis est en statut SIGNED (pas encore payé)
-    if quotation.status != DocumentStatus.SIGNED:
-        return Response(
-            {"error": "Ce devis n'est pas en attente de paiement"},
-            status=status.HTTP_400_BAD_REQUEST,
+        # Vérifier que l'utilisateur est propriétaire du devis
+        if quotation.user != request.user:
+            return Response(
+                {"error": "Vous n'êtes pas autorisé à modifier ce devis"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Vérifier que le devis est en cours de signature ou signé (pas encore payé)
+        if quotation.status not in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
+            return Response(
+                {"error": "Ce devis n'est pas en cours de signature"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Vérifier qu'il n'y a pas déjà une police associée
+        if hasattr(quotation, "policy") and quotation.policy:
+            return Response(
+                {"error": "Une police a déjà été créée pour ce devis"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Utiliser le helper commun
+        cancelled_count = cancel_document_signature(
+            document=quotation,
+            user=request.user,
         )
 
-    # Vérifier qu'il n'y a pas déjà une police associée
-    if hasattr(quotation, "policy") and quotation.policy:
-        return Response(
-            {"error": "Une police a déjà été créée pour ce devis"},
-            status=status.HTTP_400_BAD_REQUEST,
+        logger.info(
+            f"✅ Signature annulée pour devis {quotation_id} par {request.user.email}. "
+            f"{cancelled_count} signature request(s) annulée(s), PDFs supprimés."
         )
 
-    # Remettre le statut à DRAFT
-    quotation.status = DocumentStatus.DRAFT
-    quotation.save(update_fields=["status"])
+        return Response({
+            "success": True,
+            "status": "draft",
+            "cancelled_signature_requests": cancelled_count,
+            "needs_regeneration": True,
+        })
 
-    # Invalider les signature requests existantes
-    InsuranceQuotationSignatureRequest.objects.filter(
-        quotation=quotation,
-        signed=True,
-    ).update(signed=False)
-
-    logger.info(f"✅ Signature annulée pour devis {quotation_id}")
-
-    return Response({
-        "success": True,
-        "status": "draft",
-    })
+    except Exception as e:
+        logger.exception(f"Erreur lors de l'annulation de la signature: {e}")
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 @api_view(["POST"])
@@ -350,10 +357,15 @@ def select_formula(request: Request) -> Response:
             logger.warning(f"⚠️ Certification Hestia optionnelle échouée: {cert_error}")
             final_pdf_path = tmp_pdf_path
 
-        # Stocker les CP dans le champ pdf (hérité de SignableDocumentMixin)
+        # Stocker les CP dans pdf ET latest_pdf
+        # - pdf : garde l'original (champs de signature vides)
+        # - latest_pdf : utilisé pour la signature (sera modifié par process_signature_generic)
+        # Ainsi, après annulation (suppression de latest_pdf), on repart du pdf propre
         cp_filename = f"cp_{quotation.product}_{quotation.id}_{formula_code}.pdf"
         with open(final_pdf_path, "rb") as f:
-            quotation.pdf.save(cp_filename, ContentFile(f.read()), save=False)
+            content = f.read()
+            quotation.pdf.save(cp_filename, ContentFile(content), save=False)
+            quotation.latest_pdf.save(cp_filename, ContentFile(content), save=False)
 
         # Nettoyer les fichiers temporaires
         try:

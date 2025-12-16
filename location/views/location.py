@@ -35,7 +35,7 @@ from location.serializers.helpers import restructure_bien_to_nested_format
 # Utiliser LocationReadSerializer pour chaque location
 from location.serializers.read import BienReadSerializer, LocationReadSerializer
 from location.services.access_utils import (
-    get_user_role_for_location,
+    get_user_info_for_location,
     user_has_bien_access,
     user_has_location_access,
 )
@@ -471,9 +471,8 @@ def get_location_documents(request, location_id):
             )
 
         # Déterminer le rôle de l'utilisateur pour filtrer les brouillons
-
-        user_roles = get_user_role_for_location(location, user_email)
-        is_locataire = user_roles.get("is_locataire", False)
+        user_info = get_user_info_for_location(location, user_email)
+        is_locataire = user_info.is_locataire
 
         documents = []
 
@@ -854,6 +853,30 @@ def get_location_documents(request, location_id):
             except ImportError:
                 # Module assurances non disponible
                 pass
+
+            # Carte(s) d'identité du locataire connecté uniquement
+            # user_info est défini plus haut dans la fonction
+            if user_info.locataire:
+                cartes_id = Document.objects.filter(
+                    locataire=user_info.locataire,
+                    type_document=DocumentType.CARTE_IDENTITE,
+                ).order_by("-created_at")
+
+                for idx, doc in enumerate(cartes_id):
+                    # Si plusieurs fichiers (recto/verso), numéroter
+                    doc_nom = "Pièce d'identité"
+                    if cartes_id.count() > 1:
+                        doc_nom = f"Pièce d'identité ({idx + 1})"
+                    documents.append(
+                        {
+                            "id": f"loc-id-{doc.id}",
+                            "type": "identite",
+                            "nom": doc_nom,
+                            "date": doc.created_at.isoformat(),
+                            "url": doc.file.url,
+                            "status": "Assurance",
+                        }
+                    )
 
         serializer = LocationReadSerializer(location, context={"user": request.user})
         location_info = serializer.data

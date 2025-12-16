@@ -840,16 +840,18 @@ def upload_locataire_document(request):
                 {"success": False, "error": "Type de document requis"}, status=400
             )
 
-        # Vérifier que le type est MRH ou Caution
+        # Vérifier que le type est MRH, Caution ou Carte d'identité
         if document_type not in [
             DocumentType.ATTESTATION_MRH,
             DocumentType.CAUTION_SOLIDAIRE,
+            DocumentType.CARTE_IDENTITE,
         ]:
             return JsonResponse(
                 {
                     "success": False,
                     "error": (
-                        "Type invalide. Attendu: attestation_mrh ou caution_solidaire"
+                        "Type invalide. Attendu: attestation_mrh, "
+                        "caution_solidaire ou carte_identite"
                     ),
                 },
                 status=400,
@@ -878,11 +880,12 @@ def upload_locataire_document(request):
             # Récupérer le bien de la location
             bien_associe = location_active.bien
 
-        # Pour attestation_mrh (document unique), supprimer les anciens documents
-        # avant d'uploader le nouveau (comportement "remplacer")
+        # Pour attestation_mrh (document unique),
+        # supprimer les anciens documents avant d'uploader le nouveau
+        # Note: carte_identite permet plusieurs fichiers (recto/verso)
         if document_type == DocumentType.ATTESTATION_MRH:
             old_documents = Document.objects.filter(
-                locataire=locataire, type_document=DocumentType.ATTESTATION_MRH
+                locataire=locataire, type_document=document_type
             )
             # Supprimer les fichiers physiques avant de supprimer les entrées BDD
             for old_doc in old_documents:

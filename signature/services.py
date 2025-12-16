@@ -5,6 +5,7 @@ Services partagés pour la signature de documents
 import logging
 
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
 
 from core.email_service import EmailService
 from core.email_subjects import get_subject
@@ -15,7 +16,8 @@ from core.url_builders import (
 from location.constants import UserRole
 from location.models import Bailleur, Bien, Location
 from location.templatetags.french_grammar import avec_de
-from signature.models import AbstractSignatureRequest
+from signature.document_status import DocumentStatus
+from signature.models import AbstractSignatureRequest, SignatureMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -756,3 +758,56 @@ def create_signature_requests_generic(document, signature_request_model, user=No
         f"Créé {order - 1} demandes de signature pour "
         f"{type(document).__name__} {document.id}"
     )
+
+
+def cancel_document_signature(document, user=None):
+    """
+    Annule la signature d'un document signable.
+
+    Logique commune extraite de cancel_signature_generic et cancel_quotation_signature.
+
+    Actions:
+    - Soft delete des signature requests via cancel()
+    - Suppression des SignatureMetadata (preuves forensiques)
+    - Suppression du latest_pdf si existant
+    - Passage du statut à DRAFT
+
+    Args:
+        document: Instance du document signable (Bail, EtatLieux, InsuranceQuotation)
+        user: Utilisateur qui annule (optionnel, pour audit)
+
+    Returns:
+        int: Nombre de signature requests annulées
+    """
+
+    # Récupérer toutes les signature requests liées (non annulées grâce au manager)
+    signature_requests = document.signature_requests.all()
+    cancelled_count = signature_requests.count()
+
+    # Soft delete des signature requests (au lieu de hard delete)
+    # Cela permet de garder l'historique et d'afficher un message approprié
+    # si un utilisateur accède à un ancien lien de signature
+    for sig_req in signature_requests:
+        sig_req.cancel(user=user)
+
+    # Supprimer les SignatureMetadata associées (preuves forensiques)
+    # Important: évite les orphelins qui faussent le count de est_signe
+    content_type = ContentType.objects.get_for_model(document)
+    SignatureMetadata.objects.filter(
+        document_content_type=content_type, document_object_id=document.id
+    ).delete()
+
+    # Supprimer le latest_pdf si existant
+    if document.latest_pdf:
+        try:
+            # Supprimer le fichier physique
+            document.latest_pdf.delete(save=False)
+        except Exception as e:
+            logger.warning(f"Erreur lors de la suppression du PDF: {e}")
+
+    # Passer le statut à DRAFT
+    document.status = DocumentStatus.DRAFT
+    document.latest_pdf = None
+    document.save()
+
+    return cancelled_count

@@ -9,7 +9,7 @@ Utilise les serializers READ pour éviter la duplication de code.
 
 from typing import Any, Dict, Optional, Tuple
 
-from bail.models import Avenant, Bail
+from bail.models import Avenant, Bail, Document, DocumentType
 from etat_lieux.models import EquipmentType, EtatLieux
 from location.models import Bailleur, Bien, Location
 from location.serializers.helpers import (
@@ -20,6 +20,7 @@ from location.serializers.read import (
     BienReadSerializer,
     LocationReadSerializer,
 )
+from location.services.access_utils import get_user_info_for_location
 
 
 class FormDataFetcher:
@@ -380,7 +381,9 @@ class FormDataFetcher:
             Tuple (données, location_id) ou None si avenant inexistant
         """
         try:
-            avenant = Avenant.objects.select_related("bail__location").get(id=avenant_id)
+            avenant = Avenant.objects.select_related("bail__location").get(
+                id=avenant_id
+            )
 
             # Réutiliser fetch_location_data (utilise LocationReadSerializer)
             data = self.fetch_location_data(str(avenant.bail.location_id), user)
@@ -401,3 +404,68 @@ class FormDataFetcher:
 
             logging.error(f"Error in fetch_draft_avenant_data: {e}", exc_info=True)
             return None
+
+    def fetch_mrh_location_data(
+        self, location_id: str, user: Optional[Any] = None
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Récupère les données d'une Location pour le formulaire MRH.
+        Inclut les documents du locataire (carte d'identité).
+
+        Similaire à fetch_draft_edl_data pour les photos.
+
+        Args:
+            location_id: UUID de la location
+            user: Utilisateur authentifié (locataire)
+
+        Returns:
+            Dict avec les données extraites ou None si location inexistante
+        """
+
+        # Récupérer les données de base de la location
+        data = self.fetch_location_data(location_id, user)
+        if not data:
+            return None
+
+        # Récupérer les documents du locataire via get_user_info_for_location
+        if user:
+            try:
+                location = Location.objects.prefetch_related("locataires").get(
+                    id=location_id
+                )
+                user_info = get_user_info_for_location(location, user.email)
+
+                if user_info.locataire:
+                    locataire = user_info.locataire
+
+                    # Récupérer les cartes d'identité
+                    cartes_id = Document.objects.filter(
+                        locataire=locataire,
+                        type_document=DocumentType.CARTE_IDENTITE,
+                    ).order_by("-created_at")
+
+                    if cartes_id.exists():
+                        carte_files = [
+                            {
+                                "id": str(doc.id),
+                                "name": doc.nom_original,
+                                "url": doc.file.url,
+                                "type": "carte_identite",
+                            }
+                            for doc in cartes_id
+                        ]
+
+                        # S'assurer que la structure locataire existe
+                        if "locataire" not in data:
+                            data["locataire"] = {}
+
+                        data["locataire"]["carte_identite"] = carte_files
+                        data["locataire"]["id"] = str(locataire.id)
+
+            except Location.DoesNotExist:
+                pass
+            except Exception:
+                # Ne pas bloquer le formulaire en cas d'erreur
+                pass
+
+        return data

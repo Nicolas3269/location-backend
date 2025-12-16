@@ -820,7 +820,13 @@ class BaseLocationSerializer(serializers.Serializer):
 
         for field_name, field in instance.fields.items():
             # Ignorer les champs techniques/métadata
-            if field_name in ("location_id", "bien_id", "bailleur_id", "source", "country"):
+            if field_name in (
+                "location_id",
+                "bien_id",
+                "bailleur_id",
+                "source",
+                "country",
+            ):
                 continue
 
             # Inclure les champs required=True au niveau top-level

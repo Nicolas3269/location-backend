@@ -104,6 +104,32 @@
     margin-left: 185px;
 }
 
+/* ===== Assureur block ===== */
+.assureur-block {
+    margin-bottom: 20px;
+    font-size: 10pt;
+}
+
+.assureur-block::after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+.assureur-label {
+    color: var(--hestia-text-light);
+    font-weight: 500;
+    float: left;
+    width: 80px;
+}
+
+.assureur-value {
+    color: var(--hestia-text);
+    margin-left: 85px;
+    display: block;
+    line-height: 1.5;
+}
+
 /* ===== Certification ===== */
 .certification-text {
     font-size: 10pt;
@@ -127,6 +153,116 @@
     margin: 0 0 5px 0;
     text-align: center;
 }
+
+/* ===== Garanties résumé ===== */
+.garanties-resume {
+    margin-bottom: 20px;
+}
+
+.garanties-resume h3 {
+    color: var(--hestia-primary);
+    font-size: 11pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 15px 0;
+    border-bottom: 2px solid var(--hestia-primary);
+    padding-bottom: 8px;
+}
+
+.garantie-category {
+    margin-bottom: 15px;
+}
+
+.garantie-category-title {
+    font-size: 10pt;
+    font-weight: 600;
+    color: var(--hestia-text);
+    margin-bottom: 8px;
+}
+
+.garantie-item {
+    font-size: 9pt;
+    color: var(--hestia-text);
+    padding: 4px 0;
+    padding-left: 15px;
+    position: relative;
+}
+
+.garantie-item::before {
+    content: "✓";
+    color: var(--hestia-primary);
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+}
+
+.garantie-sub-item {
+    font-size: 8.5pt;
+    color: var(--hestia-text-light);
+    padding: 2px 0;
+    padding-left: 30px;
+    position: relative;
+}
+
+.garantie-sub-item::before {
+    content: "–";
+    color: var(--hestia-text-light);
+    position: absolute;
+    left: 15px;
+}
+
+/* ===== Validité phrase ===== */
+.validity-phrase {
+    font-size: 9pt;
+    color: var(--hestia-text);
+    line-height: 1.5;
+    text-align: justify;
+    margin: 20px 0;
+    padding: 12px 15px;
+    background-color: #f8f9fa;
+    border-left: 3px solid var(--hestia-primary);
+}
+
+/* ===== Signature section ===== */
+.signature-section {
+    margin-top: 25px;
+}
+
+.signature-section h3 {
+    color: var(--hestia-primary);
+    font-size: 11pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 15px 0;
+}
+
+.signature-group h4 {
+    color: var(--hestia-text);
+    font-size: 10pt;
+    font-weight: 600;
+    margin: 0 0 10px 0;
+}
+
+.signature-block {
+    width: 200px;
+    text-align: left;
+    background-color: white;
+    padding: 10px;
+    border: 1px solid var(--hestia-border);
+    border-radius: 4px;
+}
+
+.signature-block p {
+    margin: 0;
+    font-size: 9pt;
+}
+
+.signature-block img {
+    height: 50px;
+    margin-top: 10px;
+}
 {% endblock %}
 
 {% block content %}
@@ -142,45 +278,73 @@
     <span class="validity-badge">CONTRAT EN COURS DE VALIDITÉ AU {% now "d/m/Y" %}</span>
 </div>
 
-<!-- ===== INFORMATIONS DU CONTRAT ===== -->
-<div class="section-box">
-    <div class="section-header">Informations du Contrat</div>
-    <div class="section-content">
-        <div class="info-row">
-            <span class="info-label">N° de police :</span>
-            <span class="info-value">{{ policy.policy_number }}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Assuré :</span>
-            <span class="info-value">{% if locataire %}{{ locataire.firstName }} {{ locataire.lastName }}{% else %}-{% endif %}</span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Adresse du bien assuré :</span>
-            <span class="info-value">
-                {% if adresse %}
-                    {{ adresse.rue }}, {{ adresse.code_postal }} {{ adresse.ville }}
-                {% else %}
-                    -
-                {% endif %}
-            </span>
-        </div>
-        <div class="info-row">
-            <span class="info-label">Date d'effet :</span>
-            <span class="info-value">{{ policy.quotation.effective_date|date:"d/m/Y" }}</span>
-        </div>
-    </div>
+<!-- ===== ASSUREUR ===== -->
+<div class="assureur-block">
+    <span class="assureur-label">Assureur :</span>
+    <span class="assureur-value">
+        <strong>Mila</strong><br>
+        1 Parvis de La Défense<br>
+        Grande Arche<br>
+        92800 Puteaux
+    </span>
 </div>
 
 <!-- ===== CERTIFICATION ===== -->
 <p class="certification-text">
-    Nous certifions que l'assuré désigné ci-dessus bénéficie d'un contrat d'assurance Multirisque Habitation Locataire,
-    comprenant notamment la garantie Responsabilité Civile Locative et la garantie Responsabilité Civile Vie Privée,
-    conformément aux Conditions Générales référence CG-MRH-I-2024061 et aux Conditions Particulières de son contrat.
+    Mila atteste, sous réserve du paiement des cotisations, que <strong>{% if locataire %}{{ locataire.firstName }} {{ locataire.lastName }}{% else %}-{% endif %}</strong> ainsi que les personnes résidant habituellement dans son foyer, sont assurés par le contrat d'assurance multirisque habitation actuellement en vigueur sous le numéro <strong>{{ policy.policy_number }}</strong> et pour un risque situé : <strong>{% if adresse %}{{ adresse.rue }}, {{ adresse.code_postal }} {{ adresse.ville }}{% else %}-{% endif %}</strong>.
 </p>
 
-<!-- ===== NOTICE ===== -->
-<div class="alert-box">
-    <p><strong>Important :</strong> Cette attestation est délivrée pour servir et valoir ce que de droit. Elle ne constitue pas une preuve de paiement des cotisations. Pour toute information complémentaire, contactez Mila Services au 05.19.88.08.88 ou par email à contact@mila.fr</p>
+<!-- ===== RÉCAPITULATIF DES GARANTIES ===== -->
+<div class="garanties-resume">
+    <h3>Garanties du contrat{% if quotation.selected_formula %} - Formule {{ quotation.selected_formula.label }}{% endif %}</h3>
+    <p style="font-size: 9pt; color: var(--hestia-text-light); margin: -10px 0 15px 0; font-style: italic;">Dans la limite des plafonds de garanties et franchises prévues contractuellement</p>
+
+    <div class="garantie-category">
+        <div class="garantie-category-title">Garanties Dommages aux biens</div>
+        <div class="garantie-item">Incendie, explosion, implosion, enfumage</div>
+        <div class="garantie-item">Attentats et actes de terrorisme</div>
+        <div class="garantie-item">Dégâts des eaux, gel</div>
+        <div class="garantie-item">Événements climatiques</div>
+        <div class="garantie-item">Catastrophes naturelles</div>
+        <div class="garantie-item">Catastrophes technologiques</div>
+        {% if quotation.selected_formula.code == 'MRHIND_SER' %}
+        <div class="garantie-item">Vol</div>
+        <div class="garantie-item">Bris de glace</div>
+        <div class="garantie-item">Dommage électrique</div>
+        <div class="garantie-item">Assistance</div>
+        <div class="garantie-sub-item">Serrurerie</div>
+        <div class="garantie-sub-item">Vitrerie</div>
+        <div class="garantie-sub-item">Électricité</div>
+        <div class="garantie-sub-item">Domicile sinistré</div>
+        {% endif %}
+    </div>
+
+    <div class="garantie-category">
+        <div class="garantie-category-title">Garantie Responsabilité Civile</div>
+        <div class="garantie-item">Responsabilité Civile Locative</div>
+        <div class="garantie-item">Responsabilité Civile Vie Privée</div>
+    </div>
+</div>
+
+<!-- ===== PHRASE DE VALIDITÉ ===== -->
+<div class="validity-phrase">
+    La présente attestation valable du <strong>{{ quotation.effective_date|date:"d/m/Y" }}</strong> au <strong>{{ validity_end_date|date:"d/m/Y" }}</strong> ne peut engager Mila en dehors des limites précisées par les clauses et conditions du contrat auquel elle se réfère.
+</div>
+
+<!-- ===== SIGNATURE ===== -->
+<div class="signature-section">
+    <h3>Certification</h3>
+    <p style="margin: 0 0 15px 0; font-size: 10pt; color: var(--hestia-text);">
+        Fait à Paris, le {% now "d/m/Y" %}
+    </p>
+
+    <div class="signature-group">
+        <h4>Pour Mila Services</h4>
+        <div class="signature-block">
+            <p>Président Directeur Général<br>Gérard Deray</p>
+            <img src="{{ mila_signature_base64_uri }}" alt="Signature Mila">
+        </div>
+    </div>
 </div>
 
 <!-- ===== FOOTER ===== -->

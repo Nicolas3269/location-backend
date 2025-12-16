@@ -201,12 +201,28 @@ class InsuranceDocumentService:
             user_info = get_user_info_for_location(location, subscriber.email)
             locataire = user_info.locataire
 
+        # Calculer la date de fin de validité (1 an après la date d'effet)
+        effective_date = quotation.effective_date
+        if effective_date:
+            try:
+                validity_end_date = effective_date.replace(year=effective_date.year + 1)
+            except ValueError:
+                # Cas du 29 février -> 28 février l'année suivante
+                validity_end_date = effective_date.replace(
+                    year=effective_date.year + 1, day=28
+                )
+        else:
+            validity_end_date = None
+
         context = {
             "policy": policy,
+            "quotation": quotation,
             "bien": bien,
             "locataire": locataire,
             "adresse": bien.adresse if bien else None,
             "logo_base64_uri": get_logo_pdf_base64_data_uri(),
+            "mila_signature_base64_uri": get_mila_signature_base64_data_uri(),
+            "validity_end_date": validity_end_date,
         }
 
         # Template selon le produit

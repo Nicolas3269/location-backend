@@ -204,16 +204,20 @@
 </div>
 
 <!-- ===== COTISATION ANNUELLE TTC ===== -->
-<div class="section-box">
+<div class="section-box" style="page-break-inside: avoid;">
     <div class="section-header">Cotisation Annuelle TTC</div>
     <div class="section-content">
+        {% if quotation.selected_formula %}
+        <p style="margin: 0 0 12px 0; font-size: 10pt; color: var(--hestia-text);">
+            <strong>Vous avez choisi la Formule {{ quotation.selected_formula.label }}.</strong>
+        </p>
+        {% endif %}
         <div class="cotisation-grid">
             <!-- Colonne gauche : TARIF -->
             <div class="tarif-section">
                 <h4>Tarif</h4>
                 {% if quotation.selected_formula %}
                 <div class="tarif-amount">{{ quotation.selected_formula.pricing_annual }} € TTC</div>
-                <div class="tarif-detail">dont garantie assistance de 6,02 € TTC</div>
                 <div class="tarif-monthly">soit {{ quotation.selected_formula.pricing_monthly }} € par mois</div>
                 {% else %}
                 <div class="tarif-amount">- € TTC</div>

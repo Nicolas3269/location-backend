@@ -224,6 +224,34 @@
     border-left: 3px solid var(--hestia-primary);
 }
 
+/* ===== Section texte (mentions légales) ===== */
+.text-section {
+    margin-bottom: 20px;
+}
+
+.text-section h3 {
+    color: var(--hestia-primary);
+    font-size: 11pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 10px 0;
+    border-bottom: 2px solid var(--hestia-primary);
+    padding-bottom: 5px;
+}
+
+.text-section p {
+    font-size: 9pt;
+    color: var(--hestia-text);
+    line-height: 1.5;
+    margin: 0;
+    text-align: justify;
+}
+
+.text-section p + p {
+    margin-top: 10px;
+}
+
 /* ===== Signature section ===== */
 .signature-section {
     margin-top: 25px;
@@ -330,6 +358,9 @@
 <div class="validity-phrase">
     La présente attestation valable du <strong>{{ quotation.effective_date|date:"d/m/Y" }}</strong> au <strong>{{ validity_end_date|date:"d/m/Y" }}</strong> ne peut engager Mila en dehors des limites précisées par les clauses et conditions du contrat auquel elle se réfère.
 </div>
+
+<!-- ===== MENTIONS LÉGALES ===== -->
+{% include "pdf/assurances/mrh/components/_mentions_legales.html" %}
 
 <!-- ===== SIGNATURE ===== -->
 <div class="signature-section">

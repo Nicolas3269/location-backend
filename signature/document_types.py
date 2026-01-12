@@ -11,7 +11,7 @@ class SignableDocumentType(models.TextChoices):
 
     Utilisé pour :
     - Identifier le type de document dans les services de signature
-    - Construire les URLs de signature (/bail/signing/, /etat-lieux/signing/, etc.)
+    - Construire les URLs de signature (/bail/signing/, /etat-des-lieux/signing/, etc.)
     - Envoyer les emails de signature avec le bon template
     - Logger les actions de signature
     """

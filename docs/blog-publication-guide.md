@@ -80,7 +80,7 @@ Structure :
 <div class="cta-box">
   <p>📋 <strong>Prêt pour ton état des lieux ?</strong></p>
   <p>
-    <a href="/etat-lieux" class="cta-link">Utilise notre outil gratuit →</a>
+    <a href="/etat-des-lieux" class="cta-link">Utilise notre outil gratuit →</a>
   </p>
 </div>
 ```

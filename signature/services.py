@@ -48,7 +48,7 @@ def _get_document_config(document_type: str) -> dict:
         "etat_lieux": {
             "display": "état des lieux",
             "folder": "edl",
-            "url_path": "etat-lieux",
+            "url_path": "etat-des-lieux",
             "signed_template": "signe",
         },
         "avenant": {

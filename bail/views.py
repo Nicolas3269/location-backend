@@ -456,6 +456,58 @@ def delete_document(request, document_id):
         )
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_bail_documents(request, bail_id):
+    """
+    Récupère les documents annexes associés à un bail (diagnostics, permis de louer).
+    Utilisé pour recharger les documents après un refresh de page.
+    """
+    try:
+        bail = get_object_or_404(Bail, id=bail_id)
+
+        # Vérifier que l'utilisateur a accès au bien
+        if not user_has_bien_access(bail.location.bien, request.user.email):
+            return JsonResponse(
+                {"success": False, "error": "Non autorisé"}, status=403
+            )
+
+        # Récupérer les documents de type diagnostic et permis_de_louer
+        documents = Document.objects.filter(
+            bail=bail,
+            type_document__in=[DocumentType.DIAGNOSTIC, DocumentType.PERMIS_DE_LOUER],
+        ).order_by("type_document", "created_at")
+
+        diagnostics = []
+        permis_de_louer = []
+
+        for doc in documents:
+            doc_data = {
+                "id": str(doc.id),
+                "name": doc.nom_original,
+                "url": doc.file.url if doc.file else None,
+                "type": doc.get_type_document_display(),
+            }
+            if doc.type_document == DocumentType.DIAGNOSTIC:
+                diagnostics.append(doc_data)
+            elif doc.type_document == DocumentType.PERMIS_DE_LOUER:
+                permis_de_louer.append(doc_data)
+
+        return JsonResponse(
+            {
+                "success": True,
+                "diagnostics": diagnostics,
+                "permis_de_louer": permis_de_louer,
+            }
+        )
+
+    except Exception as e:
+        logger.exception(f"Erreur lors de la récupération des documents du bail {bail_id}")
+        return JsonResponse(
+            {"success": False, "error": str(e)}, status=500
+        )
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def get_rent_prices(request):

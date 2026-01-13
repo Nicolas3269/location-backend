@@ -137,7 +137,9 @@ def send_signature_email(signature_request, document_type="document"):
 def send_otp_email(signature_request, document_type="document"):
     """
     Envoie un email avec le code OTP pour la signature.
-    Met à jour le statut du document vers SIGNING si c'est le premier signataire.
+
+    Note: Le statut DRAFT → SIGNING est maintenant géré dans confirm_signature_generic()
+    pour permettre à l'utilisateur de revenir en arrière et éditer après avoir cliqué "Signer".
 
     Args:
         signature_request: Instance de AbstractSignatureRequest
@@ -147,21 +149,6 @@ def send_otp_email(signature_request, document_type="document"):
     if not email:
         logger.error(f"Pas d'email pour {signature_request}")
         return False
-
-    # Récupérer le document et mettre à jour son statut si c'est le premier signataire
-    document = signature_request.get_document()
-    if hasattr(document, "status"):
-        from signature.document_status import DocumentStatus
-
-        if (
-            signature_request.order == 1
-            and document.status == DocumentStatus.DRAFT.value
-        ):
-            document.status = DocumentStatus.SIGNING.value
-            document.save()
-            logger.info(
-                f"Document {type(document).__name__} {document.id} passé en status SIGNING"
-            )
 
     otp = signature_request.otp
     if not otp:

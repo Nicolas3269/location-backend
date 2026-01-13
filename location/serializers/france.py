@@ -494,6 +494,18 @@ MODALITES_FINANCIERES_STEPS = [
     },
 ]
 
+# --- UPLOAD ANNEXES BAIL ---
+# Étape d'upload des documents annexes au bail (DPE, diagnostics, permis de louer, etc.)
+# L'upload est optionnel, les documents peuvent être ajoutés ultérieurement via avenant
+BAIL_UPLOAD_ANNEXES_STEPS = [
+    {
+        "id": "bail.upload_annexes",
+        "required_fields": [],  # Aucun champ requis, upload optionnel
+        "fields": {},
+        "always_unlocked": True,
+    },
+]
+
 # --- ZONE TENDUE ---
 ZONE_TENDUE_STEPS = [
     {
@@ -925,6 +937,7 @@ class FranceBailSerializer(BaseLocationSerializer):
         BAIL_STEPS.extend(ZONE_TENDUE_STEPS)
         BAIL_STEPS.extend(BAIL_DATE_STEPS)
         BAIL_STEPS.extend(MODALITES_FINANCIERES_STEPS)
+        BAIL_STEPS.extend(BAIL_UPLOAD_ANNEXES_STEPS)
 
         return BAIL_STEPS
 

@@ -323,6 +323,21 @@ def confirm_signature_generic(request, model_class, document_type):
                 status=400,
             )
 
+        # Mettre à jour le statut vers SIGNING si c'est le premier signataire
+        # Note: Fait ici (pas dans send_otp_email) pour permettre à l'utilisateur
+        # de revenir en arrière et éditer après avoir cliqué "Signer"
+        document = sig_req.get_document()
+        if hasattr(document, "status"):
+            if (
+                sig_req.order == 1
+                and document.status == DocumentStatus.DRAFT.value
+            ):
+                document.status = DocumentStatus.SIGNING.value
+                document.save()
+                logger.info(
+                    f"Document {type(document).__name__} {document.id} passé en status SIGNING"
+                )
+
         # process_signature_generic s'occupera de mark_as_signed()
         # Passer la request pour capturer métadonnées HTTP (IP, user-agent)
         process_signature_generic(sig_req, signature_data_url, request=request)

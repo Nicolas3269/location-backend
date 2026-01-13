@@ -18,6 +18,7 @@ from bail.views import (
     generate_bail_pdf,
     generate_notice_information_pdf,
     get_bail_bien_id,
+    get_bail_documents,
     get_bien_baux,
     get_bien_detail,
     get_company_data,
@@ -43,6 +44,7 @@ urlpatterns = [
     path("upload-document/", upload_document, name="upload_document"),
     path("get-company-data/", get_company_data, name="get_company_data"),
     path("documents/<uuid:document_id>/", delete_document, name="delete_document"),
+    path("<uuid:bail_id>/documents/", get_bail_documents, name="get_bail_documents"),
     path("confirm-signature/", confirm_signature_bail, name="confirm_signature_bail"),
     path(
         "cancel-signature/<uuid:bail_id>/",

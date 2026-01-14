@@ -123,6 +123,7 @@ class DocumentType(models.TextChoices):
     NOTICE_INFORMATION = "notice_information", "Notice d'information"
     DIAGNOSTIC = "diagnostic", "Diagnostics techniques"
     PERMIS_DE_LOUER = "permis_de_louer", "Permis de louer"
+    REGLEMENT_COPROPRIETE = "reglement_copropriete", "Extraits du règlement de copropriété"
     ATTESTATION_MRH = "attestation_mrh", "Attestation MRH"
     CAUTION_SOLIDAIRE = "caution_solidaire", "Caution solidaire"
     CARTE_IDENTITE = "carte_identite", "Carte d'identité"
@@ -242,6 +243,10 @@ class BailSignatureRequest(AbstractSignatureRequest):
     def get_document_name(self):
         """Retourne le nom du document à signer"""
         return f"Contrat de bail - {self.bail.location.bien.adresse}"
+
+    def get_page_title(self):
+        """Retourne le titre de la page de signature"""
+        return "Signer le contrat de location"
 
     def get_document(self):
         """Retourne l'objet document associé"""
@@ -433,6 +438,10 @@ class AvenantSignatureRequest(AbstractSignatureRequest):
 
     def get_document_name(self):
         return f"Avenant n°{self.avenant.numero} - {self.avenant.bail.location.bien.adresse}"
+
+    def get_page_title(self):
+        """Retourne le titre de la page de signature"""
+        return "Signer l'avenant au bail"
 
     def get_document(self):
         return self.avenant

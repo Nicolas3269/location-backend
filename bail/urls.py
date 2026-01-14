@@ -14,6 +14,7 @@ from bail.avenant_views import (
 from bail.views import (
     cancel_signature_bail,
     confirm_signature_bail,
+    create_test_signed_bail,
     delete_document,
     generate_bail_pdf,
     generate_notice_information_pdf,
@@ -61,6 +62,12 @@ urlpatterns = [
         "upload-locataire-document/",
         upload_locataire_document,
         name="upload_locataire_document",
+    ),
+    # Test endpoint (DEBUG only) - for E2E tests
+    path(
+        "test/create-signed/",
+        create_test_signed_bail,
+        name="create_test_signed_bail",
     ),
     # Avenant routes
     path(

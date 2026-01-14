@@ -319,6 +319,10 @@ class InsuranceQuotationSignatureRequest(AbstractSignatureRequest):
         """Retourne le nom du document à signer."""
         return f"Devis {self.quotation.get_product_label()}"
 
+    def get_page_title(self) -> str:
+        """Retourne le titre de la page de signature."""
+        return "Signer l'assurance habitation"
+
     def get_document(self):
         """Retourne l'objet document associé (le devis)."""
         return self.quotation

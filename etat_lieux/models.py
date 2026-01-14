@@ -410,6 +410,12 @@ class EtatLieuxSignatureRequest(AbstractSignatureRequest):
         type_display = self.etat_lieux.get_type_etat_lieux_display()
         return f"{type_display} - {self.etat_lieux.location.bien.adresse}"
 
+    def get_page_title(self):
+        """Retourne le titre de la page de signature"""
+        if self.etat_lieux.type_etat_lieux == EtatLieuxType.ENTREE:
+            return "Signer l'état des lieux d'entrée"
+        return "Signer l'état des lieux de sortie"
+
     def get_document(self):
         """Retourne l'objet document associé"""
         return self.etat_lieux

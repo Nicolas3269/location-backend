@@ -472,14 +472,19 @@ def get_bail_documents(request, bail_id):
                 {"success": False, "error": "Non autorisé"}, status=403
             )
 
-        # Récupérer les documents de type diagnostic et permis_de_louer
+        # Récupérer les documents de type diagnostic, permis_de_louer et reglement_copropriete
         documents = Document.objects.filter(
             bail=bail,
-            type_document__in=[DocumentType.DIAGNOSTIC, DocumentType.PERMIS_DE_LOUER],
+            type_document__in=[
+                DocumentType.DIAGNOSTIC,
+                DocumentType.PERMIS_DE_LOUER,
+                DocumentType.REGLEMENT_COPROPRIETE,
+            ],
         ).order_by("type_document", "created_at")
 
         diagnostics = []
         permis_de_louer = []
+        reglement_copropriete = []
 
         for doc in documents:
             doc_data = {
@@ -492,12 +497,15 @@ def get_bail_documents(request, bail_id):
                 diagnostics.append(doc_data)
             elif doc.type_document == DocumentType.PERMIS_DE_LOUER:
                 permis_de_louer.append(doc_data)
+            elif doc.type_document == DocumentType.REGLEMENT_COPROPRIETE:
+                reglement_copropriete.append(doc_data)
 
         return JsonResponse(
             {
                 "success": True,
                 "diagnostics": diagnostics,
                 "permis_de_louer": permis_de_louer,
+                "reglement_copropriete": reglement_copropriete,
             }
         )
 
@@ -980,3 +988,85 @@ def upload_locataire_document(request):
     except Exception as e:
         logger.exception("Erreur lors de l'upload des documents locataire")
         return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+# ============================================================================
+# Test-only endpoint for E2E tests
+# ============================================================================
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_test_signed_bail(request):
+    """
+    Crée un bail avec statut SIGNED pour les tests E2E.
+    DEBUG mode uniquement - utilise les factories.
+
+    Permet de tester les fonctionnalités qui nécessitent un bail signé
+    (ex: création d'avenant) sans avoir à signer le bail via l'UI.
+
+    Note: Le PDF n'est pas généré - seul le status SIGNED est défini.
+    """
+    if not settings.DEBUG:
+        return JsonResponse(
+            {"success": False, "error": "Test endpoint only available in DEBUG mode"},
+            status=403,
+        )
+
+    try:
+        import json
+
+        data = json.loads(request.body)
+        bailleur_email = data.get("bailleur_email")
+        locataire_email = data.get("locataire_email")
+
+        if not bailleur_email or not locataire_email:
+            return JsonResponse(
+                {"success": False, "error": "bailleur_email and locataire_email required"},
+                status=400,
+            )
+
+        # Import factories (uniquement en DEBUG)
+        from location.factories import create_complete_bail
+        from signature.document_status import DocumentStatus
+
+        # Créer le bail via factory avec status SIGNED
+        bail = create_complete_bail(
+            status=DocumentStatus.SIGNED,
+        )
+
+        # Mettre à jour les emails pour matcher les users créés via OTP
+        bailleur = bail.location.bien.bailleurs.first()
+        if bailleur and bailleur.personne:
+            # Reset user pour re-link au bon User lors du save
+            bailleur.personne.user = None
+            bailleur.personne.email = bailleur_email
+            bailleur.personne.save()
+
+        locataire = bail.location.locataires.first()
+        if locataire:
+            # Reset user pour re-link au bon User lors du save
+            locataire.user = None
+            locataire.email = locataire_email
+            locataire.save()
+
+        logger.info(
+            f"[TEST] Created signed bail {bail.id} for E2E tests "
+            f"(bailleur: {bailleur_email}, locataire: {locataire_email})"
+        )
+
+        return JsonResponse(
+            {
+                "success": True,
+                "bail_id": str(bail.id),
+                "location_id": str(bail.location.id),
+                "bien_id": str(bail.location.bien.id),
+            }
+        )
+
+    except Exception as e:
+        logger.exception("Erreur lors de la création du bail de test")
+        return JsonResponse(
+            {"success": False, "error": str(e)},
+            status=500,
+        )

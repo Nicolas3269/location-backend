@@ -94,10 +94,17 @@ def get_signature_request_generic(request, token, model_class):
         document = sig_req.get_document()
 
         # Préparer les données de réponse
+        # Fallback pour page_title si non implémenté
+        try:
+            page_title = sig_req.get_page_title()
+        except (NotImplementedError, AttributeError):
+            page_title = "Signature du document"
+
         response_data = {
             "success": True,
             "signataire": sig_req.get_signataire_name(),
             "document_name": sig_req.get_document_name(),
+            "page_title": page_title,
             "order": sig_req.order,
         }
 

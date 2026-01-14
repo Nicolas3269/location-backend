@@ -18,7 +18,7 @@ def get_bail_documents_list(bail: Bail, request) -> List[Dict[str, Any]]:
         request: HttpRequest (optionnel pour S3/MinIO, requis pour fichiers locaux)
 
     Returns:
-        Liste de dictionnaires avec name, url, type, required
+        Liste de dictionnaires avec name, description, url, type, required
     """
     documents_list = []
 
@@ -27,6 +27,7 @@ def get_bail_documents_list(bail: Bail, request) -> List[Dict[str, Any]]:
         documents_list.append(
             {
                 "name": "Contrat de bail",
+                "description": "Contrat de location principal",
                 "url": bail.pdf.url,
                 "type": "bail",
                 "required": True,
@@ -39,6 +40,7 @@ def get_bail_documents_list(bail: Bail, request) -> List[Dict[str, Any]]:
     documents_list.append(
         {
             "name": "Notice d'information",
+            "description": "Droits et obligations des locataires et bailleurs",
             "url": notice_url,
             "type": "notice",
             "required": True,
@@ -52,7 +54,8 @@ def get_bail_documents_list(bail: Bail, request) -> List[Dict[str, Any]]:
     for doc in diagnostics:
         documents_list.append(
             {
-                "name": f"Diagnostic - {doc.nom_original}",
+                "name": doc.nom_original,
+                "description": "Dossier de diagnostics",
                 "url": doc.file.url,
                 "type": "diagnostic",
                 "required": False,
@@ -66,9 +69,25 @@ def get_bail_documents_list(bail: Bail, request) -> List[Dict[str, Any]]:
     for doc in permis:
         documents_list.append(
             {
-                "name": f"Permis de louer - {doc.nom_original}",
+                "name": doc.nom_original,
+                "description": "Permis de louer",
                 "url": doc.file.url,
                 "type": "permis_de_louer",
+                "required": False,
+            }
+        )
+
+    # 5. Extraits du règlement de copropriété
+    reglement_copro = Document.objects.filter(
+        bail=bail, type_document=DocumentType.REGLEMENT_COPROPRIETE
+    )
+    for doc in reglement_copro:
+        documents_list.append(
+            {
+                "name": doc.nom_original,
+                "description": "Extraits du règlement de copropriété",
+                "url": doc.file.url,
+                "type": "reglement_copropriete",
                 "required": False,
             }
         )
@@ -87,7 +106,7 @@ def get_etat_lieux_documents_list(
         request: HttpRequest (optionnel pour S3/MinIO, requis pour fichiers locaux)
 
     Returns:
-        Liste de dictionnaires avec name, url, type, required
+        Liste de dictionnaires avec name, description, url, type, required
     """
     documents_list = []
 
@@ -98,9 +117,15 @@ def get_etat_lieux_documents_list(
             if etat_lieux.type_etat_lieux == "entree"
             else "État des lieux de sortie"
         )
+        type_description = (
+            "Constat contradictoire à l'entrée dans les lieux"
+            if etat_lieux.type_etat_lieux == "entree"
+            else "Constat contradictoire à la sortie des lieux"
+        )
         documents_list.append(
             {
                 "name": type_label,
+                "description": type_description,
                 "url": etat_lieux.pdf.url,
                 "type": "etat_lieux",
                 "required": True,
@@ -113,6 +138,7 @@ def get_etat_lieux_documents_list(
     documents_list.append(
         {
             "name": "Grille de vétusté",
+            "description": "Référentiel de vétusté applicable",
             "url": grille_vetuste_url,
             "type": "grille_vetuste",
             "required": False,
@@ -131,7 +157,7 @@ def get_avenant_documents_list(avenant: Avenant, request) -> List[Dict[str, Any]
         request: HttpRequest (optionnel pour S3/MinIO, requis pour fichiers locaux)
 
     Returns:
-        Liste de dictionnaires avec name, url, type, required
+        Liste de dictionnaires avec name, description, url, type, required
     """
     documents_list = []
 
@@ -140,6 +166,7 @@ def get_avenant_documents_list(avenant: Avenant, request) -> List[Dict[str, Any]
         documents_list.append(
             {
                 "name": f"Avenant n°{avenant.numero}",
+                "description": "Modification du contrat de bail",
                 "url": avenant.pdf.url,
                 "type": "avenant",
                 "required": True,
@@ -153,7 +180,8 @@ def get_avenant_documents_list(avenant: Avenant, request) -> List[Dict[str, Any]
     for doc in diagnostics:
         documents_list.append(
             {
-                "name": f"Diagnostic - {doc.nom_original}",
+                "name": doc.nom_original,
+                "description": "Dossier de diagnostics",
                 "url": doc.file.url,
                 "type": "diagnostic",
                 "required": False,
@@ -167,7 +195,8 @@ def get_avenant_documents_list(avenant: Avenant, request) -> List[Dict[str, Any]
     for doc in permis:
         documents_list.append(
             {
-                "name": f"Permis de louer - {doc.nom_original}",
+                "name": doc.nom_original,
+                "description": "Permis de louer",
                 "url": doc.file.url,
                 "type": "permis_de_louer",
                 "required": False,

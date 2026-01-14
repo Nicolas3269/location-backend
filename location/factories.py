@@ -75,7 +75,7 @@ class PersonneFactory(DjangoModelFactory):
     email = factory.LazyAttribute(
         lambda obj: f"{obj.firstName.lower()}.{obj.lastName.lower()}@example.com"
     )
-    adresse = factory.Faker("address", locale="fr_FR")
+    adresse = factory.SubFactory(AdresseFactory)
     iban = factory.Faker("iban")
 
 
@@ -88,7 +88,7 @@ class SocieteFactory(DjangoModelFactory):
     raison_sociale = factory.Faker("company", locale="fr_FR")
     siret = factory.Sequence(lambda n: f"{n:014d}")  # Génère un SIRET à 14 chiffres
     forme_juridique = factory.Iterator(["SAS", "SARL", "SA", "SCI", "EURL"])
-    adresse = factory.Faker("address", locale="fr_FR")
+    adresse = factory.SubFactory(AdresseFactory)
     email = factory.LazyAttribute(
         lambda obj: f"contact@{obj.raison_sociale.lower().replace(' ', '-')}.fr"
     )
@@ -138,7 +138,7 @@ class LocataireFactory(DjangoModelFactory):
     email = factory.LazyAttribute(
         lambda obj: f"{obj.firstName.lower()}.{obj.lastName.lower()}@example.com"
     )
-    adresse = factory.Faker("address", locale="fr_FR")
+    adresse = factory.SubFactory(AdresseFactory)
     lieu_naissance = factory.Faker("city", locale="fr_FR")
     profession = factory.Faker("job", locale="fr_FR")
     employeur = factory.Faker("company", locale="fr_FR")
@@ -302,7 +302,6 @@ class RentTermsFactory(DjangoModelFactory):
     type_charges = "provisionnelles"
     montant_charges = factory.Faker("pydecimal", left_digits=4, right_digits=2, positive=True, min_value=50, max_value=300)
     jour_paiement = 5
-    depot_garantie = factory.LazyAttribute(lambda obj: obj.montant_loyer)
 
     # Zone tendue
     zone_tendue = False
@@ -348,7 +347,6 @@ class BailFactory(DjangoModelFactory):
     location = factory.SubFactory(LocationFactory)
     status = DocumentStatus.DRAFT
     duree_mois = 12
-    date_signature = factory.LazyFunction(lambda: date.today())
     justificatifs = factory.LazyFunction(list)
     clauses_particulieres = ""
     observations = ""

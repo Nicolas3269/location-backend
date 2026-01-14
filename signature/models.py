@@ -268,6 +268,11 @@ class AbstractSignatureRequest(BaseModel):
         pass
 
     @abstractmethod
+    def get_page_title(self):
+        """Retourne le titre de la page de signature"""
+        pass
+
+    @abstractmethod
     def get_document(self):
         """Retourne l'objet document associé"""
         pass

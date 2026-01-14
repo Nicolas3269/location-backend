@@ -980,9 +980,23 @@
                     <td>Électricité</td>
                     <td>{{ etat_lieux.compteurs.electricite.numero|default:"-" }}</td>
                     <td>
-                        {% if etat_lieux.compteurs.electricite.hp or etat_lieux.compteurs.electricite.hc %}
+                        {% if etat_lieux.compteurs.electricite|has_seasonal_data %}
+                            {# Affichage saisonnier #}
+                            <div style="font-size: 9pt;">
+                                <strong>Saison Basse :</strong>
+                                HP: {{ etat_lieux.compteurs.electricite.hp_saison_basse|default:"-" }} /
+                                HC: {{ etat_lieux.compteurs.electricite.hc_saison_basse|default:"-" }}
+                            </div>
+                            <div style="font-size: 9pt; margin-top: 3px;">
+                                <strong>Saison Haute :</strong>
+                                HP: {{ etat_lieux.compteurs.electricite.hp_saison_haute|default:"-" }} /
+                                HC: {{ etat_lieux.compteurs.electricite.hc_saison_haute|default:"-" }}
+                            </div>
+                        {% elif etat_lieux.compteurs.electricite.hp or etat_lieux.compteurs.electricite.hc %}
+                            {# Affichage HP/HC standard #}
                             HP: {{ etat_lieux.compteurs.electricite.hp|default:"-" }} / HC: {{ etat_lieux.compteurs.electricite.hc|default:"-" }}
                         {% elif etat_lieux.compteurs.electricite.releve %}
+                            {# Fallback simple #}
                             {{ etat_lieux.compteurs.electricite.releve }} kWh
                         {% else %}
                             -

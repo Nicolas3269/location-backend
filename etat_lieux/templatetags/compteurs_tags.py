@@ -6,7 +6,7 @@ register = template.Library()
 @register.filter
 def has_compteur_data(compteurs):
     """
-    V\u00e9rifie si les compteurs contiennent des donn\u00e9es r\u00e9elles
+    Vérifie si les compteurs contiennent des données réelles
     Retourne False si compteurs est None ou ne contient que des objets vides
     """
     if not compteurs:
@@ -15,10 +15,10 @@ def has_compteur_data(compteurs):
     if not isinstance(compteurs, dict):
         return False
 
-    # V\u00e9rifier si au moins un compteur a des donn\u00e9es
+    # Vérifier si au moins un compteur a des données
     for compteur_type, compteur_data in compteurs.items():
         if isinstance(compteur_data, dict) and compteur_data:
-            # V\u00e9rifier si le compteur a au moins une valeur non vide
+            # Vérifier si le compteur a au moins une valeur non vide
             for value in compteur_data.values():
                 if value not in [None, '', {}]:
                     return True
@@ -28,19 +28,40 @@ def has_compteur_data(compteurs):
 
 @register.filter
 def has_electricite_data(compteur):
-    """V\u00e9rifie si le compteur \u00e9lectricit\u00e9 a des donn\u00e9es"""
+    """Vérifie si le compteur électricité a des données"""
     if not compteur or not isinstance(compteur, dict):
         return False
 
+    fields = [
+        'numero', 'hp', 'hc', 'releve',  # Standard
+        'hp_saison_basse', 'hp_saison_haute',  # Saisonnier
+        'hc_saison_basse', 'hc_saison_haute',
+    ]
     return any(
         compteur.get(field) not in [None, '', {}]
-        for field in ['numero', 'hp', 'hc', 'releve']
+        for field in fields
+    )
+
+
+@register.filter
+def has_seasonal_data(compteur):
+    """Vérifie si le compteur a des données saisonnières"""
+    if not compteur or not isinstance(compteur, dict):
+        return False
+
+    seasonal_fields = [
+        'hp_saison_basse', 'hp_saison_haute',
+        'hc_saison_basse', 'hc_saison_haute'
+    ]
+    return any(
+        compteur.get(field) not in [None, '', {}]
+        for field in seasonal_fields
     )
 
 
 @register.filter
 def has_gaz_data(compteur):
-    """V\u00e9rifie si le compteur gaz a des donn\u00e9es"""
+    """Vérifie si le compteur gaz a des données"""
     if not compteur or not isinstance(compteur, dict):
         return False
 
@@ -52,7 +73,7 @@ def has_gaz_data(compteur):
 
 @register.filter
 def has_eau_data(compteur):
-    """V\u00e9rifie si le compteur eau a des donn\u00e9es"""
+    """Vérifie si le compteur eau a des données"""
     if not compteur or not isinstance(compteur, dict):
         return False
 

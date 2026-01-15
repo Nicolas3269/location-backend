@@ -70,6 +70,17 @@ def generate_bail_pdf(request):
 
         bail = get_object_or_404(Bail, id=bail_id)
 
+        # Vérifier si les documents annexes sont uploadés
+        has_reglement_copropriete_uploaded = Document.objects.filter(
+            bail=bail, type_document=DocumentType.REGLEMENT_COPROPRIETE
+        ).exists()
+        has_permis_de_louer_uploaded = Document.objects.filter(
+            bail=bail, type_document=DocumentType.PERMIS_DE_LOUER
+        ).exists()
+        has_diagnostic_uploaded = Document.objects.filter(
+            bail=bail, type_document=DocumentType.DIAGNOSTIC
+        ).exists()
+
         # Vérifier si au moins un locataire a une caution requise
         acte_de_cautionnement = bail.location.locataires.filter(
             caution_requise=True
@@ -165,6 +176,9 @@ def generate_bail_pdf(request):
                 ),
                 "logo_base64_uri": get_logo_pdf_base64_data_uri(),
                 "honoraires_mandataire": honoraires_data,
+                "has_reglement_copropriete_uploaded": has_reglement_copropriete_uploaded,
+                "has_permis_de_louer_uploaded": has_permis_de_louer_uploaded,
+                "has_diagnostic_uploaded": has_diagnostic_uploaded,
             },
         )
         pdf_bytes = HTML(

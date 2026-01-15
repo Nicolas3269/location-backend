@@ -779,19 +779,6 @@ def get_location_documents(request, location_id):
                             }
                         )
 
-                    # Attestation d'assurance
-                    if policy.attestation_document:
-                        documents.append(
-                            {
-                                "id": f"insurance-attestation-{policy.id}",
-                                "type": "assurance_bail",
-                                "nom": f"Attestation d'assurance {product}",
-                                "date": policy_date,
-                                "url": policy.attestation_document.url,
-                                "status": "Assurance",
-                            }
-                        )
-
                     # Conditions Générales (CGV)
                     try:
                         cgv_type = f"CGV_{product}"

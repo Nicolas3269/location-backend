@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 # Transformer Lambert-93 (EPSG:2154) → WGS84 (EPSG:4326) pour les coordonnées SIRENE
 _lambert_to_wgs84 = Transformer.from_crs("EPSG:2154", "EPSG:4326", always_xy=True)
 
-INDICE_IRL = 145.77
+INDICE_IRL = 145.78
 
 
 @api_view(["POST"])
@@ -506,9 +506,7 @@ def get_bail_documents(request, bail_id):
 
         # Vérifier que l'utilisateur a accès au bien
         if not user_has_bien_access(bail.location.bien, request.user.email):
-            return JsonResponse(
-                {"success": False, "error": "Non autorisé"}, status=403
-            )
+            return JsonResponse({"success": False, "error": "Non autorisé"}, status=403)
 
         # Récupérer les documents de type diagnostic, permis_de_louer et reglement_copropriete
         documents = Document.objects.filter(
@@ -548,10 +546,10 @@ def get_bail_documents(request, bail_id):
         )
 
     except Exception as e:
-        logger.exception(f"Erreur lors de la récupération des documents du bail {bail_id}")
-        return JsonResponse(
-            {"success": False, "error": str(e)}, status=500
+        logger.exception(
+            f"Erreur lors de la récupération des documents du bail {bail_id}"
         )
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 @api_view(["POST"])
@@ -1060,7 +1058,10 @@ def create_test_signed_bail(request):
 
         if not bailleur_email or not locataire_email:
             return JsonResponse(
-                {"success": False, "error": "bailleur_email and locataire_email required"},
+                {
+                    "success": False,
+                    "error": "bailleur_email and locataire_email required",
+                },
                 status=400,
             )
 

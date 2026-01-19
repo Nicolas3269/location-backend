@@ -506,6 +506,30 @@ BAIL_UPLOAD_ANNEXES_STEPS = [
     },
 ]
 
+# --- SIGNATURE BAIL ---
+# Étape de signature électronique du bail par le bailleur
+BAIL_SIGNATURE_STEPS = [
+    {
+        "id": "bail.signature_bail",
+        "required_fields": [],
+        "fields": {},
+        "always_unlocked": True,
+    },
+]
+
+# --- SUCCESS BAIL (Post-Signature Bailleur) ---
+# Écran de succès + proposition d'assurance PNO après la signature du bail
+# La condition est évaluée côté frontend (vérifie si bailleur a signé)
+SUCCESS_BAIL_STEPS = [
+    {
+        "id": "bail.success",
+        "condition": "bail_bailleur_signed",
+        "required_fields": [],
+        "fields": {},
+        "always_unlocked": True,
+    },
+]
+
 # --- ZONE TENDUE ---
 ZONE_TENDUE_STEPS = [
     {
@@ -938,6 +962,8 @@ class FranceBailSerializer(BaseLocationSerializer):
         BAIL_STEPS.extend(BAIL_DATE_STEPS)
         BAIL_STEPS.extend(MODALITES_FINANCIERES_STEPS)
         BAIL_STEPS.extend(BAIL_UPLOAD_ANNEXES_STEPS)
+        BAIL_STEPS.extend(BAIL_SIGNATURE_STEPS)
+        BAIL_STEPS.extend(SUCCESS_BAIL_STEPS)
 
         return BAIL_STEPS
 

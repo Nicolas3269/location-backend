@@ -39,6 +39,7 @@ from location.models import (
 from location.serializers.composed import BienRentPriceSerializer
 from location.services.access_utils import user_has_bien_access
 from rent_control.utils import get_rent_price_for_bien
+from signature.document_status import DocumentStatus
 from signature.document_types import SignableDocumentType
 from signature.pdf_processing import prepare_pdf_with_signature_fields_generic
 from signature.views import (
@@ -69,6 +70,29 @@ def generate_bail_pdf(request):
             )
 
         bail = get_object_or_404(Bail, id=bail_id)
+
+        # IDEMPOTENCE: Si le bail est déjà SIGNING ou SIGNED, retourner les données existantes
+        # Cela évite de recréer des signature requests en cas de refresh de page
+        if bail.status in [DocumentStatus.SIGNING, DocumentStatus.SIGNED]:
+            # Récupérer le linkToken du premier signataire non-signé (ou None si tous ont signé)
+            first_unsigned_req = (
+                bail.signature_requests.filter(signed=False).order_by("order").first()
+            )
+            link_token = (
+                str(first_unsigned_req.link_token) if first_unsigned_req else None
+            )
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "bailId": str(bail.id),
+                    "pdfUrl": bail.pdf.url if bail.pdf else None,
+                    "linkTokenFirstSigner": link_token,
+                    "status": bail.status,
+                    "alreadySigning": bail.status == DocumentStatus.SIGNING,
+                    "alreadySigned": bail.status == DocumentStatus.SIGNED,
+                }
+            )
 
         # Vérifier si les documents annexes sont uploadés
         has_reglement_copropriete_uploaded = Document.objects.filter(
